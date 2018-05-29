@@ -1,0 +1,12 @@
+# Python Ignores
+*.pyc
+__pycache__
+venv*
+
+# JavaScript
+node_modules/
+.env
+*.log
+
+# Editor Preferences
+.vscode
