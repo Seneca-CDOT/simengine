@@ -4,9 +4,10 @@ from state import StateListener, initialize
 
 
 def run():
-    """ Initilize compnents' states in redis based on reference model """
+    """ Initilize compnents' states in redis based on a reference model """
     initialize()
-    """ Subscribe to redis events """
+
+    # Subscribe to redis events
     StateListener().run()
 
 if __name__ == '__main__':

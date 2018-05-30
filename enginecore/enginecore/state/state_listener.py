@@ -1,16 +1,16 @@
 """ StateListener monitors any updates to assets/OIDs """
+import sys
 
 from circuits import Component, Event, Timer, Worker
 import redis
-import sys
 
-from state.assets import PDU, Outlet, Asset
+from state.assets import SUPPORTED_ASSETS
 from state.event_map import event_map
-from state.asset_types import ASSET_TYPES
 from state.graph_reference import get_db
 
 class StateListener(Component):
-    """ Top-level component """
+    """ Top-level component that instantiates assets & maps redis events to circuit events"""
+
 
     def __init__(self):
         super(StateListener, self).__init__()
@@ -19,33 +19,33 @@ class StateListener(Component):
         self.redis_store = redis.StrictRedis(host='localhost', port=6379)
         self.pubsub = self.redis_store.pubsub()
         self.pubsub.psubscribe('__key*__:*')
+
+        # assets will store all the devices/items including PDUs, switches etc.
         self._assets = []
-        
         self._graph_db = get_db()
+
+        # query graph db for the nodes labeled as `Asset`
         results = self._graph_db.run(
             "MATCH (asset:Asset) return asset"
         )
 
-        supports_asset = lambda x: x.lower() if x.lower() in ASSET_TYPES else None
-
+        # instantiate assets based on graph records
         for record in results:
-            asset_types = filter(supports_asset, record['asset'].labels)
             try:
-                self._assets.append(
-                    self.map_assets(next(iter(asset_types)).lower(), record['asset'].get('key'))
+                asset_label = set(SUPPORTED_ASSETS).intersection(
+                    map(lambda x: x.lower(), record['asset'].labels)
                 )
+
+                asset_key = record['asset'].get('key')
+
+                self._assets.append(
+                    SUPPORTED_ASSETS[next(iter(asset_label), '').lower()](asset_key).register(self)
+                )
+
             except KeyError:
-                print('Asset may not be supported')
+                print('Detected asset that is not supported', file=sys.stderr)
 
         Worker(process=False).register(self)
-
-
-    def map_assets(self, asset, key):
-        return { # TODO: https://stackoverflow.com/questions/30654328/python-create-object-from-string
-            'pdu': PDU(key).register(self),
-            'outlet': Outlet(key).register(self),
-            'switch': Asset(key).register(self)
-        }[asset]
 
 
     def monitor(self):
@@ -63,7 +63,7 @@ class StateListener(Component):
 
         # lookup asset
         asset_key, property_id = data.split('-')
-        if property_id in ASSET_TYPES:
+        if property_id in SUPPORTED_ASSETS:
 
             # loop up child nodes
             results = self._graph_db.run(

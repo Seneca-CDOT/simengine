@@ -1,6 +1,15 @@
 from circuits import Component, handler
 import redis
 
+SUPPORTED_ASSETS = {}
+
+def register_asset(cls):
+    """
+    This decorator maps string class names to classes
+    (It is basically a factory)
+    """
+    SUPPORTED_ASSETS[cls.__name__.lower()] = cls
+
 class Asset(Component):
     def __init__(self, key):
         super(Asset, self).__init__()
@@ -10,6 +19,7 @@ class Asset(Component):
     def get_key(self):
         return self._key
 
+@register_asset
 class PDU(Asset):
     channel = "pdu"
     
@@ -23,7 +33,7 @@ class PDU(Asset):
         print("Powering up {}".format(self._key))
         self.redis_store.set(str(self._key) + '-pdu', '1')
 
-
+@register_asset
 class Outlet(Asset):
     channel = "outlet"
     
