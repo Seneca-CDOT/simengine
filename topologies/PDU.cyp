@@ -122,7 +122,7 @@ CREATE (out21:Asset:Outlet:SNMPComponent {
 
 CREATE (out22:Asset:Outlet:SNMPComponent { 
   name: 'out22',  
-  key: 1111171
+  key: 1111172
 })
 
 

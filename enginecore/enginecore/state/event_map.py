@@ -1,5 +1,5 @@
 """ Maps redis events to circuit events """
-import state.events as events
+import enginecore.state.events as events
 
 event_map = {
     'outlet': {

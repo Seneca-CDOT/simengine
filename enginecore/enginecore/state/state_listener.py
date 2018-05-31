@@ -4,9 +4,9 @@ import sys
 from circuits import Component, Event, Timer, Worker
 import redis
 
-from state.assets import SUPPORTED_ASSETS
-from state.event_map import event_map
-from state.graph_reference import get_db
+from enginecore.state.assets import SUPPORTED_ASSETS
+from enginecore.state.event_map import event_map
+from enginecore.state.graph_reference import GraphReference
 
 class StateListener(Component):
     """ Top-level component that instantiates assets & maps redis events to circuit events"""
@@ -22,7 +22,7 @@ class StateListener(Component):
 
         # assets will store all the devices/items including PDUs, switches etc.
         self._assets = []
-        self._graph_db = get_db()
+        self._graph_db = GraphReference().get_session()
 
         # query graph db for the nodes labeled as `Asset`
         results = self._graph_db.run(
@@ -60,9 +60,11 @@ class StateListener(Component):
 
         data = message['data'].decode("utf-8")
         value = (self.redis_store.get(data)).decode()
-
-        # lookup asset
         asset_key, property_id = data.split('-')
+
+        updated_asset = list(filter(lambda x: x.get_key() == int(asset_key), self._assets))
+        self.fire(event_map[property_id][value], next(iter(updated_asset)))
+
         if property_id in SUPPORTED_ASSETS:
 
             # loop up child nodes
@@ -76,12 +78,16 @@ class StateListener(Component):
 
                 for asset in self._assets:
                     if asset.get_key() == key:
-                        print(asset)
-                        print(event_map[property_id][value])
+                        # print(asset.get_key())
+                        # print(event_map[property_id][value])
                         self.fire(event_map[property_id][value], asset)
 
             print("Key: {}-{} -> {}".format(asset_key, property_id.replace(" ", ""), value))
 
+
+    def get_assets(self):
+        """ running instances """
+        return self._assets
 
     def started(self, *args):
         """
@@ -90,6 +96,9 @@ class StateListener(Component):
         print('Listening to Redis events')
         # check redis state every second
         Timer(1, Event.create("monitor"), persist=True).register(self)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self._graph_db.close()
 
 if __name__ == '__main__':
     StateListener().run()

@@ -1,14 +1,14 @@
 """ Initialize redis state based on reference model """
 import redis
 
-from state.assets import SUPPORTED_ASSETS
-from state.graph_reference import get_db
+from enginecore.state.assets import SUPPORTED_ASSETS
+from enginecore.state.graph_reference import GraphReference
 
 def initialize():
-    graph_db = get_db()
+    graph_ref = GraphReference()
     redis_store = redis.StrictRedis(host='localhost', port=6379)
-    
-    results = graph_db.run(
+
+    results = graph_ref.get_session().run(
         "MATCH (asset:Asset) OPTIONAL MATCH (asset:Asset)-[:HAS_OID]->(oid)"
         "return asset, collect(oid) as oids"
     )
