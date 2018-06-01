@@ -1,5 +1,6 @@
 # Python Ignores
 *.pyc
+*.pyo
 __pycache__
 venv*
 
