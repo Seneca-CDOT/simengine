@@ -18,7 +18,7 @@ def manage_state(asset_key, action):
             map(lambda x: x.lower(), labels)
         )
 
-        state_manager = SUPPORTED_ASSETS[next(iter(asset_label), '').lower()].get_state_manager(asset_key)
+        state_manager = SUPPORTED_ASSETS[next(iter(asset_label), '').lower()].StateManagerCls(asset_key)
         action(state_manager)
 
 
@@ -53,5 +53,8 @@ power_down_action.set_defaults(
 status_group.set_defaults(func=lambda _: print('Not Implemented Yet'))
 oid_group.set_defaults(func=lambda _: print('Not Implemented Yet'))
 
-options = argparser.parse_args()
-options.func(vars(options))
+try:
+    options = argparser.parse_args()
+    options.func(vars(options))
+except:
+    argparser.print_help()

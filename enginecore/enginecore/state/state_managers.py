@@ -4,30 +4,30 @@ from circuits import Component
 import redis
 from enginecore.state.graph_reference import GraphReference
 
-class Asset(Component):
+class StateManger():
+
+
     def __init__(self, key):
-        super(Asset, self).__init__()
-        self._key = key
         self.redis_store = redis.StrictRedis(host='localhost', port=6379)
         self._graph_db = GraphReference().get_session()
-    
-
-    def get_key(self):
-        return self._key
+        self._key = key
 
 
     def __exit__(self, exc_type, exc_value, traceback):
         self._graph_db.close()
 
 
-class StateManger(Asset):
-    @classmethod
-    def get_state_manager(cls, key):
+    def power_down(self):
+        raise NotImplementedError
+
+
+    def power_up(self):
         raise NotImplementedError
 
 
 class PDUStateManager(StateManger):
-        
+    
+
     def power_down(self):
         print("Powering down {}".format(self._key))
         self.redis_store.set(str(self._key) + '-pdu', '0')
@@ -41,13 +41,9 @@ class PDUStateManager(StateManger):
         self.redis_store.set(str(self._key) + '-pdu', '1')
 
 
-    @classmethod
-    def get_state_manager(cls, key):
-        return PDUStateManager(key)
-
-
 class OutletStateManager(StateManger):
-      
+
+
     def power_down(self):
         print("Powering down {}".format(self._key))
         self.redis_store.set(str(self._key) + '-outlet', '0')
@@ -57,7 +53,3 @@ class OutletStateManager(StateManger):
         print("Powering up {}".format(self._key))
         # TODO: check if OID for this socket is on
         self.redis_store.set(str(self._key) + '-outlet', '1')
-
-    @classmethod
-    def get_state_manager(cls, key):
-        return OutletStateManager(key)

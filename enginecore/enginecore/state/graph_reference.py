@@ -12,14 +12,19 @@ class Singleton(type):
 
 
 class GraphReference(metaclass=Singleton):
+    
+    
     def __init__(self):
         self._driver = GraphDatabase.driver('bolt://localhost', auth=basic_auth("test", "test"))
 
+    
     def close(self):
         self._driver.close()
 
+
     def get_session(self):
         return self._driver.session()
+
 
     @classmethod
     def get_parent_keys(cls, session, key):
@@ -44,6 +49,7 @@ class GraphReference(metaclass=Singleton):
             keys.append(record['parent'].get('key'))
 
         return keys
+
 
     @classmethod
     def get_node_by_key(cls, session, key):

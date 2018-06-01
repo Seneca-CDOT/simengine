@@ -21,7 +21,7 @@ class StateListener(Component):
         self.pubsub.psubscribe('__key*__:*')
 
         # assets will store all the devices/items including PDUs, switches etc.
-        self._assets = []
+        self._assets = {}
         self._graph_db = GraphReference().get_session()
 
         # query graph db for the nodes labeled as `Asset`
@@ -37,10 +37,9 @@ class StateListener(Component):
                 )
 
                 asset_key = record['asset'].get('key')
+                asset_label = next(iter(asset_label), '').lower()
 
-                self._assets.append(
-                    SUPPORTED_ASSETS[next(iter(asset_label), '').lower()](asset_key).register(self)
-                )
+                self._assets[asset_key] = SUPPORTED_ASSETS[asset_label](asset_key).register(self)     
 
             except KeyError:
                 print('Detected asset that is not supported', file=sys.stderr)
@@ -52,7 +51,7 @@ class StateListener(Component):
         """ listens to redis events """
 
         print("...")
-        message = self.pubsub.get_message() 
+        message = self.pubsub.get_message()
 
         # validate message
         if ((not message) or ('data' not in message) or (not isinstance(message['data'], bytes))):
@@ -62,28 +61,26 @@ class StateListener(Component):
         value = (self.redis_store.get(data)).decode()
         asset_key, property_id = data.split('-')
 
-        updated_asset = list(filter(lambda x: x.get_key() == int(asset_key), self._assets))
-        self.fire(event_map[property_id][value], next(iter(updated_asset)))
+        try:
 
-        if property_id in SUPPORTED_ASSETS:
+            if property_id in SUPPORTED_ASSETS:
+                updated_asset = self._assets[int(asset_key)]
+                self.fire(event_map[property_id][value], updated_asset)
 
-            # loop up child nodes
-            results = self._graph_db.run(
-                "MATCH (asset:Asset)-[:POWERED_BY]->({ key: $key }) return asset",
-                key=int(asset_key)
-            )
+                # look up child nodes
+                results = self._graph_db.run(
+                    "MATCH (asset:Asset)-[:POWERED_BY]->({ key: $key }) return asset",
+                    key=int(asset_key)
+                )
 
-            for record in results:
-                key = record['asset'].get('key')
+                for record in results:
+                    key = record['asset'].get('key')
+                    self.fire(event_map[property_id][value], self._assets[key])
 
-                for asset in self._assets:
-                    if asset.get_key() == key:
-                        # print(asset.get_key())
-                        # print(event_map[property_id][value])
-                        self.fire(event_map[property_id][value], asset)
+                print("Key: {}-{} -> {}".format(asset_key, property_id.replace(" ", ""), value))
 
-            print("Key: {}-{} -> {}".format(asset_key, property_id.replace(" ", ""), value))
-
+        except KeyError as error:
+            print("Detected unregistered asset under key [{}]".format(error), file=sys.stderr)
 
     def get_assets(self):
         """ running instances """

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """ Entry point """
 
 from enginecore.state.state_listener import StateListener
