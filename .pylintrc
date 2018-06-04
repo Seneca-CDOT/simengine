@@ -32,7 +32,7 @@ load-plugins=
 # Disable the message, report, category or checker with the given id(s). You
 # can either give multiple identifier separated by comma (,) or put this option
 # multiple time.
-#disable=
+disable=C0303
 
 
 [REPORTS]
@@ -236,4 +236,3 @@ ignore-iface-methods=isImplementedBy,deferred,extends,names,namesAndDescriptions
 defining-attr-methods=__init__,__new__,setUp
 
 
-disable=C0303

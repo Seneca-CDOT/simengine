@@ -1,4 +1,14 @@
-""" This file contains definitions of Asset classes """
+""" This file contains definitions of Assets 
+
+Each asset class contains reactive logic associated with certain events. 
+
+Example:
+    a PDU asset will be instantiated if there's a node labeled as "PDU" in a graph db (:PDU),
+    isntance of a PDU asset can react to upstream power loss or any other event defined 
+    as a handler.
+    It can also wrap SNMPAgent if supported.
+
+"""
 import subprocess
 import os
 import signal
@@ -53,8 +63,11 @@ class SNMPAgent():
         # start a new one
         cmd = "snmpsimd.py --agent-udpv4-endpoint=127.0.0.{}:1024".format(SNMPAgent.agent_num)
         cmd += " --variation-module-options=redis:host:127.0.0.1,port:6379,db:0,key-spaces-id:"+str(self._key_space_id)
-        self._process = subprocess.Popen(cmd, shell=True, stderr=subprocess.DEVNULL, stdout=open(os.devnull, 'wb'), close_fds=True)
-        print ("Started SNMPsim process under pid {}".format(self._process.pid))
+        self._process = subprocess.Popen(
+            cmd, shell=True, stderr=subprocess.DEVNULL, stdout=open(os.devnull, 'wb'), close_fds=True
+        )
+
+        print("Started SNMPsim process under pid {}".format(self._process.pid))
     
 
 @register_asset

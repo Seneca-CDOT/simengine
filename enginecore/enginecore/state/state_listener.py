@@ -82,9 +82,11 @@ class StateListener(Component):
         except KeyError as error:
             print("Detected unregistered asset under key [{}]".format(error), file=sys.stderr)
 
+
     def get_assets(self):
         """ running instances """
         return self._assets
+
 
     def started(self, *args):
         """
