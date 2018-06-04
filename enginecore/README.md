@@ -2,6 +2,8 @@
 
 `python3 -m pip install -r requirements.txt`
 
+(Note that these dependencies will be RPM packaged in due course)
+
 ### Running a Daemon
 
 Neo4J & Redis server must be up & running
