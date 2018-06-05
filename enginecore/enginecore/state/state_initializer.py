@@ -3,6 +3,7 @@ import redis
 
 from enginecore.state.assets import SUPPORTED_ASSETS
 from enginecore.state.graph_reference import GraphReference
+from enginecore.state.utils import format_as_redis_key
 
 def initialize():
     graph_ref = GraphReference()
@@ -25,14 +26,8 @@ def initialize():
             formatted_key = asset_key.zfill(10)
 
             for oid in record['oids']: # loop over oids that are defined in the graph db
- 
-                oid_digits = oid.get('OID').split('.')
-                
-                key_and_oid = formatted_key + '-'
-                
-                for digit in oid_digits[:-1]:
-                    key_and_oid += (digit + '.').rjust(11, ' ')
-                key_and_oid += (oid_digits[-1]).rjust(10, ' ')
+                 
+                key_and_oid = format_as_redis_key(formatted_key, oid.get('OID'))
 
                 redis_store.lpush(formatted_key + "-temp_oids_ordering", key_and_oid)
                 redis_store.set(key_and_oid, "{}|{}".format(oid.get('dataType'), oid.get('defaultValue'))) 

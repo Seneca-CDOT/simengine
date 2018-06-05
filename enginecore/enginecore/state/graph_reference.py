@@ -1,7 +1,10 @@
 from neo4j.v1 import GraphDatabase, basic_auth
 import signal
 import sys
+import os
 
+from enginecore.state.utils import format_as_redis_key
+import enginecore.state.assets
 
 class Singleton(type):
     _instances = {}
@@ -15,7 +18,10 @@ class GraphReference(metaclass=Singleton):
     
     
     def __init__(self):
-        self._driver = GraphDatabase.driver('bolt://localhost', auth=basic_auth("test", "test"))
+        self._driver = GraphDatabase.driver(
+            'bolt://localhost', 
+            auth=basic_auth(os.environ.get('NEO4J_USR', 'test'), os.environ.get('NEO4J_PSW', 'test'))
+        )
 
     
     def close(self):
@@ -35,20 +41,35 @@ class GraphReference(metaclass=Singleton):
             session: database session
             key(int): key of the affected node
         Returns:
-            list: list of parent nodes that power up the asset
+            tuple: parent asset keys & parent OIDs that directly affect the node (formatted for Redis)
         """
         results = session.run(
-            "MATCH (a:Asset { key: $key })-[:POWERED_BY*]->(parent:Asset) RETURN parent \
+            "MATCH (a:Asset { key: $key })-[:POWERED_BY*]->(parent:Asset) RETURN parent, null as oid \
             UNION \
-            MATCH (a:Asset { key: $key })-[:POWERED_BY]->(parent:OID) RETURN parent",
-            key=key
+            MATCH (a:Asset { key: $key })-[:POWERED_BY]->(oid:OID)<-[:HAS_OID]-(parent:Asset) RETURN parent, oid",
+            key=int(key)
         )
 
-        keys = []
+        asset_keys = []
+        oid_keys = []
         for record in results:
-            keys.append(record['parent'].get('key'))
+            
+            asset_label = set(enginecore.state.assets.SUPPORTED_ASSETS).intersection(
+                map(lambda x: x.lower(), record['parent'].labels)
+            )
+            
+            asset_key = record['parent'].get('key')
+            if not record['oid']:
+                asset_label = next(iter(asset_label))
+                asset_keys.append("{asset_key}-{property}".format(
+                    asset_key=asset_key, 
+                    property=asset_label.lower())
+                )
+            else:
+                oid = record['oid'].get('OID')
+                oid_keys.append(format_as_redis_key(str(asset_key), oid, key_formatted=False))
 
-        return keys
+        return asset_keys, oid_keys
 
 
     @classmethod

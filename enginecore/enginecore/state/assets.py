@@ -19,6 +19,14 @@ from enginecore.state.state_managers import PDUStateManager, OutletStateManager
 
 SUPPORTED_ASSETS = {}
 
+def register_asset(cls):
+    """
+    This decorator maps string class names to classes
+    (It is basically a factory)
+    """
+    SUPPORTED_ASSETS[cls.__name__.lower()] = cls
+    return cls
+
 
 class Asset(Component):
     def __init__(self, key):
@@ -27,15 +35,6 @@ class Asset(Component):
 
     def get_key(self):
         return self._key
-
-
-def register_asset(cls):
-    """
-    This decorator maps string class names to classes
-    (It is basically a factory)
-    """
-    SUPPORTED_ASSETS[cls.__name__.lower()] = cls
-    return cls
 
 
 class SNMPAgent():
@@ -61,8 +60,10 @@ class SNMPAgent():
     def stop_agent(self):
         os.kill(self._process.pid, signal.SIGSTOP)
 
+
     def __exit__(self, exc_type, exc_value, traceback):
         os.remove(os.path.join(self._snmp_rec_dir, self._snmp_rec_filename))
+
 
     def start_agent(self):
         
@@ -135,6 +136,7 @@ class Outlet(Asset):
     def power_down(self):
         """ React to events with power down """
         self._outlet_state.power_down()
+
 
     @handler("PDUPowerUp", "SignalUp")
     def power_up(self):
