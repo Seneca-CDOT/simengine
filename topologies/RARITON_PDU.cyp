@@ -5,7 +5,7 @@
 // ----------------------------------------
 ///// Outlet (Instance of the Simulator) /////
 // ----------------------------------------
-CREATE (out:Asset:Outlet { name: 'out',  key: 11112 })
+CREATE (out:Asset:Outlet { name: 'out',  key: 1112 })
 
 // ----------------------------------------
 ///// PDU (Instance of the Simulator) /////
@@ -77,56 +77,64 @@ CREATE (out8:Asset:Outlet:SNMPComponent {
 CREATE (out1State:OID {
   name: "OutletState",
   OID: "1.3.6.1.4.1.13742.4.1.2.2.1.3.1",
-  defaultValue: 0, // off
-  dataType: 2
+  OIDName: "OutletState", 
+  defaultValue: 1, // on by default
+  dataType: 2      // INTEGER dt
 })
 
 CREATE (out2State:OID {
   name: "OutletState2",
   OID: "1.3.6.1.4.1.13742.4.1.2.2.1.3.2",
-  defaultValue: 0,
+  OIDName: "OutletState", 
+  defaultValue: 1,
   dataType: 2
 })
 
 CREATE (out3State:OID {
   name: "OutletState3",
   OID: "1.3.6.1.4.1.13742.4.1.2.2.1.3.3",
-  defaultValue: 0,
+  OIDName: "OutletState", 
+  defaultValue: 1,
   dataType: 2
 })
 
 CREATE (out4State:OID {
   name: "OutletState4",
   OID: "1.3.6.1.4.1.13742.4.1.2.2.1.3.4",
-  defaultValue: 0,
+  OIDName: "OutletState", 
+  defaultValue: 1,
   dataType: 2
 })
 
 CREATE (out5State:OID {
   name: "OutletState5",
   OID: "1.3.6.1.4.1.13742.4.1.2.2.1.3.5",
-  defaultValue: 0,
+  OIDName: "OutletState", 
+  defaultValue: 1,
   dataType: 2
 })
 
 CREATE (out6State:OID {
   name: "OutletState6",
   OID: "1.3.6.1.4.1.13742.4.1.2.2.1.3.6",
-  defaultValue: 0,
+  OIDName: "OutletState", 
+  defaultValue: 1,
   dataType: 2
 })
 
 CREATE (out7State:OID {
   name: "OutletState7",
   OID: "1.3.6.1.4.1.13742.4.1.2.2.1.3.7",
-  defaultValue: 0,
+  OIDName: "OutletState", 
+  defaultValue: 1,
   dataType: 2
 })
 
 CREATE (out8State:OID {
   name: "OutletState8",
   OID: "1.3.6.1.4.1.13742.4.1.2.2.1.3.8",
-  defaultValue: 0,
+  OIDName: "OutletState", 
+  defaultValue: 1,
   dataType: 2
 })
 
@@ -134,48 +142,55 @@ CREATE (out8State:OID {
 
 CREATE (out1Current:OID {
   name: "OutletCurrent",
+  OIDName: "OutletCurrent",
   OID: "1.3.6.1.4.1.13742.4.1.2.2.1.4.1",
   defaultValue: 0, 
   dataType: 66
 })
 
 CREATE (out2Current:OID {
-  name: "OutletCurren2",
+  name: "OutletCurrent2",
+  OIDName: "OutletCurrent",
   OID: "1.3.6.1.4.1.13742.4.1.2.2.1.4.1.2",
   defaultValue: 0,
   dataType: 66
 })
 
 CREATE (out3Current:OID {
-  name: "OutletCurren3",
+  name: "OutletCurrent3",
+  OIDName: "OutletCurrent",
   OID: "1.3.6.1.4.1.13742.4.1.2.2.1.4.1.3",
   defaultValue: 0,
   dataType: 66
 })
 
 CREATE (out4Current:OID {
-  name: "OutletCurren4",
+  name: "OutletCurrent4",
+  OIDName: "OutletCurrent",
   OID: "1.3.6.1.4.1.13742.4.1.2.2.1.4.1.4",
   defaultValue: 0,
   dataType: 66
 })
 
 CREATE (out5Current:OID {
-  name: "OutletCurren5",
+  name: "OutletCurrent5",
+  OIDName: "OutletCurrent",
   OID: "1.3.6.1.4.1.13742.4.1.2.2.1.4.1.5",
   defaultValue: 0,
   dataType: 66
 })
 
 CREATE (out6Current:OID {
-  name: "OutletCurren6",
+  name: "OutletCurrent6",
+  OIDName: "OutletCurrent",
   OID: "1.3.6.1.4.1.13742.4.1.2.2.1.4.1.6",
   defaultValue: 0,
   dataType: 66
 })
 
 CREATE (out7Current:OID {
-  name: "OutletCurren7",
+  name: "OutletCurrent7",
+  OIDName: "OutletCurrent",
   OID: "1.3.6.1.4.1.13742.4.1.2.2.1.4.1.7",
   defaultValue: 0,
   dataType: 66
@@ -183,6 +198,7 @@ CREATE (out7Current:OID {
 
 CREATE (out8Current:OID {
   name: "OutletCurrent8",
+  OIDName: "OutletCurrent",
   OID: "1.3.6.1.4.1.13742.4.1.2.2.1.4.1.8",
   defaultValue: 0,
   dataType: 66

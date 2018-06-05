@@ -2,12 +2,17 @@
 import enginecore.state.events as events
 
 event_map = {
-    'outlet': {
-        "0": events.OutletPowerDown(),
-        "1": events.OutletPowerUp(),
-    },
     'pdu': {
         "0": events.PDUPowerDown(),
         "1": events.PDUPowerUp(),
+    },     
+    'outlet': {
+        "0": events.OutletPowerDown(),
+        "1": events.OutletPowerUp(),
+    }, 
+    ## Outlet OIDS
+    'OutletState': {
+        "0": events.SignalDown(),
+        "1": events.SignalUp(),
     }
 }

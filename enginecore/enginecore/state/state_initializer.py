@@ -35,10 +35,9 @@ def initialize():
                 key_and_oid += (oid_digits[-1]).rjust(10, ' ')
 
                 redis_store.lpush(formatted_key + "-temp_oids_ordering", key_and_oid)
-                redis_store.set(key_and_oid, "{}|{}".format(oid.get('dataType'), oid.get('defaultValue'))) # testing
+                redis_store.set(key_and_oid, "{}|{}".format(oid.get('dataType'), oid.get('defaultValue'))) 
      
             if 'SNMPSim' in record['asset'].labels and record['oids']:
-                print(record['asset'])
                 redis_store.sort(formatted_key + 'temp_oids_ordering', store=formatted_key + '-oids_ordering', alpha=True)
                 redis_store.delete(formatted_key + '-' + 'temp_oids_ordering')
                 redis_store.rpush(asset_key, formatted_key)            

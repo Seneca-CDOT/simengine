@@ -78,6 +78,24 @@ class StateListener(Component):
                     self.fire(event_map[property_id][value], self._assets[key])
 
                 print("Key: {}-{} -> {}".format(asset_key, property_id.replace(" ", ""), value))
+            elif int(asset_key) in self._assets:
+                oid = property_id.replace(" ", "")
+                _, oid_value = value.split("|")
+
+                # look up dependant nodes
+                results = self._graph_db.run(
+                    "MATCH (asset:Asset)-[:POWERED_BY]->(oid:OID { OID: $oid }) return asset, oid",
+                    oid=oid
+                )
+
+                for record in results:
+                    key = record['asset'].get('key')
+                    oid_name = record['oid']['OIDName']
+
+                    self.fire(event_map[oid_name][oid_value], self._assets[key])
+
+                print('oid changed:')
+                print(">" + oid + ": " + oid_value)
 
         except KeyError as error:
             print("Detected unregistered asset under key [{}]".format(error), file=sys.stderr)

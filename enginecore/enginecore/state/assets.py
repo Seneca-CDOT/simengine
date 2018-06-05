@@ -12,6 +12,7 @@ Example:
 import subprocess
 import os
 import signal
+import tempfile
 
 from circuits import Component, handler
 from enginecore.state.state_managers import PDUStateManager, OutletStateManager
@@ -40,18 +41,28 @@ def register_asset(cls):
 class SNMPAgent():
     
     agent_num = 1
-    def __init__(self, key):
+    def __init__(self, key, community='public'):
 
         self._key_space_id = key
         self._process = None
+        self._snmp_rec_filename = community + '.snmprec'
+        self._snmp_rec_dir = tempfile.mkdtemp()
+
+        snmp_rec_filepath = os.path.join(self._snmp_rec_dir, self._snmp_rec_filename)
+        
+        with open(snmp_rec_filepath, "w") as tmp:
+            tmp.write("1.3.6|:redis|key-spaces-id={}".format(key))
+
         self.start_agent()
-       
+
         SNMPAgent.agent_num += 1
 
 
     def stop_agent(self):
         os.kill(self._process.pid, signal.SIGSTOP)
 
+    def __exit__(self, exc_type, exc_value, traceback):
+        os.remove(os.path.join(self._snmp_rec_dir, self._snmp_rec_filename))
 
     def start_agent(self):
         
@@ -61,8 +72,10 @@ class SNMPAgent():
             return
 
         # start a new one
-        cmd = "snmpsimd.py --agent-udpv4-endpoint=127.0.0.{}:1024".format(SNMPAgent.agent_num)
+        cmd = "/usr/bin/snmpsimd.py --agent-udpv4-endpoint=127.0.0.{}:1024".format(SNMPAgent.agent_num)
         cmd += " --variation-module-options=redis:host:127.0.0.1,port:6379,db:0,key-spaces-id:"+str(self._key_space_id)
+        cmd += " --data-dir="+self._snmp_rec_dir
+
         self._process = subprocess.Popen(
             cmd, shell=True, stderr=subprocess.DEVNULL, stdout=open(os.devnull, 'wb'), close_fds=True
         )
@@ -118,13 +131,13 @@ class Outlet(Asset):
 
 
     ##### React to any events of the connected components #####    
-    @handler("PDUPowerDown")
-    def power_down(self): 
+    @handler("PDUPowerDown", "SignalDown")
+    def power_down(self):
+        """ React to events with power down """
         self._outlet_state.power_down()
 
-
-    @handler("PDUPowerUp")
+    @handler("PDUPowerUp", "SignalUp")
     def power_up(self):
+        """ React to events with power up """
         self._outlet_state.power_up()
-
 

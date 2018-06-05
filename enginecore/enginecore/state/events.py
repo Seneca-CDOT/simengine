@@ -12,3 +12,9 @@ class PDUPowerDown(Event):
 
 class PDUPowerUp(Event):
     """ Power up event """
+
+class SignalDown(Event):
+    pass
+
+class SignalUp(Event):
+    pass
