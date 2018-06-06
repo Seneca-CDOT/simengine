@@ -1,35 +1,16 @@
-## Installing Dependencies
+## Setting Up
 
-### Prerequisites
+### Install and configure
 
-`redis` & `neo4j` are installed
+Run the installation script:
+'script/simengine-setup'
 
-### Simengine 
+This will run the series of scripts in script/setup/
 
-`python3 -m pip install -r requirements.txt`
+## Running
 
-### SNMPSim 
-(python2 dependencies)
-
-`pip install redis`
-
-`pip install snmpsim`
-
-## Running a Daemon
-
-Neo4J & Redis server must be up & running
-
-`neo4j start`
-
-`redis-server`
-
-Redis keyspace events are disabled by default, you can enable them by changing a config entry:
-
-`redis-cli config set notify-keyspace-events E$` 
-
-Starting a daemon
-
-`python3 app.py`
+Run the script:
+'script/simengine-run'
 
 ## Linting
 
