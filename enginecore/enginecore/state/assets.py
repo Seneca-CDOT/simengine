@@ -73,7 +73,7 @@ class SNMPAgent():
             return
 
         # start a new one
-        cmd = "/usr/bin/snmpsimd.py --agent-udpv4-endpoint=127.0.0.{}:1024".format(SNMPAgent.agent_num)
+        cmd = "snmpsimd.py --agent-udpv4-endpoint=127.0.0.{}:1024".format(SNMPAgent.agent_num)
         cmd += " --variation-module-options=redis:host:127.0.0.1,port:6379,db:0,key-spaces-id:"+str(self._key_space_id)
         cmd += " --data-dir="+self._snmp_rec_dir
 
