@@ -1,0 +1,15 @@
+#!/bin/bash
+
+echo "===== $(basename $0)"
+FILE="$(dirname $0)/../topologies/RARITAN_PDU.cyp"
+if [ -r "$FILE" ]
+then
+	sudo neo4j start
+	sleep 2
+	echo "Loading data..."
+	cat $FILE|sudo cypher-shell -u simengine -p simengine
+	STATUS=$?
+	sudo neo4j stop
+fi
+exit $STATUS
+

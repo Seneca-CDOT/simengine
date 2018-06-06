@@ -1,0 +1,10 @@
+#!/bin/bash
+
+echo "===== $(basename $0)"
+sudo neo4j start
+sleep 2
+echo "CALL dbms.changePassword('neo4j-simengine'); CALL dbms.security.createUser('simengine', 'simengine', false);"|sudo cypher-shell -u neo4j -p neo4j
+STATUS=$?
+sudo neo4j stop
+exit $STATUS
+
