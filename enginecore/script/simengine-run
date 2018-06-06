@@ -1,0 +1,9 @@
+#!/bin/bash
+
+export NEO4J_USR="simengine"
+export NEO4J_PSW="simengine"
+
+sudo neo4j start
+nohup redis-server & 
+$(dirname $0)/../app.py
+
