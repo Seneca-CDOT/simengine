@@ -7,7 +7,13 @@ Run the installation script:
 
 This will run the series of scripts in script/setup/
 
-## Running
+Note that some components are not yet packaged as RPMs,
+and these components are installed from other sources
+(e.g., pip). Note also that additional repositories may
+be added to the system's yum/dnf configuration by this
+script.
+
+## Run
 
 Run the script:
 'script/simengine-run'
