@@ -1,4 +1,10 @@
 #!/bin/bash
+#
+# This script installs the simengine dependencies.
+# These are all RPM packaged; they're installed from
+# various repos and pip.
+#
+# CTyler 2018-06-06
 
 echo "===== $(basename $0)"
 

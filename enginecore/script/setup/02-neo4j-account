@@ -1,4 +1,9 @@
 #!/bin/bash
+#
+# This script installs the neo4j account 'simengine'
+# and sets a new password for the default account.
+#
+# CTyler 2018-06-06
 
 echo "===== $(basename $0)"
 sudo neo4j start

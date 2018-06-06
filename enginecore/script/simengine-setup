@@ -1,4 +1,9 @@
 #!/bin/bash
+#
+# This script installs and configures the simengine
+# components, via scripts in the setup/ subdir.
+#
+# CTyler 2018-06-06
 
 DIR="$(dirname $0)/setup/"
 if [ -d "$DIR" ]

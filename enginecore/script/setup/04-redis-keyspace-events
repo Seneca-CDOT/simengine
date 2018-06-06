@@ -1,5 +1,10 @@
 #!/bin/bash
-# setup redis keyspace events
+#
+# This script configures Redis to do keyspace event
+# notifications, by editing /etc/redis.conf
+#
+# CTyler 2018-06-06
+
 echo "===== $(basename $0)"
 echo "Setting up redis keyspace events..."
 sudo sed -i 's/^notify-keyspace-events.*/notify-keyspace-events "E$"/' /etc/redis.conf
