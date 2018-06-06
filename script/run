@@ -1,4 +1,0 @@
-#!/bin/bash
-
-sudo neo4j start
-nohup redis-server & 
