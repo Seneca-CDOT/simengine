@@ -14,3 +14,7 @@ node_modules/
 
 # Redis
 dump.rdb
+
+# nohup
+nohup.out
+

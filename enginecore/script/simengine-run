@@ -1,0 +1,13 @@
+#!/bin/bash
+#
+# Simple/temporary script to start simengine.
+#
+# CTyler 2018-06-06
+
+export NEO4J_USR="simengine"
+export NEO4J_PSW="simengine"
+
+sudo neo4j start
+nohup redis-server & 
+$(dirname $0)/../app.py
+

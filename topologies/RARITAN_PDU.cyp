@@ -258,3 +258,4 @@ CREATE (out5)-[:POWERED_BY]->(pdu)
 CREATE (out6)-[:POWERED_BY]->(pdu)
 CREATE (out7)-[:POWERED_BY]->(pdu)
 CREATE (out8)-[:POWERED_BY]->(pdu)
+;

@@ -1,0 +1,24 @@
+#!/bin/bash
+#
+# This script installs and configures the simengine
+# components, via scripts in the setup/ subdir.
+#
+# CTyler 2018-06-06
+
+DIR="$(dirname $0)/setup/"
+if [ -d "$DIR" ]
+then
+	for X in $DIR/*
+	do
+		$X
+		STATUS=$?
+#		if [ "$STATUS" -ne "0" ]
+#		then
+#			echo >&2
+#			echo "ERROR: $X exited with status $STATUS" >&2
+#			echo >&2
+#			exit $STATUS
+#		fi
+	done
+fi
+

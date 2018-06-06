@@ -1,0 +1,29 @@
+#!/bin/bash
+#
+# This script installs the simengine dependencies.
+# These are all RPM packaged; they're installed from
+# various repos and pip.
+#
+# CTyler 2018-06-06
+
+echo "===== $(basename $0)"
+
+# Following commands are modified from https://neo4j.com/docs/operations-manual/current/installation/linux/rpm/
+
+sudo rpm --import http://debian.neo4j.org/neotechnology.gpg.key
+cat <<EOF >/tmp/neo4j.repo
+[neo4j]
+name=Neo4j RPM Repository
+baseurl=http://yum.neo4j.org/stable
+enabled=1
+gpgcheck=1
+EOF
+sudo cp /tmp/neo4j.repo /etc/yum.repos.d/neo4j.repo
+
+# End commands from https://neo4j.com/docs/operations-manual/current/installation/linux/rpm/
+
+sudo dnf install -y redis neo4j
+sudo python3 -m pip install -r requirements.txt
+sudo pip install redis
+sudo pip install snmpsim
+
