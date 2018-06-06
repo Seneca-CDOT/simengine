@@ -12,7 +12,7 @@ CREATE (out:Asset:Outlet { name: 'out',  key: 11112 })
 // ----------------------------------------
 CREATE (pdu:Asset:PDU:SNMPSim { 
   name: 'pdu',
-  key: 11111
+  key: 1111
 })
 
 // OIDs that belong to the PDU //
@@ -44,17 +44,17 @@ CREATE (ModelNumber:OID {
 // ---------------------
 CREATE (out1:Asset:Outlet:SNMPComponent { 
   name: 'out1',
-  key: 111111
+  key: 11111
 })
 
 CREATE (out2:Asset:Outlet:SNMPComponent { 
   name: 'out2',  
-  key: 111112
+  key: 11112
 })
 
 CREATE (out3:Asset:Outlet:SNMPComponent { 
   name: 'out3',
-  key: 111113
+  key: 11113
 })
 
 
@@ -81,67 +81,6 @@ CREATE (out3State:OID {
   type: "write"
 })
 
-
-//////////////// ??????????????????????????????????
-CREATE (pdu7:Asset:PDU:SNMPSim { 
-  name: 'pdu7',
-  key: 11117
-})
-
-// OIDs that belong to the PDU //
-// - - - - - - - - - - - - - - - 
-CREATE (SerialNumber2:OID {
-  name: "SerialNumber",
-  OID: ".1.3.6.1.4.1.318.1.1.4.1.5.0",
-  defaultValue: 1999201,
-  type: "read"
-})
-
-
-CREATE (WattacheDraw2:OID {
-  name: "WattageDraw",
-  OID: ".1.3.6.1.4.1.318.1.1.12.1.16.0",
-  defaultValue: 14,
-  type: "write"
-})
-
-CREATE (ModelNumber2:OID {
-  name: "ModelNumber",
-  OID: ".1.3.6.1.4.1.318.1.1.4.1.4.0",
-  defaultValue: "AAABBBCCC",
-  type: "read"
-})
-
-// ---------------------
-///// PDU outlets  /////
-// ---------------------
-CREATE (out21:Asset:Outlet:SNMPComponent { 
-  name: 'out21',
-  key: 1111171
-})
-
-CREATE (out22:Asset:Outlet:SNMPComponent { 
-  name: 'out22',  
-  key: 1111172
-})
-
-
-
-// OIDs that belong to the PDU //
-// - - - - - - - - - - - - - - - 
-CREATE (out1State2:OID {
-  name: "CurrentState",
-  OID: ".1.3.6.1.4.1.318.1.1.4.4.2.1.3.1",
-  defaultValue: 1,
-  type: "write"
-})
-
-CREATE (out2State2:OID {
-  name: "CurrentState",
-  OID: ".1.3.6.1.4.1.318.1.1.4.4.2.1.3.2",
-  defaultValue: 1,
-  type: "write"
-})
 
 // -------------------------------------------
 ///// Switch (Instance of the Simulator) /////
@@ -177,19 +116,3 @@ CREATE (out1)-[:POWERED_BY]->(pdu)
 CREATE (out2)-[:POWERED_BY]->(pdu)
 CREATE (out3)-[:POWERED_BY]->(pdu)
 
-///////// ???????????????????
-CREATE (pdu7)-[:POWERED_BY]->(out1)
-CREATE (pdu7)-[:HAS_OID]->(SerialNumber2)
-CREATE (pdu7)-[:HAS_OID]->(WattacheDraw2)
-CREATE (pdu7)-[:HAS_OID]->(ModelNumber2)
-CREATE (pdu7)-[:HAS_OID]->(out1State2)
-CREATE (pdu7)-[:HAS_OID]->(out2State2)
-
-CREATE (pdu7)-[:HAS_SNMP_COMPONENT]->(out21)
-CREATE (pdu7)-[:HAS_SNMP_COMPONENT]->(out22)
-
-CREATE (out21)-[:POWERED_BY]->(out1State2)
-CREATE (out22)-[:POWERED_BY]->(out2State2)
-
-CREATE (out21)-[:POWERED_BY]->(pdu7)
-CREATE (out22)-[:POWERED_BY]->(pdu7)

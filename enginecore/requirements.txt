@@ -1,4 +1,3 @@
 redis>=2.10.6
 circuits
 neo4j-driver
-snmpsim

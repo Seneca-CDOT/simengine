@@ -1,10 +1,23 @@
-### Installing Dependencies:
+## Installing Dependencies
+
+### Prerequisites
+
+`redis` & `neo4j` are installed
+
+### Simengine 
 
 `python3 -m pip install -r requirements.txt`
 
 (Note that these dependencies will be RPM packaged in due course)
 
-### Running a Daemon
+### SNMPSim 
+(python2 dependencies)
+
+`pip install redis`
+
+`pip install snmpsim`
+
+## Running a Daemon
 
 Neo4J & Redis server must be up & running
 
@@ -20,6 +33,6 @@ Starting a daemon
 
 `python3 app.py`
 
-### Linting
+## Linting
 
 This lintrc file is based on Google Style Guide. See this docstring [example](http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html) for documentation format reference.
