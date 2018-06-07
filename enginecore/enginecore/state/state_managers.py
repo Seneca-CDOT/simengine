@@ -48,6 +48,18 @@ class StateManger():
             
         action()
             
+    @classmethod
+    def get_system_status(cls):
+        with GraphReference().get_session() as session: 
+            assets = GraphReference.get_assets(session)
+            asset_keys = assets.keys()
+            redis_store = redis.StrictRedis(host='localhost', port=6379)
+            asset_values = redis_store.mget(list(map( lambda k: "{}-{}".format(k,assets[k]['type']), asset_keys)))
+
+            for rkey, rvalue in zip(assets, asset_values):
+                assets[rkey]['status'] = int(rvalue)
+            
+            return assets
 
 class PDUStateManager(StateManger):
     

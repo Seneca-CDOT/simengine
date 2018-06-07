@@ -6,6 +6,8 @@ import CardContent from '@material-ui/core/CardContent';
 import CardHeader from '@material-ui/core/CardHeader';
 import Divider from '@material-ui/core/Divider';
 import Typography from '@material-ui/core/Typography';
+import Switch from '@material-ui/core/Switch';
+import FormControlLabel from '@material-ui/core/FormControlLabel';
 
 const styles = {
   card: {
@@ -29,10 +31,17 @@ const styles = {
 };
 
 function SimpleCard(props) {
-  const { classes, elementInfo, assetId, showHeader=true } = props;
+  const { classes, elementInfo, assetId, changeStatus, showHeader=true } = props;
   let children = [];
 
   if(elementInfo[assetId].children) {
+    children.push(
+      <div>
+      <h3>
+        Connected Components
+      </h3>
+      </div>
+    );
     for (let child of elementInfo[assetId].children){
         children.push(
         <div key={child}>
@@ -63,6 +72,11 @@ function SimpleCard(props) {
           <Typography component="p">
             Status: {elementInfo[assetId].status === 1?<span style={{color: 'green'}}>on</span>:<span style={{color: 'red'}}>off</span>}
           </Typography>
+          <Divider />
+            <FormControlLabel
+              control={<Switch checked={elementInfo[assetId].status} aria-label="LoginSwitch" onChange={()=>changeStatus(assetId)}/>}
+              label={"Toggle Status"}
+            />
           <Divider/>
           {children}
         </CardContent>

@@ -46,6 +46,10 @@ export default class Pdu extends React.Component {
 
     if(selected) {
       this.props.onElementSelection(this.props.elementId);
+    } else {
+      this.setState({
+        selectedSocket: -1
+      });
     }
   };
 

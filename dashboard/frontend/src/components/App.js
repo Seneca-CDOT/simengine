@@ -13,60 +13,10 @@ import classNames from 'classnames';
 import Pdu from './Assets/PDU/Pdu';
 import Socket from './Assets/common/Socket';
 import SimpleCard from './SimpleCard';
+import initialState from './InitialState';
 
 
-const elementInfo = {
-  1111 : {
-    'status': 1,
-    'type': 'pdu',
-    'children': [
-      11111,
-      11112,
-      11113,
-      11114,
-      11115,
-      11116,
-      11117,
-      11118
-    ]
-  },
-  1112 : {
-    'status': 1,
-    'type': 'outlet'
-  },
-  11111 : {
-    'status': 1,
-    'type': 'outlet'
-  },
-  11112 : {
-    'status': 1,
-    'type': 'outlet'
-  },
-  11113 : {
-    'status': 1,
-    'type': 'outlet'
-  },
-  11114 : {
-    'status': 1,
-    'type': 'outlet'
-  },
-  11115: {
-    'status': 1,
-    'type': 'outlet'
-  },
-  11116: {
-    'status': 1,
-    'type': 'outlet'
-  },
-  11117: {
-    'status': 1,
-    'type': 'outlet'
-  },
-  11118: {
-    'status': 1,
-    'type': 'outlet'
-  }
-}
+
 
 const drawerWidth = 0;
 const styles = theme => ({
@@ -109,7 +59,7 @@ const styles = theme => ({
     super();
     this.state = {
       selectedElement: null,
-      elementInfo: elementInfo
+      elementInfo: initialState
     }
     if ("WebSocket" in window)
     {
@@ -126,16 +76,23 @@ const styles = theme => ({
        {
           var received_msg = evt.data;
           const data = JSON.parse(evt.data);
-          console.log("Message is received:\n" + evt.data);
-
-          if(!data.length){
+          // console.log("Message is received:\n" + evt.data);
+          if('key' in data){
             // update state
             let eInfo = this.state.elementInfo;
+
             let childInfo = eInfo[data.key].children
             eInfo[data.key] = data.data;
             eInfo[data.key].children = childInfo;
+            // console.log(eInfo)
+
             this.setState({
               elementInfo: eInfo
+            });
+          } else {
+
+            this.setState({
+              elementInfo: data
             });
           }
 
@@ -162,13 +119,20 @@ const styles = theme => ({
 
   onElementSelection(elementId) {
     this.setState({
-      selectedElement: String(elementId),
+      selectedElement: elementId,
     });
+  }
+
+  changeStatus(assetId) {
+    let data = {...this.state.elementInfo[assetId]};
+    data.status = !data.status;
+    this.ws.send(JSON.stringify({key: assetId, data }));
   }
 
   render() {
 
     const { classes } = this.props;
+    const elementInfo = this.state.elementInfo;
 
     return (
       <div className={classes.root}>
@@ -210,8 +174,9 @@ const styles = theme => ({
                 />
               </Layer>
             </Stage>
+            {/* Display Element Details */}
             {this.state.selectedElement &&
-              <SimpleCard elementInfo={elementInfo} assetId={this.state.selectedElement}/>
+              <SimpleCard elementInfo={elementInfo} assetId={this.state.selectedElement} changeStatus={this.changeStatus.bind(this)}/>
             }
           }
           </main>

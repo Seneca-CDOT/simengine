@@ -71,6 +71,30 @@ class GraphReference(metaclass=Singleton):
 
         return asset_keys, oid_keys
 
+    @classmethod
+    def get_assets(cls, session):
+        results = session.run(
+            "MATCH (asset:Asset) OPTIONAL MATCH (asset)-[:HAS_SNMP_COMPONENT]->(c) return asset, collect(c) as children"
+        )
+
+        assets = {}
+        for record in results:
+            
+            asset = { 'key': record['asset'].get('key') }
+            asset_label = set(enginecore.state.assets.SUPPORTED_ASSETS).intersection(
+                map(lambda x: x.lower(), record['asset'].labels)
+            )
+
+            asset['type'] = next(iter(asset_label))
+
+            if record['children']:
+                # TODO: sort with neo4j
+                asset['children'] = sorted(list(map(lambda x: x['key'], record['children'])))
+
+            assets[record['asset'].get('key')] = asset
+
+        return assets
+    
 
     @classmethod
     def get_node_by_key(cls, session, key):

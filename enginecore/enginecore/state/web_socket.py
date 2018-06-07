@@ -1,18 +1,11 @@
 
-"""Simple TCP Echo Server
-This example shows how you can create a simple TCP Server (an Echo Service)
-utilizing the builtin Socket Components that the circuits library ships with.
-"""
-from circuits import Debugger, handler
-from circuits.net.sockets import TCPServer
 import json
-
-#!/usr/bin/env python
-from circuits import Component, Debugger
+from circuits import handler, Component
 from circuits.net.events import write
-from circuits.web import Controller, Logger, Server, Static
-from circuits.web.dispatchers import WebSocketsDispatcher
-
+from enginecore.state.assets import SUPPORTED_ASSETS
+from enginecore.state.graph_reference import GraphReference
+from enginecore.state.state_managers import StateManger
+from pprint import pprint as pp
 
 class WebSocket(Component):
 
@@ -24,11 +17,23 @@ class WebSocket(Component):
     def connect(self, sock, host, port):
         self._clients.append(sock)
         print("WebSocket Client Connected:", host, port)
-        # self.fire(write(sock, "Welcome {0:s}:{1:d}".format(host, port)))
+        assets = StateManger.get_system_status()
+        self.fire(write(sock, json.dumps(assets)))
+
 
     def read(self, sock, data):
         self._sock = sock
-        self.fireEvent(write(sock, "Received: " + data))
+
+        data = json.loads(data)
+        asset_key = data['key']
+        power_up = data['data']['status']
+        asset_type = data['data']['type']    
+    
+        state_manager = SUPPORTED_ASSETS[asset_type].StateManagerCls(asset_key)
+        if power_up:
+            state_manager.power_up()
+        else:
+            state_manager.power_down()
 
     def disconnect(self, sock):
         print('DISCONNECTING')
@@ -36,9 +41,6 @@ class WebSocket(Component):
 
     @handler('notifyClient')
     def notifyClient(self, d):
-        print('notifyClient  - Echo')
-        print(d)
-        print(self._clients)
-        self.fireEvent(write(self._clients[0], json.dumps(d)))
+        self.fireEvent(write(self._clients[0], json.dumps(d))) # TODO: many clients
 
     
