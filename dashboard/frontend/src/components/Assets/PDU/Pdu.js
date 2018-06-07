@@ -13,11 +13,12 @@ export default class Pdu extends React.Component {
     super();
     this.state = {
       image: null,
-      color: 'grey'
+      color: 'grey',
+      selectedSocket: -1,
     };
 
     this.pduRef = React.createRef();
-
+    this.selectSocket = this.selectSocket.bind(this)
   }
 
   componentDidMount() {
@@ -33,8 +34,7 @@ export default class Pdu extends React.Component {
   }
 
 
-  handleClick = () => {
-
+  handlePduSelection = () => {
 
     const selected = !this.state.selected;
     let image = this.state.image;
@@ -49,21 +49,39 @@ export default class Pdu extends React.Component {
     }
   };
 
+  selectSocket = (i) => {
+
+    // deselect PDU
+    let image = this.state.image;
+    image.src = pdu;
+    this.setState({
+      selected: false,
+      selectedSocket: ""+this.props.elementId+(i+1)
+    });
+
+    this.props.onElementSelection(String(this.props.elementId) + (i + 1));
+  }
+
   render() {
     let sockets = [];
     let inputSocket = <Socket x={30} socketName={"input socket"} selectable={false}/>
 
     let x=160;
     let pduName = this.props.name?this.props.name:'pdu';
+    const pduElement = this.props.elementInfo[this.props.elementId];
 
-    for (let i=0; i<8; i++) {
+    for (let i=0; i< pduElement.children.length; i++) {
       sockets.push(
         <Socket
           x={x}
           key={i}
           socketName={"output [" + (i+1) + "]"}
-          onElementSelection={() => this.props.onElementSelection(String(this.props.elementId) + (i + 1))}
+          onElementSelection={() => {this.selectSocket(i)}}
           selectable={true}
+          elementInfo={this.props.elementInfo}
+          elementId={pduElement.children[i]}
+          selectedSocket={this.state.selectedSocket}
+          parentSelected={this.state.selected}
         />
       );
       x += 90;
@@ -74,12 +92,11 @@ export default class Pdu extends React.Component {
       <Group
         draggable="true"
         onDragEnd={this.props.onPosChange}
-
       >
         <Text text={pduName} />
         <Image
           image={this.state.image}
-          onClick={this.handleClick}
+          onClick={this.handlePduSelection}
           fill={null}
         />
         <Line />

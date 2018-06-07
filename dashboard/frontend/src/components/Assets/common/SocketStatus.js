@@ -14,14 +14,14 @@ export default class SocketStatus extends React.Component {
   };
 
   render() {
-
+    const color = this.props.socketOn?"green": "red";
     return (
       <Rect
         x={this.props.x?this.props.x:20}
         y={150}
         width={10}
         height={10}
-        fill={this.state.color}
+        fill={color}
         shadowBlur={5}
         onClick={this.handleClick}
 

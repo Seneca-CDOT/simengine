@@ -2,14 +2,17 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { withStyles } from '@material-ui/core/styles';
 import Card from '@material-ui/core/Card';
-import CardActions from '@material-ui/core/CardActions';
 import CardContent from '@material-ui/core/CardContent';
-import Button from '@material-ui/core/Button';
+import CardHeader from '@material-ui/core/CardHeader';
+import Divider from '@material-ui/core/Divider';
 import Typography from '@material-ui/core/Typography';
 
 const styles = {
   card: {
-    minWidth: 275,
+    minWidth: 320,
+    position: 'absolute',
+    top: 90,
+    right: 20,
   },
   bullet: {
     display: 'inline-block',
@@ -26,39 +29,48 @@ const styles = {
 };
 
 function SimpleCard(props) {
-  const { classes, elementInfo, assetId } = props;
-  console.log(elementInfo)
+  const { classes, elementInfo, assetId, showHeader=true } = props;
+  let children = [];
+
+  if(elementInfo[assetId].children) {
+    for (let child of elementInfo[assetId].children){
+        children.push(
+        <div key={child}>
+            <Typography variant="subheading" component="h5">
+              Nested Asset: {child}-{elementInfo[child].type}
+            </Typography>
+                <Typography component="p">
+                  ::Status-{elementInfo[child].status === 1?<span style={{color: 'green'}}>on</span>:<span style={{color: 'red'}}>off</span>}
+                </Typography>
+          </div>
+        );
+    }
+  }
+
   return (
     <div>
       <Card className={classes.card}>
+        {showHeader &&
+          <CardHeader
+            title="Selected Asset Details"
+            style={{ backgroundColor: '#e1e6ea' }}
+          />
+        }
         <CardContent>
-          <Typography className={classes.title} color="textSecondary">
-            Selected Asset
-          </Typography>
           <Typography variant="headline" component="h2">
             Asset: {assetId}-{elementInfo[assetId].type}
           </Typography>
           <Typography component="p">
-            The current status of the component is: {elementInfo[assetId].status}
+            Status: {elementInfo[assetId].status === 1?<span style={{color: 'green'}}>on</span>:<span style={{color: 'red'}}>off</span>}
           </Typography>
-          {elementInfo[assetId].children && elementInfo[assetId].children.map(function(child, i){
-            {console.log("child")}
-            <div>
-
-              <Typography variant="headline" component="h3">
-                Nested Asset {i}: {child}-{elementInfo[child].type}
-              </Typography>
-              <Typography component="p">
-                The current status of the component is: {elementInfo[assetId].status}
-              </Typography>
-            </div>
-          })
-          }
+          <Divider/>
+          {children}
         </CardContent>
+        {/*
         <CardActions>
           <Button size="small">Learn More</Button>
         </CardActions>
-
+        */}
       </Card>
     </div>
   );

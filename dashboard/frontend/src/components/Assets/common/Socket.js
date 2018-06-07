@@ -31,7 +31,9 @@ export default class Socket extends React.Component {
 
     handleClick = () => {
 
-      if (this.props.selectable) {
+      if (this.props.selectable && this.props.elementId) {
+        this.props.onElementSelection(this.props.elementId);
+      } else if (this.props.selectable && !this.props.elementId) {
         const selected = !this.state.selected;
         const color = selected ? 'blue':'grey';
 
@@ -40,13 +42,17 @@ export default class Socket extends React.Component {
           selected: selected
         });
 
-        if(selected) {
-          this.props.onElementSelection(this.props.elementId);
-        }
+        this.props.onElementSelection(this.props.elementId);
       }
     };
 
     render() {
+
+      let strokeColor = this.state.color;
+      if (this.props.elementId && this.props.selectable) {
+        strokeColor = (this.props.selectedSocket == this.props.elementId) || this.props.parentSelected ? "blue" : "grey";
+      }
+
       return(
         <Group
           x={this.props.x?this.props.x:20} ref={this.myRef}
@@ -54,11 +60,11 @@ export default class Socket extends React.Component {
           <Image
             image={this.state.image}
             y={75}
-            stroke={this.state.color}
+            stroke={strokeColor}
             onClick={this.handleClick}
           />
           {this.props.selectable &&
-            <SocketStatus/>
+            <SocketStatus socketOn={this.props.elementInfo[this.props.elementId].status}/>
           }
           <Text text={this.props.socketName ?this.props.socketName:'socket'}  y={180} />
         </Group>

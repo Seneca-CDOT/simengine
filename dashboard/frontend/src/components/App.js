@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { Component } from 'react';
 import { Stage, Layer } from 'react-konva';
 import gridBackground from '../images/grid2.png';
@@ -15,55 +16,59 @@ import SimpleCard from './SimpleCard';
 
 
 const elementInfo = {
-  '1111' : {
-    'status': 'off',
-    'type': 'PDU',
+  1111 : {
+    'status': 1,
+    'type': 'pdu',
     'children': [
-      '11111',
-      '11112',
-      '11113',
-      '11114'
+      11111,
+      11112,
+      11113,
+      11114,
+      11115,
+      11116,
+      11117,
+      11118
     ]
   },
-  '1112' : {
-    'status': 'off',
-    'type': 'Socket'
+  1112 : {
+    'status': 1,
+    'type': 'outlet'
   },
-  '11111' : {
-    'status': 'off',
-    'type': 'Socket'
+  11111 : {
+    'status': 1,
+    'type': 'outlet'
   },
-  '11112' : {
-    'status': 'off',
-    'type': 'Socket'
+  11112 : {
+    'status': 1,
+    'type': 'outlet'
   },
-  '11113' : {
-    'status': 'off',
-    'type': 'Socket'
+  11113 : {
+    'status': 1,
+    'type': 'outlet'
   },
-  '11114' : {
-    'status': 'off',
-    'type': 'Socket'
+  11114 : {
+    'status': 1,
+    'type': 'outlet'
   },
-  '11115' : {
-    'status': 'off',
-    'type': 'Socket'
+  11115: {
+    'status': 1,
+    'type': 'outlet'
   },
-  '11116' : {
-    'status': 'off',
-    'type': 'Socket'
+  11116: {
+    'status': 1,
+    'type': 'outlet'
   },
-  '11117' : {
-    'status': 'off',
-    'type': 'Socket'
+  11117: {
+    'status': 1,
+    'type': 'outlet'
   },
-  '11118' : {
-    'status': 'off',
-    'type': 'Socket'
+  11118: {
+    'status': 1,
+    'type': 'outlet'
   }
 }
 
-const drawerWidth = 350;
+const drawerWidth = 0;
 const styles = theme => ({
   root: {
     flexGrow: 1,
@@ -81,6 +86,7 @@ const styles = theme => ({
   },
   'appBar-left': {
     marginLeft: drawerWidth,
+    backgroundColor: "#36454F",
   },
   'appBar-right': {
     marginRight: drawerWidth,
@@ -99,9 +105,55 @@ const styles = theme => ({
 
  class App extends Component {
 
-  state = {
-    selectedElement: null
+  constructor() {
+    super();
+    this.state = {
+      selectedElement: null,
+      elementInfo: elementInfo
+    }
+    if ("WebSocket" in window)
+    {
+       console.log("WebSocket is supported by your Browser!");
+       // Let us open a web socket
+       this.ws = new WebSocket("ws://localhost:8000/simengine");
+       this.ws.onopen = function()
+       {
+          // Web Socket is connected, send data using send()
+          // this.ws.send("Hello server");
+          // alert("Message is sent...");
+       };
+       this.ws.onmessage = ((evt) =>
+       {
+          var received_msg = evt.data;
+          const data = JSON.parse(evt.data);
+          console.log("Message is received:\n" + evt.data);
+
+          if(!data.length){
+            // update state
+            let eInfo = this.state.elementInfo;
+            let childInfo = eInfo[data.key].children
+            eInfo[data.key] = data.data;
+            eInfo[data.key].children = childInfo;
+            this.setState({
+              elementInfo: eInfo
+            });
+          }
+
+       }).bind(this)
+       this.ws.onclose = function()
+       {
+          // websocket is closed.
+          alert("Connection is closed...");
+       };
+    }
+    else
+    {
+       // The browser doesn't support WebSocket
+       alert("WebSocket NOT supported by your Browser!");
+    }
   }
+
+
 
   onPosChange(s) {
     console.log(s.target.attrs.x);
@@ -110,7 +162,7 @@ const styles = theme => ({
 
   onElementSelection(elementId) {
     this.setState({
-      selectedElement: String(elementId)
+      selectedElement: String(elementId),
     });
   }
 
@@ -131,34 +183,21 @@ const styles = theme => ({
               </Typography>
             </Toolbar>
           </AppBar>
-          <Drawer
-            variant="permanent"
-            anchor="right"
-            classes={{
-              paper: classes.drawerPaper,
-            }}
-          >
-            <div className={classes.toolbar} />
-            <Divider />
-            <div style={ {margin: 20} }>
-            {this.state.selectedElement &&
-              <SimpleCard elementInfo={elementInfo} assetId={this.state.selectedElement}/>
-            }
 
-            </div>
-
-          </Drawer>
 
           <main className={classes.content} style={ { backgroundImage: 'url('+gridBackground+')', backgroundRepeat: "repeat" }}>
-
+          <div style={ {margin: 20} } style={{ maxWidth: 400 }}>
+            </div>
             <div className={classes.toolbar} />
-            <Stage width={window.innerWidth} height={1000}>
+            <Stage width={window.innerWidth} height={1100}>
               <Layer>
                 <Socket
                   onPosChange={this.onPosChange}
                   onElementSelection={this.onElementSelection.bind(this)}
                   elementId={1112}
+                  elementInfo={elementInfo}
                   selectable={true}
+                  selectedSocket={this.state.selectedElement}
                   x={10}
                   y={10}
                 />
@@ -166,9 +205,15 @@ const styles = theme => ({
                   onPosChange={this.onPosChange}
                   onElementSelection={this.onElementSelection.bind(this)}
                   elementId={1111}
+                  elementInfo={elementInfo}
+                  selectedPdu={this.state.selectedElement}
                 />
               </Layer>
             </Stage>
+            {this.state.selectedElement &&
+              <SimpleCard elementInfo={elementInfo} assetId={this.state.selectedElement}/>
+            }
+          }
           </main>
         </div>
       </div>
