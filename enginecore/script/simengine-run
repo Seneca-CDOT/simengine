@@ -9,5 +9,7 @@ export NEO4J_PSW="simengine"
 
 sudo neo4j start
 nohup redis-server & 
+
+sleep 4
 $(dirname $0)/../app.py
 
