@@ -7,6 +7,16 @@ import redis
 from enginecore.state.assets import SUPPORTED_ASSETS
 from enginecore.state.event_map import event_map
 from enginecore.state.graph_reference import GraphReference
+from enginecore.state.web_socket import WebSocket
+from circuits import Component, Debugger, Event
+from circuits.net.events import write
+from circuits.web import Controller, Logger, Server, Static
+from circuits.web.dispatchers import WebSocketsDispatcher
+
+
+ 
+class notifyClient(Event):
+    """Notify websocket clients of any data updates"""
 
 class StateListener(Component):
     """ Top-level component that instantiates assets & maps redis events to circuit events"""
@@ -23,11 +33,20 @@ class StateListener(Component):
         # assets will store all the devices/items including PDUs, switches etc.
         self._assets = {}
         self._graph_db = GraphReference().get_session()
-
+    
         # query graph db for the nodes labeled as `Asset`
         results = self._graph_db.run(
             "MATCH (asset:Asset) return asset"
         )
+
+        # set up a web socket
+        self._server = Server(("0.0.0.0", 8000)).register(self)     
+        # Debugger().register(app) 
+        Static().register(self._server)
+        self._ws = WebSocket().register(self._server)
+        Logger().register(self._server)
+        WebSocketsDispatcher("/simengine").register(self._server)
+        init_status = []
 
         # instantiate assets based on graph records
         for record in results:
@@ -38,12 +57,13 @@ class StateListener(Component):
 
                 asset_key = record['asset'].get('key')
                 asset_label = next(iter(asset_label), '').lower()
-
+                ## init_status.append({asset_key: })
                 self._assets[asset_key] = SUPPORTED_ASSETS[asset_label](asset_key).register(self)     
 
             except KeyError:
                 print('Detected asset that is not supported', file=sys.stderr)
 
+        
         Worker(process=False).register(self)
 
 
@@ -78,6 +98,13 @@ class StateListener(Component):
                     self.fire(event_map[property_id][value], self._assets[key])
 
                 print("Key: {}-{} -> {}".format(asset_key, property_id.replace(" ", ""), value))
+                self.fire(notifyClient({ 
+                    'key': int(asset_key),
+                    'data': {
+                        'type':  property_id.replace(" ", ""),
+                        'status': int(value)
+                 }}), self._ws)
+
             elif int(asset_key) in self._assets:
                 oid = property_id.replace(" ", "")
                 _, oid_value = value.split("|")
@@ -96,6 +123,7 @@ class StateListener(Component):
 
                 print('oid changed:')
                 print(">" + oid + ": " + oid_value)
+               
 
         except KeyError as error:
             print("Detected unregistered asset under key [{}]".format(error), file=sys.stderr)
