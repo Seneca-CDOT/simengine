@@ -4,18 +4,16 @@ import sys
 from circuits import Component, Event, Timer, Worker
 import redis
 
+from circuits.web import Logger, Server, Static
+from circuits.web.dispatchers import WebSocketsDispatcher
+
 from enginecore.state.assets import SUPPORTED_ASSETS
 from enginecore.state.event_map import event_map
 from enginecore.state.graph_reference import GraphReference
 from enginecore.state.web_socket import WebSocket
-from circuits import Component, Debugger, Event
-from circuits.net.events import write
-from circuits.web import Controller, Logger, Server, Static
-from circuits.web.dispatchers import WebSocketsDispatcher
 
 
- 
-class notifyClient(Event):
+class NotifyClient(Event):
     """Notify websocket clients of any data updates"""
 
 class StateListener(Component):
@@ -46,7 +44,6 @@ class StateListener(Component):
         self._ws = WebSocket().register(self._server)
         Logger().register(self._server)
         WebSocketsDispatcher("/simengine").register(self._server)
-        init_status = []
 
         # instantiate assets based on graph records
         for record in results:
@@ -57,7 +54,6 @@ class StateListener(Component):
 
                 asset_key = record['asset'].get('key')
                 asset_label = next(iter(asset_label), '').lower()
-                ## init_status.append({asset_key: })
                 self._assets[asset_key] = SUPPORTED_ASSETS[asset_label](asset_key).register(self)     
 
             except KeyError:
@@ -98,12 +94,12 @@ class StateListener(Component):
                     self.fire(event_map[property_id][value], self._assets[key])
 
                 print("Key: {}-{} -> {}".format(asset_key, property_id.replace(" ", ""), value))
-                self.fire(notifyClient({ 
+                self.fire(NotifyClient({ 
                     'key': int(asset_key),
                     'data': {
                         'type':  property_id.replace(" ", ""),
                         'status': int(value)
-                 }}), self._ws)
+                }}), self._ws)
 
             elif int(asset_key) in self._assets:
                 oid = property_id.replace(" ", "")

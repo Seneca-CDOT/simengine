@@ -6,6 +6,7 @@ from enginecore.state.graph_reference import GraphReference
 
 class StateManger():
 
+    assets = {}
 
     def __init__(self, key):
         self.redis_store = redis.StrictRedis(host='localhost', port=6379)
@@ -18,10 +19,12 @@ class StateManger():
 
 
     def power_down(self):
+        """ Implements state logic for power down event """
         raise NotImplementedError
 
 
     def power_up(self):
+        """ Implements state logic for power up event """
         raise NotImplementedError
 
     def _check_parent_and_update(self, action):
@@ -47,22 +50,43 @@ class StateManger():
                     return
             
         action()
-            
+    
+    redis_store = None
+
+    @classmethod 
+    def get_store(cls):
+        if not cls.redis_store:
+            cls.redis_store = redis.StrictRedis(host='localhost', port=6379)
+
+        return cls.redis_store
+
     @classmethod
     def get_system_status(cls):
-        with GraphReference().get_session() as session: 
-            assets = GraphReference.get_assets(session)
-            asset_keys = assets.keys()
-            redis_store = redis.StrictRedis(host='localhost', port=6379)
-            asset_values = redis_store.mget(list(map( lambda k: "{}-{}".format(k,assets[k]['type']), asset_keys)))
+        """Get states/status of all system components """
+        with GraphReference().get_session() as session:
 
-            for rkey, rvalue in zip(assets, asset_values):
-                assets[rkey]['status'] = int(rvalue)
+            # cache assets
+            if not cls.assets:
+                cls.assets = GraphReference.get_assets(session)
             
-            return assets
+            asset_keys = cls.assets.keys()
+            asset_values = cls.get_store().mget(list(map( lambda k: "{}-{}".format(k,cls.assets[k]['type']), asset_keys)))
+
+            for rkey, rvalue in zip(cls.assets, asset_values):
+                cls.assets[rkey]['status'] = int(rvalue)
+            
+            return cls.assets
+
+    @classmethod
+    def get_asset_status(cls, asset_key):
+        """Get state of an asset that has certain key """
+        with GraphReference().get_session() as session: 
+            asset = GraphReference.get_asset_and_components(session, asset_key)
+            asset['status'] = int(cls.get_store().get("{}-{}".format(asset['key'], asset['type'])))
+            return asset
 
 class PDUStateManager(StateManger):
-    
+    """ Handles state logic for PDU asset """
 
     def power_down(self):
         print("Powering down {}".format(self._key))
@@ -77,7 +101,7 @@ class PDUStateManager(StateManger):
         
 
 class OutletStateManager(StateManger):
-
+    """ Handles state logic for outlet asset """
 
     def power_down(self):
         print("Powering down {}".format(self._key))

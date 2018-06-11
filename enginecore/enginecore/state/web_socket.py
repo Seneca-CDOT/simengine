@@ -1,28 +1,34 @@
+""" Web-App Interface """
 
 import json
 from circuits import handler, Component
 from circuits.net.events import write
 from enginecore.state.assets import SUPPORTED_ASSETS
-from enginecore.state.graph_reference import GraphReference
 from enginecore.state.state_managers import StateManger
-from pprint import pprint as pp
 
 class WebSocket(Component):
+    """ Simple Web-Socket server that handles interactions between frontend & enginecore """
 
     channel = "wsserver"
   
     def init(self):
+        """ Initialize socket clients"""
         self._clients = []
     
+
     def connect(self, sock, host, port):
+        """ Called upon new client connecting to the ws """
+
         self._clients.append(sock)
         print("WebSocket Client Connected:", host, port)
+        
+        # Return assets and their states to the new client
         assets = StateManger.get_system_status()
         self.fire(write(sock, json.dumps(assets)))
 
 
-    def read(self, sock, data):
-        self._sock = sock
+    def read(self, _, data):
+        """ Client has sent some request """
 
         data = json.loads(data)
         asset_key = data['key']
@@ -35,12 +41,15 @@ class WebSocket(Component):
         else:
             state_manager.power_down()
 
+
     def disconnect(self, sock):
-        print('DISCONNECTING')
+        """ A client has disconnected """
         self._clients.remove(sock)
 
-    @handler('notifyClient')
-    def notifyClient(self, d):
-        self.fireEvent(write(self._clients[0], json.dumps(d))) # TODO: many clients
 
-    
+    @handler('NotifyClient')
+    def notify_client(self, data):
+        """ This handler is called upon state changes & is meant to notify web-client of any events """
+        for client in self._clients:
+            self.fireEvent(write(client, json.dumps(data)))
+            

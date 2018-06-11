@@ -21,7 +21,7 @@ def initialize():
             )
 
             asset_key = str(record['asset'].get('key'))
-            redis_store.set("{}-{}".format(asset_key, next(iter(asset_label),'').lower()), "1") # TODO: default state in graph db 
+            redis_store.set("{}-{}".format(asset_key, next(iter(asset_label),'').lower()), "1")
 
             formatted_key = asset_key.zfill(10)
 

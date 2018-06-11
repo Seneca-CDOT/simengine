@@ -25,10 +25,12 @@ class GraphReference(metaclass=Singleton):
 
     
     def close(self):
+        """ Close as db """
         self._driver.close()
 
 
     def get_session(self):
+        """ Get a database session """
         return self._driver.session()
 
 
@@ -63,7 +65,8 @@ class GraphReference(metaclass=Singleton):
                 asset_label = next(iter(asset_label))
                 asset_keys.append("{asset_key}-{property}".format(
                     asset_key=asset_key, 
-                    property=asset_label.lower())
+                    property=asset_label.lower()
+                    )
                 )
             else:
                 oid = record['oid'].get('OID')
@@ -71,8 +74,10 @@ class GraphReference(metaclass=Singleton):
 
         return asset_keys, oid_keys
 
+
     @classmethod
     def get_assets(cls, session):
+        """"""
         results = session.run(
             "MATCH (asset:Asset) OPTIONAL MATCH (asset)-[:HAS_SNMP_COMPONENT]->(c) return asset, collect(c) as children"
         )
@@ -95,6 +100,32 @@ class GraphReference(metaclass=Singleton):
 
         return assets
     
+
+    @classmethod
+    def get_asset_and_components(cls, session, asset_key):
+        results = session.run(
+            "MATCH (n:Asset { key: $key }) OPTIONAL MATCH (n)-[:HAS_SNMP_COMPONENT]->(c) RETURN n as asset, collect(c) as children",
+            key=asset_key
+        )
+
+        record = results.single()
+        
+        asset_label = set(enginecore.state.assets.SUPPORTED_ASSETS).intersection(
+            map(lambda x: x.lower(), record['asset'].labels)
+        )
+
+        asset_key = record['asset'].get('key')
+        children = []
+
+        if record['children']:
+            children = sorted(list(map(lambda x: x['key'], record['children'])))
+            
+        return {
+            'type': next(iter(asset_label)),
+            'children': children,
+            'key': asset_key
+        }
+        
 
     @classmethod
     def get_node_by_key(cls, session, key):

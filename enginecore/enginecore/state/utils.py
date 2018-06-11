@@ -20,4 +20,4 @@ def format_as_redis_key(key, oid, key_formatted=True):
     key_and_oid += (oid_digits[-1]).rjust(10, ' ')
 
     return key_and_oid
-
+    
