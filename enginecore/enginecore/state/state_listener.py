@@ -8,6 +8,7 @@ from circuits.web import Logger, Server, Static
 from circuits.web.dispatchers import WebSocketsDispatcher
 
 from enginecore.state.assets import SUPPORTED_ASSETS
+from enginecore.state.utils import get_asset_type
 from enginecore.state.event_map import event_map
 from enginecore.state.graph_reference import GraphReference
 from enginecore.state.web_socket import WebSocket
@@ -31,32 +32,28 @@ class StateListener(Component):
         # assets will store all the devices/items including PDUs, switches etc.
         self._assets = {}
         self._graph_db = GraphReference().get_session()
+        
+        # set up a web socket
+        self._server = Server(("0.0.0.0", 8000)).register(self)     
+        Static().register(self._server)
+        Logger().register(self._server)
+        self._ws = WebSocket().register(self._server)
     
+        WebSocketsDispatcher("/simengine").register(self._server)
+
         # query graph db for the nodes labeled as `Asset`
         results = self._graph_db.run(
             "MATCH (asset:Asset) return asset"
         )
 
-        # set up a web socket
-        self._server = Server(("0.0.0.0", 8000)).register(self)     
-        # Debugger().register(app) 
-        Static().register(self._server)
-        self._ws = WebSocket().register(self._server)
-        Logger().register(self._server)
-        WebSocketsDispatcher("/simengine").register(self._server)
-
         # instantiate assets based on graph records
         for record in results:
             try:
-                asset_label = set(SUPPORTED_ASSETS).intersection(
-                    map(lambda x: x.lower(), record['asset'].labels)
-                )
-
+                asset_type = get_asset_type(record['asset'].labels)
                 asset_key = record['asset'].get('key')
-                asset_label = next(iter(asset_label), '').lower()
-                self._assets[asset_key] = SUPPORTED_ASSETS[asset_label](asset_key).register(self)     
+                self._assets[asset_key] = SUPPORTED_ASSETS[asset_type](asset_key).register(self)     
 
-            except KeyError:
+            except StopIteration:
                 print('Detected asset that is not supported', file=sys.stderr)
 
         

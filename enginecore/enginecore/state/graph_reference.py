@@ -128,7 +128,7 @@ class GraphReference(metaclass=Singleton):
         
 
     @classmethod
-    def get_node_by_key(cls, session, key):
+    def get_asset_labels_by_key(cls, session, key):
         results = session.run(
             "MATCH (a:Asset { key: $key }) RETURN labels(a) as labels LIMIT 1",
             key=int(key)

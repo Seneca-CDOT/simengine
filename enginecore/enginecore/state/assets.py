@@ -29,19 +29,58 @@ def register_asset(cls):
 
 
 class Asset(Component):
+    """ Abstract Asset Class """
+
     def __init__(self, key):
         super(Asset, self).__init__()
         self._key = key
 
+
     def get_key(self):
+        """ Get ID assigned to the asset """
         return self._key
 
 
-class SNMPAgent():
+    ##### React to events associated with the asset #####
+    def on_asset_power_down(self):
+        """ Call when state of an asset is switched to 'off' """
+        raise NotImplementedError
+
+    def on_asset_power_up(self):
+        """ Call when state of an asset is switched to 'on' """
+        raise NotImplementedError
+
+
+    ##### React to any events of the connected components #####
+    def power_down(self):
+        """ Upstream loss of power """
+        raise NotImplementedError
+
+    def power_up(self):
+        """ Upstream power restored """        
+        raise NotImplementedError
+
+
+class Agent():
+    """ Abstract Agent Class """
     
+    def start_agent(self):
+        """ Logic for starting up the agent """
+        raise NotImplementedError
+
+    def stop_agent(self):
+        """ Logic for agent's termination """
+        raise NotImplementedError
+    
+
+
+class SNMPAgent(Agent):
+    """ SNMP simulator instance """
+
     agent_num = 1
     def __init__(self, key, community='public'):
 
+        super(SNMPAgent, self).__init__()
         self._key_space_id = key
         self._process = None
         self._snmp_rec_filename = community + '.snmprec'
@@ -58,6 +97,7 @@ class SNMPAgent():
 
 
     def stop_agent(self):
+        """ Logic for agent's termination """
         os.kill(self._process.pid, signal.SIGSTOP)
 
 
@@ -66,7 +106,7 @@ class SNMPAgent():
 
 
     def start_agent(self):
-        
+        """ Logic for starting up the agent """
         # resume if process has been paused
         if self._process:
             os.kill(self._process.pid, signal.SIGCONT)

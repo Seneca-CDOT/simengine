@@ -10,6 +10,7 @@ import curses
 from enginecore.state.assets import SUPPORTED_ASSETS
 from enginecore.state.graph_reference import GraphReference
 from enginecore.state.state_managers import StateManger
+from enginecore.state.utils import get_asset_type
 
 def manage_state(asset_key, action):
     """ Perform action for a node/asset with a certain key
@@ -18,12 +19,12 @@ def manage_state(asset_key, action):
             action (func): callable object (lambda/function etc) that identifies action
     """
     with GraphReference().get_session() as session:
-        labels = GraphReference.get_node_by_key(session, asset_key)
-        asset_label = set(SUPPORTED_ASSETS).intersection(
-            map(lambda x: x.lower(), labels)
-        )
-
-        state_manager = SUPPORTED_ASSETS[next(iter(asset_label), '').lower()].StateManagerCls(asset_key)
+        
+        labels = GraphReference.get_asset_labels_by_key(session, asset_key)
+        
+        asset_type = get_asset_type(labels)
+        state_manager = SUPPORTED_ASSETS[asset_type].StateManagerCls(asset_key)
+        
         action(state_manager)
 
 class bcolors:
@@ -96,7 +97,7 @@ def get_status(**kwargs):
                 curses.init_pair(i, i, -1)
             while True:
                 status_table_format(assets, stdscr)
-                time.sleep(1)
+                time.sleep(kwargs['watch_rate'])
                 assets = StateManger.get_system_status()
         except KeyboardInterrupt:
             pass
@@ -124,6 +125,8 @@ status_group = subparsers.add_parser('status', help="Retrieve status of register
 status_group.add_argument('--asset-key')
 status_group.add_argument('--print-as', help="Format options")
 status_group.add_argument('--monitor', help="Monitor status", action='store_true')
+status_group.add_argument('--watch-rate', nargs='?', 
+                          help="Update state every n seconds, defaults to 1", default=1, type=int)
 
 
 ## -> Setup options for oid queries

@@ -6,12 +6,14 @@ from enginecore.state.graph_reference import GraphReference
 
 class StateManger():
 
-    assets = {}
+    assets = {} # cache graph topology
+    redis_store = None
 
-    def __init__(self, key):
+    def __init__(self, key, asset_type):
         self.redis_store = redis.StrictRedis(host='localhost', port=6379)
         self._graph_db = GraphReference().get_session()
-        self._key = key
+        self._asset_key = key
+        self._asset_type = asset_type
     
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -20,39 +22,54 @@ class StateManger():
 
     def power_down(self):
         """ Implements state logic for power down event """
-        raise NotImplementedError
+        print("Powering down {}".format(self._asset_key))
+        self.redis_store.set("{}-{}".format(str(self._asset_key), self._asset_type), '0')
 
 
     def power_up(self):
         """ Implements state logic for power up event """
-        raise NotImplementedError
+        print("Powering up {}".format(self._asset_key))
+        if self._parents_available():
+            self.redis_store.set("{}-{}".format(str(self._asset_key), self._asset_type), '1')
+ 
 
-    def _check_parent_and_update(self, action):
-        """ Perform action only if parent nodes are up & running
+    def _check_parents(self, keys, parent_down, msg='Cannot perform the action: [{}] parent is off'):
+        """ Check that redis values pass certain condition
+        
         Args:
-            action(callable): action that needs to be done
+            keys (list): Redis keys (formatted as required)
+            parent_down (callable): lambda clause 
+            msg (str, optional): Error message to be printed
+        
+        Returns: 
+            bool: True if parent keys are missing or all parents were verified with parent_down clause 
         """
-        asset_keys, oid_keys = GraphReference.get_parent_keys(self._graph_db, self._key)
+        if not keys:
+            return True
 
-        if asset_keys:
-            parent_asset_values = self.redis_store.mget(asset_keys)
-            for rkey, rvalue in zip(asset_keys, parent_asset_values):
-                if rvalue == b'0':
-                    print('Cannot perform the action: parent "{}" is offline'.format(rkey))
-                    return
-            
-        if oid_keys:
-            parent_oid_values = self.redis_store.mget(oid_keys)
-            for rkey, rvalue in zip(oid_keys, parent_oid_values):
-                _, oid_value = rvalue.split(b'|')
-                if oid_value == b'0':
-                    print('Cannot perform the action: parent OID "{}" is off'.format(rkey.replace(" ", "")))
-                    return
-            
-        action()
+        parent_values = self.redis_store.mget(keys)
+        for rkey, rvalue in zip(keys, parent_values): 
+            if parent_down(rvalue):
+                print(msg.format(rkey))
+                return False
+
+        return True
+
+    def _parents_available(self):
+        """ Indicates whether a state action can be performed;
+        checks if parent nodes are up & running and all OIDs indicate 'on' status
+        
+        Returns:
+            bool: True if parents are available
+        """
+        asset_keys, oid_keys = GraphReference.get_parent_keys(self._graph_db, self._asset_key)
+        
+        assets_up = self._check_parents(asset_keys, lambda rvalue: rvalue == b'0')
+        oids_on = self._check_parents(oid_keys, lambda rvalue: rvalue.split(b'|')[1] == b'0')
+
+        return assets_up and oids_on
     
-    redis_store = None
-
+    
     @classmethod 
     def get_store(cls):
         if not cls.redis_store:
@@ -85,32 +102,16 @@ class StateManger():
             asset['status'] = int(cls.get_store().get("{}-{}".format(asset['key'], asset['type'])))
             return asset
 
+
 class PDUStateManager(StateManger):
     """ Handles state logic for PDU asset """
 
-    def power_down(self):
-        print("Powering down {}".format(self._key))
-        self.redis_store.set(str(self._key) + '-pdu', '0')
-    
-
-    def power_up(self):
-        print("Powering up {}".format(self._key))
-        self._check_parent_and_update(
-            lambda: self.redis_store.set(str(self._key) + '-pdu', '1')
-        )
+    def __init__(self, key, asset_type='pdu'):
+         super(PDUStateManager, self).__init__(key, asset_type)
         
 
 class OutletStateManager(StateManger):
     """ Handles state logic for outlet asset """
 
-    def power_down(self):
-        print("Powering down {}".format(self._key))
-        self.redis_store.set(str(self._key) + '-outlet', '0')
-
-
-    def power_up(self):
-        print("Powering up {}".format(self._key))
-
-        self._check_parent_and_update(
-            lambda: self.redis_store.set(str(self._key) + '-outlet', '1')
-        )
+    def __init__(self, key, asset_type='outlet'):
+         super(OutletStateManager, self).__init__(key, asset_type)

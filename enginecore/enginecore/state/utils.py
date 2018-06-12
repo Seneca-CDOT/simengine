@@ -1,4 +1,5 @@
 """ Various helper functions """
+import enginecore.state.assets  
 
 def format_as_redis_key(key, oid, key_formatted=True):
     """ Convert asset key & OID into SNMPSim format as 
@@ -21,3 +22,23 @@ def format_as_redis_key(key, oid, key_formatted=True):
 
     return key_and_oid
     
+
+def get_asset_type(labels):
+    """ Find if any of the labels indicate asset type 
+    
+    Args:
+        labels(list): labels that are assigned to a particular node
+    
+    Returns:
+        string: supported asset label formatted for the state store
+    
+    Raises:
+        StopIteration: when asset type is either not supported or undefined in the graph ref
+    """
+
+    asset_label = set(enginecore.state.assets.SUPPORTED_ASSETS).intersection(
+        map(lambda x: x.lower(), labels)
+    )
+
+    return next(iter(asset_label)).lower()
+

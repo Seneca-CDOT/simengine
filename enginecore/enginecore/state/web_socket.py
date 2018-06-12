@@ -49,7 +49,11 @@ class WebSocket(Component):
 
     @handler('NotifyClient')
     def notify_client(self, data):
-        """ This handler is called upon state changes & is meant to notify web-client of any events """
+        """ This handler is called upon state changes & is meant to notify web-client of any events 
+        
+        Args:
+            data: data to be sent to clients
+        """
         for client in self._clients:
             self.fireEvent(write(client, json.dumps(data)))
             
