@@ -94,19 +94,6 @@ class GraphReference(metaclass=Singleton):
                 else:
                     asset['children'] = nested_assets
 
-            '''
-            if flatten and record['children']:
-                asset['children'] = sorted(list(map(lambda x: x['key'], record['children'])))
-                d = { c['key']:dict(c) for c in record['children'] }
-                print (d)
-                assets = {**assets, **d} # flatten
-            elif record['children']:
-                asset['children'] = {}
-                for child_node in record['children']:
-                    ckey = child_node.get('key')
-                    asset['children'][ckey] = dict(child_node)
-                    asset['children'][ckey]['type'] = get_asset_type(child_node.labels)
-            '''
             assets[record['asset'].get('key')] = asset
 
         return assets

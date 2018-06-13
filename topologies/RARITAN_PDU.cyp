@@ -12,7 +12,8 @@ CREATE (out:Asset:Outlet { name: 'out',  key: 1112 })
 // ----------------------------------------
 CREATE (pdu:Asset:PDU:SNMPSim { 
   name: 'pdu',
-  key: 1111
+  key: 1111,
+  staticOidFile: 'pdu/raritan-pdu.snmprec'
 })
 
 // OIDs that belong to the PDU //

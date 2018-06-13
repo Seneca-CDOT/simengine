@@ -31,14 +31,13 @@ def register_asset(cls):
 class Asset(Component):
     """ Abstract Asset Class """
 
-    def __init__(self, key):
+    def __init__(self, asset_info):
         super(Asset, self).__init__()
-        self._key = key
-
+        self._asset_info = asset_info
 
     def get_key(self):
         """ Get ID assigned to the asset """
-        return self._key
+        return self._asset_info['key']
 
 
     ##### React to events associated with the asset #####
@@ -78,7 +77,7 @@ class SNMPAgent(Agent):
     """ SNMP simulator instance """
 
     agent_num = 1
-    def __init__(self, key, community='public'):
+    def __init__(self, key, community='public', lookup_oid='1.3.6'):
 
         super(SNMPAgent, self).__init__()
         self._key_space_id = key
@@ -87,10 +86,10 @@ class SNMPAgent(Agent):
         self._snmp_rec_dir = tempfile.mkdtemp()
 
         snmp_rec_filepath = os.path.join(self._snmp_rec_dir, self._snmp_rec_filename)
-        
-        with open(snmp_rec_filepath, "w") as tmp:
-            tmp.write("1.3.6|:redis|key-spaces-id={}".format(key))
 
+        with open(snmp_rec_filepath, "a") as tmp:
+            tmp.write("{}|:redis|key-spaces-id={}\n".format(lookup_oid, key))
+            
         self.start_agent()
 
         SNMPAgent.agent_num += 1
@@ -130,11 +129,13 @@ class PDU(Asset):
     channel = "pdu"
     StateManagerCls = PDUStateManager
 
-    def __init__(self, key):
-        super(PDU, self).__init__(key)
+    def __init__(self, asset_info):
+        super(PDU, self).__init__(asset_info)
 
-        self._pdu_state = PDU.StateManagerCls(key)
-        self._snmp_agent = SNMPAgent(key)
+        self._pdu_state = PDU.StateManagerCls(asset_info['key'])
+        self._snmp_agent = SNMPAgent(
+            asset_info['key'],
+        )
 
 
     ##### Create/kill SNMP agent when PDU state changes
@@ -166,9 +167,9 @@ class Outlet(Asset):
     StateManagerCls = OutletStateManager
 
 
-    def __init__(self, key):
-        super(Outlet, self).__init__(key)
-        self._outlet_state = Outlet.StateManagerCls(key)
+    def __init__(self, asset_info):
+        super(Outlet, self).__init__(asset_info)
+        self._outlet_state = Outlet.StateManagerCls(asset_info['key'])
 
 
     ##### React to any events of the connected components #####    

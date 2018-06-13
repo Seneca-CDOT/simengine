@@ -52,7 +52,7 @@ class StateListener(Component):
             try:
                 asset_type = get_asset_type(record['asset'].labels)
                 asset_key = record['asset'].get('key')
-                self._assets[asset_key] = SUPPORTED_ASSETS[asset_type](asset_key).register(self)     
+                self._assets[asset_key] = SUPPORTED_ASSETS[asset_type](dict(record['asset'])).register(self)     
 
             except StopIteration:
                 print('Detected asset that is not supported', file=sys.stderr)
