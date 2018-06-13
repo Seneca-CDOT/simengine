@@ -1,7 +1,7 @@
 /* eslint-disable */
 import React, { Component } from 'react';
 import { Stage, Layer } from 'react-konva';
-import gridBackground from '../images/grid2.png';
+import gridBackground from '../images/grid.png';
 
 import Drawer from '@material-ui/core/Drawer';
 import AppBar from '@material-ui/core/AppBar';
@@ -16,9 +16,6 @@ import SimpleCard from './SimpleCard';
 import initialState from './InitialState';
 
 
-
-
-const drawerWidth = 0;
 const styles = theme => ({
   root: {
     flexGrow: 1,
@@ -32,18 +29,13 @@ const styles = theme => ({
     width: '100%',
   },
   appBar: {
-    width: `calc(100% - ${drawerWidth}px)`,
+    width: `100%`,
   },
   'appBar-left': {
-    marginLeft: drawerWidth,
     backgroundColor: "#36454F",
-  },
-  'appBar-right': {
-    marginRight: drawerWidth,
   },
   drawerPaper: {
     position: 'relative',
-    width: drawerWidth,
   },
   toolbar: theme.mixins.toolbar,
   content: {
@@ -57,10 +49,13 @@ const styles = theme => ({
 
   constructor() {
     super();
+
     this.state = {
-      selectedElement: null,
-      elementInfo: initialState
+      assets: initialState,
+      selectedAssetKey: 0
     }
+
+
     if ("WebSocket" in window)
     {
        console.log("WebSocket is supported by your Browser!");
@@ -77,22 +72,30 @@ const styles = theme => ({
           var received_msg = evt.data;
           const data = JSON.parse(evt.data);
           // console.log("Message is received:\n" + evt.data);
-          if('key' in data){
-            // update state
-            let eInfo = this.state.elementInfo;
+          if('key' in data) {
+            // nested asset
+            if ((''+data.key).length === 5) {
+              const parent_id = (''+data.key).substring(0, 4)
+              let assets = {...this.state.assets};
+              assets[parent_id].children[data.key] = data.data;
+              this.setState({ assets });
+            } else {
+              // update state
+              let eInfo = this.state.assets;
 
-            let childInfo = eInfo[data.key].children
-            eInfo[data.key] = data.data;
-            eInfo[data.key].children = childInfo;
-            // console.log(eInfo)
+              let childInfo = eInfo[data.key].children
+              eInfo[data.key] = data.data;
+              eInfo[data.key].children = childInfo;
+              // console.log(eInfo)
 
-            this.setState({
-              elementInfo: eInfo
-            });
+              this.setState({
+                assets: eInfo
+              });
+            }
+
           } else {
-
             this.setState({
-              elementInfo: data
+              assets: data
             });
           }
 
@@ -110,6 +113,15 @@ const styles = theme => ({
     }
   }
 
+  _get_asset_by_key(key) {
+    if ((''+key).length === 5) {
+      const parent_key = (''+key).substring(0, 4);
+      return this.state.assets[parent_key].children[key];
+    } else {
+      return this.state.assets[key];
+    }
+  }
+
 
 
   onPosChange(s) {
@@ -117,68 +129,99 @@ const styles = theme => ({
     console.log(s.target.attrs.y);
   }
 
-  onElementSelection(elementId) {
-    this.setState({
-      selectedElement: elementId,
+  /** Handle Asset Selection */
+  onElementSelection(assetKey, assetInfo) {
+    this.setState((oldState) => {
+      return {
+        selectedAssetKey: oldState.selectedAssetKey === assetKey ? 0 : assetKey,
+        selectedAsset: assetInfo
+      }
     });
   }
 
-  changeStatus(assetId) {
-    let data = {...this.state.elementInfo[assetId]};
+  /** Send a status change request */
+  changeStatus(assetKey, assetInfo) {
+    let data = {...assetInfo};
     data.status = !data.status;
-    this.ws.send(JSON.stringify({key: assetId, data }));
+    this.ws.send(JSON.stringify({key: assetKey, data }));
+  }
+
+
+  /** Add Socket to the Layout */
+  drawSocket(key, asset) {
+    return <Socket
+      onPosChange={this.onPosChange}
+      onElementSelection={this.onElementSelection.bind(this)}
+      assetId={key}
+      asset={asset}
+      selectable={true}
+      selected={this.state.selectedAssetKey === key}
+      x={10}
+      y={10}
+    />
+  }
+
+  /** Add PDU to the Layout */
+  drawPdu(key, asset) {
+    return <Pdu
+      onPosChange={this.onPosChange}
+      onElementSelection={this.onElementSelection.bind(this)}
+      assetId={key}
+      asset={asset}
+      selected={this.state.selectedAssetKey === key}
+      pduSocketSelected={this.state.selectedAssetKey in asset.children}
+    />
   }
 
   render() {
 
     const { classes } = this.props;
-    const elementInfo = this.state.elementInfo;
+    const assets = this.state.assets;
+
+    const selectedAsset = this._get_asset_by_key(this.state.selectedAssetKey)
+    let systemLayout = []
+
+    // Initialize HA system layout
+    for (const key of Object.keys(assets)) {
+      if (assets[key].type == 'outlet') {
+        systemLayout.push(this.drawSocket(key, assets[key]))
+      } else if (assets[key].type == 'pdu') {
+        systemLayout.push(this.drawPdu(key, assets[key]))
+      }
+    }
 
     return (
       <div className={classes.root}>
         <div className={classes.appFrame}>
+          {/* Top-bar */}
           <AppBar
             position="absolute"
             className={classNames(classes.appBar, classes[`appBar-left`])}
           >
             <Toolbar>
               <Typography variant="title" color="inherit" noWrap>
-                HA Simulation Engine
+                HAos Simulation Engine
               </Typography>
             </Toolbar>
           </AppBar>
 
-
+          {/* Main Canvas */}
           <main className={classes.content} style={ { backgroundImage: 'url('+gridBackground+')', backgroundRepeat: "repeat" }}>
-          <div style={ {margin: 20} } style={{ maxWidth: 400 }}>
-            </div>
             <div className={classes.toolbar} />
             <Stage width={window.innerWidth} height={1100}>
               <Layer>
-                <Socket
-                  onPosChange={this.onPosChange}
-                  onElementSelection={this.onElementSelection.bind(this)}
-                  elementId={1112}
-                  elementInfo={elementInfo}
-                  selectable={true}
-                  selectedSocket={this.state.selectedElement}
-                  x={10}
-                  y={10}
-                />
-                <Pdu
-                  onPosChange={this.onPosChange}
-                  onElementSelection={this.onElementSelection.bind(this)}
-                  elementId={1111}
-                  elementInfo={elementInfo}
-                  selectedPdu={this.state.selectedElement}
-                />
+                {systemLayout}
               </Layer>
             </Stage>
-            {/* Display Element Details */}
-            {this.state.selectedElement &&
-              <SimpleCard elementInfo={elementInfo} assetId={this.state.selectedElement} changeStatus={this.changeStatus.bind(this)}/>
+
+            {/* LeftMost Card -> Display Element Details */}
+            {this.state.selectedAssetKey &&
+              <SimpleCard
+                assetInfo={selectedAsset}
+                assetKey={this.state.selectedAssetKey}
+                changeStatus={this.changeStatus.bind(this)}
+              />
             }
-          }
           </main>
         </div>
       </div>
@@ -186,4 +229,4 @@ const styles = theme => ({
   }
 }
 
-export default  withStyles(styles)(App);
+export default withStyles(styles)(App);

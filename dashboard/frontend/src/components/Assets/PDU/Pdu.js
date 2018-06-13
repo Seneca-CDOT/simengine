@@ -1,96 +1,59 @@
-
 import React from 'react';
-import pdu from '../../../images/pdu-empty.svg';
-import pdu2 from '../../../images/pdu-selected.svg';
-import { Text, Image, Group, Line } from 'react-konva';
+import { Text, Group, Path } from 'react-konva';
 import Socket from '../common/Socket';
+import PropTypes from 'prop-types';
 
-
+/**
+ * Draw PDU graphics
+ */
 export default class Pdu extends React.Component {
-
 
   constructor() {
     super();
     this.state = {
-      image: null,
       color: 'grey',
-      selectedSocket: -1,
+      selectedSocketKey: -1,
     };
-
-    this.pduRef = React.createRef();
-    this.selectSocket = this.selectSocket.bind(this)
+    this.selectSocket = this.selectSocket.bind(this);
   }
 
-  componentDidMount() {
-    const image = new window.Image();
-    image.src = pdu;
-    image.onload = () => {
-      // setState will redraw layer
-      // because "image" property is changed
-      this.setState({
-        image: image
-      });
-    };
-  }
-
-
-  handlePduSelection = () => {
-
-    const selected = !this.state.selected;
-    let image = this.state.image;
-    image.src = selected ? pdu2: pdu;
-
-    this.setState({
-      selected: selected
-    });
-
-    if(selected) {
-      this.props.onElementSelection(this.props.elementId);
-    } else {
-      this.setState({
-        selectedSocket: -1
-      });
-    }
+  /** Notify Parent of Selection */
+  handleClick = () => {
+    this.props.onElementSelection(this.props.assetId, this.props.asset);
   };
 
-  selectSocket = (i) => {
-
-    // deselect PDU
-    let image = this.state.image;
-    image.src = pdu;
-    this.setState({
-      selected: false,
-      selectedSocket: ""+this.props.elementId+(i+1)
-    });
-
-    this.props.onElementSelection(String(this.props.elementId) + (i + 1));
+  /** Notify top-lvl Component that PDU-Outlet was selected*/
+  selectSocket = (ckey) => {
+    this.setState({ selectedSocketKey: ckey });
+    this.props.onElementSelection(ckey, this.props.asset.children[ckey]);
   }
 
   render() {
+
     let sockets = [];
-    let inputSocket = <Socket x={30} socketName={"input socket"} selectable={false}/>
+    const inputSocket = <Socket x={-70} socketName={"input socket"} selectable={false}/>;
 
-    let x=160;
-    let pduName = this.props.name?this.props.name:'pdu';
-    const pduElement = this.props.elementInfo[this.props.elementId];
+    let x=100;
+    const pduName = this.props.name ? this.props.name:'pdu';
+    const asset = this.props.asset;
 
-    for (let i=0; i< pduElement.children.length; i++) {
+    // Initialize outlets that are part of the PDU
+    for (const ckey of Object.keys(asset.children)) {
       sockets.push(
         <Socket
           x={x}
-          key={i}
-          socketName={"output [" + (i+1) + "]"}
-          onElementSelection={() => {this.selectSocket(i)}}
+          key={ckey}
+          name={`[${ckey}]`}
+          onElementSelection={() => { this.selectSocket(ckey); }}
           selectable={true}
-          elementInfo={this.props.elementInfo}
-          elementId={pduElement.children[i]}
-          selectedSocket={this.state.selectedSocket}
-          parentSelected={this.state.selected}
+          asset={asset.children[ckey]}
+          assetId={ckey}
+          selected={this.state.selectedSocketKey === ckey && this.props.pduSocketSelected}
+          parentSelected={this.props.selected}
         />
       );
       x += 90;
     }
-
 
     return (
       <Group
@@ -98,15 +61,30 @@ export default class Pdu extends React.Component {
         onDragEnd={this.props.onPosChange}
       >
         <Text text={pduName} />
-        <Image
-          image={this.state.image}
-          onClick={this.handlePduSelection}
-          fill={null}
+
+        {/* Draw PDU - SVG Path */}
+        <Path data={"M -7.357125,128.5323 H 217.35711 l 20.99711,11.70857 H -28.354227 Z M -27.401434,140.21439 H 237.40143 c 1.75756,0 3.17248,1.41492 3.17248,3.17248 v 21.85487 c 0,1.75755 -1.41492,3.17248 -3.17248,3.17248 H -27.401434 c -1.757555,0 -3.172481,-1.41493 -3.172481,-3.17248 v -21.85487 c 0,-1.75756 1.414926,-3.17248 3.172481,-3.17248 z"}
+          strokeWidth={0.4}
+          stroke={this.props.selected ? 'blue' : 'grey'}
+          fill={'white'}
+          scale={{x: 4, y: 4}}
+          y={-500}
+          onClick={this.handleClick.bind(this)}
         />
-        <Line />
+
+        {/* Draw Sockets */}
         {inputSocket}
         {sockets}
       </Group>
-    )
+    );
   }
 }
+
+Pdu.propTypes = {
+  name: PropTypes.string,
+  asset: PropTypes.object.isRequired, // Asset Details
+  assetId: PropTypes.string.isRequired, // Asset Key
+  selected: PropTypes.bool.isRequired, // Asset Selected by a user
+  onElementSelection: PropTypes.func.isRequired, // Notify parent component of selection
+  pduSocketSelected: PropTypes.bool.isRequired, // One of the PDU outlets are selected
+};

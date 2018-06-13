@@ -31,25 +31,23 @@ const styles = {
 };
 
 function SimpleCard(props) {
-  const { classes, elementInfo, assetId, changeStatus, showHeader=true } = props;
+  const { classes, assetInfo, assetKey, changeStatus, showHeader=true } = props;
   let children = [];
 
-  if(elementInfo[assetId].children) {
+  if(assetInfo.children) {
     children.push(
-      <div>
-      <h3>
-        Connected Components
-      </h3>
-      </div>
+      <div><h3> Connected Components </h3></div>
     );
-    for (let child of elementInfo[assetId].children){
+
+    const c = assetInfo.children;
+    for (const ckey of Object.keys(c)) {
         children.push(
-        <div key={child}>
+        <div key={ckey}>
             <Typography variant="subheading" component="h5">
-              Nested Asset: {child}-{elementInfo[child].type}
+              Nested Asset: {ckey}-{c[ckey].type}
             </Typography>
                 <Typography component="p">
-                  ::Status-{elementInfo[child].status === 1?<span style={{color: 'green'}}>on</span>:<span style={{color: 'red'}}>off</span>}
+                  ::Status-{c[ckey].status === 1?<span style={{color: 'green'}}>on</span>:<span style={{color: 'red'}}>off</span>}
                 </Typography>
           </div>
         );
@@ -67,14 +65,14 @@ function SimpleCard(props) {
         }
         <CardContent>
           <Typography variant="headline" component="h2">
-            Asset: {assetId}-{elementInfo[assetId].type}
+            Asset: {assetKey}-{assetInfo.type}
           </Typography>
           <Typography component="p">
-            Status: {elementInfo[assetId].status === 1?<span style={{color: 'green'}}>on</span>:<span style={{color: 'red'}}>off</span>}
+            Status: {assetInfo.status === 1?<span style={{color: 'green'}}>on</span>:<span style={{color: 'red'}}>off</span>}
           </Typography>
           <Divider />
             <FormControlLabel
-              control={<Switch checked={elementInfo[assetId].status} aria-label="LoginSwitch" onChange={()=>changeStatus(assetId)}/>}
+              control={<Switch checked={assetInfo.status} aria-label="LoginSwitch" onChange={()=>changeStatus(assetKey, assetInfo)}/>}
               label={"Toggle Status"}
             />
           <Divider/>

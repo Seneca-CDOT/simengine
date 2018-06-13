@@ -1,17 +1,10 @@
 import React from 'react';
 import { Rect } from 'react-konva';
 
+/**
+ * LED of a socket
+ */
 export default class SocketStatus extends React.Component {
-
-  state = {
-    color: 'red'
-  };
-
-  handleClick = () => {
-    this.setState({
-      color: "green"
-    });
-  };
 
   render() {
     const color = this.props.socketOn?"green": "red";

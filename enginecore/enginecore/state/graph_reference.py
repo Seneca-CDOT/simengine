@@ -3,7 +3,7 @@ import signal
 import sys
 import os
 
-from enginecore.state.utils import format_as_redis_key
+from enginecore.state.utils import format_as_redis_key, get_asset_type
 import enginecore.state.assets
 
 class Singleton(type):
@@ -56,16 +56,13 @@ class GraphReference(metaclass=Singleton):
         oid_keys = []
         for record in results:
             
-            asset_label = set(enginecore.state.assets.SUPPORTED_ASSETS).intersection(
-                map(lambda x: x.lower(), record['parent'].labels)
-            )
+            asset_type = get_asset_type(record['parent'].labels)
             
             asset_key = record['parent'].get('key')
             if not record['oid']:
-                asset_label = next(iter(asset_label))
                 asset_keys.append("{asset_key}-{property}".format(
                     asset_key=asset_key, 
-                    property=asset_label.lower()
+                    property=asset_type.lower()
                     )
                 )
             else:
@@ -76,26 +73,40 @@ class GraphReference(metaclass=Singleton):
 
 
     @classmethod
-    def get_assets(cls, session):
+    def get_assets(cls, session, flatten=True):
         """"""
         results = session.run(
-            "MATCH (asset:Asset) OPTIONAL MATCH (asset)-[:HAS_SNMP_COMPONENT]->(c) return asset, collect(c) as children"
+            "MATCH (asset:Asset) WHERE NOT (asset)<-[:HAS_SNMP_COMPONENT]-(:Asset)\
+            OPTIONAL MATCH (asset)-[:HAS_SNMP_COMPONENT]->(c) return asset, collect(c) as children"
         )
 
         assets = {}
         for record in results:
             
-            asset = { 'key': record['asset'].get('key') }
-            asset_label = set(enginecore.state.assets.SUPPORTED_ASSETS).intersection(
-                map(lambda x: x.lower(), record['asset'].labels)
-            )
-
-            asset['type'] = next(iter(asset_label))
+            asset = {'key': record['asset'].get('key')}
+            asset['type'] = get_asset_type(record['asset'].labels)
 
             if record['children']:
-                # TODO: sort with neo4j
-                asset['children'] = sorted(list(map(lambda x: x['key'], record['children'])))
+                nested_assets = {c['key']: {**dict(c), 'type': get_asset_type(c.labels)} for c in record['children']}
+                if flatten:
+                    asset['children'] = sorted(list(map(lambda x: x['key'], record['children'])))
+                    assets = {**assets, **nested_assets} # merge dicts
+                else:
+                    asset['children'] = nested_assets
 
+            '''
+            if flatten and record['children']:
+                asset['children'] = sorted(list(map(lambda x: x['key'], record['children'])))
+                d = { c['key']:dict(c) for c in record['children'] }
+                print (d)
+                assets = {**assets, **d} # flatten
+            elif record['children']:
+                asset['children'] = {}
+                for child_node in record['children']:
+                    ckey = child_node.get('key')
+                    asset['children'][ckey] = dict(child_node)
+                    asset['children'][ckey]['type'] = get_asset_type(child_node.labels)
+            '''
             assets[record['asset'].get('key')] = asset
 
         return assets
@@ -109,19 +120,16 @@ class GraphReference(metaclass=Singleton):
         )
 
         record = results.single()
-        
-        asset_label = set(enginecore.state.assets.SUPPORTED_ASSETS).intersection(
-            map(lambda x: x.lower(), record['asset'].labels)
-        )
-
+        asset_type = get_asset_type(record['asset'].labels)
         asset_key = record['asset'].get('key')
+
         children = []
 
         if record['children']:
             children = sorted(list(map(lambda x: x['key'], record['children'])))
             
         return {
-            'type': next(iter(asset_label)),
+            'type': asset_type,
             'children': children,
             'key': asset_key
         }

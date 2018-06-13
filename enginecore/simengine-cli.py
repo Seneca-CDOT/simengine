@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-""" Command line interface """
+""" Command line interface for enginecore """
 # pylint: disable=C0103
 
 import argparse

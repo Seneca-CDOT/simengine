@@ -77,21 +77,32 @@ class StateManger():
 
         return cls.redis_store
 
+    @classmethod 
+    def _get_assets_states(cls, assets, flatten=True): 
+
+        asset_keys = assets.keys()
+        
+        asset_values = cls.get_store().mget(
+            list(map(lambda k: "{}-{}".format(k, assets[k]['type']), asset_keys))
+        )
+
+        for rkey, rvalue in zip(assets, asset_values):
+            assets[rkey]['status'] = int(rvalue)
+            if not flatten and 'children' in cls.assets[rkey]:
+                assets[rkey]['children'] = cls._get_assets_states(assets[rkey]['children'])
+
+        return assets
+
     @classmethod
-    def get_system_status(cls):
+    def get_system_status(cls, flatten=True):
         """Get states/status of all system components """
         with GraphReference().get_session() as session:
 
             # cache assets
             if not cls.assets:
-                cls.assets = GraphReference.get_assets(session)
-            
-            asset_keys = cls.assets.keys()
-            asset_values = cls.get_store().mget(list(map( lambda k: "{}-{}".format(k,cls.assets[k]['type']), asset_keys)))
+                cls.assets = GraphReference.get_assets(session, flatten)
 
-            for rkey, rvalue in zip(cls.assets, asset_values):
-                cls.assets[rkey]['status'] = int(rvalue)
-            
+            cls.assets = cls._get_assets_states(cls.assets, flatten)
             return cls.assets
 
     @classmethod

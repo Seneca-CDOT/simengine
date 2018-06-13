@@ -23,7 +23,7 @@ class WebSocket(Component):
         print("WebSocket Client Connected:", host, port)
         
         # Return assets and their states to the new client
-        assets = StateManger.get_system_status()
+        assets = StateManger.get_system_status(flatten=False)
         self.fire(write(sock, json.dumps(assets)))
 
 

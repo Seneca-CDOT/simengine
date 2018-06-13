@@ -1,7 +1,7 @@
 """ StateListener monitors any updates to assets/OIDs """
 import sys
 
-from circuits import Component, Event, Timer, Worker
+from circuits import Component, Event, Timer, Worker, Debugger
 import redis
 
 from circuits.web import Logger, Server, Static
@@ -37,6 +37,7 @@ class StateListener(Component):
         self._server = Server(("0.0.0.0", 8000)).register(self)     
         Static().register(self._server)
         Logger().register(self._server)
+        # Debugger().register(self._server)
         self._ws = WebSocket().register(self._server)
     
         WebSocketsDispatcher("/simengine").register(self._server)

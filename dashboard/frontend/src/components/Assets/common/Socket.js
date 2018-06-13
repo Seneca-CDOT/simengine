@@ -3,7 +3,12 @@ import React from 'react';
 import { Text, Image, Group } from 'react-konva';
 import socket from '../../../images/socket.svg';
 import SocketStatus from './SocketStatus';
+import PropTypes from 'prop-types';
 
+
+/**
+ * Outlet Graphics
+ */
 export default class Socket extends React.Component {
 
     constructor() {
@@ -11,12 +16,11 @@ export default class Socket extends React.Component {
       this.state = {
         image: null,
         color: 'grey',
-        selected: false,
       };
-
-      this.myRef = React.createRef();
     }
 
+
+    /** Load Socket Image */
     componentDidMount() {
       const image = new window.Image();
       image.src = socket;
@@ -29,33 +33,26 @@ export default class Socket extends React.Component {
       };
     }
 
+     /** Notify Parent of Selection */
     handleClick = () => {
-
-      if (this.props.selectable && this.props.elementId) {
-        this.props.onElementSelection(this.props.elementId);
-      } else if (this.props.selectable && !this.props.elementId) {
-        const selected = !this.state.selected;
-        const color = selected ? 'blue':'grey';
-
-        this.setState({
-          color,
-          selected: selected
-        });
-
-        this.props.onElementSelection(this.props.elementId);
+      if (this.props.selectable) {
+        this.props.onElementSelection(this.props.assetId, this.props.asset);
       }
     };
 
     render() {
 
       let strokeColor = this.state.color;
-      if (this.props.elementId && this.props.selectable) {
-        strokeColor = (this.props.selectedSocket == this.props.elementId) || this.props.parentSelected ? "blue" : "grey";
+
+      // Selected when either parent element (e.g. PDU outlet belongs to) is selected
+      // or the socket was selected
+      if (this.props.selectable) {
+        strokeColor = (this.props.selected || this.props.parentSelected) ? "blue" : "grey";
       }
 
       return(
         <Group
-          x={this.props.x?this.props.x:20} ref={this.myRef}
+          x={this.props.x?this.props.x:20}
         >
           <Image
             image={this.state.image}
@@ -63,11 +60,25 @@ export default class Socket extends React.Component {
             stroke={strokeColor}
             onClick={this.handleClick}
           />
+
+          {/* LED */}
           {this.props.selectable &&
-            <SocketStatus socketOn={this.props.elementInfo[this.props.elementId].status}/>
+            <SocketStatus socketOn={this.props.asset.status}/>
           }
-          <Text text={this.props.socketName ?this.props.socketName:'socket'}  y={180} />
+          <Text text={this.props.name ? this.props.name :'socket'}  y={180} />
         </Group>
       );
     }
 }
+
+
+Socket.propTypes = {
+  name: PropTypes.string,
+  x: PropTypes.number,
+  asset: PropTypes.object, // Asset Details
+  assetId: PropTypes.string, // Asset Key
+  selected: PropTypes.bool, // Selected by user
+  parentSelected: PropTypes.bool, // Used when an outlet belongs to an asset
+  onElementSelection: PropTypes.func, // Notify parent component of selection
+  selectable: PropTypes.bool.isRequired, // Outlet is an asset
+};
