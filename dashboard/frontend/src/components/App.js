@@ -1,14 +1,11 @@
-/* eslint-disable */
 import React, { Component } from 'react';
 import { Stage, Layer } from 'react-konva';
 import gridBackground from '../images/grid.png';
 
-import Drawer from '@material-ui/core/Drawer';
 import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
-import Divider from '@material-ui/core/Divider';
 import classNames from 'classnames';
 import Pdu from './Assets/PDU/Pdu';
 import Socket from './Assets/common/Socket';
@@ -69,7 +66,6 @@ const styles = theme => ({
        };
        this.ws.onmessage = ((evt) =>
        {
-          var received_msg = evt.data;
           const data = JSON.parse(evt.data);
           // console.log("Message is received:\n" + evt.data);
           if('key' in data) {
@@ -83,7 +79,7 @@ const styles = theme => ({
               // update state
               let eInfo = this.state.assets;
 
-              let childInfo = eInfo[data.key].children
+              let childInfo = eInfo[data.key].children;
               eInfo[data.key] = data.data;
               eInfo[data.key].children = childInfo;
               // console.log(eInfo)
@@ -99,7 +95,7 @@ const styles = theme => ({
             });
           }
 
-       }).bind(this)
+       }).bind(this);
        this.ws.onclose = function()
        {
           // websocket is closed.
@@ -149,7 +145,8 @@ const styles = theme => ({
 
   /** Add Socket to the Layout */
   drawSocket(key, asset) {
-    return <Socket
+    return (
+    <Socket
       onPosChange={this.onPosChange}
       onElementSelection={this.onElementSelection.bind(this)}
       assetId={key}
@@ -158,19 +155,20 @@ const styles = theme => ({
       selected={this.state.selectedAssetKey === key}
       x={10}
       y={10}
-    />
+    />);
   }
 
   /** Add PDU to the Layout */
   drawPdu(key, asset) {
-    return <Pdu
+    return (
+    <Pdu
       onPosChange={this.onPosChange}
       onElementSelection={this.onElementSelection.bind(this)}
       assetId={key}
       asset={asset}
       selected={this.state.selectedAssetKey === key}
       pduSocketSelected={this.state.selectedAssetKey in asset.children}
-    />
+    />);
   }
 
   render() {
@@ -179,7 +177,7 @@ const styles = theme => ({
     const assets = this.state.assets;
 
     const selectedAsset = this._get_asset_by_key(this.state.selectedAssetKey)
-    let systemLayout = []
+    let systemLayout = [];
 
     // Initialize HA system layout
     for (const key of Object.keys(assets)) {
@@ -215,12 +213,12 @@ const styles = theme => ({
             </Stage>
 
             {/* LeftMost Card -> Display Element Details */}
-            {this.state.selectedAssetKey &&
+            {(this.state.selectedAssetKey) ?
               <SimpleCard
                 assetInfo={selectedAsset}
                 assetKey={this.state.selectedAssetKey}
                 changeStatus={this.changeStatus.bind(this)}
-              />
+              /> : ''
             }
           </main>
         </div>

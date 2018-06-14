@@ -31,7 +31,7 @@ const styles = {
 };
 
 function SimpleCard(props) {
-  const { classes, assetInfo, assetKey, changeStatus, showHeader=true } = props;
+  const { classes, assetInfo, assetKey, changeStatus } = props;
   let children = [];
 
   if(assetInfo.children) {
@@ -57,12 +57,10 @@ function SimpleCard(props) {
   return (
     <div>
       <Card className={classes.card}>
-        {showHeader &&
-          <CardHeader
-            title="Selected Asset Details"
-            style={{ backgroundColor: '#e1e6ea' }}
-          />
-        }
+        <CardHeader
+          title="Selected Asset Details"
+          style={{ backgroundColor: '#e1e6ea' }}
+        />
         <CardContent>
           <Typography variant="headline" component="h2">
             Asset: {assetKey}-{assetInfo.type}
@@ -71,11 +69,13 @@ function SimpleCard(props) {
             Status: {assetInfo.status === 1?<span style={{color: 'green'}}>on</span>:<span style={{color: 'red'}}>off</span>}
           </Typography>
           <Divider />
+            {/* Turn off/on the component */}
             <FormControlLabel
               control={<Switch checked={assetInfo.status} aria-label="LoginSwitch" onChange={()=>changeStatus(assetKey, assetInfo)}/>}
               label={"Toggle Status"}
             />
           <Divider/>
+          {/* Display any nested elements */}
           {children}
         </CardContent>
         {/*
@@ -90,6 +90,9 @@ function SimpleCard(props) {
 
 SimpleCard.propTypes = {
   classes: PropTypes.object.isRequired,
+  assetInfo: PropTypes.object.isRequired,
+  assetKey: PropTypes.object.isRequired,
+  changeStatus: PropTypes.func.isRequired, // Change asset state
 };
 
 export default withStyles(styles)(SimpleCard);
