@@ -11,7 +11,7 @@ CREATE (out:Asset:Outlet { name: 'out',  key: 1112 })
 ///// PDU (Instance of the Simulator) /////
 // ----------------------------------------
 CREATE (pdu:Asset:PDU:SNMPSim { 
-  name: 'pdu',
+  name: 'Rariton PDU',
   key: 1111,
   staticOidFile: 'pdu/raritan-pdu.snmprec'
 })
@@ -75,12 +75,17 @@ CREATE (out8:Asset:Outlet:SNMPComponent {
 
 ///////// Socket States - on/off ////////////
 
+CREATE (OutletStateDetails:OIDDesc {
+  `1`: "switchOn",
+  `0`: "switchOff"
+}) 
+
 CREATE (out1State:OID {
   name: "OutletState",
   OID: "1.3.6.1.4.1.13742.4.1.2.2.1.3.1",
   OIDName: "OutletState", 
   defaultValue: 1, // on by default
-  dataType: 2      // INTEGER dt
+  dataType: 2
 })
 
 CREATE (out2State:OID {
@@ -230,6 +235,16 @@ CREATE (pdu)-[:HAS_OID]->(out5Current)
 CREATE (pdu)-[:HAS_OID]->(out6Current)
 CREATE (pdu)-[:HAS_OID]->(out7Current)
 CREATE (pdu)-[:HAS_OID]->(out8Current)
+
+
+CREATE (out1State)-[:HAS_STATE_DETAILS]->(OutletStateDetails)
+CREATE (out2State)-[:HAS_STATE_DETAILS]->(OutletStateDetails)
+CREATE (out3State)-[:HAS_STATE_DETAILS]->(OutletStateDetails)
+CREATE (out4State)-[:HAS_STATE_DETAILS]->(OutletStateDetails)
+CREATE (out5State)-[:HAS_STATE_DETAILS]->(OutletStateDetails)
+CREATE (out6State)-[:HAS_STATE_DETAILS]->(OutletStateDetails)
+CREATE (out7State)-[:HAS_STATE_DETAILS]->(OutletStateDetails)
+CREATE (out8State)-[:HAS_STATE_DETAILS]->(OutletStateDetails)
 
 
 CREATE (pdu)-[:HAS_SNMP_COMPONENT]->(out1)

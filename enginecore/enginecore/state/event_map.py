@@ -1,6 +1,13 @@
 """ Maps redis events to circuit events """
 import enginecore.state.events as events
 
+STATE_SPECS = {
+    'OutletState': {
+        "switchOff": events.SignalDown(),
+        "switchOn": events.SignalUp()
+    }
+}
+
 event_map = {
     'pdu': {
         "0": events.PDUPowerDown(),
@@ -9,10 +16,5 @@ event_map = {
     'outlet': {
         "0": events.OutletPowerDown(),
         "1": events.OutletPowerUp(),
-    }, 
-    ## Outlet OIDS
-    'OutletState': {
-        "0": events.SignalDown(),
-        "1": events.SignalUp(),
     }
 }

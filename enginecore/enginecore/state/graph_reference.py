@@ -67,7 +67,9 @@ class GraphReference(metaclass=Singleton):
                 )
             else:
                 oid = record['oid'].get('OID')
-                oid_keys.append(format_as_redis_key(str(asset_key), oid, key_formatted=False))
+                oid_keys.append(
+                    format_as_redis_key(str(asset_key), oid, key_formatted=False)
+                )
 
         return asset_keys, oid_keys
 

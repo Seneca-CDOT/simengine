@@ -9,7 +9,7 @@ from circuits.web.dispatchers import WebSocketsDispatcher
 
 from enginecore.state.assets import SUPPORTED_ASSETS
 from enginecore.state.utils import get_asset_type
-from enginecore.state.event_map import event_map
+from enginecore.state.event_map import event_map, STATE_SPECS
 from enginecore.state.graph_reference import GraphReference
 from enginecore.state.web_socket import WebSocket
 
@@ -100,20 +100,27 @@ class StateListener(Component):
                 }}), self._ws)
 
             elif int(asset_key) in self._assets:
+               
                 oid = property_id.replace(" ", "")
                 _, oid_value = value.split("|")
 
                 # look up dependant nodes
                 results = self._graph_db.run(
-                    "MATCH (asset:Asset)-[:POWERED_BY]->(oid:OID { OID: $oid }) return asset, oid",
+                    'MATCH (asset:Asset)-[:POWERED_BY]->(oid:OID { OID: $oid }) \
+                     MATCH (oid)-[:HAS_STATE_DETAILS]->(oid_specs) \
+                    return asset, oid, oid_specs',
                     oid=oid
                 )
 
                 for record in results:
                     key = record['asset'].get('key')
                     oid_name = record['oid']['OIDName']
+                    oid_value_name = dict(record['oid_specs'])[oid_value]
+                    # print(oid_name)
+                    # print(oid_value_name)
+                    # print(STATE_SPECS[oid_name][oid_value_name])
 
-                    self.fire(event_map[oid_name][oid_value], self._assets[key])
+                    self.fire(STATE_SPECS[oid_name][oid_value_name], self._assets[key])
 
                 print('oid changed:')
                 print(">" + oid + ": " + oid_value)
