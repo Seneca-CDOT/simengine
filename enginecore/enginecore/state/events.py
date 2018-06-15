@@ -18,3 +18,6 @@ class SignalDown(Event):
 
 class SignalUp(Event):
     pass
+
+class LoadUpdate(Event):
+    pass

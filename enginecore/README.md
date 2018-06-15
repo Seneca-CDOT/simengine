@@ -20,4 +20,6 @@ Run the script:
 
 ## Linting
 
+`sudo python3 -m pip install pylint`
+
 This lintrc file is based on Google Style Guide. See this docstring [example](http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html) for documentation format reference.

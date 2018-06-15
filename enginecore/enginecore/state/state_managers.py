@@ -9,10 +9,11 @@ class StateManger():
     assets = {} # cache graph topology
     redis_store = None
 
-    def __init__(self, key, asset_type):
+    def __init__(self, asset_key, asset_type, asset_info=None):
         self.redis_store = redis.StrictRedis(host='localhost', port=6379)
         self._graph_db = GraphReference().get_session()
-        self._asset_key = key
+        self._asset_info = asset_info
+        self._asset_key = asset_key
         self._asset_type = asset_type
     
 
@@ -32,6 +33,10 @@ class StateManger():
         if self._parents_available():
             self.redis_store.set("{}-{}".format(str(self._asset_key), self._asset_type), '1')
  
+    def get_load(self):
+        """ Calculate load for the device """
+        pass
+        
 
     def _check_parents(self, keys, parent_down, msg='Cannot perform the action: [{}] parent is off'):
         """ Check that redis values pass certain condition
@@ -117,12 +122,12 @@ class StateManger():
 class PDUStateManager(StateManger):
     """ Handles state logic for PDU asset """
 
-    def __init__(self, key, asset_type='pdu'):
-         super(PDUStateManager, self).__init__(key, asset_type)
+    def __init__(self, asset_key, asset_type='pdu'):
+         super(PDUStateManager, self).__init__(asset_key, asset_type)
         
 
 class OutletStateManager(StateManger):
     """ Handles state logic for outlet asset """
 
-    def __init__(self, key, asset_type='outlet'):
-         super(OutletStateManager, self).__init__(key, asset_type)
+    def __init__(self, asset_key, asset_type='outlet'):
+         super(OutletStateManager, self).__init__(asset_key, asset_type)

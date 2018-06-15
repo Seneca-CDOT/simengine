@@ -16,5 +16,9 @@ event_map = {
     'outlet': {
         "0": events.OutletPowerDown(),
         "1": events.OutletPowerUp(),
+    },
+    'staticasset': {
+        "0": events.LoadUpdate(),
+        "1": events.LoadUpdate()
     }
 }

@@ -57,7 +57,7 @@ class StateListener(Component):
             except StopIteration:
                 print('Detected asset that is not supported', file=sys.stderr)
 
-        
+        print(self._assets)
         Worker(process=False).register(self)
 
 
@@ -78,7 +78,9 @@ class StateListener(Component):
         try:
 
             if property_id in SUPPORTED_ASSETS:
+
                 updated_asset = self._assets[int(asset_key)]
+
                 self.fire(event_map[property_id][value], updated_asset)
 
                 # look up child nodes

@@ -15,7 +15,7 @@ import signal
 import tempfile
 
 from circuits import Component, handler
-from enginecore.state.state_managers import PDUStateManager, OutletStateManager
+from enginecore.state.state_managers import StateManger, PDUStateManager, OutletStateManager
 
 SUPPORTED_ASSETS = {}
 
@@ -57,6 +57,10 @@ class Asset(Component):
 
     def power_up(self):
         """ Upstream power restored """        
+        raise NotImplementedError
+
+    def update_load(self):
+        """ Downstream device power update """   
         raise NotImplementedError
 
 
@@ -160,6 +164,9 @@ class PDU(Asset):
     def power_up(self):
         self._pdu_state.power_up()
 
+    @handler("LoadUpdate")
+    def update_load(self):
+        pass
 
 @register_asset
 class Outlet(Asset):
@@ -185,3 +192,22 @@ class Outlet(Asset):
         """ React to events with power up """
         self._outlet_state.power_up()
 
+
+@register_asset
+class StaticAsset(Asset):
+
+    channel = "static"
+    StateMangerCls = StateManger
+    
+    def __init__(self, asset_info):
+        super(StaticAsset, self).__init__(asset_info)
+        self._state = StaticAsset.StateMangerCls(asset_key=asset_info['key'], asset_info=asset_info, asset_type='staticasset')
+
+    @handler("OutletPowerDown")
+    def power_down(self): 
+        self._state.power_down()
+
+
+    @handler("OutletPowerUp")
+    def power_up(self):
+        self._state.power_up()
