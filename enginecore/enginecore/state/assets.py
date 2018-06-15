@@ -144,23 +144,23 @@ class PDU(Asset):
 
 
     ##### Create/kill SNMP agent when PDU state changes
-    @handler("PDUPowerDown")
+    @handler("AssetPowerDown")
     def on_asset_power_down(self):
         self._snmp_agent.stop_agent()
 
 
-    @handler("PDUPowerUp")
+    @handler("AssetPowerUp")
     def on_asset_power_up(self):
         self._snmp_agent.start_agent()
 
 
     ##### React to any events of the connected components #####
-    @handler("OutletPowerDown")
+    @handler("ParentAssetPowerDown")
     def power_down(self): 
         self._pdu_state.power_down()
 
 
-    @handler("OutletPowerUp")
+    @handler("ParentAssetPowerUp")
     def power_up(self):
         self._pdu_state.power_up()
 
@@ -181,13 +181,13 @@ class Outlet(Asset):
 
 
     ##### React to any events of the connected components #####    
-    @handler("PDUPowerDown", "SignalDown")
+    @handler("ParentAssetPowerDown", "SignalDown")
     def power_down(self):
         """ React to events with power down """
         self._outlet_state.power_down()
 
 
-    @handler("PDUPowerUp", "SignalUp")
+    @handler("ParentAssetPowerUp", "SignalUp")
     def power_up(self):
         """ React to events with power up """
         self._outlet_state.power_up()
@@ -203,11 +203,11 @@ class StaticAsset(Asset):
         super(StaticAsset, self).__init__(asset_info)
         self._state = StaticAsset.StateMangerCls(asset_key=asset_info['key'], asset_info=asset_info, asset_type='staticasset')
 
-    @handler("OutletPowerDown")
+    @handler("ParentAssetPowerDown")
     def power_down(self): 
         self._state.power_down()
 
 
-    @handler("OutletPowerUp")
+    @handler("ParentAssetPowerUp")
     def power_up(self):
         self._state.power_up()

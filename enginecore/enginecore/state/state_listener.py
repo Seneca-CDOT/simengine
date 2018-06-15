@@ -9,7 +9,7 @@ from circuits.web.dispatchers import WebSocketsDispatcher
 
 from enginecore.state.assets import SUPPORTED_ASSETS
 from enginecore.state.utils import get_asset_type
-from enginecore.state.event_map import event_map, STATE_SPECS
+from enginecore.state.event_map import PowerEventManager
 from enginecore.state.graph_reference import GraphReference
 from enginecore.state.web_socket import WebSocket
 
@@ -80,8 +80,7 @@ class StateListener(Component):
             if property_id in SUPPORTED_ASSETS:
 
                 updated_asset = self._assets[int(asset_key)]
-
-                self.fire(event_map[property_id][value], updated_asset)
+                self.fire(PowerEventManager.map_asset_event(value), updated_asset)
 
                 # look up child nodes
                 results = self._graph_db.run(
@@ -91,7 +90,7 @@ class StateListener(Component):
 
                 for record in results:
                     key = record['asset'].get('key')
-                    self.fire(event_map[property_id][value], self._assets[key])
+                    self.fire(PowerEventManager.map_parent_event(value), self._assets[key])
 
                 print("Key: {}-{} -> {}".format(asset_key, property_id.replace(" ", ""), value))
                 self.fire(NotifyClient({ 
@@ -122,7 +121,7 @@ class StateListener(Component):
                     # print(oid_value_name)
                     # print(STATE_SPECS[oid_name][oid_value_name])
 
-                    self.fire(STATE_SPECS[oid_name][oid_value_name], self._assets[key])
+                    self.fire(PowerEventManager.get_state_specs()[oid_name][oid_value_name], self._assets[key])
 
                 print('oid changed:')
                 print(">" + oid + ": " + oid_value)

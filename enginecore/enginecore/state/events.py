@@ -1,17 +1,17 @@
 """ Events """
 from circuits import Event
 
-class OutletPowerDown(Event):
-    """ Power down event """
+class AssetPowerDown(Event):
+    """ On Asset Did Receive PowerDown Signal """
 
-class OutletPowerUp(Event):
-    """ Power up event """
+class AssetPowerUp(Event):
+    """ On Asset Did Receive PowerUp Signal """
 
-class PDUPowerDown(Event):
-    """ Power down event """
+class ParentAssetPowerDown(Event):
+    """ On Parent Did Go Down """
 
-class PDUPowerUp(Event):
-    """ Power up event """
+class ParentAssetPowerUp(Event):
+     """ On Parent Did Go Up """
 
 class SignalDown(Event):
     pass
