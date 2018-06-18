@@ -84,7 +84,7 @@ class StateManger():
 
     @classmethod 
     def _get_assets_states(cls, assets, flatten=True): 
-
+        """ Query redis store and find states for each asset """
         asset_keys = assets.keys()
         
         asset_values = cls.get_store().mget(

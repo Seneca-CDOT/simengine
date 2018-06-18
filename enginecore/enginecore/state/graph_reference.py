@@ -76,10 +76,12 @@ class GraphReference(metaclass=Singleton):
 
     @classmethod
     def get_assets(cls, session, flatten=True):
-        """"""
+        """ Get assets, their components (e.g. PDU outlets) and parent asset that powers them """
+
         results = session.run(
             "MATCH (asset:Asset) WHERE NOT (asset)<-[:HAS_SNMP_COMPONENT]-(:Asset)\
-            OPTIONAL MATCH (asset)-[:HAS_SNMP_COMPONENT]->(c) return asset, collect(c) as children"
+            OPTIONAL MATCH (asset)-[:POWERED_BY]->(parent:Asset)\
+            OPTIONAL MATCH (asset)-[:HAS_SNMP_COMPONENT]->(c) return asset, collect(c) as children, parent"
         )
 
         assets = {}
@@ -87,6 +89,7 @@ class GraphReference(metaclass=Singleton):
             
             asset = {'key': record['asset'].get('key')}
             asset['type'] = get_asset_type(record['asset'].labels)
+            asset['parent'] = dict(record['parent']) if record['parent'] else None
 
             if record['children']:
                 nested_assets = {c['key']: {**dict(c), 'type': get_asset_type(c.labels)} for c in record['children']}

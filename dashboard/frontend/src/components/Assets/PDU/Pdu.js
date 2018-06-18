@@ -8,11 +8,13 @@ import PropTypes from 'prop-types';
  */
 export default class Pdu extends React.Component {
 
-  constructor() {
-    super();
+  constructor(props) {
+    super(props);
     this.state = {
       color: 'grey',
       selectedSocketKey: -1,
+      x: props.x?props.x:40,
+      y: props.y?props.y:40
     };
     this.selectSocket = this.selectSocket.bind(this);
   }
@@ -26,6 +28,11 @@ export default class Pdu extends React.Component {
   selectSocket = (ckey) => {
     this.setState({ selectedSocketKey: ckey });
     this.props.onElementSelection(ckey, this.props.asset.children[ckey]);
+  }
+
+  updatePduPos = (s) => {
+    this.setState({ x: s.target.attrs.x, y : s.target.attrs.y });
+    this.props.onPosChange(this.props.assetId, s);
   }
 
   render() {
@@ -59,7 +66,7 @@ export default class Pdu extends React.Component {
     return (
       <Group
         draggable="true"
-        onDragEnd={(s)=> this.props.onPosChange(this.props.assetId, s)}
+        onDragMove={this.updatePduPos.bind(this)}
       >
         <Text text={pduName} />
 

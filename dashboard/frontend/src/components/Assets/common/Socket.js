@@ -62,7 +62,7 @@ export default class Socket extends React.Component {
           x={this.state.x}
           y={this.state.y}
           draggable={this.props.draggable}
-          onDragEnd={this.updateSocketPos.bind(this)}
+          onDragMove={this.updateSocketPos.bind(this)}
         >
           <Image
             image={this.state.image}

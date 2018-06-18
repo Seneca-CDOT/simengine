@@ -1,7 +1,5 @@
-/* eslint-disable */
 import React, { Component } from 'react';
-import { Stage, Layer, Shape, Line } from 'react-konva';
-import Konva from 'konva';
+import { Stage, Layer, Line } from 'react-konva';
 import gridBackground from '../images/grid.png';
 
 import AppBar from '@material-ui/core/AppBar';
@@ -52,38 +50,9 @@ const styles = theme => ({
     this.state = {
       assets: initialState,
       selectedAssetKey: 0,
-      layoutScaleX: 1,
-      layoutScaleY: 1,
-      startSocketX: 63,
-      startSocketY: 38
-    }
-    var stage = new Konva.stage({
-       width:window.innerWidth,
-       height:1100,
-    });
+      connections:{},
+    };
 
-    var layer = new Konva.Layer();
-    stage.add(layer);
-
-    window.addEventListener('wheel', (e) => {
-      e.preventDefault();
-      var oldScale = stage.scaleX();
-
-      var mousePointTo = {
-          x: stage.getPointerPosition().x / oldScale - stage.x() / oldScale,
-          y: stage.getPointerPosition().y / oldScale - stage.y() / oldScale,
-      };
-
-      var newScale = e.deltaY > 0 ? oldScale * scaleBy : oldScale / scaleBy;
-      stage.scale({ x: newScale, y: newScale });
-
-      var newPos = {
-          x: -(mousePointTo.x - stage.getPointerPosition().x / newScale) * newScale,
-          y: -(mousePointTo.y - stage.getPointerPosition().y / newScale) * newScale
-      };
-      stage.position(newPos);
-      stage.batchDraw();
-  }).bind(this);
     // this._drawWire = this._drawWire.bind(this)
 
 
@@ -113,10 +82,10 @@ const styles = theme => ({
               // update state
               let eInfo = this.state.assets;
 
-              let childInfo = eInfo[data.key].children;
+              let { children, parent } = eInfo[data.key];
               eInfo[data.key] = data.data;
-              eInfo[data.key].children = childInfo;
-              // console.log(eInfo)
+              eInfo[data.key].children = children;
+              eInfo[data.key].parent = parent;
 
               this.setState({
                 assets: eInfo
@@ -124,8 +93,17 @@ const styles = theme => ({
             }
 
           } else {
+            let connections = {}
+
+            Object.keys(data).map((k) => {
+              if (data[k]['parent']) {
+                connections[data[k]['parent'].key] = {x: 40, y:0, x1:50, y1:50 }
+              }
+            });
+
             this.setState({
-              assets: data
+              assets: data,
+              connections
             });
           }
 
@@ -143,22 +121,57 @@ const styles = theme => ({
     }
   }
 
+  componentDidMount() {
+
+    // Scale Layout on wheel event
+    let stage = this.refs.stage.getStage()
+    const scaleBy = 1.03;
+    window.addEventListener('wheel', (e) => {
+      e.preventDefault();
+
+      const oldScale = stage.scaleX();
+
+      const mousePointTo = {
+          x: stage.getPointerPosition().x / oldScale - stage.x() / oldScale,
+          y: stage.getPointerPosition().y / oldScale - stage.y() / oldScale,
+      };
+
+      const newScale = e.deltaY > 0 ? oldScale * scaleBy : oldScale / scaleBy;
+      stage.scale({ x: newScale, y: newScale });
+
+      const newPos = {
+          x: -(mousePointTo.x - stage.getPointerPosition().x / newScale) * newScale,
+          y: -(mousePointTo.y - stage.getPointerPosition().y / newScale) * newScale
+      };
+      stage.position(newPos);
+      stage.batchDraw();
+    });
+  }
+
   _get_asset_by_key(key) {
     if ((''+key).length === 5) {
       const parent_key = (''+key).substring(0, 4);
-      console.log("key: " + key)
       return this.state.assets[parent_key].children[key];
     } else {
       return this.state.assets[key];
     }
   }
 
+/** Update connections between assets (wires) */
+  onPosChange(key, e) {
 
+    const asset = this.state.assets[key];
+    const hasParent = asset['parent'];
+    const connections = this.state.connections;
+    let newConn = {};
 
-  onPosChange(key, s) {
-    console.log("POS CHANGED OF " + key)
-    console.log(s.target.attrs.x);
-    console.log(s.target.attrs.y);
+    if(hasParent) {
+      newConn[asset['parent'].key] = { ...connections[asset['parent'].key], x1:e.target.x(),  y1: e.target.y() }
+    } else if (key in connections) {
+      newConn[key] = { ...connections[key], x:e.target.x(),  y: e.target.y() }
+    }
+
+    this.setState({ connections: {...connections, ...newConn}})
   }
 
   /** Handle Asset Selection */
@@ -183,7 +196,7 @@ const styles = theme => ({
   drawSocket(key, asset) {
     return (
     <Socket
-      onPosChange={this.onPosChange}
+      onPosChange={this.onPosChange.bind(this)}
       onElementSelection={this.onElementSelection.bind(this)}
       assetId={key}
       asset={asset}
@@ -193,11 +206,13 @@ const styles = theme => ({
     />);
   }
 
+
   /** Add PDU to the Layout */
   drawPdu(key, asset) {
+
     return (
     <Pdu
-      onPosChange={this.onPosChange}
+      onPosChange={this.onPosChange.bind(this)}
       onElementSelection={this.onElementSelection.bind(this)}
       assetId={key}
       asset={asset}
@@ -206,32 +221,14 @@ const styles = theme => ({
     />);
   }
 
-  _drawWire(context) {
-
-    //console.log(state)
-    let width = 100,
-    height = 500;
-
-let pts = { st: [3, 38],
-  ct: [width, height/4, width, 3/4*height],
-  en: [width/2, 3/4*height]
-}
-    context.beginPath();
-    context.moveTo(...pts.st);
-    context.bezierCurveTo(...pts.ct,...pts.en);
-    context.strokeShape(this);
-  }
-
-
-
   render() {
 
     const { classes } = this.props;
-    const assets = this.state.assets;
+    const { assets, connections } = this.state;
 
     const selectedAsset = this._get_asset_by_key(this.state.selectedAssetKey)
     let systemLayout = [];
-    let connections=[]
+    let wireDrawing=[]
 
     // Initialize HA system layout
     for (const key of Object.keys(assets)) {
@@ -242,15 +239,19 @@ let pts = { st: [3, 38],
       }
     }
 
-    connections.push(<Line
-      x={this.state.startSocketX}
-      y={this.state.startSocketY}
-      points={[10, 10, 50, 50, 100, 100]}
-      fill={'green'}
-      closed={true}
+    // draw wires
+    const socketXpad = 34;
+    const socketYpad = 35;
+    for (const key of Object.keys(connections)) {
+      wireDrawing.push(
+        <Line
+          points={[connections[key].x+socketXpad, connections[key].y+socketYpad, connections[key].x1-socketXpad, connections[key].y1+socketYpad]}
+          stroke={this.state.assets[key].status  === 1?"green":"red"}
+          strokeWidth={5}
+        />
+      );
+    }
 
-
-      />)
 
     return (
       <div className={classes.root}>
@@ -270,23 +271,16 @@ let pts = { st: [3, 38],
           {/* Main Canvas */}
           <main className={classes.content} style={ { backgroundImage: 'url('+gridBackground+')', backgroundRepeat: "repeat" }}>
             <div className={classes.toolbar} />
-            {this.stage}
-            {/*
-            <Stage width={window.innerWidth} height={1100} scale={{x: this.state.layoutScaleX, y: this.state.layoutScaleY}}>
+            <Stage
+              width={window.innerWidth}
+              height={1100}
+              ref="stage"
+            >
               <Layer>
                 {systemLayout}
-                {connections}
-                {
-                <Shape
-
-                  strokeWidth={4}
-                  stroke={'grey'}
-                  lineCap={'round'}
-                  sceneFunc={this._drawWire}
-                /> }
+                {wireDrawing}
               </Layer>
             </Stage>
-            */}
             {/* LeftMost Card -> Display Element Details */}
             {(this.state.selectedAssetKey) ?
               <SimpleCard
