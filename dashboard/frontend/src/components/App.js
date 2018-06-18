@@ -1,5 +1,7 @@
+/* eslint-disable */
 import React, { Component } from 'react';
-import { Stage, Layer } from 'react-konva';
+import { Stage, Layer, Shape, Line } from 'react-konva';
+import Konva from 'konva';
 import gridBackground from '../images/grid.png';
 
 import AppBar from '@material-ui/core/AppBar';
@@ -49,8 +51,40 @@ const styles = theme => ({
 
     this.state = {
       assets: initialState,
-      selectedAssetKey: 0
+      selectedAssetKey: 0,
+      layoutScaleX: 1,
+      layoutScaleY: 1,
+      startSocketX: 63,
+      startSocketY: 38
     }
+    var stage = new Konva.stage({
+       width:window.innerWidth,
+       height:1100,
+    });
+
+    var layer = new Konva.Layer();
+    stage.add(layer);
+
+    window.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      var oldScale = stage.scaleX();
+
+      var mousePointTo = {
+          x: stage.getPointerPosition().x / oldScale - stage.x() / oldScale,
+          y: stage.getPointerPosition().y / oldScale - stage.y() / oldScale,
+      };
+
+      var newScale = e.deltaY > 0 ? oldScale * scaleBy : oldScale / scaleBy;
+      stage.scale({ x: newScale, y: newScale });
+
+      var newPos = {
+          x: -(mousePointTo.x - stage.getPointerPosition().x / newScale) * newScale,
+          y: -(mousePointTo.y - stage.getPointerPosition().y / newScale) * newScale
+      };
+      stage.position(newPos);
+      stage.batchDraw();
+  }).bind(this);
+    // this._drawWire = this._drawWire.bind(this)
 
 
     if ("WebSocket" in window)
@@ -112,6 +146,7 @@ const styles = theme => ({
   _get_asset_by_key(key) {
     if ((''+key).length === 5) {
       const parent_key = (''+key).substring(0, 4);
+      console.log("key: " + key)
       return this.state.assets[parent_key].children[key];
     } else {
       return this.state.assets[key];
@@ -120,7 +155,8 @@ const styles = theme => ({
 
 
 
-  onPosChange(s) {
+  onPosChange(key, s) {
+    console.log("POS CHANGED OF " + key)
     console.log(s.target.attrs.x);
     console.log(s.target.attrs.y);
   }
@@ -153,8 +189,7 @@ const styles = theme => ({
       asset={asset}
       selectable={true}
       selected={this.state.selectedAssetKey === key}
-      x={10}
-      y={10}
+      draggable={true}
     />);
   }
 
@@ -171,6 +206,24 @@ const styles = theme => ({
     />);
   }
 
+  _drawWire(context) {
+
+    //console.log(state)
+    let width = 100,
+    height = 500;
+
+let pts = { st: [3, 38],
+  ct: [width, height/4, width, 3/4*height],
+  en: [width/2, 3/4*height]
+}
+    context.beginPath();
+    context.moveTo(...pts.st);
+    context.bezierCurveTo(...pts.ct,...pts.en);
+    context.strokeShape(this);
+  }
+
+
+
   render() {
 
     const { classes } = this.props;
@@ -178,6 +231,7 @@ const styles = theme => ({
 
     const selectedAsset = this._get_asset_by_key(this.state.selectedAssetKey)
     let systemLayout = [];
+    let connections=[]
 
     // Initialize HA system layout
     for (const key of Object.keys(assets)) {
@@ -187,6 +241,16 @@ const styles = theme => ({
         systemLayout.push(this.drawPdu(key, assets[key]))
       }
     }
+
+    connections.push(<Line
+      x={this.state.startSocketX}
+      y={this.state.startSocketY}
+      points={[10, 10, 50, 50, 100, 100]}
+      fill={'green'}
+      closed={true}
+
+
+      />)
 
     return (
       <div className={classes.root}>
@@ -206,12 +270,23 @@ const styles = theme => ({
           {/* Main Canvas */}
           <main className={classes.content} style={ { backgroundImage: 'url('+gridBackground+')', backgroundRepeat: "repeat" }}>
             <div className={classes.toolbar} />
-            <Stage width={window.innerWidth} height={1100}>
+            {this.stage}
+            {/*
+            <Stage width={window.innerWidth} height={1100} scale={{x: this.state.layoutScaleX, y: this.state.layoutScaleY}}>
               <Layer>
                 {systemLayout}
+                {connections}
+                {
+                <Shape
+
+                  strokeWidth={4}
+                  stroke={'grey'}
+                  lineCap={'round'}
+                  sceneFunc={this._drawWire}
+                /> }
               </Layer>
             </Stage>
-
+            */}
             {/* LeftMost Card -> Display Element Details */}
             {(this.state.selectedAssetKey) ?
               <SimpleCard

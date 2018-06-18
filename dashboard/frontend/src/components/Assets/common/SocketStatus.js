@@ -11,7 +11,7 @@ export default class SocketStatus extends React.Component {
     return (
       <Rect
         x={this.props.x?this.props.x:20}
-        y={150}
+        y={85}
         width={10}
         height={10}
         fill={color}

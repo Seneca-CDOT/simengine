@@ -31,7 +31,7 @@ export default class Pdu extends React.Component {
   render() {
 
     let sockets = [];
-    const inputSocket = <Socket x={-70} socketName={"input socket"} selectable={false}/>;
+    const inputSocket = <Socket x={-70} socketName={"input socket"} selectable={false} draggable={false}/>;
 
     let x=100;
     const pduName = this.props.name ? this.props.name:'pdu';
@@ -46,6 +46,7 @@ export default class Pdu extends React.Component {
           name={`[${ckey}]`}
           onElementSelection={() => { this.selectSocket(ckey); }}
           selectable={true}
+          draggable={false}
           asset={asset.children[ckey]}
           assetId={ckey}
           selected={this.state.selectedSocketKey === ckey && this.props.pduSocketSelected}
@@ -58,7 +59,7 @@ export default class Pdu extends React.Component {
     return (
       <Group
         draggable="true"
-        onDragEnd={this.props.onPosChange}
+        onDragEnd={(s)=> this.props.onPosChange(this.props.assetId, s)}
       >
         <Text text={pduName} />
 
@@ -68,7 +69,7 @@ export default class Pdu extends React.Component {
           stroke={this.props.selected ? 'blue' : 'grey'}
           fill={'white'}
           scale={{x: 4, y: 4}}
-          y={-500}
+          y={-575}
           onClick={this.handleClick.bind(this)}
         />
 

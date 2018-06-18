@@ -11,11 +11,13 @@ import PropTypes from 'prop-types';
  */
 export default class Socket extends React.Component {
 
-    constructor() {
+    constructor(props) {
       super();
       this.state = {
         image: null,
         color: 'grey',
+        x: props.x?props.x:40,
+        y:0
       };
     }
 
@@ -40,6 +42,11 @@ export default class Socket extends React.Component {
       }
     };
 
+    updateSocketPos = (s) => {
+      this.setState({ x: s.target.attrs.x, y : s.target.attrs.y });
+      this.props.onPosChange(this.props.assetId, s);
+    }
+
     render() {
 
       let strokeColor = this.state.color;
@@ -52,11 +59,13 @@ export default class Socket extends React.Component {
 
       return(
         <Group
-          x={this.props.x?this.props.x:20}
+          x={this.state.x}
+          y={this.state.y}
+          draggable={this.props.draggable}
+          onDragEnd={this.updateSocketPos.bind(this)}
         >
           <Image
             image={this.state.image}
-            y={75}
             stroke={strokeColor}
             onClick={this.handleClick}
           />
@@ -65,7 +74,7 @@ export default class Socket extends React.Component {
           {this.props.selectable &&
             <SocketStatus socketOn={this.props.asset.status}/>
           }
-          <Text text={this.props.name ? this.props.name :'socket'}  y={180} />
+          <Text text={this.props.name ? this.props.name :'socket'}  y={105} />
         </Group>
       );
     }
