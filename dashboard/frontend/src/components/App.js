@@ -157,21 +157,38 @@ const styles = theme => ({
     }
   }
 
+_update_wiring(asset, key, x, y) {
+  let newConn = {};
+  const connections = this.state.connections;
+
+  if(asset['parent']) {
+    newConn[asset['parent'].key] = { ...connections[asset['parent'].key], x1:x,  y1:y };
+  } else if (key in connections) {
+    newConn[key] = { ...connections[key], x:x,  y:y };
+  }
+
+  return newConn;
+}
+
 /** Update connections between assets (wires) */
   onPosChange(key, e) {
 
-    const asset = this.state.assets[key];
-    const hasParent = asset['parent'];
+    const asset = this._get_asset_by_key(key);
     const connections = this.state.connections;
-    let newConn = {};
+    let newConn = this._update_wiring(asset, key, e.target.x(), e.target.y());
 
-    if(hasParent) {
-      newConn[asset['parent'].key] = { ...connections[asset['parent'].key], x1:e.target.x(),  y1: e.target.y() }
-    } else if (key in connections) {
-      newConn[key] = { ...connections[key], x:e.target.x(),  y: e.target.y() }
+    let childConn = {};
+
+    let x=100;
+    if (asset.children) {
+      for (const ckey of Object.keys(asset.children)) {
+        const c = this._update_wiring(this._get_asset_by_key(ckey), ckey, e.target.x()+x, e.target.y());
+        Object.assign(childConn, c);
+        x += 90;
+      }
     }
 
-    this.setState({ connections: {...connections, ...newConn}})
+    this.setState({ connections: {...connections, ...newConn, ...childConn }});
   }
 
   /** Handle Asset Selection */
@@ -228,14 +245,14 @@ const styles = theme => ({
 
     const selectedAsset = this._get_asset_by_key(this.state.selectedAssetKey)
     let systemLayout = [];
-    let wireDrawing=[]
+    let wireDrawing=[];
 
     // Initialize HA system layout
     for (const key of Object.keys(assets)) {
       if (assets[key].type == 'outlet') {
-        systemLayout.push(this.drawSocket(key, assets[key]))
+        systemLayout.push(this.drawSocket(key, assets[key]));
       } else if (assets[key].type == 'pdu') {
-        systemLayout.push(this.drawPdu(key, assets[key]))
+        systemLayout.push(this.drawPdu(key, assets[key]));
       }
     }
 
@@ -243,10 +260,11 @@ const styles = theme => ({
     const socketXpad = 34;
     const socketYpad = 35;
     for (const key of Object.keys(connections)) {
+      const asset = this._get_asset_by_key(key);
       wireDrawing.push(
         <Line
           points={[connections[key].x+socketXpad, connections[key].y+socketYpad, connections[key].x1-socketXpad, connections[key].y1+socketYpad]}
-          stroke={this.state.assets[key].status  === 1?"green":"red"}
+          stroke={asset.status  === 1?"green":"red"}
           strokeWidth={5}
         />
       );
