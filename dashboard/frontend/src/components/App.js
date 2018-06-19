@@ -238,6 +238,7 @@ _update_wiring(asset, key, x, y) {
     />);
   }
 
+
   render() {
 
     const { classes } = this.props;
@@ -249,7 +250,7 @@ _update_wiring(asset, key, x, y) {
 
     // Initialize HA system layout
     for (const key of Object.keys(assets)) {
-      if (assets[key].type == 'outlet') {
+      if (assets[key].type == 'outlet' || assets[key].type === 'staticasset') {
         systemLayout.push(this.drawSocket(key, assets[key]));
       } else if (assets[key].type == 'pdu') {
         systemLayout.push(this.drawPdu(key, assets[key]));

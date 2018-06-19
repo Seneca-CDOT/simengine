@@ -15,7 +15,7 @@ import signal
 import tempfile
 
 from circuits import Component, handler
-from enginecore.state.state_managers import StateManger, PDUStateManager, OutletStateManager
+from enginecore.state.state_managers import StaticDeviceStateManager, PDUStateManager, OutletStateManager
 
 SUPPORTED_ASSETS = {}
 
@@ -61,6 +61,9 @@ class Asset(Component):
 
     def update_load(self):
         """ Downstream device power update """   
+        raise NotImplementedError
+    
+    def get_load(self):
         raise NotImplementedError
 
 
@@ -137,7 +140,7 @@ class PDU(Asset):
     def __init__(self, asset_info):
         super(PDU, self).__init__(asset_info)
 
-        self._pdu_state = PDU.StateManagerCls(asset_info['key'])
+        self._state = PDU.StateManagerCls(asset_info['key'])
         self._snmp_agent = SNMPAgent(
             asset_info['key'],
         )
@@ -157,16 +160,24 @@ class PDU(Asset):
     ##### React to any events of the connected components #####
     @handler("ParentAssetPowerDown")
     def power_down(self): 
-        self._pdu_state.power_down()
+        self._state.power_down()
 
 
     @handler("ParentAssetPowerUp")
     def power_up(self):
-        self._pdu_state.power_up()
+        self._state.power_up()
 
-    @handler("LoadUpdate")
-    def update_load(self):
-        pass
+    @handler("ChildAssetPowerDown")
+    def increase_load(self, event, *args, **kwargs):
+        child_key = kwargs['child_key']
+
+
+    @handler("ChildAssetPowerUp")
+    def decrease_load(self, event, *args, **kwargs):
+        child_key = kwargs['child_key']
+    
+    def get_load(self):
+        return 30
 
 @register_asset
 class Outlet(Asset):
@@ -177,31 +188,33 @@ class Outlet(Asset):
 
     def __init__(self, asset_info):
         super(Outlet, self).__init__(asset_info)
-        self._outlet_state = Outlet.StateManagerCls(asset_info['key'])
+        self._state = Outlet.StateManagerCls(asset_info['key'])
 
 
     ##### React to any events of the connected components #####    
     @handler("ParentAssetPowerDown", "SignalDown")
     def power_down(self):
         """ React to events with power down """
-        self._outlet_state.power_down()
+        self._state.power_down()
 
 
     @handler("ParentAssetPowerUp", "SignalUp")
     def power_up(self):
         """ React to events with power up """
-        self._outlet_state.power_up()
+        self._state.power_up()
 
+    def get_load(self):
+        return 30
 
 @register_asset
 class StaticAsset(Asset):
 
     channel = "static"
-    StateMangerCls = StateManger
+    StateManagerCls = StaticDeviceStateManager
     
     def __init__(self, asset_info):
         super(StaticAsset, self).__init__(asset_info)
-        self._state = StaticAsset.StateMangerCls(asset_key=asset_info['key'], asset_info=asset_info, asset_type='staticasset')
+        self._state = StaticAsset.StateManagerCls(asset_info['key'])
 
     @handler("ParentAssetPowerDown")
     def power_down(self): 
@@ -211,3 +224,6 @@ class StaticAsset(Asset):
     @handler("ParentAssetPowerUp")
     def power_up(self):
         self._state.power_up()
+
+    def get_load(self):
+        return self._state.get_load()

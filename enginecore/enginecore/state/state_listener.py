@@ -57,7 +57,6 @@ class StateListener(Component):
             except StopIteration:
                 print('Detected asset that is not supported', file=sys.stderr)
 
-        print(self._assets)
         Worker(process=False).register(self)
 
 
@@ -84,13 +83,23 @@ class StateListener(Component):
 
                 # look up child nodes
                 results = self._graph_db.run(
-                    "MATCH (asset:Asset)-[:POWERED_BY]->({ key: $key }) return asset",
+                    "MATCH (asset:Asset)-[r:POWERED_BY]-({ key: $key }) return asset,(startNode(r) = asset) as powers",
                     key=int(asset_key)
                 )
 
                 for record in results:
+                   
                     key = record['asset'].get('key')
-                    self.fire(PowerEventManager.map_parent_event(value), self._assets[key])
+
+                    # 'powers' is true if the updated asset powers the dependant assets
+                    # 'powers' is false if the updated asset is powered by the connected asset
+                    if record['powers']: 
+                        event = PowerEventManager.map_parent_event(value)
+                    else:
+                        event = PowerEventManager.map_child_event(value, asset_key)
+                    
+                    self.fire(event, self._assets[key])
+                        
 
                 print("Key: {}-{} -> {}".format(asset_key, property_id.replace(" ", ""), value))
                 self.fire(NotifyClient({ 

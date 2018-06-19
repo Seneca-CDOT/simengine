@@ -13,6 +13,12 @@ class ParentAssetPowerDown(Event):
 class ParentAssetPowerUp(Event):
      """ On Parent Did Go Up """
 
+class ChildAssetPowerDown(Event):
+    """ On Child Did Go Down """
+
+class ChildAssetPowerUp(Event):
+    """ On Child Did Go Up """
+
 class SignalDown(Event):
     pass
 

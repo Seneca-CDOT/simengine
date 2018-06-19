@@ -9,10 +9,9 @@ class StateManger():
     assets = {} # cache graph topology
     redis_store = None
 
-    def __init__(self, asset_key, asset_type, asset_info=None):
+    def __init__(self, asset_key, asset_type):
         self.redis_store = redis.StrictRedis(host='localhost', port=6379)
         self._graph_db = GraphReference().get_session()
-        self._asset_info = asset_info
         self._asset_key = asset_key
         self._asset_type = asset_type
     
@@ -131,3 +130,12 @@ class OutletStateManager(StateManger):
 
     def __init__(self, asset_key, asset_type='outlet'):
          super(OutletStateManager, self).__init__(asset_key, asset_type)
+
+
+class StaticDeviceStateManager(StateManger):
+    def __init__(self, asset_key, asset_type='staticasset'):
+        super(StaticDeviceStateManager, self).__init__(asset_key, asset_type)
+        self._asset = GraphReference.get_asset_and_components(self._graph_db, asset_key)
+    
+    def get_load(self):
+        return self._asset['powerConsumption'] / self._asset['powerSource']

@@ -108,24 +108,18 @@ class GraphReference(metaclass=Singleton):
     def get_asset_and_components(cls, session, asset_key):
         results = session.run(
             "MATCH (n:Asset { key: $key }) OPTIONAL MATCH (n)-[:HAS_SNMP_COMPONENT]->(c) RETURN n as asset, collect(c) as children",
-            key=asset_key
+            key=int(asset_key)
         )
 
         record = results.single()
-        asset_type = get_asset_type(record['asset'].labels)
-        asset_key = record['asset'].get('key')
+        asset = dict(record['asset'])
 
         children = []
-
         if record['children']:
             children = sorted(list(map(lambda x: x['key'], record['children'])))
-            
-        return {
-            'type': asset_type,
-            'children': children,
-            'key': asset_key
-        }
         
+        asset['children'] = children
+        return asset
 
     @classmethod
     def get_asset_labels_by_key(cls, session, key):

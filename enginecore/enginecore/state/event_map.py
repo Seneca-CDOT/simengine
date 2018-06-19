@@ -20,7 +20,14 @@ class PowerEventManager:
     def map_asset_event(cls, value):
         return {
             "0": events.AssetPowerDown(),
-            "1": events.AssetPowerDown(),
+            "1": events.AssetPowerUp(),
+        }[value]
+
+    @classmethod
+    def map_child_event(cls, value, child_key):
+        return {
+            "0": events.ChildAssetPowerDown(child_key=child_key),
+            "1": events.ChildAssetPowerUp(child_key=child_key),
         }[value]
 
     @classmethod

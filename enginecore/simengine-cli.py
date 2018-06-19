@@ -44,7 +44,7 @@ def status_table_format(assets, stdscr=False):
     headers = ["Asset Key", "Type", "Status", "Children"]
     row_format = "{:>10}" * (len(headers) + 1)
 
-    headers = row_format.format("", *headers)
+    headers = row_format.format("", *headers, end='')
     if stdscr: 
         stdscr.addstr(0, 0, headers)
     else:
@@ -53,10 +53,10 @@ def status_table_format(assets, stdscr=False):
     for i, asset_key in enumerate(assets):
         asset = assets[asset_key]
         children = str(asset['children'] if 'children' in asset else "none")
-        row = row_format.format(str(i), *[asset_key, asset['type'], asset['status'], children])
+        row = row_format.format(str(i), *[str(asset_key), asset['type'], str(asset['status']), children], end='')
 
         if stdscr:
-            stdscr.addstr(i+1, 0, row, curses.color_pair(bcolors.ERROR if asset['status'] == 0 else bcolors.OKGREEN))
+            stdscr.addstr(i+1, 0, row, curses.color_pair(bcolors.ERROR if int(asset['status']) == 0 else bcolors.OKGREEN))
         else:
             print(row)
 
