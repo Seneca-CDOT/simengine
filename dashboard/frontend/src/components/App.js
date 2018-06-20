@@ -92,6 +92,9 @@ const styles = theme => ({
               });
             }
 
+          } else if ('load' in data) {
+            console.log(data)
+
           } else {
             let connections = {}
 

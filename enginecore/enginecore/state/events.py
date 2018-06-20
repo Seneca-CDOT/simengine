@@ -11,19 +11,24 @@ class ParentAssetPowerDown(Event):
     """ On Parent Did Go Down """
 
 class ParentAssetPowerUp(Event):
-     """ On Parent Did Go Up """
+    """ On Parent Did Go Up """
 
 class ChildAssetPowerDown(Event):
     """ On Child Did Go Down """
-
+    success = True
+    
 class ChildAssetPowerUp(Event):
     """ On Child Did Go Up """
+    success = True
+    
+class LoadUpdate(Event):
+    """ On Load Update """
+    success = True
 
+    
 class SignalDown(Event):
     pass
 
 class SignalUp(Event):
     pass
 
-class LoadUpdate(Event):
-    pass

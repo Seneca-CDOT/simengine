@@ -36,3 +36,7 @@ class PowerEventManager:
             "0": events.ParentAssetPowerDown(),
             "1": events.ParentAssetPowerUp() 
         }[value]
+
+    @classmethod
+    def map_load_event(cls, new_load):
+        return events.LoadUpdate(new_load)

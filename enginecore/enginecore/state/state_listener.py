@@ -37,7 +37,7 @@ class StateListener(Component):
         self._server = Server(("0.0.0.0", 8000)).register(self)     
         Static().register(self._server)
         Logger().register(self._server)
-        # Debugger().register(self._server)
+        Debugger().register(self._server)
         self._ws = WebSocket().register(self._server)
     
         WebSocketsDispatcher("/simengine").register(self._server)
@@ -155,6 +155,47 @@ class StateListener(Component):
 
     def __exit__(self, exc_type, exc_value, traceback):
         self._graph_db.close()
+
+
+
+
+    def _chain_load_update(self, event_result):
+
+        new_load, child_key = event_result
+
+        results = self._graph_db.run(
+            "MATCH (:Asset { key: $key })-[:POWERED_BY]->(asset:Asset) RETURN asset",
+            key=int(child_key)
+        )
+
+        record = results.single()
+        if record: 
+            
+            parent_asset = dict(record['asset'])
+            print("-- child [{}] power/load update as  {}, updating load for [{}]".format(child_key, new_load, parent_asset['key']))
+            self.fire(PowerEventManager.map_load_event(new_load), self._assets[parent_asset['key']])
+
+            self.fire(NotifyClient({ 
+                'load': {
+                    'value': new_load,
+                    'key': child_key
+                } 
+            }), self._ws)
+
+
+    def ChildAssetPowerDown_success(self, evt, event_result):
+        """ When child is powered down -> get the new load value of child asset"""
+        self._chain_load_update(event_result)
+        
+
+    def ChildAssetPowerUp_success(self, evt, event_result):
+        """ When child is powered up -> get the new load value of child asset"""        
+        self._chain_load_update(event_result)
+
+
+    def LoadUpdate_success(self, evt, event_result):
+        """ When load changes down the power stream -> get the new load value of child asset """        
+        self._chain_load_update(event_result)
 
 if __name__ == '__main__':
     StateListener().run()

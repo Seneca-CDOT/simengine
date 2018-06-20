@@ -31,13 +31,13 @@ def register_asset(cls):
 class Asset(Component):
     """ Abstract Asset Class """
 
-    def __init__(self, asset_info):
+    def __init__(self, state):
         super(Asset, self).__init__()
-        self._asset_info = asset_info
+        self._state = state
 
     def get_key(self):
         """ Get ID assigned to the asset """
-        return self._asset_info['key']
+        return self._state.get_key()
 
 
     ##### React to events associated with the asset #####
@@ -138,9 +138,9 @@ class PDU(Asset):
     StateManagerCls = PDUStateManager
 
     def __init__(self, asset_info):
-        super(PDU, self).__init__(asset_info)
+        super(PDU, self).__init__(PDU.StateManagerCls(asset_info))
 
-        self._state = PDU.StateManagerCls(asset_info['key'])
+        self._load = 30*6
         self._snmp_agent = SNMPAgent(
             asset_info['key'],
         )
@@ -167,17 +167,15 @@ class PDU(Asset):
     def power_up(self):
         self._state.power_up()
 
-    @handler("ChildAssetPowerDown")
-    def increase_load(self, event, *args, **kwargs):
-        child_key = kwargs['child_key']
+
+    @handler("ChildAssetPowerDown", "ChildAssetPowerUp", "LoadUpdate")
+    def change_load(self, event, *args, **kwargs):
+        # 1) get_load() & Update OID 
+        # 2) return value
+
+        return self._state.get_load(), self._state.get_key()
 
 
-    @handler("ChildAssetPowerUp")
-    def decrease_load(self, event, *args, **kwargs):
-        child_key = kwargs['child_key']
-    
-    def get_load(self):
-        return 30
 
 @register_asset
 class Outlet(Asset):
@@ -187,8 +185,7 @@ class Outlet(Asset):
 
 
     def __init__(self, asset_info):
-        super(Outlet, self).__init__(asset_info)
-        self._state = Outlet.StateManagerCls(asset_info['key'])
+        super(Outlet, self).__init__(Outlet.StateManagerCls(asset_info))
 
 
     ##### React to any events of the connected components #####    
@@ -203,8 +200,12 @@ class Outlet(Asset):
         """ React to events with power up """
         self._state.power_up()
 
-    def get_load(self):
-        return 30
+
+    @handler("ChildAssetPowerDown", "ChildAssetPowerUp", "LoadUpdate")
+    def change_load(self, event, *args, **kwargs):
+        # 2) return value
+        return self._state.get_load(), self._state.get_key()
+
 
 @register_asset
 class StaticAsset(Asset):
@@ -213,8 +214,7 @@ class StaticAsset(Asset):
     StateManagerCls = StaticDeviceStateManager
     
     def __init__(self, asset_info):
-        super(StaticAsset, self).__init__(asset_info)
-        self._state = StaticAsset.StateManagerCls(asset_info['key'])
+        super(StaticAsset, self).__init__(StaticAsset.StateManagerCls(asset_info))
 
     @handler("ParentAssetPowerDown")
     def power_down(self): 
@@ -224,6 +224,3 @@ class StaticAsset(Asset):
     @handler("ParentAssetPowerUp")
     def power_up(self):
         self._state.power_up()
-
-    def get_load(self):
-        return self._state.get_load()

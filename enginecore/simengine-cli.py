@@ -20,10 +20,10 @@ def manage_state(asset_key, action):
     """
     with GraphReference().get_session() as session:
         
-        labels = GraphReference.get_asset_labels_by_key(session, asset_key)
+        asset_info = GraphReference.get_asset_and_components(session, asset_key)
         
-        asset_type = get_asset_type(labels)
-        state_manager = SUPPORTED_ASSETS[asset_type].StateManagerCls(asset_key)
+        asset_type = get_asset_type(asset_info['labels'])
+        state_manager = SUPPORTED_ASSETS[asset_type].StateManagerCls(asset_info)
         
         action(state_manager)
 
@@ -71,10 +71,18 @@ def get_status(**kwargs):
     """
     
     #### one asset ####
-    if kwargs['asset_key']:
+    if kwargs['asset_key'] and kwargs['load']:
+        with GraphReference().get_session() as session:
+            asset_info = GraphReference.get_asset_and_components(session, int(kwargs['asset_key']))
+            asset_type = get_asset_type(asset_info['labels'])
+            state_manager = SUPPORTED_ASSETS[asset_type].StateManagerCls(asset_info)
+            print("{}-{} : {}".format(asset_info['key'], asset_type, state_manager.get_load()))
+            return
+
+    elif kwargs['asset_key']:
         asset = StateManger.get_asset_status(int(kwargs['asset_key']))
         print("{key}-{type} : {status}".format(**asset))
-        return asset
+        return
 
     ##### list states #####
     assets = StateManger.get_system_status()
@@ -125,6 +133,8 @@ status_group = subparsers.add_parser('status', help="Retrieve status of register
 status_group.add_argument('--asset-key')
 status_group.add_argument('--print-as', help="Format options")
 status_group.add_argument('--monitor', help="Monitor status", action='store_true')
+status_group.add_argument('--load', help="Check load", action='store_true')
+
 status_group.add_argument('--watch-rate', nargs='?', 
                           help="Update state every n seconds, defaults to 1", default=1, type=int)
 
@@ -157,8 +167,8 @@ status_group.set_defaults(func=lambda args: get_status(**args))
 oid_group.set_defaults(func=lambda _: print('Not Implemented Yet'))
 snapshot_group.set_defaults(func=lambda _: print('Not Implemented Yet'))
 
-try:
-    options = argparser.parse_args()
-    options.func(vars(options))
-except:
-    argparser.print_help()
+# try:
+options = argparser.parse_args()
+options.func(vars(options))
+# except:
+argparser.print_help()

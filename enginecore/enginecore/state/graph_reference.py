@@ -1,10 +1,6 @@
-from neo4j.v1 import GraphDatabase, basic_auth
-import signal
-import sys
 import os
-
+from neo4j.v1 import GraphDatabase, basic_auth
 from enginecore.state.utils import format_as_redis_key, get_asset_type
-import enginecore.state.assets
 
 class Singleton(type):
     _instances = {}
@@ -87,7 +83,7 @@ class GraphReference(metaclass=Singleton):
         assets = {}
         for record in results:
             
-            asset = {'key': record['asset'].get('key')}
+            asset = dict(record['asset'])
             asset['type'] = get_asset_type(record['asset'].labels)
             asset['parent'] = dict(record['parent']) if record['parent'] else None
 
@@ -107,12 +103,13 @@ class GraphReference(metaclass=Singleton):
     @classmethod
     def get_asset_and_components(cls, session, asset_key):
         results = session.run(
-            "MATCH (n:Asset { key: $key }) OPTIONAL MATCH (n)-[:HAS_SNMP_COMPONENT]->(c) RETURN n as asset, collect(c) as children",
+            "MATCH (n:Asset { key: $key }) OPTIONAL MATCH (n)-[:HAS_SNMP_COMPONENT]->(c) RETURN n as asset, labels(n) as labels, collect(c) as children",
             key=int(asset_key)
         )
 
         record = results.single()
         asset = dict(record['asset'])
+        asset['labels'] = record['labels']
 
         children = []
         if record['children']:

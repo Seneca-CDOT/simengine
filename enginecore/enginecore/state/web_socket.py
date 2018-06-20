@@ -5,6 +5,7 @@ from circuits import handler, Component
 from circuits.net.events import write
 from enginecore.state.assets import SUPPORTED_ASSETS
 from enginecore.state.state_managers import StateManger
+from enginecore.state.graph_reference import GraphReference
 
 class WebSocket(Component):
     """ Simple Web-Socket server that handles interactions between frontend & enginecore """
@@ -33,13 +34,17 @@ class WebSocket(Component):
         data = json.loads(data)
         asset_key = data['key']
         power_up = data['data']['status']
-        asset_type = data['data']['type']    
-    
-        state_manager = SUPPORTED_ASSETS[asset_type].StateManagerCls(asset_key)
-        if power_up:
-            state_manager.power_up()
-        else:
-            state_manager.power_down()
+        asset_type = data['data']['type']
+
+        with GraphReference().get_session() as session:
+            
+            asset_info = GraphReference.get_asset_and_components(session, asset_key)
+            state_manager = SUPPORTED_ASSETS[asset_type].StateManagerCls(asset_info)
+            
+            if power_up:
+                state_manager.power_up()
+            else:
+                state_manager.power_down()
 
 
     def disconnect(self, sock):
