@@ -157,8 +157,6 @@ class StateListener(Component):
         self._graph_db.close()
 
 
-
-
     def _chain_load_update(self, event_result):
 
         new_load, child_key = event_result

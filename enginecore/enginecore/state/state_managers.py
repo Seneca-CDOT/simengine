@@ -41,6 +41,7 @@ class StateManger():
         pass
     
     def status(self):
+        """ Operational State """
         return int(self.redis_store.get("{}-{}".format(str(self._asset_info['key']), self._asset_type)))
 
 
@@ -100,7 +101,10 @@ class StateManger():
 
         for rkey, rvalue in zip(assets, asset_values):
             assets[rkey]['status'] = int(rvalue)
+            assets[rkey]['load'] = cls.get_state_manager(assets[rkey]['type'])(assets[rkey]).get_load()
+            
             if not flatten and 'children' in cls.assets[rkey]:
+                # call recursively on children    
                 assets[rkey]['children'] = cls._get_assets_states(assets[rkey]['children'])
 
         return assets
@@ -124,6 +128,10 @@ class StateManger():
             asset = GraphReference.get_asset_and_components(session, asset_key)
             asset['status'] = int(cls.get_store().get("{}-{}".format(asset['key'], asset['type'])))
             return asset
+
+    @classmethod 
+    def get_state_manager(cls, asset_type):
+        return enginecore.state.assets.SUPPORTED_ASSETS[asset_type].StateManagerCls
 
 
 class PDUStateManager(StateManger):
@@ -172,7 +180,7 @@ class OutletStateManager(StateManger):
         
         if record:
             asset_type = get_asset_type(record['labels'])
-            load = enginecore.state.assets.SUPPORTED_ASSETS[asset_type].StateManagerCls(dict(record['asset'])).get_load()
+            load = self.get_state_manager(asset_type)(dict(record['asset'])).get_load()
         
         return load
 

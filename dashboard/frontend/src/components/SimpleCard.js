@@ -68,6 +68,13 @@ function SimpleCard(props) {
           <Typography component="p">
             Status: {assetInfo.status === 1?<span style={{color: 'green'}}>on</span>:<span style={{color: 'red'}}>off</span>}
           </Typography>
+
+          <Typography component="p">
+            Current Load: {assetInfo.load}
+          </Typography>
+
+
+
           <Divider />
             {/* Turn off/on the component */}
             <FormControlLabel

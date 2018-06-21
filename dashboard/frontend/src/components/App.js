@@ -74,29 +74,35 @@ const styles = theme => ({
           if('key' in data) {
             // nested asset
             if ((''+data.key).length === 5) {
-              const parent_id = (''+data.key).substring(0, 4)
+              const parent_id = (''+data.key).substring(0, 4);
               let assets = {...this.state.assets};
-              assets[parent_id].children[data.key] = data.data;
+              let asset_details = {...assets[data.key]};
+              assets[parent_id].children[data.key] = {...asset_details, ...data.data};
               this.setState({ assets });
             } else {
               // update state
-              let eInfo = this.state.assets;
-
-              let { children, parent } = eInfo[data.key];
-              eInfo[data.key] = data.data;
-              eInfo[data.key].children = children;
-              eInfo[data.key].parent = parent;
-
-              this.setState({
-                assets: eInfo
-              });
+              let assets = {...this.state.assets};
+              let asset_details = {...assets[data.key]};
+              assets[data.key] = {...asset_details, ...data.data};
+              this.setState({ assets });
             }
 
           } else if ('load' in data) {
-            console.log(data)
+            let assets = {...this.state.assets};
+
+            if ((''+data.load.key).length === 5) {
+              const parent_id = (''+data.load.key).substring(0, 4);
+              assets[parent_id].children[data.load.key].load = data.load.value;
+              this.setState({ assets });
+            } else {
+              let asset_details = {...assets[data.load.key]};
+              asset_details.load = data.load.value;
+              assets[data.load.key] = {...asset_details};
+              this.setState({ assets });
+            }
 
           } else {
-            let connections = {}
+            let connections = {};
 
             Object.keys(data).map((k) => {
               if (data[k]['parent']) {
@@ -160,18 +166,18 @@ const styles = theme => ({
     }
   }
 
-_update_wiring(asset, key, x, y) {
-  let newConn = {};
-  const connections = this.state.connections;
+  _update_wiring(asset, key, x, y) {
+    let newConn = {};
+    const connections = this.state.connections;
 
-  if(asset['parent']) {
-    newConn[asset['parent'].key] = { ...connections[asset['parent'].key], x1:x,  y1:y };
-  } else if (key in connections) {
-    newConn[key] = { ...connections[key], x:x,  y:y };
+    if(asset['parent']) {
+      newConn[asset['parent'].key] = { ...connections[asset['parent'].key], x1:x,  y1:y };
+    } else if (key in connections) {
+      newConn[key] = { ...connections[key], x:x,  y:y };
+    }
+
+    return newConn;
   }
-
-  return newConn;
-}
 
 /** Update connections between assets (wires) */
   onPosChange(key, e) {
