@@ -41,16 +41,17 @@ export default class Pdu extends React.Component {
     const inputSocket = <Socket x={-70} socketName={"input socket"} selectable={false} draggable={false}/>;
 
     let x=100;
-    const pduName = this.props.name ? this.props.name:'pdu';
+    const pduName = this.props.asset.name ? this.props.asset.name:'pdu';
     const asset = this.props.asset;
 
     // Initialize outlets that are part of the PDU
     for (const ckey of Object.keys(asset.children)) {
+
+      asset.children[ckey].name = `[${ckey}]`;
       sockets.push(
         <Socket
           x={x}
           key={ckey}
-          name={`[${ckey}]`}
           onElementSelection={() => { this.selectSocket(ckey); }}
           selectable={true}
           draggable={false}
@@ -68,7 +69,7 @@ export default class Pdu extends React.Component {
         draggable="true"
         onDragMove={this.updatePduPos.bind(this)}
       >
-        <Text text={pduName} />
+
 
         {/* Draw PDU - SVG Path */}
         <Path data={"M -7.357125,128.5323 H 217.35711 l 20.99711,11.70857 H -28.354227 Z M -27.401434,140.21439 H 237.40143 c 1.75756,0 3.17248,1.41492 3.17248,3.17248 v 21.85487 c 0,1.75755 -1.41492,3.17248 -3.17248,3.17248 H -27.401434 c -1.757555,0 -3.172481,-1.41493 -3.172481,-3.17248 v -21.85487 c 0,-1.75756 1.414926,-3.17248 3.172481,-3.17248 z"}
@@ -80,6 +81,7 @@ export default class Pdu extends React.Component {
           onClick={this.handleClick.bind(this)}
         />
 
+        <Text y={-85} text={pduName} />
         {/* Draw Sockets */}
         {inputSocket}
         {sockets}

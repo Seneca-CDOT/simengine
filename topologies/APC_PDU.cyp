@@ -5,16 +5,20 @@
 // ----------------------------------------
 ///// Outlet (Instance of the Simulator) /////
 // ----------------------------------------
-CREATE (out:Asset:Outlet { name: 'out',  key: 1116 })
+// CREATE (out:Asset:Outlet { name: 'out',  key: 1116 })
 
 // ----------------------------------------
 ///// PDU (Instance of the Simulator) /////
 // ----------------------------------------
+
+
+match (out66:Outlet {key: 11114})
+
 CREATE (pdu:Asset:PDU:SNMPSim { 
   name: 'APC PDU',
   key: 2013,
   staticOidFile: 'pdu/apc-pdu.snmprec'
-})
+})-[:POWERED_BY]->(out66)
 
 // OIDs that belong to the PDU //
 // - - - - - - - - - - - - - - - 
@@ -25,6 +29,13 @@ CREATE (OutletCount:OID {
   defaultValue: 8,
   dataType: 2  
 })
+
+CREATE (CurrentAmp:OID {
+  name: "AmpOnPhase",
+  OID: "1.3.6.1.4.1.318.1.1.12.2.3.1.1.2.1",
+  defaultValue: 0,
+  dataType: 66 // Gauge 32
+}) // 10th
 
 // ---------------------
 ///// PDU outlets  /////
@@ -150,8 +161,9 @@ CREATE (out8State:OID {
 //////////////////////////////
 // Connect Nodes/Components //
 //////////////////////////////
-CREATE (pdu)-[:POWERED_BY]->(out)
+// CREATE (pdu)-[:POWERED_BY]->(out)
 CREATE (pdu)-[:HAS_OID]->(OutletCount)
+CREATE (pdu)-[:HAS_OID]->(AmpOnPhase)
 
 CREATE (pdu)-[:HAS_OID]->(out1State)
 CREATE (pdu)-[:HAS_OID]->(out2State)

@@ -1,10 +1,12 @@
 """ This file contains definitions of Asset classes """
 
 from circuits import Component
+import pysnmp.proto.rfc1902 as snmp_data_types
 import redis
 from enginecore.state.graph_reference import GraphReference
 import enginecore.state.assets
-from enginecore.state.utils import get_asset_type
+from enginecore.state.utils import get_asset_type, format_as_redis_key
+
 
 class StateManger():
 
@@ -17,11 +19,18 @@ class StateManger():
         self._asset_info = asset_info
         self._asset_type = asset_type
 
+
     def __exit__(self, exc_type, exc_value, traceback):
         self._graph_db.close()
 
+
     def get_key(self):
         return self._asset_info['key']
+    
+
+    def get_type(self):
+        return self._asset_type
+
 
     def power_down(self):
         """ Implements state logic for power down event """
@@ -29,17 +38,27 @@ class StateManger():
         if self.status():
             self.redis_store.set("{}-{}".format(str(self._asset_info['key']), self._asset_type), '0')
 
+        return self.status()
+
 
     def power_up(self):
         """ Implements state logic for power up event """
         print("Powering up {}".format(self._asset_info['key']))
-        if self._parents_available():
+        if self._parents_available() and not self.status():
             self.redis_store.set("{}-{}".format(str(self._asset_info['key']), self._asset_type), '1')
+
+        return self.status()
  
+
     def get_load(self):
         """ Calculate load for the device """
-        pass
+        raise NotImplementedError
+
+    def update_load(self, load):
+        """ Update any state associated with the device in the redis db """
+        raise NotImplementedError
     
+
     def status(self):
         """ Operational State """
         return int(self.redis_store.get("{}-{}".format(str(self._asset_info['key']), self._asset_type)))
@@ -140,7 +159,7 @@ class PDUStateManager(StateManger):
     def __init__(self, asset_info, asset_type='pdu'):
          super(PDUStateManager, self).__init__(asset_info, asset_type)
         
-    def get_load(self):
+    def get_load(self, exclude=False):
 
         if not self.status():
             return 0
@@ -154,10 +173,28 @@ class PDUStateManager(StateManger):
 
         load = 0
         for record in results:
-            om = OutletStateManager(dict(record['asset']))
-            load += om.get_load()
+            if exclude != record['asset'].get('key'):
+                outlet_manager = OutletStateManager(dict(record['asset']))
+                load += outlet_manager.get_load()
 
         return load
+
+    
+    def update_load(self, load):
+        """ Update any state associated with the device in the redis db """
+        results = self._graph_db.run(
+            "MATCH (:Asset { key: $key })-[:HAS_OID]->(oid {name: 'AmpOnPhase'}) return oid",
+             key=int(self._asset_info['key'])
+        )
+
+        record = results.single()
+
+        if record:
+            rvalue = "{}|{}".format(record['oid'].get('dataType'), snmp_data_types.Gauge32(load * 10))
+            rkey = format_as_redis_key(str(self._asset_info['key']), record['oid'].get('OID'), key_formatted=False)
+            self.redis_store.set(rkey, rvalue)
+
+
 
 class OutletStateManager(StateManger):
     """ Handles state logic for outlet asset """
@@ -166,10 +203,11 @@ class OutletStateManager(StateManger):
          super(OutletStateManager, self).__init__(asset_info, asset_type)
 
     def get_load(self):
-        # query the graph db and find what outlet 'powers' (o)<-[:POWERED_BY]-(d)
+        # query the graph db and find what kind of device the outlet 'powers' & return load
         
         if not self.status():
             return 0
+
         results = self._graph_db.run(
             "MATCH (:Asset { key: $key })<-[:POWERED_BY]-(asset:Asset) RETURN asset, labels(asset) as labels",
             key=int(self._asset_info['key'])

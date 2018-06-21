@@ -70,43 +70,29 @@ const styles = theme => ({
        this.ws.onmessage = ((evt) =>
        {
           const data = JSON.parse(evt.data);
-          // console.log("Message is received:\n" + evt.data);
-          if('key' in data) {
-            // nested asset
-            if ((''+data.key).length === 5) {
-              const parent_id = (''+data.key).substring(0, 4);
-              let assets = {...this.state.assets};
-              let asset_details = {...assets[data.key]};
-              assets[parent_id].children[data.key] = {...asset_details, ...data.data};
-              this.setState({ assets });
-            } else {
-              // update state
-              let assets = {...this.state.assets};
-              let asset_details = {...assets[data.key]};
-              assets[data.key] = {...asset_details, ...data.data};
-              this.setState({ assets });
-            }
 
-          } else if ('load' in data) {
+          // Update state of the existing asset
+          if('key' in data) {
+
             let assets = {...this.state.assets};
 
-            if ((''+data.load.key).length === 5) {
-              const parent_id = (''+data.load.key).substring(0, 4);
-              assets[parent_id].children[data.load.key].load = data.load.value;
-              this.setState({ assets });
+            if ((''+data.key).length === 5) {
+              const parent_id = (''+data.key).substring(0, 4);
+              let asset_details = {...assets[parent_id].children[data.key]};
+              assets[parent_id].children[data.key] = {...asset_details, ...data.data};
             } else {
-              let asset_details = {...assets[data.load.key]};
-              asset_details.load = data.load.value;
-              assets[data.load.key] = {...asset_details};
-              this.setState({ assets });
+              let asset_details = {...assets[data.key]};
+              assets[data.key] = {...asset_details, ...data.data};
             }
 
-          } else {
+            this.setState({ assets });
+
+          } else { // initial query
             let connections = {};
 
             Object.keys(data).map((k) => {
               if (data[k]['parent']) {
-                connections[data[k]['parent'].key] = {x: 40, y:0, x1:50, y1:50 }
+                connections[data[k]['parent'].key] = {x: 40, y:0, x1:50, y1:50 };
               }
             });
 
@@ -188,8 +174,8 @@ const styles = theme => ({
 
     let childConn = {};
 
-    let x=100;
     if (asset.children) {
+      let x=100;
       for (const ckey of Object.keys(asset.children)) {
         const c = this._update_wiring(this._get_asset_by_key(ckey), ckey, e.target.x()+x, e.target.y());
         Object.assign(childConn, c);

@@ -38,5 +38,5 @@ class PowerEventManager:
         }[value]
 
     @classmethod
-    def map_load_event(cls, new_load):
-        return events.LoadUpdate(new_load)
+    def map_load_event(cls, new_load, child_key):
+        return events.LoadUpdate(child_load=new_load, child_key=child_key)

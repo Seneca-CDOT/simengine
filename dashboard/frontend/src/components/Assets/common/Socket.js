@@ -17,8 +17,19 @@ export default class Socket extends React.Component {
         image: null,
         color: 'grey',
         x: props.x?props.x:40,
-        y:0
+        y:0,
+        bgImage: null,
       };
+
+      if (props.asset && 'imgUrl' in props.asset) {
+        const bgImage = new window.Image();
+        bgImage.src = props.asset.imgUrl;
+        bgImage.onload = () => {
+          this.setState({
+            bgImage: bgImage
+          });
+        };
+      }
     }
 
 
@@ -33,6 +44,7 @@ export default class Socket extends React.Component {
           image: image
         });
       };
+
     }
 
      /** Notify Parent of Selection */
@@ -64,6 +76,16 @@ export default class Socket extends React.Component {
           draggable={this.props.draggable}
           onDragMove={this.updateSocketPos.bind(this)}
         >
+          {this.state.bgImage !== null &&
+            <Image
+              width={160}
+              height={160}
+              image={this.state.bgImage}
+              stroke={strokeColor}
+              onClick={this.handleClick}
+            />
+
+          }
           <Image
             image={this.state.image}
             stroke={strokeColor}
@@ -74,7 +96,7 @@ export default class Socket extends React.Component {
           {this.props.selectable &&
             <SocketStatus socketOn={this.props.asset.status}/>
           }
-          <Text text={this.props.name ? this.props.name :'socket'}  y={105} />
+          <Text text={this.props.asset && this.props.asset.name ? this.props.asset.name :'socket'}  y={this.state.bgImage ? 175: 105} />
         </Group>
       );
     }
@@ -82,7 +104,6 @@ export default class Socket extends React.Component {
 
 
 Socket.propTypes = {
-  name: PropTypes.string,
   x: PropTypes.number,
   asset: PropTypes.object, // Asset Details
   assetId: PropTypes.string, // Asset Key

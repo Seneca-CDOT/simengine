@@ -39,6 +39,17 @@ class Asset(Component):
         """ Get ID assigned to the asset """
         return self._state.get_key()
 
+    def status(self):
+        """ Get Asset status stored in redis db """
+        return self._state.status()
+
+    def power_up(self):
+        """ Power up this asset """
+        return self._state.get_key(), self._state.get_type(), self._state.power_up()
+
+    def power_down(self):
+        """ Power down this asset """
+        return self._state.get_key(), self._state.get_type(), self._state.power_down()
 
     ##### React to events associated with the asset #####
     def on_asset_power_down(self):
@@ -51,20 +62,18 @@ class Asset(Component):
 
 
     ##### React to any events of the connected components #####
-    def power_down(self):
+    def on_parent_power_down(self):
         """ Upstream loss of power """
         raise NotImplementedError
 
-    def power_up(self):
+    def on_parent_power_up(self):
         """ Upstream power restored """        
         raise NotImplementedError
 
     def update_load(self):
         """ Downstream device power update """   
         raise NotImplementedError
-    
-    def get_load(self):
-        raise NotImplementedError
+
 
 
 class Agent():
@@ -140,7 +149,7 @@ class PDU(Asset):
     def __init__(self, asset_info):
         super(PDU, self).__init__(PDU.StateManagerCls(asset_info))
 
-        self._load = 30*6
+        self._state.update_load(self._state.get_load())
         self._snmp_agent = SNMPAgent(
             asset_info['key'],
         )
@@ -159,21 +168,25 @@ class PDU(Asset):
 
     ##### React to any events of the connected components #####
     @handler("ParentAssetPowerDown")
-    def power_down(self): 
-        self._state.power_down()
+    def on_parent_power_down(self): 
+        return self.power_down()
 
 
     @handler("ParentAssetPowerUp")
-    def power_up(self):
-        self._state.power_up()
+    def on_parent_power_up(self):
+        return self.power_up()
 
 
     @handler("ChildAssetPowerDown", "ChildAssetPowerUp", "LoadUpdate")
-    def change_load(self, event, *args, **kwargs):
-        # 1) get_load() & Update OID 
-        # 2) return value
-
-        return self._state.get_load(), self._state.get_key()
+    def on_load_change(self, event, *args, **kwargs):
+        # 1) get_load() & Update OID
+        cload = kwargs['child_load'] if 'child_load' in kwargs else False
+        exclude = kwargs['child_key'] if 'child_key' in kwargs else False
+        
+        pdu_load = self._state.get_load(exclude) + cload
+        self._state.update_load(pdu_load)
+        
+        return pdu_load, self._state.get_key()
 
 
 
@@ -190,20 +203,18 @@ class Outlet(Asset):
 
     ##### React to any events of the connected components #####    
     @handler("ParentAssetPowerDown", "SignalDown")
-    def power_down(self):
+    def on_parent_power_down(self):
         """ React to events with power down """
-        self._state.power_down()
-
+        return self.power_down()
 
     @handler("ParentAssetPowerUp", "SignalUp")
-    def power_up(self):
+    def on_parent_power_up(self):
         """ React to events with power up """
-        self._state.power_up()
+        return self.power_up()
 
 
     @handler("ChildAssetPowerDown", "ChildAssetPowerUp", "LoadUpdate")
-    def change_load(self, event, *args, **kwargs):
-        # 2) return value
+    def on_load_change(self, event, *args, **kwargs):
         return self._state.get_load(), self._state.get_key()
 
 
@@ -217,10 +228,10 @@ class StaticAsset(Asset):
         super(StaticAsset, self).__init__(StaticAsset.StateManagerCls(asset_info))
 
     @handler("ParentAssetPowerDown")
-    def power_down(self): 
-        self._state.power_down()
+    def on_parent_power_down(self): 
+        return self.power_down()
 
 
     @handler("ParentAssetPowerUp")
-    def power_up(self):
-        self._state.power_up()
+    def on_parent_power_up(self):
+        return self.power_up()

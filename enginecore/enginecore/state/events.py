@@ -8,9 +8,11 @@ class AssetPowerUp(Event):
     """ On Asset Did Receive PowerUp Signal """
 
 class ParentAssetPowerDown(Event):
+    success = True
     """ On Parent Did Go Down """
 
 class ParentAssetPowerUp(Event):
+    success = True
     """ On Parent Did Go Up """
 
 class ChildAssetPowerDown(Event):

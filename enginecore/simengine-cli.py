@@ -167,8 +167,8 @@ status_group.set_defaults(func=lambda args: get_status(**args))
 oid_group.set_defaults(func=lambda _: print('Not Implemented Yet'))
 snapshot_group.set_defaults(func=lambda _: print('Not Implemented Yet'))
 
-# try:
-options = argparser.parse_args()
-options.func(vars(options))
-# except:
-argparser.print_help()
+try:
+    options = argparser.parse_args()
+    options.func(vars(options))
+except:
+    argparser.print_help()

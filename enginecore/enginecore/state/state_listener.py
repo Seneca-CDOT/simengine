@@ -37,7 +37,7 @@ class StateListener(Component):
         self._server = Server(("0.0.0.0", 8000)).register(self)     
         Static().register(self._server)
         Logger().register(self._server)
-        Debugger().register(self._server)
+        # Debugger().register(self._server)
         self._ws = WebSocket().register(self._server)
     
         WebSocketsDispatcher("/simengine").register(self._server)
@@ -79,6 +79,9 @@ class StateListener(Component):
             if property_id in SUPPORTED_ASSETS:
 
                 updated_asset = self._assets[int(asset_key)]
+                asset_info = (asset_key, property_id, value)
+                self._notify_client(asset_info)
+
                 self.fire(PowerEventManager.map_asset_event(value), updated_asset)
 
                 # look up child nodes
@@ -102,12 +105,7 @@ class StateListener(Component):
                         
 
                 print("Key: {}-{} -> {}".format(asset_key, property_id.replace(" ", ""), value))
-                self.fire(NotifyClient({ 
-                    'key': int(asset_key),
-                    'data': {
-                        'type':  property_id.replace(" ", ""),
-                        'status': int(value)
-                }}), self._ws)
+
 
             elif int(asset_key) in self._assets:
                
@@ -128,7 +126,7 @@ class StateListener(Component):
                     oid_value_name = dict(record['oid_specs'])[oid_value]
                     # print(oid_name)
                     # print(oid_value_name)
-                    # print(STATE_SPECS[oid_name][oid_value_name])
+                    # print(PowerEventManager.get_state_specs()[oid_name][oid_value_name])
 
                     self.fire(PowerEventManager.get_state_specs()[oid_name][oid_value_name], self._assets[key])
 
@@ -167,18 +165,30 @@ class StateListener(Component):
         )
 
         record = results.single()
-        if record: 
-            
+        if record:
             parent_asset = dict(record['asset'])
-            print("-- child [{}] power/load update as  {}, updating load for [{}]".format(child_key, new_load, parent_asset['key']))
-            self.fire(PowerEventManager.map_load_event(new_load), self._assets[parent_asset['key']])
+            if self._assets[child_key].status():
+                print("-- child [{}] power/load update as '{}', updating load for [{}]".format(child_key, new_load, parent_asset['key']))
+                self.fire(PowerEventManager.map_load_event(new_load, child_key), self._assets[parent_asset['key']])
 
-            self.fire(NotifyClient({ 
-                'load': {
-                    'value': new_load,
-                    'key': child_key
-                } 
-            }), self._ws)
+        # Notify web-socket client of a load update
+        self.fire(NotifyClient({ 
+            'key': int(child_key),
+            'data': {
+                'load': new_load
+        }}), self._ws)
+
+
+    def _notify_client(self, data):
+
+        asset_key, asset_type, state = data
+
+        self.fire(NotifyClient({  ## TODO: Move this into '_success' function
+            'key': int(asset_key),
+            'data': {
+                'type':  asset_type,
+                'status': int(state)
+        }}), self._ws)
 
 
     def ChildAssetPowerDown_success(self, evt, event_result):
@@ -194,6 +204,14 @@ class StateListener(Component):
     def LoadUpdate_success(self, evt, event_result):
         """ When load changes down the power stream -> get the new load value of child asset """        
         self._chain_load_update(event_result)
+    
+
+    def ParentAssetPowerDown_success(self, evt, event_result):
+        self._notify_client(event_result)
+
+
+    def ParentAssetPowerUp_success(self, evt, event_result):
+        self._notify_client(event_result)
 
 if __name__ == '__main__':
     StateListener().run()
