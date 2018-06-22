@@ -163,7 +163,7 @@ CREATE (out8State:OID {
 //////////////////////////////
 // CREATE (pdu)-[:POWERED_BY]->(out)
 CREATE (pdu)-[:HAS_OID]->(OutletCount)
-CREATE (pdu)-[:HAS_OID]->(AmpOnPhase)
+CREATE (pdu)-[:HAS_OID]->(CurrentAmp)
 
 CREATE (pdu)-[:HAS_OID]->(out1State)
 CREATE (pdu)-[:HAS_OID]->(out2State)

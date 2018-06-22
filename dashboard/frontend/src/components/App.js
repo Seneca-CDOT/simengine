@@ -92,7 +92,7 @@ const styles = theme => ({
 
             Object.keys(data).map((k) => {
               if (data[k]['parent']) {
-                connections[data[k]['parent'].key] = {x: 40, y:0, x1:50, y1:50 };
+                connections[data[k]['parent'].key] = {x: 40, y:0, x1:50, y1:50, ckey: k };
               }
             });
 
@@ -253,13 +253,20 @@ const styles = theme => ({
     }
 
     // draw wires
-    const socketXpad = 34;
-    const socketYpad = 35;
+
     for (const key of Object.keys(connections)) {
+      const socketX1pad = 34;
+      const socketYpad = 35;
+      let socketXpad = socketX1pad;
       const asset = this._get_asset_by_key(key);
+
+      if (this.state.assets[connections[key].ckey].type == 'staticasset') {
+        socketXpad = -35;
+        console.log(this.state.assets[connections[key].ckey].type + " : " + connections[key].ckey)
+      }
       wireDrawing.push(
         <Line
-          points={[connections[key].x+socketXpad, connections[key].y+socketYpad, connections[key].x1-socketXpad, connections[key].y1+socketYpad]}
+          points={[connections[key].x+socketX1pad , connections[key].y+socketYpad, connections[key].x1- socketXpad , connections[key].y1+socketYpad]}
           stroke={asset.status  === 1?"green":"red"}
           strokeWidth={5}
         />

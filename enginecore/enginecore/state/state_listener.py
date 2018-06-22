@@ -149,7 +149,7 @@ class StateListener(Component):
         """
         print('Listening to Redis events')
         # check redis state every second
-        Timer(1, Event.create("monitor"), persist=True).register(self)
+        Timer(0.3, Event.create("monitor"), persist=True).register(self)
 
     def __exit__(self, exc_type, exc_value, traceback):
         self._graph_db.close()
