@@ -1,4 +1,4 @@
-""" This file contains definitions of Assets 
+"""This file contains definitions of Assets 
 
 Each asset class contains reactive logic associated with certain events. 
 

@@ -8,7 +8,7 @@ from enginecore.state.state_managers import StateManger
 from enginecore.state.graph_reference import GraphReference
 
 class WebSocket(Component):
-    """ Simple Web-Socket server that handles interactions between frontend & enginecore """
+    """Simple Web-Socket server that handles interactions between frontend & enginecore """
 
     channel = "wsserver"
   

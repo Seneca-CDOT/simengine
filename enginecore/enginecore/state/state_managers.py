@@ -1,4 +1,4 @@
-""" This file contains definitions of Asset classes """
+"""This file contains definitions of State Managers classes """
 
 from circuits import Component
 import pysnmp.proto.rfc1902 as snmp_data_types
@@ -14,7 +14,6 @@ class StateManger():
     redis_store = None
 
     def __init__(self, asset_info, asset_type):
-        self.redis_store = redis.StrictRedis(host='localhost', port=6379)
         self._graph_db = GraphReference().get_session()
         self._asset_info = asset_info
         self._asset_type = asset_type
@@ -25,48 +24,49 @@ class StateManger():
 
 
     def get_key(self):
+        """Asset Key """
         return self._asset_info['key']
     
 
     def get_type(self):
+        """Asset Type """
         return self._asset_type
 
 
     def power_down(self):
-        """ Implements state logic for power down event """
+        """Implements state logic for power down event """
         print("Powering down {}".format(self._asset_info['key']))
         if self.status():
-            self.redis_store.set("{}-{}".format(str(self._asset_info['key']), self._asset_type), '0')
+            StateManger.get_store().set("{}-{}".format(str(self._asset_info['key']), self._asset_type), '0')
 
         return self.status()
 
 
     def power_up(self):
-        """ Implements state logic for power up event """
+        """Implements state logic for power up event """
         print("Powering up {}".format(self._asset_info['key']))
         if self._parents_available() and not self.status():
-            self.redis_store.set("{}-{}".format(str(self._asset_info['key']), self._asset_type), '1')
+            StateManger.get_store().set("{}-{}".format(str(self._asset_info['key']), self._asset_type), '1')
 
         return self.status()
  
 
     def get_load(self):
-        """ Calculate load for the device """
-        raise NotImplementedError
-
-    def update_load(self, load):
-        """ Update any state associated with the device in the redis db """
+        """Calculate load for the device """
         raise NotImplementedError
     
 
     def status(self):
-        """ Operational State """
-        return int(self.redis_store.get("{}-{}".format(str(self._asset_info['key']), self._asset_type)))
-
+        """Operational State 
+        
+        Returns:
+            int: 1 if on, 0 if off
+        """
+        return int(StateManger.get_store().get("{}-{}".format(str(self._asset_info['key']), self._asset_type)))
 
 
     def _check_parents(self, keys, parent_down, msg='Cannot perform the action: [{}] parent is off'):
-        """ Check that redis values pass certain condition
+        """Check that redis values pass certain condition
         
         Args:
             keys (list): Redis keys (formatted as required)
@@ -79,7 +79,7 @@ class StateManger():
         if not keys:
             return True
 
-        parent_values = self.redis_store.mget(keys)
+        parent_values = StateManger.get_store().mget(keys)
         for rkey, rvalue in zip(keys, parent_values): 
             if parent_down(rvalue):
                 print(msg.format(rkey))
@@ -87,8 +87,9 @@ class StateManger():
 
         return True
 
+
     def _parents_available(self):
-        """ Indicates whether a state action can be performed;
+        """Indicates whether a state action can be performed;
         checks if parent nodes are up & running and all OIDs indicate 'on' status
         
         Returns:
@@ -104,6 +105,7 @@ class StateManger():
     
     @classmethod 
     def get_store(cls):
+        """Get redis db handler """
         if not cls.redis_store:
             cls.redis_store = redis.StrictRedis(host='localhost', port=6379)
 
@@ -111,7 +113,14 @@ class StateManger():
 
     @classmethod 
     def _get_assets_states(cls, assets, flatten=True): 
-        """ Query redis store and find states for each asset """
+        """Query redis store and find states for each asset
+        
+        Args:
+            flatten(bool): If false, the returned assets in the dict will have their child-components nested
+        
+        Returns:
+            dict: Current information on assets including their states, load etc.
+        """
         asset_keys = assets.keys()
         
         asset_values = cls.get_store().mget(
@@ -128,9 +137,17 @@ class StateManger():
 
         return assets
 
+
     @classmethod
     def get_system_status(cls, flatten=True):
-        """Get states/status of all system components """
+        """Get states of all system components 
+        
+        Args:
+            flatten(bool): If false, the returned assets in the dict will have their child-components nested
+        
+        Returns:
+            dict: Current information on assets including their states, load etc.
+        """
         with GraphReference().get_session() as session:
 
             # cache assets
@@ -140,32 +157,57 @@ class StateManger():
             cls.assets = cls._get_assets_states(cls.assets, flatten)
             return cls.assets
 
+
     @classmethod
     def get_asset_status(cls, asset_key):
-        """Get state of an asset that has certain key """
+        """Get state of an asset that has certain key 
+        
+        Args:
+            asset_ket(string): asset key
+        
+        Returns:
+            dict: asset detais
+        """
+
         with GraphReference().get_session() as session: 
             asset = GraphReference.get_asset_and_components(session, asset_key)
             asset['status'] = int(cls.get_store().get("{}-{}".format(asset['key'], asset['type'])))
             return asset
 
+
     @classmethod 
     def get_state_manager(cls, asset_type):
+        """Find StateManager class associated with an asset_type stored in graph db
+        
+        Args:
+            asset_type(string): asset type
+        
+        Returns:
+            class: State Manager class derived from StateManager
+        """
         return enginecore.state.assets.SUPPORTED_ASSETS[asset_type].StateManagerCls
 
 
 class PDUStateManager(StateManger):
-    """ Handles state logic for PDU asset """
+    """Handles state logic for PDU asset """
 
     def __init__(self, asset_info, asset_type='pdu'):
          super(PDUStateManager, self).__init__(asset_info, asset_type)
         
+
     def get_load(self, exclude=False):
+        """Find PDU load by querying each outlet's load
+        
+        Args:
+            exclude(string): asset key of the outlet excluded from query
+        
+        Returns:
+            float: load in amps
+        """
 
         if not self.status():
             return 0
 
-        # query the graph db and find info about outlets (or use subscript for key)
-        # call on OutletStateManager(asset_key).get_load() - can be multithreaded
         results = self._graph_db.run(
             "MATCH (:Asset { key: $key })<-[:POWERED_BY]-(asset:Asset) RETURN asset",
             key=int(self._asset_info['key'])
@@ -181,7 +223,11 @@ class PDUStateManager(StateManger):
 
     
     def update_load(self, load):
-        """ Update any state associated with the device in the redis db """
+        """Update any state associated with the device in the redis db 
+        
+        Args:
+            load(float): New load in amps
+        """
         results = self._graph_db.run(
             "MATCH (:Asset { key: $key })-[:HAS_OID]->(oid {name: 'AmpOnPhase'}) return oid",
              key=int(self._asset_info['key'])
@@ -192,18 +238,22 @@ class PDUStateManager(StateManger):
         if record:
             rvalue = "{}|{}".format(record['oid'].get('dataType'), snmp_data_types.Gauge32(load * 10))
             rkey = format_as_redis_key(str(self._asset_info['key']), record['oid'].get('OID'), key_formatted=False)
-            self.redis_store.set(rkey, rvalue)
+            StateManger.get_store().set(rkey, rvalue)
 
 
 
 class OutletStateManager(StateManger):
-    """ Handles state logic for outlet asset """
+    """Handles state logic for outlet asset """
 
     def __init__(self, asset_info, asset_type='outlet'):
-         super(OutletStateManager, self).__init__(asset_info, asset_type)
+        super(OutletStateManager, self).__init__(asset_info, asset_type)
 
     def get_load(self):
-        # query the graph db and find what kind of device the outlet 'powers' & return load
+        """Find what kind of device the outlet powers & return load of that device 
+        
+        Returns:
+            float: outlet load in amps
+        """
         
         if not self.status():
             return 0
@@ -225,9 +275,16 @@ class OutletStateManager(StateManger):
 
 
 class StaticDeviceStateManager(StateManger):
+    """Dummy Device that doesn't do much except drawing power """
+
     def __init__(self, asset_info, asset_type='staticasset'):
         super(StaticDeviceStateManager, self).__init__(asset_info, asset_type)
         self._asset = GraphReference.get_asset_and_components(self._graph_db, asset_info['key'])
     
     def get_load(self):
+        """Calculate load in AMPs 
+        
+        Returns:
+            float: device load in amps
+        """
         return self._asset['powerConsumption'] / self._asset['powerSource'] if self.status() else 0

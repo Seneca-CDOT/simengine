@@ -18,7 +18,7 @@ class NotifyClient(Event):
     """Notify websocket clients of any data updates"""
 
 class StateListener(Component):
-    """ Top-level component that instantiates assets & maps redis events to circuit events"""
+    """Top-level component that instantiates assets & maps redis events to circuit events"""
 
 
     def __init__(self):
@@ -139,7 +139,7 @@ class StateListener(Component):
 
 
     def get_assets(self):
-        """ running instances """
+        """running instances """
         return self._assets
 
 
