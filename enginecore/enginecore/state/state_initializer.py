@@ -1,7 +1,7 @@
 """ Initialize redis state based on reference model """
 import os
 import redis
-from enginecore.state.graph_reference import GraphReference
+from enginecore.model.graph_reference import GraphReference
 from enginecore.state.utils import format_as_redis_key, get_asset_type
 
 def initialize(force_snmp_init=False):

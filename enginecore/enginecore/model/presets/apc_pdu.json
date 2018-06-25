@@ -1,0 +1,29 @@
+{
+    "staticOidFile": "pdu/apc-pdu.snmprec",
+    "assetType": "pdu",
+    "SNMPSim": true,
+    "assetName": "APC PDU",
+    "OIDs": {
+        "OutletCount": {
+            "OID": "1.3.6.1.4.1.13742.4.1.2.1.0",
+            "defaultValue": 8,
+            "dataType": 2  
+        },
+        "AmpOnPhase": {
+            "OID": "1.3.6.1.4.1.318.1.1.12.2.3.1.1.2.1",
+            "defaultValue": 0,
+            "dataType": 66 
+        }
+    },
+    "outletOIDs": {
+        "OutletState": {
+            "OID": "1.3.6.1.4.1.318.1.1.12.3.3.1.1.4",
+            "defaultValue": 1,
+            "dataType": 2,
+            "oidDesc": {
+                "`1`": "switchOn",
+                "`2`": "switchOff"
+            }
+        }
+    }
+}

@@ -70,8 +70,8 @@ class Asset(Component):
         """ Upstream power restored """        
         raise NotImplementedError
 
-    def update_load(self):
-        """ Downstream device power update """   
+    def on_load_change(self):
+        """ Downstream device power/load update """   
         raise NotImplementedError
 
 
@@ -102,9 +102,10 @@ class SNMPAgent(Agent):
         self._snmp_rec_dir = tempfile.mkdtemp()
 
         snmp_rec_filepath = os.path.join(self._snmp_rec_dir, self._snmp_rec_filename)
+        redis_script_sha = os.environ.get('SIMENGINE_SNMP_SHA')
 
         with open(snmp_rec_filepath, "a") as tmp:
-            tmp.write("{}|:redis|key-spaces-id={}\n".format(lookup_oid, key))
+            tmp.write("{}|:redis|key-spaces-id={},evalsha={}\n".format(lookup_oid, key, redis_script_sha))
             
         self.start_agent()
 
@@ -177,7 +178,7 @@ class PDU(Asset):
         return self.power_up()
 
 
-    @handler("ChildAssetPowerDown", "ChildAssetPowerUp", "LoadUpdate")
+    @handler("ChildAssetPowerDown", "ChildAssetPowerUp", "ChildAssetLoadUpdate")
     def on_load_change(self, event, *args, **kwargs):
         # 1) get_load() & Update OID
         cload = kwargs['child_load'] if 'child_load' in kwargs else False
@@ -213,7 +214,7 @@ class Outlet(Asset):
         return self.power_up()
 
 
-    @handler("ChildAssetPowerDown", "ChildAssetPowerUp", "LoadUpdate")
+    @handler("ChildAssetPowerDown", "ChildAssetPowerUp", "ChildAssetLoadUpdate")
     def on_load_change(self, event, *args, **kwargs):
         return self._state.get_load(), self._state.get_key()
 

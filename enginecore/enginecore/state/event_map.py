@@ -25,7 +25,7 @@ class PowerEventManager:
 
     @classmethod
     def map_child_event(cls, value, child_key):
-        return {
+        return { 
             "0": events.ChildAssetPowerDown(child_key=child_key),
             "1": events.ChildAssetPowerUp(child_key=child_key),
         }[value]
@@ -39,4 +39,4 @@ class PowerEventManager:
 
     @classmethod
     def map_load_event(cls, new_load, child_key):
-        return events.LoadUpdate(child_load=new_load, child_key=child_key)
+        return events.ChildAssetLoadUpdate(child_load=new_load, child_key=child_key)

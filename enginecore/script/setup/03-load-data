@@ -4,19 +4,19 @@
 #
 # CTyler 2018-06-06
 
-echo "===== $(basename $0)"
-FILE="$(dirname $0)/../../../topologies/RARITAN_PDU.cyp"
-if [ -r "$FILE" ]
-then
-	sudo neo4j start
-	sleep 4
-	echo "Loading data..."
-	cat $FILE|sudo cypher-shell -u simengine -p simengine
-	STATUS=$?
-	sudo neo4j stop
-else
-	echo "FIle $FILE not found/readable." >&2
-	exit 999
-fi
-exit $STATUS
+# echo "===== $(basename $0)"
+# FILE="$(dirname $0)/../../../topologies/RARITAN_PDU.cyp"
+# if [ -r "$FILE" ]
+# then
+# 	sudo neo4j start
+# 	sleep 4
+# 	echo "Loading data..."
+# 	cat $FILE|sudo cypher-shell -u simengine -p simengine
+# 	STATUS=$?
+# 	sudo neo4j stop
+# else
+# 	echo "FIle $FILE not found/readable." >&2
+# 	exit 999
+# fi
+# exit $STATUS
 

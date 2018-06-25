@@ -3,7 +3,7 @@
 from circuits import Component
 import pysnmp.proto.rfc1902 as snmp_data_types
 import redis
-from enginecore.state.graph_reference import GraphReference
+from enginecore.model.graph_reference import GraphReference
 import enginecore.state.assets
 from enginecore.state.utils import get_asset_type, format_as_redis_key
 
@@ -13,10 +13,11 @@ class StateManger():
     assets = {} # cache graph topology
     redis_store = None
 
-    def __init__(self, asset_info, asset_type):
+    def __init__(self, asset_info, asset_type, notify=False):
         self._graph_db = GraphReference().get_session()
         self._asset_info = asset_info
         self._asset_type = asset_type
+        self._notify = notify
 
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -32,12 +33,14 @@ class StateManger():
         """Asset Type """
         return self._asset_type
 
-
+    
     def power_down(self):
         """Implements state logic for power down event """
         print("Powering down {}".format(self._asset_info['key']))
         if self.status():
-            StateManger.get_store().set("{}-{}".format(str(self._asset_info['key']), self._asset_type), '0')
+            StateManger.get_store().set(self._get_rkey(), '0')
+            if self._notify:
+                self._publish()
 
         return self.status()
 
@@ -46,7 +49,9 @@ class StateManger():
         """Implements state logic for power up event """
         print("Powering up {}".format(self._asset_info['key']))
         if self._parents_available() and not self.status():
-            StateManger.get_store().set("{}-{}".format(str(self._asset_info['key']), self._asset_type), '1')
+            StateManger.get_store().set(self._get_rkey(), '1')
+            if self._notify:
+                self._publish()
 
         return self.status()
  
@@ -62,8 +67,17 @@ class StateManger():
         Returns:
             int: 1 if on, 0 if off
         """
-        return int(StateManger.get_store().get("{}-{}".format(str(self._asset_info['key']), self._asset_type)))
+        return int(StateManger.get_store().get(self._get_rkey()))
 
+
+    def _publish(self):
+        """ publish state changes """
+        StateManger.get_store().publish('state-upd', self._get_rkey())
+
+
+    def _get_rkey(self):
+        """Get asset key in redis format"""
+        return "{}-{}".format(str(self._asset_info['key']), self._asset_type)
 
     def _check_parents(self, keys, parent_down, msg='Cannot perform the action: [{}] parent is off'):
         """Check that redis values pass certain condition
@@ -191,8 +205,8 @@ class StateManger():
 class PDUStateManager(StateManger):
     """Handles state logic for PDU asset """
 
-    def __init__(self, asset_info, asset_type='pdu'):
-         super(PDUStateManager, self).__init__(asset_info, asset_type)
+    def __init__(self, asset_info, asset_type='pdu', notify=False):
+         super(PDUStateManager, self).__init__(asset_info, asset_type, notify)
         
 
     def get_load(self, exclude=False):
@@ -245,8 +259,8 @@ class PDUStateManager(StateManger):
 class OutletStateManager(StateManger):
     """Handles state logic for outlet asset """
 
-    def __init__(self, asset_info, asset_type='outlet'):
-        super(OutletStateManager, self).__init__(asset_info, asset_type)
+    def __init__(self, asset_info, asset_type='outlet', notify=False):
+        super(OutletStateManager, self).__init__(asset_info, asset_type, notify)
 
     def get_load(self):
         """Find what kind of device the outlet powers & return load of that device 
@@ -277,8 +291,8 @@ class OutletStateManager(StateManger):
 class StaticDeviceStateManager(StateManger):
     """Dummy Device that doesn't do much except drawing power """
 
-    def __init__(self, asset_info, asset_type='staticasset'):
-        super(StaticDeviceStateManager, self).__init__(asset_info, asset_type)
+    def __init__(self, asset_info, asset_type='staticasset', notify=False):
+        super(StaticDeviceStateManager, self).__init__(asset_info, asset_type, notify)
         self._asset = GraphReference.get_asset_and_components(self._graph_db, asset_info['key'])
     
     def get_load(self):

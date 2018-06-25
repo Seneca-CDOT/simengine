@@ -8,7 +8,8 @@ import time
 import curses
 
 from enginecore.state.assets import SUPPORTED_ASSETS
-from enginecore.state.graph_reference import GraphReference
+from enginecore.model.graph_reference import GraphReference
+import enginecore.model.system_modeler as sm
 from enginecore.state.state_managers import StateManger
 from enginecore.state.utils import get_asset_type
 
@@ -23,7 +24,7 @@ def manage_state(asset_key, action):
         asset_info = GraphReference.get_asset_and_components(session, asset_key)
         
         asset_type = get_asset_type(asset_info['labels'])
-        state_manager = SUPPORTED_ASSETS[asset_type].StateManagerCls(asset_info)
+        state_manager = SUPPORTED_ASSETS[asset_type].StateManagerCls(asset_info, notify=True)
         
         action(state_manager)
 
@@ -119,6 +120,9 @@ def get_status(**kwargs):
         status_table_format(assets)
 
 
+def create_asset(**kwargs):
+    sm.create_pdu(kwargs['asset_key'])
+
 ################ Define Command line options & arguments
 
 argparser = argparse.ArgumentParser(
@@ -145,7 +149,22 @@ oid_group = subparsers.add_parser('oid', help="Manage OIDs")
 ## -> Setup options for snapshot commands
 snapshot_group = subparsers.add_parser('snapshot', help="Manage snapshots of the assets' states")
 
+## -> Setup options for asset management commands
+
+asset_group = subparsers.add_parser('asset', help="Manage system model: create new/update existing asset etc.")
+subparsers = asset_group.add_subparsers()
+create_asset_action = subparsers.add_parser('create', help="Create new asset")
+create_asset_action.add_argument('--asset-key', required=True)
+create_asset_action.add_argument('--asset-type', required=True)
+create_asset_action.add_argument('--preset-file')
+
+
+power_asset_action = subparsers.add_parser('power-link', help="Create a power link between 2 assets")
+power_asset_action.add_argument('--source-key', required=True)
+power_asset_action.add_argument('--dest-key', required=True)
+
 ## -> Setup options for power_group
+
 subparsers = power_group.add_subparsers()
 power_up_action = subparsers.add_parser('up', help="Power up a particular component/asset")
 power_up_action.add_argument('--asset-key', required=True)
@@ -154,6 +173,18 @@ power_down_action = subparsers.add_parser('down', help="Power down a particular 
 power_down_action.add_argument('--asset-key', required=True)
 
 ############ Callbacks for actions
+
+status_group.set_defaults(func=lambda args: get_status(**args))
+
+oid_group.set_defaults(func=lambda _: print('Not Implemented Yet'))
+snapshot_group.set_defaults(func=lambda _: print('Not Implemented Yet'))
+
+## asset_group callbacks
+create_asset_action.set_defaults(
+    func=lambda args: create_asset(**args)
+)
+
+## power_group callbacks
 power_up_action.set_defaults(
     func=lambda args: manage_state(args['asset_key'], lambda asset: asset.power_up())
 )
@@ -162,13 +193,9 @@ power_down_action.set_defaults(
     func=lambda args: manage_state(args['asset_key'], lambda asset: asset.power_down())
 )
 
-status_group.set_defaults(func=lambda args: get_status(**args))
 
-oid_group.set_defaults(func=lambda _: print('Not Implemented Yet'))
-snapshot_group.set_defaults(func=lambda _: print('Not Implemented Yet'))
-
-try:
-    options = argparser.parse_args()
-    options.func(vars(options))
-except:
-    argparser.print_help()
+# try:
+options = argparser.parse_args()
+options.func(vars(options))
+# except:
+argparser.print_help()

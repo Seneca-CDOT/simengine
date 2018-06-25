@@ -2,19 +2,19 @@
 from circuits import Event
 
 class AssetPowerDown(Event):
-    """ On Asset Did Receive PowerDown Signal """
+    """ On Asset Did Power Down """
 
 class AssetPowerUp(Event):
-    """ On Asset Did Receive PowerUp Signal """
+    """ On Asset Did Power Up """
 
 class ParentAssetPowerDown(Event):
-    success = True
     """ On Parent Did Go Down """
-
-class ParentAssetPowerUp(Event):
     success = True
+    
+class ParentAssetPowerUp(Event):
     """ On Parent Did Go Up """
-
+    success = True
+    
 class ChildAssetPowerDown(Event):
     """ On Child Did Go Down """
     success = True
@@ -23,14 +23,14 @@ class ChildAssetPowerUp(Event):
     """ On Child Did Go Up """
     success = True
     
-class LoadUpdate(Event):
+class ChildAssetLoadUpdate(Event):
     """ On Load Update """
     success = True
 
-    
 class SignalDown(Event):
-    pass
+    """ Asset Received power down request """
+    success = True
 
 class SignalUp(Event):
-    pass
-
+    """ Asset Received power Up request """
+    success = True
