@@ -121,7 +121,20 @@ def get_status(**kwargs):
 
 
 def create_asset(**kwargs):
-    sm.create_pdu(kwargs['asset_key'])
+    """Add new asset to the system/model """
+    if kwargs['asset_type'] == 'pdu':
+        sm.create_pdu(int(kwargs['asset_key']))
+    elif kwargs['asset_type'] == 'outlet':
+        sm.create_outlet(int(kwargs['asset_key']))
+    elif kwargs['asset_type'] == 'static':
+        sm.create_static(int(kwargs['asset_key']), kwargs)
+    else:
+        print("The asset type must be either 'outlet', 'pdu' or 'static'")
+
+def link_assets(**kwargs):
+    """Add new asset to the system/model """
+    sm.link_assets(int(kwargs['source_key']), int(kwargs['dest_key']))
+
 
 ################ Define Command line options & arguments
 
@@ -151,12 +164,15 @@ snapshot_group = subparsers.add_parser('snapshot', help="Manage snapshots of the
 
 ## -> Setup options for asset management commands
 
-asset_group = subparsers.add_parser('asset', help="Manage system model: create new/update existing asset etc.")
+asset_group = subparsers.add_parser('model', help="Manage system model: create new/update existing asset etc.")
 subparsers = asset_group.add_subparsers()
 create_asset_action = subparsers.add_parser('create', help="Create new asset")
 create_asset_action.add_argument('--asset-key', required=True)
 create_asset_action.add_argument('--asset-type', required=True)
-create_asset_action.add_argument('--preset-file')
+create_asset_action.add_argument('--img-url')
+create_asset_action.add_argument('--power-source')
+create_asset_action.add_argument('--power-consumption')
+create_asset_action.add_argument('--name')
 
 
 power_asset_action = subparsers.add_parser('power-link', help="Create a power link between 2 assets")
@@ -184,6 +200,10 @@ create_asset_action.set_defaults(
     func=lambda args: create_asset(**args)
 )
 
+power_asset_action.set_defaults(
+    func=lambda args: link_assets(**args)
+)
+
 ## power_group callbacks
 power_up_action.set_defaults(
     func=lambda args: manage_state(args['asset_key'], lambda asset: asset.power_up())
@@ -194,8 +214,8 @@ power_down_action.set_defaults(
 )
 
 
-# try:
-options = argparser.parse_args()
-options.func(vars(options))
-# except:
-argparser.print_help()
+try:
+    options = argparser.parse_args()
+    options.func(vars(options))
+except:
+    argparser.print_help()

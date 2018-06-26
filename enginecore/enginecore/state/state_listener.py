@@ -37,7 +37,7 @@ class StateListener(Component):
         self._server = Server(("0.0.0.0", 8000)).register(self)     
         Static().register(self._server)
         Logger().register(self._server)
-        Debugger().register(self._server)
+        # Debugger().register(self._server)
         self._ws = WebSocket().register(self._server)
     
         WebSocketsDispatcher("/simengine").register(self._server)
@@ -60,7 +60,6 @@ class StateListener(Component):
         Worker(process=False).register(self)
 
     def _handle_oid_update(self, asset_key, oid, value):
-
         if int(asset_key) not in self._assets:
             return
 
@@ -69,10 +68,10 @@ class StateListener(Component):
 
         # look up dependant nodes
         results = self._graph_db.run(
-            'MATCH (asset:Asset)-[:POWERED_BY]->(oid:OID { OID: $oid }) \
+            'MATCH (asset:Asset)-[:POWERED_BY]->(oid:OID { OID: $oid })<-[:HAS_OID]-({key: $key}) \
                 MATCH (oid)-[:HAS_STATE_DETAILS]->(oid_specs) \
             return asset, oid, oid_specs',
-            oid=oid
+            oid=oid,key=int(asset_key)
         )
 
         for record in results:
