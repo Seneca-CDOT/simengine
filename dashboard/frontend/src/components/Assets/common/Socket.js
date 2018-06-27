@@ -94,7 +94,7 @@ export default class Socket extends React.Component {
 
           {/* LED */}
           {this.props.selectable &&
-            <SocketStatus socketOn={this.props.asset.status}/>
+            <SocketStatus socketOn={this.props.red_means_on?!this.props.asset.status:this.props.asset.status} powered={this.props.powered}/>
           }
           <Text text={this.props.asset && this.props.asset.name ? this.props.asset.name :'socket'}  y={this.state.bgImage ? 175: 105} />
         </Group>
@@ -102,6 +102,9 @@ export default class Socket extends React.Component {
     }
 }
 
+Socket.defaultProps = {
+  red_means_on: false,
+};
 
 Socket.propTypes = {
   x: PropTypes.number,

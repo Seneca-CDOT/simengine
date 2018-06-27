@@ -25,18 +25,13 @@ def initialize(force_snmp_init=False):
 
             formatted_key = asset_key.zfill(10)
 
-            graph_oids = []
+            graph_oids = {}
             for oid in record['oids']: # loop over oids that are defined in the graph db
-                 
-                key_and_oid = format_as_redis_key(formatted_key, oid.get('OID'))
-                graph_oids.append(key_and_oid)
+                graph_oids[oid.get('OID')] = {
+                    'dtype': oid.get('dataType'),
+                    'value': oid.get('defaultValue')
+                }
 
-                if init_from_snmprec:    
-                    redis_store.lpush(formatted_key + "-temp_oids_ordering", key_and_oid)
-                
-                redis_store.set(key_and_oid, "{}|{}".format(oid.get('dataType'), oid.get('defaultValue'))) 
-
-            
             # Set-up in the SNMPSim format
             if 'SNMPSim' in record['asset'].labels and record['oids'] and init_from_snmprec:
 
@@ -44,14 +39,17 @@ def initialize(force_snmp_init=False):
                 static_oid_file = record['asset'].get('staticOidFile')
                 static_oid_path = os.path.join(os.environ.get('SIMENGINE_STATIC_DATA'), static_oid_file)
 
-                with open(static_oid_path, "r") as sfile_handler:
-                    
+                with open(static_oid_path, "r") as sfile_handler:  
                     for line in sfile_handler:
-                        oid, dtype, value = line.replace('\n','').split('|')
+
+                        oid, dtype, value = line.replace('\n', '').split('|')
+                        if oid in graph_oids:
+                            dtype = graph_oids[oid]['dtype']
+                            value = graph_oids[oid]['value']
+                        
                         key_and_oid = format_as_redis_key(formatted_key, oid)
-                        if (key_and_oid not in graph_oids):
-                            redis_store.lpush(formatted_key + "-temp_oids_ordering", key_and_oid)
-                            redis_store.set(key_and_oid, "{}|{}".format(dtype, value)) 
+                        redis_store.lpush(formatted_key + "-temp_oids_ordering", key_and_oid)
+                        redis_store.set(key_and_oid, "{}|{}".format(dtype, value))
 
                 redis_store.sort(formatted_key + '-temp_oids_ordering', store=formatted_key + '-oids_ordering', alpha=True)
                 redis_store.delete(formatted_key + '-temp_oids_ordering')

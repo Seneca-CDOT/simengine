@@ -34,6 +34,7 @@ class Asset(Component):
     def __init__(self, state):
         super(Asset, self).__init__()
         self._state = state
+        self._state._set_boot_time()
 
     def get_key(self):
         """ Get ID assigned to the asset """

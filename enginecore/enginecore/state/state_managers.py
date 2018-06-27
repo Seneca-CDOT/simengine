@@ -1,6 +1,6 @@
 """This file contains definitions of State Managers classes """
 
-from circuits import Component
+import time
 import pysnmp.proto.rfc1902 as snmp_data_types
 import redis
 from enginecore.model.graph_reference import GraphReference
@@ -50,6 +50,7 @@ class StateManger():
         print("Powering up {}".format(self._asset_info['key']))
         if self._parents_available() and not self.status():
             StateManger.get_store().set(self._get_rkey(), '1')
+            self._set_boot_time()
             if self._notify:
                 self._publish()
 
@@ -69,15 +70,34 @@ class StateManger():
         """
         return int(StateManger.get_store().get(self._get_rkey()))
 
+    def _set_boot_time(self):
+        """Reset the boot time to now"""
+        StateManger.get_store().set(str(self._asset_info['key']) + ":start_time", int(time.time())) 
 
     def _publish(self):
         """ publish state changes """
         StateManger.get_store().publish('state-upd', self._get_rkey())
 
 
+    def _update_oid(self, oid_details, oid_value):
+        """Update oid with a new value
+        
+        Args:
+            oid_details(dict): information about an object identifier stored in the graph ref
+            oid_value(object): OID value in rfc1902 format 
+        """
+        redis_store = StateManger.get_store()
+        
+        rvalue = "{}|{}".format(oid_details.get('dataType'), oid_value)
+        rkey = format_as_redis_key(str(self._asset_info['key']), oid_details.get('OID'), key_formatted=False)
+
+        redis_store.set(rkey, rvalue)
+        
+
     def _get_rkey(self):
         """Get asset key in redis format"""
         return "{}-{}".format(str(self._asset_info['key']), self._asset_type)
+
 
     def _check_parents(self, keys, parent_down, msg='Cannot perform the action: [{}] parent is off'):
         """Check that redis values pass certain condition
@@ -235,24 +255,38 @@ class PDUStateManager(StateManger):
 
         return load
 
-    
-    def update_load(self, load):
-        """Update any state associated with the device in the redis db 
-        
-        Args:
-            load(float): New load in amps
-        """
+
+    def _update_current(self, load):
         results = self._graph_db.run(
             "MATCH (:Asset { key: $key })-[:HAS_OID]->(oid {name: 'AmpOnPhase'}) return oid",
-             key=int(self._asset_info['key'])
+            key=int(self._asset_info['key'])
+        )
+
+        record = results.single()
+        if record:
+            self._update_oid(record['oid'], snmp_data_types.Gauge32(load * 10))
+   
+
+    def _update_wattage(self, wattage):
+        results = self._graph_db.run(
+            "MATCH (:Asset { key: $key })-[:HAS_OID]->(oid {name: 'WattageDraw'}) return oid",
+            key=int(self._asset_info['key'])
         )
 
         record = results.single()
 
         if record:
-            rvalue = "{}|{}".format(record['oid'].get('dataType'), snmp_data_types.Gauge32(load * 10))
-            rkey = format_as_redis_key(str(self._asset_info['key']), record['oid'].get('OID'), key_formatted=False)
-            StateManger.get_store().set(rkey, rvalue)
+            self._update_oid(record['oid'], snmp_data_types.Integer32(wattage))
+
+
+    def update_load(self, load):
+        """Update any load state associated with the device in the redis db 
+        
+        Args:
+            load(float): New load in amps
+        """
+        self._update_current(load)
+        self._update_wattage(load * 120)
 
 
 

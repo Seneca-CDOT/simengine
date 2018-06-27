@@ -58,7 +58,9 @@ export default class Pdu extends React.Component {
           asset={asset.children[ckey]}
           assetId={ckey}
           selected={this.state.selectedSocketKey === ckey && this.props.pduSocketSelected}
+          powered={this.props.asset.status}
           parentSelected={this.props.selected}
+          red_means_on={true}
         />
       );
       x += 90;

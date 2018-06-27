@@ -7,7 +7,7 @@ import { Rect } from 'react-konva';
 export default class SocketStatus extends React.Component {
 
   render() {
-    const color = this.props.socketOn?"green": "red";
+    const color = this.props.powered?(this.props.socketOn?"green": "red"):"grey";
     return (
       <Rect
         x={this.props.x?this.props.x:20}

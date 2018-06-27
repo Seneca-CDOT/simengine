@@ -119,7 +119,7 @@ const styles = theme => ({
   componentDidMount() {
 
     // Scale Layout on wheel event
-    let stage = this.refs.stage.getStage()
+    let stage = this.refs.stage.getStage();
     const scaleBy = 1.03;
     window.addEventListener('wheel', (e) => {
       e.preventDefault();
@@ -206,6 +206,7 @@ const styles = theme => ({
 
   /** Add Socket to the Layout */
   drawSocket(key, asset) {
+    const powered = asset.parent?this._get_asset_by_key(asset.parent.key).status:true;
     return (
     <Socket
       onPosChange={this.onPosChange.bind(this)}
@@ -215,13 +216,14 @@ const styles = theme => ({
       selectable={true}
       selected={this.state.selectedAssetKey === key}
       draggable={true}
+      powered={powered}
     />);
   }
 
 
   /** Add PDU to the Layout */
   drawPdu(key, asset) {
-
+    const powered = asset.parent?this.state.assets[asset.parent.key].status:true;
     return (
     <Pdu
       onPosChange={this.onPosChange.bind(this)}
@@ -230,6 +232,7 @@ const styles = theme => ({
       asset={asset}
       selected={this.state.selectedAssetKey === key}
       pduSocketSelected={this.state.selectedAssetKey in asset.children}
+      powered={powered}
     />);
   }
 
@@ -262,7 +265,6 @@ const styles = theme => ({
 
       if (this.state.assets[connections[key].ckey].type == 'staticasset') {
         socketXpad = -35;
-        console.log(this.state.assets[connections[key].ckey].type + " : " + connections[key].ckey)
       }
       wireDrawing.push(
         <Line
@@ -290,7 +292,7 @@ const styles = theme => ({
           </AppBar>
 
           {/* Main Canvas */}
-          <main className={classes.content} style={ { backgroundImage: 'url('+gridBackground+')', backgroundRepeat: "repeat" }}>
+          <main className={classes.content} style={{ backgroundImage: 'url('+gridBackground+')', backgroundRepeat: "repeat" }}>
             <div className={classes.toolbar} />
             <Stage
               width={window.innerWidth}

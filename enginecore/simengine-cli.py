@@ -214,8 +214,8 @@ power_down_action.set_defaults(
 )
 
 
-try:
-    options = argparser.parse_args()
-    options.func(vars(options))
-except:
-    argparser.print_help()
+#try:
+options = argparser.parse_args()
+options.func(vars(options))
+# except:
+# argparser.print_help()
