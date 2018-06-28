@@ -14,14 +14,47 @@ def link_assets(source_key, dest_key):
         ", source_key=source_key, dest_key=dest_key)
         
 
-def create_outlet(key):
+def create_outlet(key, attr):
     """Add outlet to the model """
     with GraphReference().get_session() as session:
         session.run("\
         CREATE (:Asset:Outlet { name: $name,  key: $key })", key=key, name="out-{}".format(key))
+        set_properties(key, attr)
 
 
-def create_pdu(key, preset_file=os.path.join(os.path.dirname(__file__), 'presets/apc_pdu.json')):
+def set_properties(key, attr):
+    with GraphReference().get_session() as session:
+        if attr['host']:
+            session.run("\
+            MATCH (asset:Asset {key: $pkey})\
+            SET asset.host=$host", pkey=key, host=attr['host'])
+        
+        if attr['on_delay']:
+            session.run("\
+            MATCH (asset:Asset {key: $pkey})\
+            SET asset.onDelay=$on_delay", pkey=key, on_delay=attr['on_delay'])
+        
+        if attr['off_delay']:
+            session.run("\
+            MATCH (asset:Asset {key: $pkey})\
+            SET asset.offDelay=$off_delay", pkey=key, off_delay=attr['off_delay'])
+
+        if 'power_source' in attr and attr['power_source']:
+            session.run("\
+            MATCH (asset:Asset {key: $pkey})\
+            SET asset.powerSource=$power_source", pkey=key, power_source=attr['power_source'])
+        
+        if 'power_consumption' in attr and attr['power_consumption']:
+            session.run("\
+            MATCH (asset:Asset {key: $pkey})\
+            SET asset.powerConsumption=$power_consumption", pkey=key, power_consumption=attr['power_consumption'])
+        
+        if 'img_url' in attr and attr['img_url']:
+            session.run("\
+            MATCH (asset:Asset {key: $pkey})\
+            SET asset.imgUrl=$img_url", pkey=key, img_url=attr['img_url'])
+
+def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'presets/apc_pdu.json')):
     """Add PDU to the model """    
     with open(preset_file) as f, GraphReference().get_session() as session:
         data = json.load(f)
@@ -34,6 +67,7 @@ def create_pdu(key, preset_file=os.path.join(os.path.dirname(__file__), 'presets
             staticOidFile: $oid_file\
         })", key=key, name=data['assetName'], oid_file=data['staticOidFile'])
         
+        set_properties(key, attr)
         
         # Add PDU OIDS to the model
         for k, v in data["OIDs"].items():
@@ -94,17 +128,22 @@ def create_pdu(key, preset_file=os.path.join(os.path.dirname(__file__), 'presets
                     outkey=int("{}{}".format(key,str(i+1))))
             # TODO: else -> general OID
 
+def drop_model():
+    """ Drop system model """
+    with GraphReference().get_session() as session:
+        session.run("MATCH (a) WHERE a:Asset OR a:OID OR a:OIDDesc DETACH DELETE a")
+    
+def delete_asset(key):
+    """ Delete by key """
+    with GraphReference().get_session() as session:
+        session.run("MATCH (a:Asset { key: $key }) DETACH DELETE a", key=key)
 
 def create_static(key, attr):
-
     """Create Dummy static asset"""
     with GraphReference().get_session() as session:
         session.run("\
         CREATE (:Asset:StaticAsset { \
         name: $name, \
-        key: $key,\
-        imgUrl: $img_url, \
-        powerSource: $psrc, \
-        powerConsumption: $pcons })", 
-        name=attr['name'], key=key, img_url=attr['img_url'], psrc=int(attr['power_source']), pcons=int(attr['power_consumption']))
-
+        key: $key})", 
+        name=attr['name'], key=key)
+        set_properties(key, attr)

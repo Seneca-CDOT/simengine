@@ -70,7 +70,7 @@ const styles = theme => ({
        this.ws.onmessage = ((evt) =>
        {
           const data = JSON.parse(evt.data);
-
+          console.log(data)
           // Update state of the existing asset
           if('key' in data) {
 
@@ -223,7 +223,7 @@ const styles = theme => ({
 
   /** Add PDU to the Layout */
   drawPdu(key, asset) {
-    const powered = asset.parent?this.state.assets[asset.parent.key].status:true;
+    const powered = asset.parent?this._get_asset_by_key(asset.parent.key).status:true;
     return (
     <Pdu
       onPosChange={this.onPosChange.bind(this)}

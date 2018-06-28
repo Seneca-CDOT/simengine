@@ -14,7 +14,8 @@ class StateManger():
     redis_store = None
 
     def __init__(self, asset_info, asset_type, notify=False):
-        self._graph_db = GraphReference().get_session()
+        self._graph_ref = GraphReference()
+        self._graph_db = self._graph_ref.get_session()
         self._asset_info = asset_info
         self._asset_type = asset_type
         self._notify = notify
@@ -34,8 +35,16 @@ class StateManger():
         return self._asset_type
 
     
-    def power_down(self):
-        """Implements state logic for power down event """
+    def shut_down(self):
+        """Implements state logic for graceful power-off event"""
+        print('Graceful shutdown')
+        if 'offDelay' in self._asset_info:
+            time.sleep(self._asset_info['offDelay'] / 1000.0) # ms to sec
+        self.power_off()
+
+
+    def power_off(self):
+        """Implements state logic for abrupt power loss """
         print("Powering down {}".format(self._asset_info['key']))
         if self.status():
             StateManger.get_store().set(self._get_rkey(), '0')
@@ -44,13 +53,15 @@ class StateManger():
 
         return self.status()
 
-
     def power_up(self):
         """Implements state logic for power up event """
         print("Powering up {}".format(self._asset_info['key']))
         if self._parents_available() and not self.status():
+            if 'onDelay' in self._asset_info:
+                time.sleep(self._asset_info['onDelay'] / 1000.0) # ms to sec
+            # turn on & udpate machine start time
             StateManger.get_store().set(self._get_rkey(), '1')
-            self._set_boot_time()
+            self.reset_boot_time()
             if self._notify:
                 self._publish()
 
@@ -70,7 +81,7 @@ class StateManger():
         """
         return int(StateManger.get_store().get(self._get_rkey()))
 
-    def _set_boot_time(self):
+    def reset_boot_time(self):
         """Reset the boot time to now"""
         StateManger.get_store().set(str(self._asset_info['key']) + ":start_time", int(time.time())) 
 
@@ -86,7 +97,7 @@ class StateManger():
             oid_details(dict): information about an object identifier stored in the graph ref
             oid_value(object): OID value in rfc1902 format 
         """
-        redis_store = StateManger.get_store()
+        redis_store = StateManger.get_store() 
         
         rvalue = "{}|{}".format(oid_details.get('dataType'), oid_value)
         rkey = format_as_redis_key(str(self._asset_info['key']), oid_details.get('OID'), key_formatted=False)
@@ -129,7 +140,7 @@ class StateManger():
         Returns:
             bool: True if parents are available
         """
-        asset_keys, oid_keys = GraphReference.get_parent_keys(self._graph_db, self._asset_info['key'])
+        asset_keys, oid_keys = GraphReference.get_parent_keys(self._graph_ref.get_session(), self._asset_info['key'])
         
         assets_up = self._check_parents(asset_keys, lambda rvalue: rvalue == b'0')
         oids_on = self._check_parents(oid_keys, lambda rvalue: rvalue.split(b'|')[1] == b'0')
@@ -242,7 +253,7 @@ class PDUStateManager(StateManger):
         if not self.status():
             return 0
 
-        results = self._graph_db.run(
+        results = self._graph_ref.get_session().run(
             "MATCH (:Asset { key: $key })<-[:POWERED_BY]-(asset:Asset) RETURN asset",
             key=int(self._asset_info['key'])
         )
@@ -257,7 +268,7 @@ class PDUStateManager(StateManger):
 
 
     def _update_current(self, load):
-        results = self._graph_db.run(
+        results = self._graph_ref.get_session().run(
             "MATCH (:Asset { key: $key })-[:HAS_OID]->(oid {name: 'AmpOnPhase'}) return oid",
             key=int(self._asset_info['key'])
         )
@@ -268,7 +279,7 @@ class PDUStateManager(StateManger):
    
 
     def _update_wattage(self, wattage):
-        results = self._graph_db.run(
+        results = self._graph_ref.get_session().run(
             "MATCH (:Asset { key: $key })-[:HAS_OID]->(oid {name: 'WattageDraw'}) return oid",
             key=int(self._asset_info['key'])
         )
@@ -306,7 +317,7 @@ class OutletStateManager(StateManger):
         if not self.status():
             return 0
 
-        results = self._graph_db.run(
+        results = self._graph_ref.get_session().run(
             "MATCH (:Asset { key: $key })<-[:POWERED_BY]-(asset:Asset) RETURN asset, labels(asset) as labels",
             key=int(self._asset_info['key'])
         )
@@ -327,7 +338,7 @@ class StaticDeviceStateManager(StateManger):
 
     def __init__(self, asset_info, asset_type='staticasset', notify=False):
         super(StaticDeviceStateManager, self).__init__(asset_info, asset_type, notify)
-        self._asset = GraphReference.get_asset_and_components(self._graph_db, asset_info['key'])
+        self._asset = GraphReference.get_asset_and_components(self._graph_ref.get_session(), asset_info['key'])
     
     def get_load(self):
         """Calculate load in AMPs 

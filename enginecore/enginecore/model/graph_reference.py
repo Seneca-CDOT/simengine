@@ -10,7 +10,7 @@ class Singleton(type):
         return cls._instances[cls]
 
 
-class GraphReference(metaclass=Singleton):
+class GraphReference():
     
     
     def __init__(self):
@@ -22,7 +22,7 @@ class GraphReference(metaclass=Singleton):
     
     def close(self):
         """ Close as db """
-        self._driver.close()
+        # self._driver.close()
 
 
     def get_session(self):

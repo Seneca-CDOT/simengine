@@ -34,7 +34,7 @@ class Asset(Component):
     def __init__(self, state):
         super(Asset, self).__init__()
         self._state = state
-        self._state._set_boot_time()
+        self._state.reset_boot_time()
 
     def get_key(self):
         """ Get ID assigned to the asset """
@@ -48,9 +48,9 @@ class Asset(Component):
         """ Power up this asset """
         return self._state.get_key(), self._state.get_type(), self._state.power_up()
 
-    def power_down(self):
+    def power_off(self):
         """ Power down this asset """
-        return self._state.get_key(), self._state.get_type(), self._state.power_down()
+        return self._state.get_key(), self._state.get_type(), self._state.power_off()
 
     ##### React to events associated with the asset #####
     def on_asset_power_down(self):
@@ -94,13 +94,14 @@ class SNMPAgent(Agent):
     """ SNMP simulator instance """
 
     agent_num = 1
-    def __init__(self, key, community='public', lookup_oid='1.3.6'):
+    def __init__(self, key, community='public', lookup_oid='1.3.6', host=False):
 
         super(SNMPAgent, self).__init__()
         self._key_space_id = key
         self._process = None
         self._snmp_rec_filename = community + '.snmprec'
         self._snmp_rec_dir = tempfile.mkdtemp()
+        self._host = host if host else "127.0.0.{}:1024".format(SNMPAgent.agent_num + 1)
 
         snmp_rec_filepath = os.path.join(self._snmp_rec_dir, self._snmp_rec_filename)
         redis_script_sha = os.environ.get('SIMENGINE_SNMP_SHA')
@@ -130,7 +131,7 @@ class SNMPAgent(Agent):
             return
 
         # start a new one
-        cmd = "snmpsimd.py --agent-udpv4-endpoint=127.0.0.{}:1024".format(SNMPAgent.agent_num)
+        cmd = "snmpsimd.py --agent-udpv4-endpoint={}".format(self._host)
         cmd += " --variation-module-options=redis:host:127.0.0.1,port:6379,db:0,key-spaces-id:"+str(self._key_space_id)
         cmd += " --data-dir="+self._snmp_rec_dir
         cmd += " --transport-id-offset="+str(SNMPAgent.agent_num)
@@ -154,6 +155,7 @@ class PDU(Asset):
         self._state.update_load(self._state.get_load())
         self._snmp_agent = SNMPAgent(
             asset_info['key'],
+            host=asset_info['host'] if 'host' in asset_info else False
         )
 
 
@@ -167,17 +169,14 @@ class PDU(Asset):
     def on_asset_power_up(self):
         self._snmp_agent.start_agent()
 
-
     ##### React to any events of the connected components #####
     @handler("ParentAssetPowerDown")
     def on_parent_power_down(self): 
-        return self.power_down()
-
+        return self.power_off()
 
     @handler("ParentAssetPowerUp")
     def on_parent_power_up(self):
         return self.power_up()
-
 
     @handler("ChildAssetPowerDown", "ChildAssetPowerUp", "ChildAssetLoadUpdate")
     def on_load_change(self, event, *args, **kwargs):
@@ -207,7 +206,7 @@ class Outlet(Asset):
     @handler("ParentAssetPowerDown", "SignalDown")
     def on_parent_power_down(self):
         """ React to events with power down """
-        return self.power_down()
+        return self.power_off()
 
     @handler("ParentAssetPowerUp", "SignalUp")
     def on_parent_power_up(self):
@@ -231,7 +230,7 @@ class StaticAsset(Asset):
 
     @handler("ParentAssetPowerDown")
     def on_parent_power_down(self): 
-        return self.power_down()
+        return self.power_off()
 
 
     @handler("ParentAssetPowerUp")

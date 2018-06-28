@@ -20,7 +20,7 @@ Run the script:
 
 ## System Modelling
 
-`simengine-cli` provides interface for making your own model (run `simengine-cli model` `--``help` for more information). You can also define the system topology directly through `cypher`  & `neo4j` interface (see examples in `topologies` folder).
+`simengine-cli` provides interface for making your own model (run `simengine-cli model --help` for more information). You can also define the system topology directly through `cypher`  & `neo4j` interface (see examples in `topologies` folder).
 
 The simplest example would be a model that is composed of a single pdu powered by an outlet:
 

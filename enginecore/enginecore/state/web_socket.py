@@ -44,7 +44,7 @@ class WebSocket(Component):
             if power_up:
                 state_manager.power_up()
             else:
-                state_manager.power_down()
+                state_manager.shut_down()
 
 
     def disconnect(self, sock):

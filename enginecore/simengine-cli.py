@@ -123,17 +123,13 @@ def get_status(**kwargs):
 def create_asset(**kwargs):
     """Add new asset to the system/model """
     if kwargs['asset_type'] == 'pdu':
-        sm.create_pdu(int(kwargs['asset_key']))
+        sm.create_pdu(int(kwargs['asset_key']), kwargs)
     elif kwargs['asset_type'] == 'outlet':
-        sm.create_outlet(int(kwargs['asset_key']))
+        sm.create_outlet(int(kwargs['asset_key']), kwargs)
     elif kwargs['asset_type'] == 'static':
         sm.create_static(int(kwargs['asset_key']), kwargs)
     else:
         print("The asset type must be either 'outlet', 'pdu' or 'static'")
-
-def link_assets(**kwargs):
-    """Add new asset to the system/model """
-    sm.link_assets(int(kwargs['source_key']), int(kwargs['dest_key']))
 
 
 ################ Define Command line options & arguments
@@ -147,7 +143,7 @@ power_group = subparsers.add_parser('power', help="Control power component of re
 
 ## -> Setup options for state queries
 status_group = subparsers.add_parser('status', help="Retrieve status of registered asset(s)")
-status_group.add_argument('--asset-key')
+status_group.add_argument('--asset-key', type=int)
 status_group.add_argument('--print-as', help="Format options")
 status_group.add_argument('--monitor', help="Monitor status", action='store_true')
 status_group.add_argument('--load', help="Check load", action='store_true')
@@ -167,26 +163,47 @@ snapshot_group = subparsers.add_parser('snapshot', help="Manage snapshots of the
 asset_group = subparsers.add_parser('model', help="Manage system model: create new/update existing asset etc.")
 subparsers = asset_group.add_subparsers()
 create_asset_action = subparsers.add_parser('create', help="Create new asset")
-create_asset_action.add_argument('--asset-key', required=True)
+create_asset_action.add_argument('--asset-key', type=int, required=True)
 create_asset_action.add_argument('--asset-type', required=True)
+create_asset_action.add_argument('--host')
+create_asset_action.add_argument('--on-delay', type=int, help="Power on delay in ms")
+create_asset_action.add_argument('--off-delay', type=int, help="Power on delay in ms")
+
+# static asset options
 create_asset_action.add_argument('--img-url')
-create_asset_action.add_argument('--power-source')
-create_asset_action.add_argument('--power-consumption')
+create_asset_action.add_argument('--power-source', type=int)
+create_asset_action.add_argument('--power-consumption', type=int)
 create_asset_action.add_argument('--name')
 
+# configure existing asset
+configure_asset_action = subparsers.add_parser('configure', help="Configure Asset properties")
+configure_asset_action.add_argument('--asset-key', type=int)
+configure_asset_action.add_argument('--host')
+configure_asset_action.add_argument('--on-delay', type=int, help="Power on delay in ms")
+configure_asset_action.add_argument('--off-delay', type=int, help="Power on delay in ms")
+configure_asset_action.add_argument('--power-source', type=int)
+configure_asset_action.add_argument('--power-consumption', type=int)
 
+# detach & delete an asset by key
+delete_asset_action = subparsers.add_parser('delete', help="Remove individual asset by key")
+delete_asset_action.add_argument('--asset-key', type=int)
+
+# drop entire system topology
+drop_system_action = subparsers.add_parser('drop', help="Delete/drop all the system components")
+
+# link 2 assets together
 power_asset_action = subparsers.add_parser('power-link', help="Create a power link between 2 assets")
-power_asset_action.add_argument('--source-key', required=True)
-power_asset_action.add_argument('--dest-key', required=True)
+power_asset_action.add_argument('--source-key', type=int, required=True)
+power_asset_action.add_argument('--dest-key', type=int, required=True)
 
 ## -> Setup options for power_group
 
 subparsers = power_group.add_subparsers()
 power_up_action = subparsers.add_parser('up', help="Power up a particular component/asset")
-power_up_action.add_argument('--asset-key', required=True)
+power_up_action.add_argument('--asset-key', type=int, required=True)
 
 power_down_action = subparsers.add_parser('down', help="Power down a particular component/asset")
-power_down_action.add_argument('--asset-key', required=True)
+power_down_action.add_argument('--asset-key', type=int, required=True)
 
 ############ Callbacks for actions
 
@@ -200,9 +217,19 @@ create_asset_action.set_defaults(
     func=lambda args: create_asset(**args)
 )
 
-power_asset_action.set_defaults(
-    func=lambda args: link_assets(**args)
+configure_asset_action.set_defaults(
+    func=lambda args: sm.set_properties(args['asset_key'], args)
 )
+
+delete_asset_action.set_defaults(
+    func=lambda args: sm.delete_asset(args['asset_key'])
+)
+
+power_asset_action.set_defaults(
+    func=lambda args: sm.link_assets(args['source_key'], args['dest_key'])
+)
+
+drop_system_action.set_defaults(func=lambda args: sm.drop_model())
 
 ## power_group callbacks
 power_up_action.set_defaults(
@@ -210,12 +237,12 @@ power_up_action.set_defaults(
 )
 
 power_down_action.set_defaults(
-    func=lambda args: manage_state(args['asset_key'], lambda asset: asset.power_down())
+    func=lambda args: manage_state(args['asset_key'], lambda asset: asset.shut_down())
 )
 
 
-#try:
-options = argparser.parse_args()
-options.func(vars(options))
-# except:
-# argparser.print_help()
+try:
+    options = argparser.parse_args()
+    options.func(vars(options))
+except AttributeError:
+    argparser.print_help()

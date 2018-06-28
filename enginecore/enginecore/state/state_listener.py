@@ -1,7 +1,7 @@
 """ StateListener monitors any updates to assets/OIDs """
 import sys
 
-from circuits import Component, Event, Timer, Worker, Debugger
+from circuits import Component, Event, Timer, Worker, Debugger, task
 import redis
 
 from circuits.web import Logger, Server, Static
@@ -21,7 +21,7 @@ class StateListener(Component):
     """Top-level component that instantiates assets & maps redis events to circuit events"""
 
 
-    def __init__(self):
+    def __init__(self, debug=False):
         super(StateListener, self).__init__()
 
         # subscribe to redis key events
@@ -31,19 +31,24 @@ class StateListener(Component):
 
         # assets will store all the devices/items including PDUs, switches etc.
         self._assets = {}
-        self._graph_db = GraphReference().get_session()
+        self._graph_ref = GraphReference()
+        self._graph_db = self._graph_ref.get_session()
         
         # set up a web socket
         self._server = Server(("0.0.0.0", 8000)).register(self)     
+        Worker(process=False).register(self)
         Static().register(self._server)
         Logger().register(self._server)
-        # Debugger().register(self._server)
+        
+        if debug:
+            Debugger().register(self._server)
+
         self._ws = WebSocket().register(self._server)
     
         WebSocketsDispatcher("/simengine").register(self._server)
 
         # query graph db for the nodes labeled as `Asset`
-        results = self._graph_db.run(
+        results = self._graph_ref.get_session().run(
             "MATCH (asset:Asset) return asset"
         )
 
@@ -67,7 +72,7 @@ class StateListener(Component):
         _, oid_value = value.split("|")
 
         # look up dependant nodes
-        results = self._graph_db.run(
+        results = self._graph_ref.get_session().run(
             'MATCH (asset:Asset)-[:POWERED_BY]->(oid:OID { OID: $oid })<-[:HAS_OID]-({key: $key}) \
                 MATCH (oid)-[:HAS_STATE_DETAILS]->(oid_specs) \
             return asset, oid, oid_specs',
@@ -151,7 +156,7 @@ class StateListener(Component):
 
         new_load, child_key = event_result
 
-        results = self._graph_db.run(
+        results = self._graph_ref.get_session().run(
             "MATCH (:Asset { key: $key })-[:POWERED_BY]->(asset:Asset) RETURN asset",
             key=int(child_key)
         )
@@ -176,12 +181,12 @@ class StateListener(Component):
         asset_key, _, state = data
 
         # look up child nodes
-        results = self._graph_db.run(
+        results = self._graph_ref.get_session().run(
             "MATCH (asset:Asset)-[r:POWERED_BY]-({ key: $key }) return asset,(startNode(r) = asset) as powers",
             key=int(asset_key)
         )
 
-        for record in results:
+        for i, record in enumerate(results):
             
             key = record['asset'].get('key')
 
@@ -189,10 +194,15 @@ class StateListener(Component):
             # 'powers' is false if the updated asset is powered by the connected asse
             if record['powers']: 
                 event = PowerEventManager.map_parent_event(str(state))
+                if i > 0:
+                    self.fire(task(event, self._assets[key]))
+                else:
+                    self.fire(event, self._assets[key]) 
             else:
-                event = PowerEventManager.map_child_event(str(state), asset_key)
+                pass
+                # event = PowerEventManager.map_child_event(str(state), asset_key)
             
-            self.fire(event, self._assets[key])
+           
 
 
     def _notify_client(self, data):

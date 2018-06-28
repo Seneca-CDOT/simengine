@@ -20,9 +20,9 @@ def initialize(force_snmp_init=False):
 
             asset_type = get_asset_type(record['asset'].labels)
             asset_key = str(record['asset'].get('key'))
-            redis_store.set("{}-{}".format(asset_key, asset_type), "1")
-            init_from_snmprec = (not redis_store.exists(asset_key)) or force_snmp_init
 
+            init_from_snmprec = (not redis_store.exists("{}-{}".format(asset_key, asset_type))) or force_snmp_init
+            redis_store.set("{}-{}".format(asset_key, asset_type), "1")
             formatted_key = asset_key.zfill(10)
 
             graph_oids = {}
