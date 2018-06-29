@@ -3,10 +3,11 @@ import json
 import os
 from enginecore.model.graph_reference import GraphReference
 
+graph_ref = GraphReference()
 
 def link_assets(source_key, dest_key):
     """Power a component by another component """
-    with GraphReference().get_session() as session:
+    with graph_ref.get_session() as session:
         session.run("\
         MATCH (src:Asset {key: $source_key})\
         MATCH (dst:Asset {key: $dest_key})\
@@ -16,25 +17,25 @@ def link_assets(source_key, dest_key):
 
 def create_outlet(key, attr):
     """Add outlet to the model """
-    with GraphReference().get_session() as session:
+    with graph_ref.get_session() as session:
         session.run("\
         CREATE (:Asset:Outlet { name: $name,  key: $key })", key=key, name="out-{}".format(key))
         set_properties(key, attr)
 
 
 def set_properties(key, attr):
-    with GraphReference().get_session() as session:
+    with graph_ref.get_session() as session:
         if attr['host']:
             session.run("\
             MATCH (asset:Asset {key: $pkey})\
             SET asset.host=$host", pkey=key, host=attr['host'])
         
-        if attr['on_delay']:
+        if 'on_delay' in attr and attr['on_delay'] >= 0:
             session.run("\
             MATCH (asset:Asset {key: $pkey})\
             SET asset.onDelay=$on_delay", pkey=key, on_delay=attr['on_delay'])
         
-        if attr['off_delay']:
+        if 'off_delay' in attr and attr['off_delay'] >= 0:
             session.run("\
             MATCH (asset:Asset {key: $pkey})\
             SET asset.offDelay=$off_delay", pkey=key, off_delay=attr['off_delay'])
@@ -56,7 +57,7 @@ def set_properties(key, attr):
 
 def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'presets/apc_pdu.json')):
     """Add PDU to the model """    
-    with open(preset_file) as f, GraphReference().get_session() as session:
+    with open(preset_file) as f, graph_ref.get_session() as session:
         data = json.load(f)
         outlet_count = data['OIDs']['OutletCount']['defaultValue']
 
@@ -130,17 +131,21 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
 
 def drop_model():
     """ Drop system model """
-    with GraphReference().get_session() as session:
+    with graph_ref.get_session() as session:
         session.run("MATCH (a) WHERE a:Asset OR a:OID OR a:OIDDesc DETACH DELETE a")
     
 def delete_asset(key):
     """ Delete by key """
-    with GraphReference().get_session() as session:
-        session.run("MATCH (a:Asset { key: $key }) DETACH DELETE a", key=key)
+    with graph_ref.get_session() as session:
+        session.run("MATCH (a:Asset { key: $key }) \
+        OPTIONAL MATCH (a)-[:HAS_SNMP_COMPONENT]->(s) \
+        OPTIONAL MATCH (a)-[:HAS_OID]->(oid) \
+        OPTIONAL MATCH (oid)-[:HAS_STATE_DETAILS]->(sd) \
+        DETACH DELETE a,s,oid,sd", key=key)
 
 def create_static(key, attr):
     """Create Dummy static asset"""
-    with GraphReference().get_session() as session:
+    with graph_ref.get_session() as session:
         session.run("\
         CREATE (:Asset:StaticAsset { \
         name: $name, \

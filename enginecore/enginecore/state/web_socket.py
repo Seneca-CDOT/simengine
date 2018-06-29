@@ -35,8 +35,8 @@ class WebSocket(Component):
         asset_key = data['key']
         power_up = data['data']['status']
         asset_type = data['data']['type']
-
-        with GraphReference().get_session() as session:
+        graph_ref = GraphReference()
+        with graph_ref.get_session() as session:
             
             asset_info = GraphReference.get_asset_and_components(session, asset_key)
             state_manager = SUPPORTED_ASSETS[asset_type].StateManagerCls(asset_info, notify=True)
@@ -59,6 +59,7 @@ class WebSocket(Component):
         Args:
             data: data to be sent to clients
         """
+        print(data)
         for client in self._clients:
             self.fireEvent(write(client, json.dumps(data)))
             

@@ -19,15 +19,15 @@ class PowerEventManager:
     @classmethod
     def map_asset_event(cls, value):
         return {
-            "0": events.AssetPowerDown(),
-            "1": events.AssetPowerUp(),
+            "0": events.AssetPowerDown,
+            "1": events.AssetPowerUp,
         }[value]
 
     @classmethod
-    def map_child_event(cls, value, child_key):
+    def map_child_event(cls, value, new_load, child_key):
         return { 
-            "0": events.ChildAssetPowerDown(child_key=child_key),
-            "1": events.ChildAssetPowerUp(child_key=child_key),
+            "0": events.ChildAssetPowerDown(child_key=child_key, child_load=new_load),
+            "1": events.ChildAssetPowerUp(child_key=child_key, child_load=new_load),
         }[value]
 
     @classmethod
@@ -38,5 +38,9 @@ class PowerEventManager:
         }[value]
 
     @classmethod
-    def map_load_event(cls, new_load, child_key):
-        return events.ChildAssetLoadUpdate(child_load=new_load, child_key=child_key)
+    def map_load_increased_by(cls, new_load, child_key):
+        return events.ChildAssetLoadIncreased(child_load=new_load, child_key=child_key)
+    
+    @classmethod
+    def map_load_decreased_by(cls, new_load, child_key):
+        return events.ChildAssetLoadDecreased(child_load=new_load, child_key=child_key)

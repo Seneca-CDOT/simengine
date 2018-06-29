@@ -41,7 +41,7 @@ class StateListener(Component):
         Logger().register(self._server)
         
         if debug:
-            Debugger().register(self._server)
+            Debugger(events=False).register(self)
 
         self._ws = WebSocket().register(self._server)
     
@@ -49,20 +49,25 @@ class StateListener(Component):
 
         # query graph db for the nodes labeled as `Asset`
         results = self._graph_ref.get_session().run(
-            "MATCH (asset:Asset) return asset"
+            "MATCH (asset:Asset) OPTIONAL MATCH (asset)<-[:POWERED_BY]-(childAsset:Asset) return asset, collect(childAsset) as children"
         )
 
         # instantiate assets based on graph records
+        leaf_nodes = []
         for record in results:
             try:
                 asset_type = get_asset_type(record['asset'].labels)
                 asset_key = record['asset'].get('key')
-                self._assets[asset_key] = SUPPORTED_ASSETS[asset_type](dict(record['asset'])).register(self)     
-
+                self._assets[asset_key] = SUPPORTED_ASSETS[asset_type](dict(record['asset'])).register(self)
+                if not record['children']:
+                    leaf_nodes.append(asset_key) 
             except StopIteration:
                 print('Detected asset that is not supported', file=sys.stderr)
 
-        Worker(process=False).register(self)
+        for key in leaf_nodes:
+            self._chain_load_update((self._assets[key].get_amperage(), key))
+
+
 
     def _handle_oid_update(self, asset_key, oid, value):
         if int(asset_key) not in self._assets:
@@ -101,7 +106,7 @@ class StateListener(Component):
         asset_info = (asset_key, asset_type, asset_status)
 
         self._notify_client(asset_info)
-        self.fire(PowerEventManager.map_asset_event(asset_status), updated_asset)
+        self.fire(task(PowerEventManager.map_asset_event(asset_status), updated_asset))
         self._chain_power_update(asset_info)
             
         print("Key: {}-{} -> {}".format(asset_key, asset_type, asset_status))
@@ -152,9 +157,9 @@ class StateListener(Component):
         self._graph_db.close()
 
 
-    def _chain_load_update(self, event_result):
+    def _chain_load_update(self, event_result, increased=True):
 
-        new_load, child_key = event_result
+        load_change, child_key = event_result
 
         results = self._graph_ref.get_session().run(
             "MATCH (:Asset { key: $key })-[:POWERED_BY]->(asset:Asset) RETURN asset",
@@ -162,49 +167,53 @@ class StateListener(Component):
         )
 
         record = results.single()
-        if record:
+ 
+        if record and load_change:
             parent_asset = dict(record['asset'])
-            if self._assets[child_key].status():
-                print("-- child [{}] power/load update as '{}', updating load for [{}]".format(child_key, new_load, parent_asset['key']))
-                self.fire(PowerEventManager.map_load_event(new_load, child_key), self._assets[parent_asset['key']])
+            print("-- child [{}] power/load update as '{}', updating load for [{}]".format(child_key, load_change, parent_asset['key']))
 
-        # Notify web-socket client of a load update
-        self.fire(NotifyClient({ # TODO: refactor
-            'key': int(child_key),
-            'data': {
-                'load': new_load
-        }}), self._ws)
+            if increased:
+                event = PowerEventManager.map_load_increased_by(load_change, child_key)
+            else: 
+                event = PowerEventManager.map_load_decreased_by(load_change, child_key)
+            
+            self.fire(event, self._assets[parent_asset['key']])
+
+        if load_change:
+            # Notify web-socket client of a load update
+            self.fire(NotifyClient({ # TODO: refactor
+                'key': int(child_key),
+                'data': {
+                    'load': self._assets[int(child_key)].get_load()
+            }}), self._ws)
 
     
     def _chain_power_update(self, data):
 
         asset_key, _, state = data
 
-        # look up child nodes
+        # look up child nodes & parent node
         results = self._graph_ref.get_session().run(
-            "MATCH (asset:Asset)-[r:POWERED_BY]-({ key: $key }) return asset,(startNode(r) = asset) as powers",
+            "OPTIONAL MATCH  (parentAsset:Asset)<-[r2:POWERED_BY]-({ key: $key }) OPTIONAL MATCH (nextAsset:Asset)-[r:POWERED_BY]->({ key: $key })\
+            RETURN collect(nextAsset) as childAssets,  parentAsset",
             key=int(asset_key)
         )
 
-        for i, record in enumerate(results):
-            
-            key = record['asset'].get('key')
+        record = results.single()
 
-            # 'powers' is true if the updated asset powers the dependant assets
-            # 'powers' is false if the updated asset is powered by the connected asse
-            if record['powers']: 
-                event = PowerEventManager.map_parent_event(str(state))
-                if i > 0:
-                    self.fire(task(event, self._assets[key]))
-                else:
-                    self.fire(event, self._assets[key]) 
-            else:
-                pass
-                # event = PowerEventManager.map_child_event(str(state), asset_key)
-            
+        # Meaning it's a leaf node -> update load up the power chain
+        if not record['childAssets'] and record['parentAsset']:
+            leaf_node_amp = self._assets[int(asset_key)].get_amperage()
+            if leaf_node_amp:
+                event = PowerEventManager.map_child_event(str(state), leaf_node_amp, asset_key)
+                self.fire(event, self._assets[int(record['parentAsset'].get('key'))])
+
+        # Power down any connected assets
+        for child in record['childAssets']:
+            key = child.get('key')
+            event = PowerEventManager.map_parent_event(str(state))
+            self.fire(event, self._assets[key])
            
-
-
     def _notify_client(self, data):
 
         asset_key, asset_type, state = data
@@ -217,41 +226,44 @@ class StateListener(Component):
         }}), self._ws)
 
 
+    # Notify parent asset of any child events
     def ChildAssetPowerDown_success(self, evt, event_result):
         """ When child is powered down -> get the new load value of child asset"""
-        self._chain_load_update(event_result)
+        self._chain_load_update(event_result, increased=False)
         
-
     def ChildAssetPowerUp_success(self, evt, event_result):
         """ When child is powered up -> get the new load value of child asset"""        
         self._chain_load_update(event_result)
 
+    def ChildAssetLoadDecreased_success(self, evt, event_result):
+        """ When load decreases down the power stream """        
+        self._chain_load_update(event_result, increased=False)
 
-    def ChildAssetLoadUpdate_success(self, evt, event_result):
-        """ When load changes down the power stream -> get the new load value of child asset """        
+    def ChildAssetLoadIncreased_success(self, evt, event_result):
+        """ When load increases down the power stream """        
         self._chain_load_update(event_result)
-    
 
+
+
+    # Notify child asset of any parent events of interest
     def ParentAssetPowerDown_success(self, evt, event_result):
         """ When assets parent successfully powered down """
         self._notify_client(event_result)
         self._chain_power_update(event_result)
 
-
     def ParentAssetPowerUp_success(self, evt, event_result):
         """ When assets parent successfully powered up """
+        print(event_result)
         self._notify_client(event_result)
         self._chain_power_update(event_result)
-
 
     def SignalDown_success(self, evt, event_result):
-        """ When assets parent successfully powered up """
+        """ When asset is powered down """
         self._notify_client(event_result)
         self._chain_power_update(event_result)
 
-
     def SignalUp_success(self, evt, event_result):
-        """ When assets parent successfully powered up """
+        """ When asset is powered up """
         self._notify_client(event_result)
         self._chain_power_update(event_result)
 

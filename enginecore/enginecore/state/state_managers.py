@@ -34,6 +34,9 @@ class StateManger():
         """Asset Type """
         return self._asset_type
 
+    def get_amperage(self):
+        return 0
+
     
     def shut_down(self):
         """Implements state logic for graceful power-off event"""
@@ -68,10 +71,18 @@ class StateManger():
         return self.status()
  
 
-    def get_load(self):
+    def calculate_load(self):
         """Calculate load for the device """
         raise NotImplementedError
-    
+
+    def update_load(self, load):
+        """ Update load """
+        if load >= 0:
+            StateManger.get_store().set(self._get_rkey() + ":load", load)
+
+    def get_load(self):
+        """ Get load stored in redis """
+        return float(StateManger.get_store().get(self._get_rkey() + ":load"))
 
     def status(self):
         """Operational State 
@@ -193,7 +204,8 @@ class StateManger():
         Returns:
             dict: Current information on assets including their states, load etc.
         """
-        with GraphReference().get_session() as session:
+        graph_ref = GraphReference()
+        with graph_ref.get_session() as session:
 
             # cache assets
             if not cls.assets:
@@ -214,7 +226,8 @@ class StateManger():
             dict: asset detais
         """
 
-        with GraphReference().get_session() as session: 
+        graph_ref = GraphReference()
+        with graph_ref.get_session() as session:
             asset = GraphReference.get_asset_and_components(session, asset_key)
             asset['status'] = int(cls.get_store().get("{}-{}".format(asset['key'], asset['type'])))
             return asset
@@ -240,9 +253,10 @@ class PDUStateManager(StateManger):
          super(PDUStateManager, self).__init__(asset_info, asset_type, notify)
         
 
-    def get_load(self, exclude=False):
+    def calculate_load(self, exclude=False):
         """Find PDU load by querying each outlet's load
-        
+        Note that this function will traverse the graph & calculate load for every device down the power chain
+
         Args:
             exclude(string): asset key of the outlet excluded from query
         
@@ -262,7 +276,7 @@ class PDUStateManager(StateManger):
         for record in results:
             if exclude != record['asset'].get('key'):
                 outlet_manager = OutletStateManager(dict(record['asset']))
-                load += outlet_manager.get_load()
+                load += outlet_manager.calculate_load()
 
         return load
 
@@ -274,7 +288,7 @@ class PDUStateManager(StateManger):
         )
 
         record = results.single()
-        if record:
+        if record and load >= 0:
             self._update_oid(record['oid'], snmp_data_types.Gauge32(load * 10))
    
 
@@ -286,7 +300,7 @@ class PDUStateManager(StateManger):
 
         record = results.single()
 
-        if record:
+        if record and wattage >= 0:
             self._update_oid(record['oid'], snmp_data_types.Integer32(wattage))
 
 
@@ -296,6 +310,7 @@ class PDUStateManager(StateManger):
         Args:
             load(float): New load in amps
         """
+        super(PDUStateManager, self).update_load(load)
         self._update_current(load)
         self._update_wattage(load * 120)
 
@@ -307,8 +322,9 @@ class OutletStateManager(StateManger):
     def __init__(self, asset_info, asset_type='outlet', notify=False):
         super(OutletStateManager, self).__init__(asset_info, asset_type, notify)
 
-    def get_load(self):
+    def calculate_load(self):
         """Find what kind of device the outlet powers & return load of that device 
+        Note that this function will traverse the graph & calculate load for every device down the power chain
         
         Returns:
             float: outlet load in amps
@@ -327,7 +343,7 @@ class OutletStateManager(StateManger):
         
         if record:
             asset_type = get_asset_type(record['labels'])
-            load = self.get_state_manager(asset_type)(dict(record['asset'])).get_load()
+            load = self.get_state_manager(asset_type)(dict(record['asset'])).calculate_load()
         
         return load
 
@@ -339,11 +355,14 @@ class StaticDeviceStateManager(StateManger):
     def __init__(self, asset_info, asset_type='staticasset', notify=False):
         super(StaticDeviceStateManager, self).__init__(asset_info, asset_type, notify)
         self._asset = GraphReference.get_asset_and_components(self._graph_ref.get_session(), asset_info['key'])
+
+    def get_amperage(self):
+        return self._asset['powerConsumption'] / self._asset['powerSource']
     
-    def get_load(self):
+    def calculate_load(self):
         """Calculate load in AMPs 
         
         Returns:
             float: device load in amps
         """
-        return self._asset['powerConsumption'] / self._asset['powerSource'] if self.status() else 0
+        return self.get_amperage() if self.status() else 0

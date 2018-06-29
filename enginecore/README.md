@@ -20,7 +20,9 @@ Run the script:
 
 ## System Modelling
 
-`simengine-cli` provides interface for making your own model (run `simengine-cli model --help` for more information). You can also define the system topology directly through `cypher`  & `neo4j` interface (see examples in `topologies` folder).
+### Creation
+
+`simengine-cli` provides interface for making your own model (run `./simengine-cli.py model --help` for more information). You can also define the system topology directly through `cypher`  & `neo4j` interface (see examples in `topologies` folder).
 
 The simplest example would be a model that is composed of a single pdu powered by an outlet:
 
@@ -60,6 +62,18 @@ Source Code:
     ./simengine-cli.py model power-link --source-key=11127 --dest-key=2014
     
 
+
+### Updating the Model
+
+Some properties can be configured later as in this example:
+
+`./simengine-cli.py model configure --asset-key=1113 --off-delay=3000 #set power-off delay as 3000 ms`
+
+The entire system topology can be deleted with `./simengine-cli.py model drop` command
+
+You can also remove & detach specific assets by key (note that you may need to re-connect some assets afterwards):
+
+`./simengine-cli.py model delete --asset-key=1113`
 
 ## Linting
 

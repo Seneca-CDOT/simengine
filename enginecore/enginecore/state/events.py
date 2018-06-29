@@ -27,6 +27,12 @@ class ChildAssetLoadUpdate(Event):
     """ On Load Update """
     success = True
 
+class ChildAssetLoadIncreased(Event):
+    success = True
+
+class ChildAssetLoadDecreased(Event):
+    success = True
+
 class SignalDown(Event):
     """ Asset Received power down request """
     success = True

@@ -35,10 +35,17 @@ class Asset(Component):
         super(Asset, self).__init__()
         self._state = state
         self._state.reset_boot_time()
+        self._state.update_load(0)
 
     def get_key(self):
         """ Get ID assigned to the asset """
         return self._state.get_key()
+
+    def get_load(self):
+        return self._state.get_load()
+    
+    def get_amperage(self):
+        return self._state.get_amperage()
 
     def status(self):
         """ Get Asset status stored in redis db """
@@ -71,10 +78,21 @@ class Asset(Component):
         """ Upstream power restored """        
         raise NotImplementedError
 
-    def on_load_change(self):
-        """ Downstream device power/load update """   
-        raise NotImplementedError
+    @handler("ChildAssetPowerUp", "ChildAssetLoadIncreased")
+    def on_load_increase(self, event, *args, **kwargs):
+        increased_by = kwargs['child_load']
+        old_load = self._state.get_load()
+        # print('Asset : {} : orig load {}, increased by: {}'.format(self._state.get_key(), old_load, increased_by))
+        self._state.update_load(old_load + increased_by)
+        return increased_by, self._state.get_key()
 
+    @handler("ChildAssetPowerDown", "ChildAssetLoadDecreased")
+    def on_load_decrease(self, event, *args, **kwargs):
+        decreased_by = kwargs['child_load']
+        old_load = self._state.get_load()
+        # print('Asset : {} : orig load {}, decreased by: {}'.format(self._state.get_key(), old_load, decreased_by))
+        self._state.update_load(old_load - decreased_by)
+        return decreased_by, self._state.get_key()
 
 
 class Agent():
@@ -101,7 +119,7 @@ class SNMPAgent(Agent):
         self._process = None
         self._snmp_rec_filename = community + '.snmprec'
         self._snmp_rec_dir = tempfile.mkdtemp()
-        self._host = host if host else "127.0.0.{}:1024".format(SNMPAgent.agent_num + 1)
+        self._host = host if host else "127.0.0.{}:1024".format(SNMPAgent.agent_num)
 
         snmp_rec_filepath = os.path.join(self._snmp_rec_dir, self._snmp_rec_filename)
         redis_script_sha = os.environ.get('SIMENGINE_SNMP_SHA')
@@ -152,7 +170,6 @@ class PDU(Asset):
     def __init__(self, asset_info):
         super(PDU, self).__init__(PDU.StateManagerCls(asset_info))
 
-        self._state.update_load(self._state.get_load())
         self._snmp_agent = SNMPAgent(
             asset_info['key'],
             host=asset_info['host'] if 'host' in asset_info else False
@@ -178,17 +195,6 @@ class PDU(Asset):
     def on_parent_power_up(self):
         return self.power_up()
 
-    @handler("ChildAssetPowerDown", "ChildAssetPowerUp", "ChildAssetLoadUpdate")
-    def on_load_change(self, event, *args, **kwargs):
-        # 1) get_load() & Update OID
-        cload = kwargs['child_load'] if 'child_load' in kwargs else False
-        exclude = kwargs['child_key'] if 'child_key' in kwargs else False
-        
-        pdu_load = self._state.get_load(exclude) + cload
-        self._state.update_load(pdu_load)
-        
-        return pdu_load, self._state.get_key()
-
 
 
 @register_asset
@@ -208,15 +214,11 @@ class Outlet(Asset):
         """ React to events with power down """
         return self.power_off()
 
+
     @handler("ParentAssetPowerUp", "SignalUp")
     def on_parent_power_up(self):
         """ React to events with power up """
         return self.power_up()
-
-
-    @handler("ChildAssetPowerDown", "ChildAssetPowerUp", "ChildAssetLoadUpdate")
-    def on_load_change(self, event, *args, **kwargs):
-        return self._state.get_load(), self._state.get_key()
 
 
 @register_asset
@@ -227,6 +229,7 @@ class StaticAsset(Asset):
     
     def __init__(self, asset_info):
         super(StaticAsset, self).__init__(StaticAsset.StateManagerCls(asset_info))
+        self._state.update_load(self._state.get_amperage())
 
     @handler("ParentAssetPowerDown")
     def on_parent_power_down(self): 

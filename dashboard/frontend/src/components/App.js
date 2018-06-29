@@ -53,9 +53,38 @@ const styles = theme => ({
       connections:{},
     };
 
-    // this._drawWire = this._drawWire.bind(this)
+    this.connectToSocket();
+  }
 
 
+  componentDidMount() {
+
+    // Scale Layout on wheel event
+    let stage = this.refs.stage.getStage();
+    const scaleBy = 1.03;
+    window.addEventListener('wheel', (e) => {
+      e.preventDefault();
+
+      const oldScale = stage.scaleX();
+
+      const mousePointTo = {
+          x: stage.getPointerPosition().x / oldScale - stage.x() / oldScale,
+          y: stage.getPointerPosition().y / oldScale - stage.y() / oldScale,
+      };
+
+      const newScale = e.deltaY > 0 ? oldScale * scaleBy : oldScale / scaleBy;
+      stage.scale({ x: newScale, y: newScale });
+
+      const newPos = {
+          x: -(mousePointTo.x - stage.getPointerPosition().x / newScale) * newScale,
+          y: -(mousePointTo.y - stage.getPointerPosition().y / newScale) * newScale
+      };
+      stage.position(newPos);
+      stage.batchDraw();
+    });
+  }
+
+  connectToSocket() {
     if ("WebSocket" in window)
     {
        console.log("WebSocket is supported by your Browser!");
@@ -103,44 +132,18 @@ const styles = theme => ({
           }
 
        }).bind(this);
-       this.ws.onclose = function()
+       this.ws.onclose =  (() =>
        {
           // websocket is closed.
-          alert("Connection is closed...");
-       };
+          // alert("Connection is closed...");
+          setTimeout(() => {this.connectToSocket();}, 5000);
+       }).bind(this);
     }
     else
     {
        // The browser doesn't support WebSocket
        alert("WebSocket NOT supported by your Browser!");
     }
-  }
-
-  componentDidMount() {
-
-    // Scale Layout on wheel event
-    let stage = this.refs.stage.getStage();
-    const scaleBy = 1.03;
-    window.addEventListener('wheel', (e) => {
-      e.preventDefault();
-
-      const oldScale = stage.scaleX();
-
-      const mousePointTo = {
-          x: stage.getPointerPosition().x / oldScale - stage.x() / oldScale,
-          y: stage.getPointerPosition().y / oldScale - stage.y() / oldScale,
-      };
-
-      const newScale = e.deltaY > 0 ? oldScale * scaleBy : oldScale / scaleBy;
-      stage.scale({ x: newScale, y: newScale });
-
-      const newPos = {
-          x: -(mousePointTo.x - stage.getPointerPosition().x / newScale) * newScale,
-          y: -(mousePointTo.y - stage.getPointerPosition().y / newScale) * newScale
-      };
-      stage.position(newPos);
-      stage.batchDraw();
-    });
   }
 
   _get_asset_by_key(key) {
@@ -269,7 +272,7 @@ const styles = theme => ({
       wireDrawing.push(
         <Line
           points={[connections[key].x+socketX1pad , connections[key].y+socketYpad, connections[key].x1- socketXpad , connections[key].y1+socketYpad]}
-          stroke={asset.status  === 1?"green":"red"}
+          stroke={asset.status  === 1?"green":"grey"}
           strokeWidth={5}
         />
       );
