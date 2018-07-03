@@ -15,7 +15,7 @@ import signal
 import tempfile
 
 from circuits import Component, handler
-from enginecore.state.state_managers import StaticDeviceStateManager, PDUStateManager, OutletStateManager
+from enginecore.state.state_managers import StaticDeviceStateManager, PDUStateManager, OutletStateManager, ServerStateManager
 
 SUPPORTED_ASSETS = {}
 
@@ -239,3 +239,8 @@ class StaticAsset(Asset):
     @handler("ParentAssetPowerUp")
     def on_parent_power_up(self):
         return self.power_up()
+
+@register_asset
+class Server(StaticAsset):
+    channel="server"
+

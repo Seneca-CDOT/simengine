@@ -354,10 +354,9 @@ class StaticDeviceStateManager(StateManger):
 
     def __init__(self, asset_info, asset_type='staticasset', notify=False):
         super(StaticDeviceStateManager, self).__init__(asset_info, asset_type, notify)
-        self._asset = GraphReference.get_asset_and_components(self._graph_ref.get_session(), asset_info['key'])
 
     def get_amperage(self):
-        return self._asset['powerConsumption'] / self._asset['powerSource']
+        return self._asset_info['powerConsumption'] / self._asset_info['powerSource']
     
     def calculate_load(self):
         """Calculate load in AMPs 
@@ -366,3 +365,9 @@ class StaticDeviceStateManager(StateManger):
             float: device load in amps
         """
         return self.get_amperage() if self.status() else 0
+
+class ServerStateManager(StaticDeviceStateManager):
+    """Server state manager offers control over VM's state """
+
+    def __init__(self, asset_info, asset_type='server', notify=False):
+        super(ServerStateManager, self).__init__(asset_info, asset_type, notify)

@@ -22,10 +22,6 @@ class ChildAssetPowerDown(Event):
 class ChildAssetPowerUp(Event):
     """ On Child Did Go Up """
     success = True
-    
-class ChildAssetLoadUpdate(Event):
-    """ On Load Update """
-    success = True
 
 class ChildAssetLoadIncreased(Event):
     success = True

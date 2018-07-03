@@ -59,7 +59,6 @@ class WebSocket(Component):
         Args:
             data: data to be sent to clients
         """
-        print(data)
         for client in self._clients:
             self.fireEvent(write(client, json.dumps(data)))
             

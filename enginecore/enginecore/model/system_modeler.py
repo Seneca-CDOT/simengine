@@ -22,7 +22,17 @@ def create_outlet(key, attr):
         CREATE (:Asset:Outlet { name: $name,  key: $key })", key=key, name="out-{}".format(key))
         set_properties(key, attr)
 
+def create_server(key, attr):
+    if not attr['power_consumption']:
+        raise KeyError('Server asset requires power_consumption attribute')
+    if not attr['name']:
+        raise KeyError('Must provide VM name (domain name)')
 
+    with graph_ref.get_session() as session:
+        session.run("\
+        CREATE (:Asset:Server { name: $name,  key: $key })", key=key, name=attr['name'])
+        set_properties(key, attr)
+    
 def set_properties(key, attr):
     with graph_ref.get_session() as session:
         if attr['host']:
@@ -145,6 +155,9 @@ def delete_asset(key):
 
 def create_static(key, attr):
     """Create Dummy static asset"""
+    if not attr['power_consumption']:
+        raise KeyError('Static asset requires power_consumption')
+        
     with graph_ref.get_session() as session:
         session.run("\
         CREATE (:Asset:StaticAsset { \

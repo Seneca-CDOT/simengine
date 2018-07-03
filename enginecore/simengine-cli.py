@@ -122,15 +122,20 @@ def get_status(**kwargs):
 
 def create_asset(**kwargs):
     """Add new asset to the system/model """
-    if kwargs['asset_type'] == 'pdu':
-        sm.create_pdu(int(kwargs['asset_key']), kwargs)
-    elif kwargs['asset_type'] == 'outlet':
-        sm.create_outlet(int(kwargs['asset_key']), kwargs)
-    elif kwargs['asset_type'] == 'static':
-        sm.create_static(int(kwargs['asset_key']), kwargs)
-    else:
-        print("The asset type must be either 'outlet', 'pdu' or 'static'")
 
+    try:
+        if kwargs['asset_type'] == 'pdu':
+            sm.create_pdu(int(kwargs['asset_key']), kwargs)
+        elif kwargs['asset_type'] == 'outlet':
+            sm.create_outlet(int(kwargs['asset_key']), kwargs)
+        elif kwargs['asset_type'] == 'static':
+            sm.create_static(int(kwargs['asset_key']), kwargs)
+        elif kwargs['asset_type'] == 'server':
+            sm.create_server(int(kwargs['asset_key']), kwargs)
+        else:
+            print("The asset type must be either 'outlet', 'pdu' or 'static'")
+    except KeyError as e:
+        print(e)
 
 ################ Define Command line options & arguments
 
@@ -171,7 +176,7 @@ create_asset_action.add_argument('--off-delay', type=int, help="Power on delay i
 
 # static asset options
 create_asset_action.add_argument('--img-url')
-create_asset_action.add_argument('--power-source', type=int)
+create_asset_action.add_argument('--power-source', type=int, default=120)
 create_asset_action.add_argument('--power-consumption', type=int)
 create_asset_action.add_argument('--name')
 
