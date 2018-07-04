@@ -15,7 +15,7 @@ import signal
 import tempfile
 
 from circuits import Component, handler
-from enginecore.state.state_managers import StaticDeviceStateManager, PDUStateManager, OutletStateManager, ServerStateManager
+import enginecore.state.state_managers as sm
 
 SUPPORTED_ASSETS = {}
 
@@ -165,7 +165,7 @@ class SNMPAgent(Agent):
 class PDU(Asset):
 
     channel = "pdu"
-    StateManagerCls = PDUStateManager
+    StateManagerCls = sm.PDUStateManager
 
     def __init__(self, asset_info):
         super(PDU, self).__init__(PDU.StateManagerCls(asset_info))
@@ -201,7 +201,7 @@ class PDU(Asset):
 class Outlet(Asset):
 
     channel = "outlet"
-    StateManagerCls = OutletStateManager
+    StateManagerCls = sm.OutletStateManager
 
 
     def __init__(self, asset_info):
@@ -225,10 +225,9 @@ class Outlet(Asset):
 class StaticAsset(Asset):
 
     channel = "static"
-    StateManagerCls = StaticDeviceStateManager
-    
+    StateManagerCls = sm.StaticDeviceStateManager
     def __init__(self, asset_info):
-        super(StaticAsset, self).__init__(StaticAsset.StateManagerCls(asset_info))
+        super(StaticAsset, self).__init__(self.StateManagerCls(asset_info))
         self._state.update_load(self._state.get_amperage())
 
     @handler("ParentAssetPowerDown")
@@ -243,4 +242,15 @@ class StaticAsset(Asset):
 @register_asset
 class Server(StaticAsset):
     channel="server"
+    StateManagerCls = sm.ServerStateManager
 
+    def __init__(self, asset_info):
+        super(Server, self).__init__(asset_info)
+
+@register_asset
+class PSU(StaticAsset):
+    channel="psu"
+    StateManagerCls = sm.PSUStateManager
+
+    def __init__(self, asset_info):
+        super(PSU, self).__init__(asset_info)

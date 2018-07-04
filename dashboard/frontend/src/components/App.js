@@ -9,6 +9,8 @@ import Typography from '@material-ui/core/Typography';
 import classNames from 'classnames';
 import Pdu from './Assets/PDU/Pdu';
 import Socket from './Assets/common/Socket';
+import Server from './Assets/Server/Server';
+
 import SimpleCard from './SimpleCard';
 import initialState from './InitialState';
 
@@ -120,8 +122,13 @@ const styles = theme => ({
             let connections = {};
 
             Object.keys(data).map((k) => {
+              let x = 40;
+              let y = 0;
               if (data[k]['parent']) {
-                connections[data[k]['parent'].key] = {x: 40, y:0, x1:50, y1:50, ckey: k };
+                for (const p of data[k]['parent']) {
+                  connections[p.key] = {x:x, y:y, x1:50, y1:50, ckey: k };
+                  x+=250;
+                }
               }
             });
 
@@ -160,7 +167,11 @@ const styles = theme => ({
     const connections = this.state.connections;
 
     if(asset['parent']) {
-      newConn[asset['parent'].key] = { ...connections[asset['parent'].key], x1:x,  y1:y };
+
+      for (const p of asset['parent']) {
+        newConn[p.key] = {...connections[p.key], x1:x,  y1:y};
+        x+=250;
+      }
     } else if (key in connections) {
       newConn[key] = { ...connections[key], x:x,  y:y };
     }
@@ -195,7 +206,7 @@ const styles = theme => ({
       return {
         selectedAssetKey: oldState.selectedAssetKey === assetKey ? 0 : assetKey,
         selectedAsset: assetInfo
-      }
+      };
     });
   }
 
@@ -209,7 +220,7 @@ const styles = theme => ({
 
   /** Add Socket to the Layout */
   drawSocket(key, asset) {
-    const powered = asset.parent?this._get_asset_by_key(asset.parent.key).status:true;
+    const powered = asset.parent?this._get_asset_by_key(asset.parent[0].key).status:true;
     return (
     <Socket
       onPosChange={this.onPosChange.bind(this)}
@@ -226,9 +237,27 @@ const styles = theme => ({
 
   /** Add PDU to the Layout */
   drawPdu(key, asset) {
-    const powered = asset.parent?this._get_asset_by_key(asset.parent.key).status:true;
+    const powered = asset.parent?this._get_asset_by_key(asset.parent[0].key).status:false;
     return (
     <Pdu
+      onPosChange={this.onPosChange.bind(this)}
+      onElementSelection={this.onElementSelection.bind(this)}
+      assetId={key}
+      asset={asset}
+      selected={this.state.selectedAssetKey === key}
+      pduSocketSelected={this.state.selectedAssetKey in asset.children}
+      powered={powered}
+    />);
+  }
+
+  drawServer(key, asset) {
+    let powered = false;
+    if (asset.parent) {
+      powered = asset.parent.find((x) => this._get_asset_by_key(x.key).status != 0) !== undefined;
+    }
+
+    return (
+    <Server
       onPosChange={this.onPosChange.bind(this)}
       onElementSelection={this.onElementSelection.bind(this)}
       assetId={key}
@@ -253,8 +282,10 @@ const styles = theme => ({
     for (const key of Object.keys(assets)) {
       if (assets[key].type == 'outlet' || assets[key].type === 'staticasset') {
         systemLayout.push(this.drawSocket(key, assets[key]));
-      } else if (assets[key].type == 'pdu') {
+      } else if (assets[key].type === 'pdu') {
         systemLayout.push(this.drawPdu(key, assets[key]));
+      } else if (assets[key].type === 'server') {
+        systemLayout.push(this.drawServer(key, assets[key]));
       }
     }
 
@@ -269,6 +300,11 @@ const styles = theme => ({
       if (this.state.assets[connections[key].ckey].type == 'staticasset') {
         socketXpad = -35;
       }
+
+      if (this.state.assets[connections[key].ckey].type == 'server') {
+        socketXpad = -220;
+      }
+
       wireDrawing.push(
         <Line
           points={[connections[key].x+socketX1pad , connections[key].y+socketYpad, connections[key].x1- socketXpad , connections[key].y1+socketYpad]}

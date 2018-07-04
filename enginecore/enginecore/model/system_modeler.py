@@ -13,7 +13,18 @@ def link_assets(source_key, dest_key):
         MATCH (dst:Asset {key: $dest_key})\
         CREATE (dst)-[:POWERED_BY]->(src)\
         ", source_key=source_key, dest_key=dest_key)
-        
+
+def _add_psu(key, psu_index):
+    with graph_ref.get_session() as session:
+        session.run("\
+        MATCH (asset:Asset {key: $pkey})\
+        CREATE (psu:Asset:PSU:Component { \
+            name: $psuname,\
+            key: $psukey\
+        })\
+        CREATE (asset)-[:HAS_COMPONENT]->(psu)\
+        CREATE (asset)-[:POWERED_BY]->(psu)", pkey=key, psuname='psu'+psu_index, psukey=int("{}{}".format(key,psu_index)))
+    
 
 def create_outlet(key, attr):
     """Add outlet to the model """
@@ -30,8 +41,12 @@ def create_server(key, attr):
 
     with graph_ref.get_session() as session:
         session.run("\
-        CREATE (:Asset:Server { name: $name,  key: $key })", key=key, name=attr['name'])
+        CREATE (server:Asset:Server { name: $name,  key: $key }) \
+        ", key=key, name=attr['name'])
+        
         set_properties(key, attr)
+        _add_psu(key, "1")
+        _add_psu(key, "2")
     
 def set_properties(key, attr):
     with graph_ref.get_session() as session:
@@ -119,14 +134,14 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
                         defaultValue: $dv,\
                         dataType: $dt \
                     })\
-                    CREATE (out1:Asset:Outlet:SNMPComponent { \
+                    CREATE (out1:Asset:Outlet:Component { \
                         name: $outname,\
                         key: $outkey\
                     })\
                     CREATE (out1)-[:POWERED_BY]->(pdu)\
                     CREATE (out1)-[:POWERED_BY]->(oid)\
                     CREATE (oid)-[:HAS_STATE_DETAILS]->(oidDesc)\
-                    CREATE (pdu)-[:HAS_SNMP_COMPONENT]->(out1)\
+                    CREATE (pdu)-[:HAS_COMPONENT]->(out1)\
                     CREATE (pdu)-[:HAS_OID]->(oid)\
                     ", 
                     pkey=key, 
@@ -148,7 +163,7 @@ def delete_asset(key):
     """ Delete by key """
     with graph_ref.get_session() as session:
         session.run("MATCH (a:Asset { key: $key }) \
-        OPTIONAL MATCH (a)-[:HAS_SNMP_COMPONENT]->(s) \
+        OPTIONAL MATCH (a)-[:HAS_COMPONENT]->(s) \
         OPTIONAL MATCH (a)-[:HAS_OID]->(oid) \
         OPTIONAL MATCH (oid)-[:HAS_STATE_DETAILS]->(sd) \
         DETACH DELETE a,s,oid,sd", key=key)

@@ -17,7 +17,6 @@ export default class SocketStatus extends React.Component {
         fill={color}
         shadowBlur={5}
         onClick={this.handleClick}
-
         />
     )}
 }

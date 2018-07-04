@@ -29,42 +29,42 @@ CREATE (OutletCount:OID {
 // ---------------------
 ///// PDU outlets  /////
 // ---------------------
-CREATE (out1:Asset:Outlet:SNMPComponent { 
+CREATE (out1:Asset:Outlet:Component { 
   name: 'out1',
   key: 11111
 })
 
-CREATE (out2:Asset:Outlet:SNMPComponent { 
+CREATE (out2:Asset:Outlet:Component { 
   name: 'out2',  
   key: 11112
 })
 
-CREATE (out3:Asset:Outlet:SNMPComponent { 
+CREATE (out3:Asset:Outlet:Component { 
   name: 'out3',
   key: 11113
 })
 
-CREATE (out4:Asset:Outlet:SNMPComponent { 
+CREATE (out4:Asset:Outlet:Component { 
   name: 'out4',
   key: 11114
 })
 
-CREATE (out5:Asset:Outlet:SNMPComponent { 
+CREATE (out5:Asset:Outlet:Component { 
   name: 'out5',
   key: 11115
 })
 
-CREATE (out6:Asset:Outlet:SNMPComponent { 
+CREATE (out6:Asset:Outlet:Component { 
   name: 'out6',
   key: 11116
 })
 
-CREATE (out7:Asset:Outlet:SNMPComponent { 
+CREATE (out7:Asset:Outlet:Component { 
   name: 'out7',
   key: 11117
 })
 
-CREATE (out8:Asset:Outlet:SNMPComponent { 
+CREATE (out8:Asset:Outlet:Component { 
   name: 'out8',
   key: 11118
 })
@@ -247,14 +247,14 @@ CREATE (out7State)-[:HAS_STATE_DETAILS]->(OutletStateDetails)
 CREATE (out8State)-[:HAS_STATE_DETAILS]->(OutletStateDetails)
 
 
-CREATE (pdu)-[:HAS_SNMP_COMPONENT]->(out1)
-CREATE (pdu)-[:HAS_SNMP_COMPONENT]->(out2)
-CREATE (pdu)-[:HAS_SNMP_COMPONENT]->(out3)
-CREATE (pdu)-[:HAS_SNMP_COMPONENT]->(out4)
-CREATE (pdu)-[:HAS_SNMP_COMPONENT]->(out5)
-CREATE (pdu)-[:HAS_SNMP_COMPONENT]->(out6)
-CREATE (pdu)-[:HAS_SNMP_COMPONENT]->(out7)
-CREATE (pdu)-[:HAS_SNMP_COMPONENT]->(out8)
+CREATE (pdu)-[:HAS_COMPONENT]->(out1)
+CREATE (pdu)-[:HAS_COMPONENT]->(out2)
+CREATE (pdu)-[:HAS_COMPONENT]->(out3)
+CREATE (pdu)-[:HAS_COMPONENT]->(out4)
+CREATE (pdu)-[:HAS_COMPONENT]->(out5)
+CREATE (pdu)-[:HAS_COMPONENT]->(out6)
+CREATE (pdu)-[:HAS_COMPONENT]->(out7)
+CREATE (pdu)-[:HAS_COMPONENT]->(out8)
 
 CREATE (out1)-[:POWERED_BY]->(out1State)
 CREATE (out2)-[:POWERED_BY]->(out2State)

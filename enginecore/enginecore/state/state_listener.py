@@ -194,7 +194,7 @@ class StateListener(Component):
 
         # look up child nodes & parent node
         results = self._graph_ref.get_session().run(
-            "OPTIONAL MATCH  (parentAsset:Asset)<-[r2:POWERED_BY]-({ key: $key }) OPTIONAL MATCH (nextAsset:Asset)-[r:POWERED_BY]->({ key: $key })\
+            "OPTIONAL MATCH  (parentAsset:Asset)<-[:POWERED_BY]-({ key: $key }) OPTIONAL MATCH (nextAsset:Asset)-[:POWERED_BY]->({ key: $key })\
             RETURN collect(nextAsset) as childAssets,  parentAsset",
             key=int(asset_key)
         )

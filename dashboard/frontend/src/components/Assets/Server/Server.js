@@ -1,10 +1,11 @@
 import React from 'react';
 import { Text, Group, Path, Image } from 'react-konva';
-import Socket from '../common/Socket';
 import PropTypes from 'prop-types';
-import c14 from '../../../images/c14.svg';
+
+import PowerSupply from './PowerSupply';
+import frontimg from '../../../images/server-front.svg';
 /**
- * Draw PDU graphics
+ * Draw Server graphics
  */
 export default class Pdu extends React.Component {
 
@@ -15,18 +16,18 @@ export default class Pdu extends React.Component {
       selectedSocketKey: -1,
       x: props.x?props.x:40,
       y: props.y?props.y:40,
-      c14: null
+      frontimg: null
     };
     this.selectSocket = this.selectSocket.bind(this);
   }
 
   componentDidMount() {
     const image = new window.Image();
-    image.src = c14;
+    image.src = frontimg;
     image.onload = () => {
       // setState will redraw layer
       // because "image" property is changed
-      this.setState({ c14: image });
+      this.setState({ frontimg: image });
     };
 
   }
@@ -49,19 +50,19 @@ export default class Pdu extends React.Component {
 
   render() {
 
-    let sockets = [];
-    const inputSocket = <Image image={this.state.c14} x={-70}/>;
+    let psus = [];
+    // const inputSocket = <Socket x={-70} socketName={"input socket"} selectable={false} draggable={false}/>;
 
-    let x=100;
-    const pduName = this.props.asset.name ? this.props.asset.name:'pdu';
+    let x=50;
+    const serverName = this.props.asset.name ? this.props.asset.name:'pdu';
     const asset = this.props.asset;
 
     // Initialize outlets that are part of the PDU
     for (const ckey of Object.keys(asset.children)) {
 
       asset.children[ckey].name = `[${ckey}]`;
-      sockets.push(
-        <Socket
+      psus.push(
+        <PowerSupply
           x={x}
           key={ckey}
           onElementSelection={() => { this.selectSocket(ckey); }}
@@ -70,12 +71,11 @@ export default class Pdu extends React.Component {
           asset={asset.children[ckey]}
           assetId={ckey}
           selected={this.state.selectedSocketKey === ckey && this.props.pduSocketSelected}
-          powered={this.props.asset.status}
+          powered={this.props.powered}
           parentSelected={this.props.selected}
-          red_means_on={true}
         />
       );
-      x += 90;
+      x += 240;
     }
 
     return (
@@ -84,8 +84,9 @@ export default class Pdu extends React.Component {
         onDragMove={this.updatePduPos.bind(this)}
       >
 
-        {/* Draw PDU - SVG Path */}
-        <Path data={"M -7.357125,128.5323 H 217.35711 l 20.99711,11.70857 H -28.354227 Z M -27.401434,140.21439 H 237.40143 c 1.75756,0 3.17248,1.41492 3.17248,3.17248 v 21.85487 c 0,1.75755 -1.41492,3.17248 -3.17248,3.17248 H -27.401434 c -1.757555,0 -3.172481,-1.41493 -3.172481,-3.17248 v -21.85487 c 0,-1.75756 1.414926,-3.17248 3.172481,-3.17248 z"}
+
+        {/* Draw Server as SVG path */}
+        <Path data={"m 7.84681,135.86767 h 194.30638 c 1.28966,0 2.3279,1.85111 2.3279,4.15049 v 28.5923 c 0,2.29937 -1.03824,4.15049 -2.3279,4.15049 H 7.84681 c -1.289654,0 -2.327895,-1.85112 -2.327895,-4.15049 v -28.5923 c 0,-2.29938 1.038241,-4.15049 2.327895,-4.15049 z M 22.554872,124.18558 H 187.44512 l 15.40721,11.70857 H 7.147672 Z"}
           strokeWidth={0.4}
           stroke={this.props.selected ? 'blue' : 'grey'}
           fill={'white'}
@@ -94,10 +95,17 @@ export default class Pdu extends React.Component {
           onClick={this.handleClick.bind(this)}
         />
 
-        <Text y={-85} text={pduName} />
-        {/* Draw Sockets */}
-        {inputSocket}
-        {sockets}
+        <Text y={-85} text={serverName} />
+        {/* Draw Power Supplies */}
+        {psus}
+
+        {/* Draw some placeholder server-stuff */}
+        <Image
+            image={this.state.frontimg}
+            x={550}
+            y={-20}
+            onClick={this.handleClick}
+        />
       </Group>
     );
   }

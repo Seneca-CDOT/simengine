@@ -136,12 +136,18 @@ class StateManger():
             return True
 
         parent_values = StateManger.get_store().mget(keys)
+        pdown = 0
+        pdown_msg = ''
         for rkey, rvalue in zip(keys, parent_values): 
             if parent_down(rvalue):
-                print(msg.format(rkey))
-                return False
-
-        return True
+                pdown_msg += msg.format(rkey) + '\n'
+                pdown += 1       
+         
+        if pdown == len(keys):
+            print(pdown_msg)
+            return False
+        else:
+            return True
 
 
     def _parents_available(self):
@@ -371,3 +377,8 @@ class ServerStateManager(StaticDeviceStateManager):
 
     def __init__(self, asset_info, asset_type='server', notify=False):
         super(ServerStateManager, self).__init__(asset_info, asset_type, notify)
+
+
+class PSUStateManager(StateManger):
+    def __init__(self, asset_info, asset_type='psu', notify=False):
+        super(PSUStateManager, self).__init__(asset_info, asset_type, notify)

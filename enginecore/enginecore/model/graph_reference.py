@@ -42,7 +42,7 @@ class GraphReference():
             tuple: parent asset keys & parent OIDs that directly affect the node (formatted for Redis)
         """
         results = session.run(
-            "MATCH (a:Asset { key: $key })-[:POWERED_BY*]->(parent:Asset) RETURN parent, null as oid \
+            "MATCH (a:Asset { key: $key })-[:POWERED_BY]->(parent:Asset) RETURN parent, null as oid \
             UNION \
             MATCH (a:Asset { key: $key })-[:POWERED_BY]->(oid:OID)<-[:HAS_OID]-(parent:Asset) RETURN parent, oid",
             key=int(key)
@@ -75,9 +75,9 @@ class GraphReference():
         """ Get assets, their components (e.g. PDU outlets) and parent asset that powers them """
 
         results = session.run(
-            "MATCH (asset:Asset) WHERE NOT (asset)<-[:HAS_SNMP_COMPONENT]-(:Asset)\
-            OPTIONAL MATCH (asset)-[:POWERED_BY]->(parent:Asset)\
-            OPTIONAL MATCH (asset)-[:HAS_SNMP_COMPONENT]->(c) return asset, collect(c) as children, parent"
+            "MATCH (asset:Asset) WHERE NOT (asset)<-[:HAS_COMPONENT]-(:Asset)\
+            OPTIONAL MATCH (asset)-[:POWERED_BY]->(p:Asset)\
+            OPTIONAL MATCH (asset)-[:HAS_COMPONENT]->(c) return asset, collect(DISTINCT c) as children,  collect(DISTINCT p) as parent"
         )
 
         assets = {}
@@ -85,7 +85,19 @@ class GraphReference():
             
             asset = dict(record['asset'])
             asset['type'] = get_asset_type(record['asset'].labels)
-            asset['parent'] = dict(record['parent']) if record['parent'] else None
+            asset['parent'] = list(map(dict, list(record['parent']))) if record['parent'] else None
+
+            if asset['type'] == 'server' and asset['parent']:
+                keys = map(lambda x: x['key'], asset['parent'])
+                presults = session.run(
+                    "MATCH (c:Component)-[:POWERED_BY]->(parent) WHERE c.key IN $list RETURN parent", list=keys
+                )
+
+                asset['parent'] = []
+                for r in presults:
+                    asset['parent'].append(dict(r['parent']))
+
+
 
             if record['children']:
                 nested_assets = {c['key']: {**dict(c), 'type': get_asset_type(c.labels)} for c in record['children']}
@@ -96,14 +108,14 @@ class GraphReference():
                     asset['children'] = nested_assets
 
             assets[record['asset'].get('key')] = asset
-
+        print(assets)
         return assets
     
 
     @classmethod
     def get_asset_and_components(cls, session, asset_key):
         results = session.run(
-            "MATCH (n:Asset { key: $key }) OPTIONAL MATCH (n)-[:HAS_SNMP_COMPONENT]->(c) RETURN n as asset, labels(n) as labels, collect(c) as children",
+            "MATCH (n:Asset { key: $key }) OPTIONAL MATCH (n)-[:HAS_COMPONENT]->(c) RETURN n as asset, labels(n) as labels, collect(c) as children",
             key=int(asset_key)
         )
 
