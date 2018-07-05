@@ -246,6 +246,7 @@ class Server(StaticAsset):
 
     def __init__(self, asset_info):
         super(Server, self).__init__(asset_info)
+        self._state.power_up()
 
 @register_asset
 class PSU(StaticAsset):

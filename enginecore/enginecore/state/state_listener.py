@@ -194,8 +194,10 @@ class StateListener(Component):
 
         # look up child nodes & parent node
         results = self._graph_ref.get_session().run(
-            "OPTIONAL MATCH  (parentAsset:Asset)<-[:POWERED_BY]-({ key: $key }) OPTIONAL MATCH (nextAsset:Asset)-[:POWERED_BY]->({ key: $key })\
-            RETURN collect(nextAsset) as childAssets,  parentAsset",
+            "OPTIONAL MATCH  (parentAsset:Asset)<-[:POWERED_BY]-(assetOff { key: $key }) "
+            "OPTIONAL MATCH (nextAsset:Asset)-[:POWERED_BY]->({ key: $key }) "
+            "OPTIONAL MATCH (nextAsset2ndParent)<-[:POWERED_BY]-(nextAsset) WHERE assetOff.key <> nextAsset2ndParent.key "
+            "RETURN collect(nextAsset) as childAssets,  parentAsset, nextAsset2ndParent ",
             key=int(asset_key)
         )
 
@@ -211,6 +213,13 @@ class StateListener(Component):
         # Power down any connected assets
         for child in record['childAssets']:
             key = child.get('key')
+            if record['nextAsset2ndParent']:
+                second_parent = record['nextAsset2ndParent']
+                parent_up = self._assets[int(second_parent.get('key'))].status()
+                if state == 0 and parent_up:
+                    continue
+
+
             event = PowerEventManager.map_parent_event(str(state))
             self.fire(event, self._assets[key])
            

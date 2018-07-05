@@ -3,6 +3,7 @@
 import time
 import pysnmp.proto.rfc1902 as snmp_data_types
 import redis
+import libvirt
 from enginecore.model.graph_reference import GraphReference
 import enginecore.state.assets
 from enginecore.state.utils import get_asset_type, format_as_redis_key
@@ -375,6 +376,24 @@ class ServerStateManager(StaticDeviceStateManager):
 
     def __init__(self, asset_info, asset_type='server', notify=False):
         super(ServerStateManager, self).__init__(asset_info, asset_type, notify)
+        self._vm_conn = libvirt.open("qemu:///system")
+        # TODO: error handling if the domain is missing (throws libvirtError)
+        self._vm = self._vm_conn.lookupByName(asset_info['name'])
+
+    def shut_down(self):
+        if self._vm.isActive():
+            self._vm.shutdown()
+        return super().shut_down()
+
+    def power_off(self):
+        if self._vm.isActive():
+            self._vm.destroy()
+        return super().power_off()
+    
+    def power_up(self):
+        if not self._vm.isActive():
+            self._vm.create()
+        return super().power_up()
 
 
 class PSUStateManager(StateManger):
