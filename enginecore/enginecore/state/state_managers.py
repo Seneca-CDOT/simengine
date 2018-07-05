@@ -37,33 +37,27 @@ class StateManger():
     def shut_down(self):
         """Implements state logic for graceful power-off event"""
         print('Graceful shutdown')
-        if 'offDelay' in self._asset_info:
-            time.sleep(self._asset_info['offDelay'] / 1000.0) # ms to sec
-        self.power_off()
+        self._sleep_shutdown()
+        if self.status():
+            self._set_state_off()
+        return self.status()
 
 
     def power_off(self):
         """Implements state logic for abrupt power loss """
         print("Powering down {}".format(self._asset_info['key']))
         if self.status():
-            StateManger.get_store().set(self._get_rkey(), '0')
-            if self._notify:
-                self._publish()
-
+            self._set_state_off()
         return self.status()
 
     def power_up(self):
         """Implements state logic for power up event """
         print("Powering up {}".format(self._asset_info['key']))
         if self._parents_available() and not self.status():
-            if 'onDelay' in self._asset_info:
-                time.sleep(self._asset_info['onDelay'] / 1000.0) # ms to sec
-            # turn on & udpate machine start time
-            StateManger.get_store().set(self._get_rkey(), '1')
+            self._sleep_powerup()
+            # udpate machine start time & turn on
             self.reset_boot_time()
-            if self._notify:
-                self._publish()
-
+            self._set_state_on()
         return self.status()
  
 
@@ -91,6 +85,24 @@ class StateManger():
     def reset_boot_time(self):
         """Reset the boot time to now"""
         StateManger.get_store().set(str(self._asset_info['key']) + ":start_time", int(time.time())) 
+
+    def _sleep_shutdown(self):
+        if 'offDelay' in self._asset_info:
+            time.sleep(self._asset_info['offDelay'] / 1000.0) # ms to sec
+
+    def _sleep_powerup(self):
+        if 'onDelay' in self._asset_info:
+            time.sleep(self._asset_info['onDelay'] / 1000.0) # ms to sec
+    
+    def _set_state_on(self):
+        StateManger.get_store().set(self._get_rkey(), '1')
+        if self._notify:
+            self._publish()
+
+    def _set_state_off(self):
+        StateManger.get_store().set(self._get_rkey(), '0')
+        if self._notify:
+            self._publish()
 
     def _publish(self):
         """ publish state changes """
@@ -386,6 +398,7 @@ class ServerStateManager(StaticDeviceStateManager):
         return super().shut_down()
 
     def power_off(self):
+        print('poweroff')
         if self._vm.isActive():
             self._vm.destroy()
         return super().power_off()
