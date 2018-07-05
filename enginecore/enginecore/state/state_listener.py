@@ -253,7 +253,6 @@ class StateListener(Component):
 
     def ParentAssetPowerUp_success(self, evt, event_result):
         """ When assets parent successfully powered up """
-        print(event_result)
         self._notify_client(event_result)
         self._chain_power_update(event_result)
 

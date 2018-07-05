@@ -15,14 +15,9 @@ class StateManger():
 
     def __init__(self, asset_info, asset_type, notify=False):
         self._graph_ref = GraphReference()
-        self._graph_db = self._graph_ref.get_session()
         self._asset_info = asset_info
         self._asset_type = asset_type
         self._notify = notify
-
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        self._graph_db.close()
 
 
     def get_key(self):
@@ -139,7 +134,7 @@ class StateManger():
         pdown = 0
         pdown_msg = ''
         for rkey, rvalue in zip(keys, parent_values): 
-            if parent_down(rvalue):
+            if parent_down(rvalue, rkey):
                 pdown_msg += msg.format(rkey) + '\n'
                 pdown += 1       
          
@@ -159,8 +154,9 @@ class StateManger():
         """
         asset_keys, oid_keys = GraphReference.get_parent_keys(self._graph_ref.get_session(), self._asset_info['key'])
         
-        assets_up = self._check_parents(asset_keys, lambda rvalue: rvalue == b'0')
-        oids_on = self._check_parents(oid_keys, lambda rvalue: rvalue.split(b'|')[1] == b'0')
+        assets_up = self._check_parents(asset_keys, lambda rvalue, _: rvalue == b'0')
+        oid_clause = lambda rvalue, rkey: rvalue.split(b'|')[1].decode() == oid_keys[rkey]['switchOff']
+        oids_on = self._check_parents(oid_keys.keys(), oid_clause)
 
         return assets_up and oids_on
     
@@ -288,6 +284,7 @@ class PDUStateManager(StateManger):
 
 
     def _update_current(self, load):
+        """Update OID associated with the current amp value """
         results = self._graph_ref.get_session().run(
             "MATCH (:Asset { key: $key })-[:HAS_OID]->(oid {name: 'AmpOnPhase'}) return oid",
             key=int(self._asset_info['key'])
@@ -299,6 +296,7 @@ class PDUStateManager(StateManger):
    
 
     def _update_wattage(self, wattage):
+        """Update OID associated with the current wattage draw """
         results = self._graph_ref.get_session().run(
             "MATCH (:Asset { key: $key })-[:HAS_OID]->(oid {name: 'WattageDraw'}) return oid",
             key=int(self._asset_info['key'])

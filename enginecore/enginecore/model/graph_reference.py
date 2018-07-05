@@ -39,34 +39,33 @@ class GraphReference():
             session: database session
             key(int): key of the affected node
         Returns:
-            tuple: parent asset keys & parent OIDs that directly affect the node (formatted for Redis)
+            tuple: parent asset keys & parent OIDs with state specs that directly affect the node (formatted for Redis)
         """
         results = session.run(
-            "MATCH (a:Asset { key: $key })-[:POWERED_BY]->(parent:Asset) RETURN parent, null as oid \
-            UNION \
-            MATCH (a:Asset { key: $key })-[:POWERED_BY]->(oid:OID)<-[:HAS_OID]-(parent:Asset) RETURN parent, oid",
+            "MATCH (a:Asset { key: $key })-[:POWERED_BY]->(parent:Asset) \
+            OPTIONAL MATCH (a:Asset { key: $key })-[:POWERED_BY]->(oid:OID)<-[:HAS_OID]-(parent:Asset)\
+            OPTIONAL MATCH (oid)-[:HAS_STATE_DETAILS]->(oid_details) RETURN parent, oid, oid_details",
             key=int(key)
         )
 
         asset_keys = []
-        oid_keys = []
+        oid_keys = {}
         for record in results:
             
             asset_type = get_asset_type(record['parent'].labels)
             
-            asset_key = record['parent'].get('key')
-            if not record['oid']:
-                asset_keys.append("{asset_key}-{property}".format(
-                    asset_key=asset_key, 
-                    property=asset_type.lower()
-                    )
+            asset_key = record['parent'].get('key')           
+            asset_keys.append("{asset_key}-{property}".format(
+                asset_key=asset_key, 
+                property=asset_type.lower()
                 )
-            else:
-                oid = record['oid'].get('OID')
-                oid_keys.append(
-                    format_as_redis_key(str(asset_key), oid, key_formatted=False)
-                )
+            )
 
+            if record['oid'] and record['oid_details']:
+                oid = record['oid'].get('OID')
+                oid_rkey = format_as_redis_key(str(asset_key), oid, key_formatted=False)
+                oid_keys[oid_rkey] = {v:k for k,v in dict(record['oid_details']).items()} # swap order
+                
         return asset_keys, oid_keys
 
 
@@ -108,7 +107,7 @@ class GraphReference():
                     asset['children'] = nested_assets
 
             assets[record['asset'].get('key')] = asset
-        print(assets)
+  
         return assets
     
 
