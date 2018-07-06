@@ -70,7 +70,7 @@ function SimpleCard(props) {
           </Typography>
 
           <Typography component="p">
-            Current Load: {assetInfo.load}
+            Current Load: {assetInfo.load.toFixed(2)}
           </Typography>
 
 

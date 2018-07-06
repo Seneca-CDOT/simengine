@@ -32,20 +32,23 @@ class WebSocket(Component):
         """ Client has sent some request """
 
         data = json.loads(data)
-        asset_key = data['key']
-        power_up = data['data']['status']
-        asset_type = data['data']['type']
+
         graph_ref = GraphReference()
         with graph_ref.get_session() as session:
-            
-            asset_info = GraphReference.get_asset_and_components(session, asset_key)
-            state_manager = SUPPORTED_ASSETS[asset_type].StateManagerCls(asset_info, notify=True)
-            
-            if power_up:
-                state_manager.power_up()
-            else:
-                state_manager.shut_down()
-
+            if data['request'] == 'power':
+                asset_key = data['key']
+                power_up = data['data']['status']
+                asset_type = data['data']['type']
+                            
+                asset_info = GraphReference.get_asset_and_components(session, asset_key)
+                state_manager = SUPPORTED_ASSETS[asset_type].StateManagerCls(asset_info, notify=True)
+                
+                if power_up:
+                    state_manager.power_up()
+                else:
+                    state_manager.shut_down()
+            elif data['request'] == 'layout':
+                GraphReference.save_layout(session, data['data'])
 
     def disconnect(self, sock):
         """ A client has disconnected """

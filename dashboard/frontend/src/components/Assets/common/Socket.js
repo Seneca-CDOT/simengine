@@ -17,7 +17,7 @@ export default class Socket extends React.Component {
         image: null,
         color: 'grey',
         x: props.x?props.x:40,
-        y:0,
+        y: props.y?props.y:0,
         bgImage: null,
       };
 
@@ -25,6 +25,11 @@ export default class Socket extends React.Component {
         const bgImage = new window.Image();
         bgImage.src = props.asset.imgUrl;
         bgImage.onload = () => {
+
+          const oldHeight = bgImage.height;
+          bgImage.height = 160;
+          bgImage.width = bgImage.width / (oldHeight/160);
+
           this.setState({
             bgImage: bgImage
           });
@@ -40,6 +45,7 @@ export default class Socket extends React.Component {
       image.onload = () => {
         // setState will redraw layer
         // because "image" property is changed
+
         this.setState({
           image: image
         });
@@ -78,8 +84,6 @@ export default class Socket extends React.Component {
         >
           {this.state.bgImage !== null &&
             <Image
-              width={160}
-              height={160}
               image={this.state.bgImage}
               stroke={strokeColor}
               onClick={this.handleClick}

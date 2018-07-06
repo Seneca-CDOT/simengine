@@ -2,11 +2,22 @@ import React, { Component } from 'react';
 import { Stage, Layer, Line } from 'react-konva';
 import gridBackground from '../images/grid.png';
 
+// Material
 import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
 import { withStyles } from '@material-ui/core/styles';
+import Snackbar from '@material-ui/core/Snackbar';
 import Typography from '@material-ui/core/Typography';
+import SettingsIcon from "@material-ui/icons/Settings";
 import classNames from 'classnames';
+import IconButton from '@material-ui/core/IconButton';
+import Drawer from '@material-ui/core/Drawer';
+import List from '@material-ui/core/List';
+import ListItem from '@material-ui/core/ListItem';
+import ListItemText from '@material-ui/core/ListItemText';
+import Divider from '@material-ui/core/Divider';
+
+// Local Components
 import Pdu from './Assets/PDU/Pdu';
 import Socket from './Assets/common/Socket';
 import Server from './Assets/Server/Server';
@@ -14,13 +25,13 @@ import Server from './Assets/Server/Server';
 import SimpleCard from './SimpleCard';
 import initialState from './InitialState';
 
+const drawerWidth = 240;
 
 const styles = theme => ({
   root: {
     flexGrow: 1,
   },
   appFrame: {
-
     zIndex: 1,
     overflow: 'hidden',
     position: 'relative',
@@ -32,15 +43,23 @@ const styles = theme => ({
   },
   'appBar-left': {
     backgroundColor: "#36454F",
+    marginLeft: drawerWidth,
   },
   drawerPaper: {
-    position: 'relative',
+    width: drawerWidth
   },
   toolbar: theme.mixins.toolbar,
   content: {
     flexGrow: 1,
     backgroundColor: theme.palette.background.default,
     padding: theme.spacing.unit * 3,
+  },
+  menuButton: {
+    marginLeft: -12,
+    marginRight: 20,
+  },
+  list: {
+    width: 250,
   },
 });
 
@@ -53,6 +72,8 @@ const styles = theme => ({
       assets: initialState,
       selectedAssetKey: 0,
       connections:{},
+      socketOffline: true,
+      anchorEl: null
     };
 
     this.connectToSocket();
@@ -92,16 +113,17 @@ const styles = theme => ({
        console.log("WebSocket is supported by your Browser!");
        // Let us open a web socket
        this.ws = new WebSocket("ws://localhost:8000/simengine");
-       this.ws.onopen = function()
+       this.ws.onopen = (() =>
        {
           // Web Socket is connected, send data using send()
           // this.ws.send("Hello server");
           // alert("Message is sent...");
-       };
+          this.setState({ socketOffline: false });
+       });
        this.ws.onmessage = ((evt) =>
        {
           const data = JSON.parse(evt.data);
-          console.log(data)
+
           // Update state of the existing asset
           if('key' in data) {
 
@@ -143,6 +165,7 @@ const styles = theme => ({
        {
           // websocket is closed.
           // alert("Connection is closed...");
+          this.setState({ socketOffline: true });
           setTimeout(() => {this.connectToSocket();}, 5000);
        }).bind(this);
     }
@@ -188,6 +211,10 @@ const styles = theme => ({
 
     let childConn = {};
 
+    let assets = {...this.state.assets};
+    let asset_details = {...assets[key]};
+    assets[key] = {...asset_details, ...{x: e.target.x(), y: e.target.y()}};
+
     if (asset.children) {
       let x=100;
       for (const ckey of Object.keys(asset.children)) {
@@ -197,7 +224,7 @@ const styles = theme => ({
       }
     }
 
-    this.setState({ connections: {...connections, ...newConn, ...childConn }});
+    this.setState({ assets, connections: {...connections, ...newConn, ...childConn }});
   }
 
   /** Handle Asset Selection */
@@ -214,8 +241,23 @@ const styles = theme => ({
   changeStatus(assetKey, assetInfo) {
     let data = {...assetInfo};
     data.status = !data.status;
-    this.ws.send(JSON.stringify({key: assetKey, data }));
+    this.ws.send(JSON.stringify({request: 'power', key: assetKey, data }));
   }
+
+  saveLayout() {
+    let data = {};
+    const assets = this.state.assets;
+    Object.keys(assets).map((a) => ( data[a]= {x: assets[a].x, y: assets[a].y} ));
+    this.ws.send(JSON.stringify({request: 'layout', data }));
+  }
+
+  handleMenu = event => {
+    this.setState({ anchorEl: event.currentTarget });
+  };
+
+  handleClose = () => {
+    this.setState({ anchorEl: null });
+  };
 
 
   /** Add Socket to the Layout */
@@ -231,6 +273,8 @@ const styles = theme => ({
       selected={this.state.selectedAssetKey === key}
       draggable={true}
       powered={powered}
+      x={asset.x}
+      y={asset.y}
     />);
   }
 
@@ -247,6 +291,8 @@ const styles = theme => ({
       selected={this.state.selectedAssetKey === key}
       pduSocketSelected={this.state.selectedAssetKey in asset.children}
       powered={powered}
+      x={asset.x}
+      y={asset.y}
     />);
   }
 
@@ -265,6 +311,8 @@ const styles = theme => ({
       selected={this.state.selectedAssetKey === key}
       pduSocketSelected={this.state.selectedAssetKey in asset.children}
       powered={powered}
+      x={asset.x}
+      y={asset.y}
     />);
   }
 
@@ -314,6 +362,8 @@ const styles = theme => ({
       );
     }
 
+    const { anchorEl } = this.state;
+    const open = Boolean(anchorEl);
 
     return (
       <div className={classes.root}>
@@ -327,6 +377,34 @@ const styles = theme => ({
               <Typography variant="title" color="inherit" noWrap>
                 HAos Simulation Engine
               </Typography>
+              <div>
+                <IconButton aria-owns={open ? 'menu-appbar' : null}
+                    aria-haspopup="true"
+                    color="inherit"
+                    onClick={this.handleMenu}
+                >
+                <SettingsIcon/>
+                </IconButton>
+                  <Drawer open={open} onClose={this.handleClose}
+                    classes={{paper: classes.drawerPaper,}} anchor={'left'}>
+                    <div className={classes.toolbar}/>
+                    <Divider />
+                    <div
+                      tabIndex={0}
+                      role="button"
+                      onClick={this.handleClose}
+                      onKeyDown={this.handleClose}
+                    >
+                      <div className={classes.fullList}>
+                        <List>
+                          <ListItem button onClick={this.saveLayout.bind(this)}>
+                            <ListItemText primary="Save Layout" />
+                          </ListItem>
+                        </List>
+                      </div>
+                    </div>
+                </Drawer>
+              </div>
             </Toolbar>
           </AppBar>
 
@@ -351,6 +429,17 @@ const styles = theme => ({
                 changeStatus={this.changeStatus.bind(this)}
               /> : ''
             }
+            <Snackbar
+              anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'left',
+              }}
+              open={this.state.socketOffline}
+              ContentProps={{
+                'aria-describedby': 'message-id',
+              }}
+              message={<span id="message-id">Socket is unavailable: trying to reconnect...</span>}
+            />
           </main>
         </div>
       </div>

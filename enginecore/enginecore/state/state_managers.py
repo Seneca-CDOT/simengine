@@ -202,7 +202,7 @@ class StateManger():
             assets[rkey]['status'] = int(rvalue)
             assets[rkey]['load'] = cls.get_state_manager(assets[rkey]['type'])(assets[rkey]).get_load()
             
-            if not flatten and 'children' in cls.assets[rkey]:
+            if not flatten and 'children' in assets[rkey]:
                 # call recursively on children    
                 assets[rkey]['children'] = cls._get_assets_states(assets[rkey]['children'])
 
@@ -223,11 +223,9 @@ class StateManger():
         with graph_ref.get_session() as session:
 
             # cache assets
-            if not cls.assets:
-                cls.assets = GraphReference.get_assets(session, flatten)
-
-            cls.assets = cls._get_assets_states(cls.assets, flatten)
-            return cls.assets
+            assets = GraphReference.get_assets(session, flatten)
+            assets = cls._get_assets_states(assets, flatten)
+            return assets
 
 
     @classmethod
@@ -398,7 +396,6 @@ class ServerStateManager(StaticDeviceStateManager):
         return super().shut_down()
 
     def power_off(self):
-        print('poweroff')
         if self._vm.isActive():
             self._vm.destroy()
         return super().power_off()

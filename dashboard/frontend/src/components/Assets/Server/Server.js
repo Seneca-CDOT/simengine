@@ -7,7 +7,7 @@ import frontimg from '../../../images/server-front.svg';
 /**
  * Draw Server graphics
  */
-export default class Pdu extends React.Component {
+export default class Server extends React.Component {
 
   constructor(props) {
     super(props);
@@ -32,6 +32,10 @@ export default class Pdu extends React.Component {
 
   }
 
+  componentWillReceiveProps(nextProps) {
+    this.setState({ x: nextProps.x, y: nextProps.y });
+  }
+
   /** Notify Parent of Selection */
   handleClick = () => {
     this.props.onElementSelection(this.props.assetId, this.props.asset);
@@ -43,7 +47,7 @@ export default class Pdu extends React.Component {
     this.props.onElementSelection(ckey, this.props.asset.children[ckey]);
   }
 
-  updatePduPos = (s) => {
+  updateServerPos = (s) => {
     this.setState({ x: s.target.attrs.x, y : s.target.attrs.y });
     this.props.onPosChange(this.props.assetId, s);
   }
@@ -77,11 +81,12 @@ export default class Pdu extends React.Component {
       );
       x += 240;
     }
-
     return (
       <Group
         draggable="true"
-        onDragMove={this.updatePduPos.bind(this)}
+        onDragMove={this.updateServerPos.bind(this)}
+        x={this.state.x}
+        y={this.state.y}
       >
 
 
@@ -111,7 +116,7 @@ export default class Pdu extends React.Component {
   }
 }
 
-Pdu.propTypes = {
+Server.propTypes = {
   name: PropTypes.string,
   asset: PropTypes.object.isRequired, // Asset Details
   assetId: PropTypes.string.isRequired, // Asset Key

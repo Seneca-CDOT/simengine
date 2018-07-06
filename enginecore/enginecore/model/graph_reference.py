@@ -137,3 +137,15 @@ class GraphReference():
         )
 
         return results.single()['labels']
+
+    @classmethod
+    def save_layout(cls, session, data):
+        """ Save system layout """
+        print(data)
+        for k in data:
+            if data[k]:
+                session.run(
+                    "MATCH (a:Asset { key: $key }) SET a.x=$x, a.y=$y",
+                    key=int(k), x=data[k]['x'], y=data[k]['y']
+                )
+            
