@@ -144,12 +144,16 @@ const styles = theme => ({
             let connections = {};
 
             Object.keys(data).map((k) => {
-              let x = 40;
-              let y = 0;
+              let x1 = data[k].x?data[k].x:40;
+              let y1 = data[k].y?data[k].y:0;
               if (data[k]['parent']) {
+
                 for (const p of data[k]['parent']) {
-                  connections[p.key] = {x:x, y:y, x1:50, y1:50, ckey: k };
-                  x+=250;
+                  const parent_key = (''+p.key).substring(0, 4);
+                  let x = data[parent_key].x?data[parent_key].x:50;
+                  let y = data[parent_key].y?data[parent_key].y:50;
+                  connections[p.key] = {x, y, x1, y1, ckey: k };
+
                 }
               }
             });
