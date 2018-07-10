@@ -97,6 +97,7 @@ class Asset(Component):
 
 class Agent():
     """ Abstract Agent Class """
+    agent_num = 1    
     
     def start_agent(self):
         """ Logic for starting up the agent """
@@ -107,11 +108,14 @@ class Agent():
         raise NotImplementedError
     
 
+class IPMIAgent(Agent):
+    """IPMIsim instance """
+    def __init__(self, key):
+        super(IPMIAgent, self).__init__()
 
 class SNMPAgent(Agent):
     """ SNMP simulator instance """
 
-    agent_num = 1
     def __init__(self, key, community='public', lookup_oid='1.3.6', host=False):
 
         super(SNMPAgent, self).__init__()
