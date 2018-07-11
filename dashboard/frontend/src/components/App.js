@@ -123,14 +123,15 @@ const styles = theme => ({
        this.ws.onmessage = ((evt) =>
        {
           const data = JSON.parse(evt.data);
-
+          // console.log(data)
           // Update state of the existing asset
           if('key' in data) {
 
             let assets = {...this.state.assets};
+            const isComponent = !this.state.assets[data.key];
 
-            if ((''+data.key).length === 5) {
-              const parent_id = (''+data.key).substring(0, 4);
+            if (isComponent) {
+              const parent_id = this._get_parent_key(data.key);
               let asset_details = {...assets[parent_id].children[data.key]};
               assets[parent_id].children[data.key] = {...asset_details, ...data.data};
             } else {
@@ -148,12 +149,13 @@ const styles = theme => ({
               let y1 = data[k].y?data[k].y:0;
               if (data[k]['parent']) {
 
+
                 for (const p of data[k]['parent']) {
-                  const parent_key = (''+p.key).substring(0, 4);
+                  const isComponent = !data[p.key];
+                  const parent_key = isComponent?this._get_parent_key(p.key):p.key;
                   let x = data[parent_key].x?data[parent_key].x:50;
                   let y = data[parent_key].y?data[parent_key].y:50;
                   connections[p.key] = {x, y, x1, y1, ckey: k };
-
                 }
               }
             });
@@ -180,9 +182,14 @@ const styles = theme => ({
     }
   }
 
+  _get_parent_key(key) {
+    const strkey = (''+key);
+    return strkey.substring(0, strkey.length===1?1:strkey.length-1);
+  }
+
   _get_asset_by_key(key) {
-    if ((''+key).length === 5) {
-      const parent_key = (''+key).substring(0, 4);
+    if (key && !this.state.assets[key]) {
+      const parent_key = this._get_parent_key(key);
       return this.state.assets[parent_key].children[key];
     } else {
       return this.state.assets[key];
@@ -194,7 +201,6 @@ const styles = theme => ({
     const connections = this.state.connections;
 
     if(asset['parent']) {
-
       for (const p of asset['parent']) {
         newConn[p.key] = {...connections[p.key], x1:x,  y1:y};
         x+=250;
@@ -336,24 +342,24 @@ const styles = theme => ({
         systemLayout.push(this.drawSocket(key, assets[key]));
       } else if (assets[key].type === 'pdu') {
         systemLayout.push(this.drawPdu(key, assets[key]));
-      } else if (assets[key].type === 'server') {
+      } else if (assets[key].type === 'server' || assets[key].type === 'serverwithbmc') {
         systemLayout.push(this.drawServer(key, assets[key]));
       }
     }
 
     // draw wires
-
     for (const key of Object.keys(connections)) {
       const socketX1pad = 34;
       const socketYpad = 35;
       let socketXpad = socketX1pad;
       const asset = this._get_asset_by_key(key);
+      const child_type = this.state.assets[connections[key].ckey].type;
 
-      if (this.state.assets[connections[key].ckey].type == 'staticasset') {
+      if (child_type == 'staticasset') {
         socketXpad = -35;
       }
 
-      if (this.state.assets[connections[key].ckey].type == 'server') {
+      if (child_type == 'server' || child_type === 'serverwithbmc') {
         socketXpad = -220;
       }
 

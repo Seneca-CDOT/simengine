@@ -35,20 +35,21 @@ def create_outlet(key, attr):
         CREATE (:Asset:Outlet { name: $name,  key: $key })", key=key, name="out-{}".format(key))
         set_properties(key, attr)
 
-def create_server(key, attr):
+def create_server(key, attr, server_variation='Server'):
     if not attr['power_consumption']:
         raise KeyError('Server asset requires power_consumption attribute')
-    if not attr['name']:
+    if not attr['domain_name']:
         raise KeyError('Must provide VM name (domain name)')
 
     with graph_ref.get_session() as session:
         session.run("\
-        CREATE (server:Asset:Server { name: $name,  key: $key }) \
-        ", key=key, name=attr['name'])
+        CREATE (server:Asset { name: $name,  key: $key }) SET server :"+server_variation, 
+                    key=key, name=attr['domain_name'])
         
         set_properties(key, attr)
-        _add_psu(key, "1")
-        _add_psu(key, "2")
+        for i in range(attr['psu_num']):
+            _add_psu(key, str(i+1))
+
     
 def set_properties(key, attr):
     with graph_ref.get_session() as session:

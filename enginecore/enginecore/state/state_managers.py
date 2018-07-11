@@ -405,6 +405,14 @@ class ServerStateManager(StaticDeviceStateManager):
             self._vm.create()
         return super().power_up()
 
+class BMCServerStateManager(ServerStateManager):
+    """ 
+    IOUT_*: Current
+    POUT_*: Power (Watts)
+    VOUT_*: Voltage
+    """
+    def __init__(self, asset_info, asset_type='serverwithbmc', notify=False):
+        super(BMCServerStateManager, self).__init__(asset_info, asset_type, notify)
 
 class PSUStateManager(StateManger):
     def __init__(self, asset_info, asset_type='psu', notify=False):

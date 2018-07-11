@@ -12,6 +12,7 @@ def configure_env():
     (such as folder containing static .snmprec files, SHA of redis lua script) 
     """
     os.environ['SIMENGINE_STATIC_DATA'] = os.environ.get('SIMENGINE_STATIC_DATA', os.path.abspath("../data"))
+    os.environ['SIMENGINE_IPMI_TEMPL'] = os.environ.get('SIMENGINE_IPMI_TEMPL', os.path.abspath("./ipmi_template"))
     os.environ['SIMENGINE_SNMP_SHA'] = os.environ.get(
         'SIMENGINE_SNMP_SHA', 
         str(os.popen('redis-cli script load "$(cat script/snmppub.lua)"').read())

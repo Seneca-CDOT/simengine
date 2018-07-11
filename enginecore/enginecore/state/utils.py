@@ -35,10 +35,10 @@ def get_asset_type(labels):
     Raises:
         StopIteration: when asset type is either not supported or undefined in the graph ref
     """
-
+    
     asset_label = set(enginecore.state.assets.SUPPORTED_ASSETS).intersection(
         map(lambda x: x.lower(), labels)
     )
 
     return next(iter(asset_label)).lower()
-
+    

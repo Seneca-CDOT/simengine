@@ -13,6 +13,8 @@ import subprocess
 import os
 import signal
 import tempfile
+from distutils.dir_util import copy_tree
+from string import Template
 
 from circuits import Component, handler
 import enginecore.state.state_managers as sm
@@ -110,8 +112,63 @@ class Agent():
 
 class IPMIAgent(Agent):
     """IPMIsim instance """
-    def __init__(self, key):
+    def __init__(self, key, ipmi_dir):
         super(IPMIAgent, self).__init__()
+        self._asset_key = key
+        self._process = None
+        self._ipmi_dir = ipmi_dir
+        copy_tree(os.environ.get('SIMENGINE_IPMI_TEMPL'), self._ipmi_dir)
+        
+        # Substitute a template
+        lan_conf = os.path.join(self._ipmi_dir, 'lan.conf')
+        ipmisim_emu = os.path.join(self._ipmi_dir, 'ipmisim1.emu')
+
+        lan_conf_opt = {'asset_key': key, 'extend_lib': '/home/huanshi/dev/simengine/enginecore/ipmi_sim/haos_extend.so'}
+        ipmisim_emu_opt = {'ipmi_dir': self._ipmi_dir}
+
+        with open(lan_conf, "r+") as filein:
+            template = Template(filein.read())
+            filein.seek(0)
+            filein.write(template.substitute(lan_conf_opt))
+
+        with open(ipmisim_emu, "r+") as filein:
+            template = Template(filein.read())
+            filein.seek(0)
+            filein.write(template.substitute(ipmisim_emu_opt))
+
+
+        print(self._ipmi_dir)
+
+        self.start_agent()
+        IPMIAgent.agent_num += 1
+    
+    def stop_agent(self):
+        """ Logic for agent's termination """
+        os.kill(self._process.pid, signal.SIGSTOP)
+
+    def start_agent(self):
+        """ Logic for starting up the agent """
+        # resume if process has been paused
+        if self._process:
+            os.kill(self._process.pid, signal.SIGCONT)
+            return
+
+        # start a new one
+        lan_conf = os.path.join(self._ipmi_dir, 'lan.conf')
+        ipmisim_emu = os.path.join(self._ipmi_dir, 'ipmisim1.emu')
+        state_dir = os.path.join(self._ipmi_dir, 'emu_state')
+
+        cmd = "ipmi_sim -c {} -f {} -s {} -n".format(lan_conf, ipmisim_emu, state_dir)
+        print(cmd)
+        self._process = subprocess.Popen(
+            cmd, shell=True, stderr=subprocess.DEVNULL, stdout=open(os.devnull, 'wb'), close_fds=True
+        )
+
+        print("Started ipmi_sim process under pid {}".format(self._process.pid))
+
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.stop_agent()
 
 class SNMPAgent(Agent):
     """ SNMP simulator instance """
@@ -168,7 +225,7 @@ class SNMPAgent(Agent):
 @register_asset
 class PDU(Asset):
 
-    channel = "pdu"
+    channel = "engine-pdu"
     StateManagerCls = sm.PDUStateManager
 
     def __init__(self, asset_info):
@@ -204,7 +261,7 @@ class PDU(Asset):
 @register_asset
 class Outlet(Asset):
 
-    channel = "outlet"
+    channel = "engine-outlet"
     StateManagerCls = sm.OutletStateManager
 
 
@@ -228,7 +285,7 @@ class Outlet(Asset):
 @register_asset
 class StaticAsset(Asset):
 
-    channel = "static"
+    channel = "engine-static"
     StateManagerCls = sm.StaticDeviceStateManager
     def __init__(self, asset_info):
         super(StaticAsset, self).__init__(self.StateManagerCls(asset_info))
@@ -245,16 +302,30 @@ class StaticAsset(Asset):
 
 @register_asset
 class Server(StaticAsset):
-    channel="server"
+    """Asset controlling a VM (without IPMI support) """
+    channel = "engine-server"
     StateManagerCls = sm.ServerStateManager
 
     def __init__(self, asset_info):
         super(Server, self).__init__(asset_info)
         self._state.power_up()
+    
+@register_asset
+class ServerWithBMC(Server):
+    """Asset controlling a VM with BMC/IPMI support """
+    channel = "engine-bmc"
+    StateManagerCls = sm.BMCServerStateManager
+    
+    def __init__(self, asset_info):
+        asset_info['ipmi_dir'] = tempfile.mkdtemp()
+        super(ServerWithBMC, self).__init__(asset_info)
+        self._ipmi_agent = IPMIAgent(asset_info['key'], asset_info['ipmi_dir'])
+        
 
 @register_asset
 class PSU(StaticAsset):
-    channel="psu"
+    """PSU """
+    channel = "engine-psu"
     StateManagerCls = sm.PSUStateManager
 
     def __init__(self, asset_info):

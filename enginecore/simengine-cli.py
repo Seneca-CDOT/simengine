@@ -13,6 +13,8 @@ import enginecore.model.system_modeler as sm
 from enginecore.state.state_managers import StateManger
 from enginecore.state.utils import get_asset_type
 
+ASSET_TYPES = ['pdu', 'outlet', 'server', 'server-bmc', 'static']
+
 def manage_state(asset_key, action):
     """ Perform action for a node/asset with a certain key
     Args:
@@ -123,15 +125,30 @@ def get_status(**kwargs):
 def create_asset(**kwargs):
     """Add new asset to the system/model """
 
+    asset_type = kwargs['asset_type']
+    
+    # validation not done by argparser
+    if kwargs['asset_key'] > 9999:
+        raise argparse.ArgumentTypeError("asset-key must be <= 9999")
+    if (asset_type == 'server' or asset_type == 'server-bmc'):
+        if not kwargs['domain_name']:
+            raise argparse.ArgumentTypeError("domain-name is required for a server(-bmc) type")
+        if not kwargs['power_consumption']:
+            raise argparse.ArgumentTypeError("power-consumption is required for a server(-bmc) type")
+            
+
+    # attempt to add an asset to the system topology
     try:
-        if kwargs['asset_type'] == 'pdu':
-            sm.create_pdu(int(kwargs['asset_key']), kwargs)
-        elif kwargs['asset_type'] == 'outlet':
-            sm.create_outlet(int(kwargs['asset_key']), kwargs)
-        elif kwargs['asset_type'] == 'static':
-            sm.create_static(int(kwargs['asset_key']), kwargs)
-        elif kwargs['asset_type'] == 'server':
-            sm.create_server(int(kwargs['asset_key']), kwargs)
+        if asset_type == 'pdu':
+            sm.create_pdu(kwargs['asset_key'], kwargs)
+        elif asset_type == 'outlet':
+            sm.create_outlet(kwargs['asset_key'], kwargs)
+        elif asset_type == 'static':
+            sm.create_static(kwargs['asset_key'], kwargs)
+        elif asset_type == 'server':
+            sm.create_server(kwargs['asset_key'], kwargs)
+        elif asset_type == 'server-bmc':
+            sm.create_server(kwargs['asset_key'], kwargs, server_variation='ServerWithBMC')
         else:
             print("The asset type must be either 'outlet', 'pdu' or 'static'")
     except KeyError as e:
@@ -148,7 +165,7 @@ power_group = subparsers.add_parser('power', help="Control power component of re
 
 ## -> Setup options for state queries
 status_group = subparsers.add_parser('status', help="Retrieve status of registered asset(s)")
-status_group.add_argument('--asset-key', type=int)
+status_group.add_argument('-k', '--asset-key', type=int)
 status_group.add_argument('--print-as', help="Format options")
 status_group.add_argument('--monitor', help="Monitor status", action='store_true')
 status_group.add_argument('--load', help="Check load", action='store_true')
@@ -168,8 +185,12 @@ snapshot_group = subparsers.add_parser('snapshot', help="Manage snapshots of the
 asset_group = subparsers.add_parser('model', help="Manage system model: create new/update existing asset etc.")
 subparsers = asset_group.add_subparsers()
 create_asset_action = subparsers.add_parser('create', help="Create new asset")
-create_asset_action.add_argument('--asset-key', type=int, required=True)
-create_asset_action.add_argument('--asset-type', required=True)
+create_asset_action.add_argument(
+    '-k', '--asset-key', type=int, required=True, help="Unique asset key (must be <= 9999)"
+    )
+create_asset_action.add_argument(
+    '-t', '--asset-type', required=True, help="Type of the machine/asset", choices=ASSET_TYPES
+    )
 create_asset_action.add_argument('--host')
 create_asset_action.add_argument('--on-delay', type=int, help="Power on delay in ms", default=-1)
 create_asset_action.add_argument('--off-delay', type=int, help="Power on delay in ms", default=-1)
@@ -177,38 +198,44 @@ create_asset_action.add_argument('--off-delay', type=int, help="Power on delay i
 # static asset options
 create_asset_action.add_argument('--img-url')
 create_asset_action.add_argument('--power-source', type=int, default=120)
-create_asset_action.add_argument('--power-consumption', type=int)
+create_asset_action.add_argument('--power-consumption', type=int, help="Power consumption in Watts")
 create_asset_action.add_argument('--name')
+
+# vm asset options
+create_asset_action.add_argument('--domain-name', help="VM domain name")
+create_asset_action.add_argument('--psu-num', type=int, default=2, help="Number of PSUs installed in the server")
 
 # configure existing asset
 configure_asset_action = subparsers.add_parser('configure', help="Configure Asset properties")
-configure_asset_action.add_argument('--asset-key', type=int)
+configure_asset_action.add_argument('-k', '--asset-key', type=int, required=True)
 configure_asset_action.add_argument('--host')
 configure_asset_action.add_argument('--on-delay', type=int, help="Power on delay in ms", default=-1)
 configure_asset_action.add_argument('--off-delay', type=int, help="Power on delay in ms", default=-1)
 configure_asset_action.add_argument('--power-source', type=int)
-configure_asset_action.add_argument('--power-consumption', type=int)
+configure_asset_action.add_argument('--power-consumption', type=int, help="Power consumption in Watts")
 
 # detach & delete an asset by key
 delete_asset_action = subparsers.add_parser('delete', help="Remove individual asset by key")
-delete_asset_action.add_argument('--asset-key', type=int)
+delete_asset_action.add_argument('-k', '--asset-key', type=int, required=True)
 
 # drop entire system topology
 drop_system_action = subparsers.add_parser('drop', help="Delete/drop all the system components")
 
 # link 2 assets together
 power_asset_action = subparsers.add_parser('power-link', help="Create a power link between 2 assets")
-power_asset_action.add_argument('--source-key', type=int, required=True)
-power_asset_action.add_argument('--dest-key', type=int, required=True)
+power_asset_action.add_argument(
+    '-s', '--source-key', type=int, required=True, help="Key of an asset that POWERS dest. asset"
+)
+power_asset_action.add_argument('-d', '--dest-key', type=int, required=True, help="Key of an powered by the source-key")
 
 ## -> Setup options for power_group
 
 subparsers = power_group.add_subparsers()
 power_up_action = subparsers.add_parser('up', help="Power up a particular component/asset")
-power_up_action.add_argument('--asset-key', type=int, required=True)
+power_up_action.add_argument('-k', '--asset-key', type=int, required=True)
 
 power_down_action = subparsers.add_parser('down', help="Power down a particular component/asset")
-power_down_action.add_argument('--asset-key', type=int, required=True)
+power_down_action.add_argument('-k', '--asset-key', type=int, required=True)
 
 ############ Callbacks for actions
 
@@ -251,3 +278,5 @@ try:
     options.func(vars(options))
 except AttributeError:
     argparser.print_help()
+except argparse.ArgumentTypeError as e:
+    print(e)
