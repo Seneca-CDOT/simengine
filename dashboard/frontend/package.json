@@ -7,7 +7,7 @@
     "build:dev": "npm run build -- --env.env=dev",
     "build:dev:watch": "npm run build:dev -- --watch",
     "build:dev:bundleanalyze": "npm run build:dev -- --env.addons=bundleanalyze",
-    "serve:dev": "webpack-dev-server --env.env=dev --hot",
+    "serve:dev": "webpack-dev-server --env.env=dev --hot --host 0.0.0.0",
     "serve:dev:dashboard": "webpack-dashboard -- webpack-dev-server --hot --env.env=dev --env.addons=dashboard",
     "build:prod": "npm run build -- -p --env.env=prod",
     "build:prod:watch": "npm run build:prod -- --watch",

@@ -112,7 +112,15 @@ const styles = theme => ({
     {
        console.log("WebSocket is supported by your Browser!");
        // Let us open a web socket
-       this.ws = new WebSocket("ws://localhost:8000/simengine");
+       let new_uri = '';
+       let loc = window.location;
+       if (loc.protocol === "https:") {
+          new_uri = "wss:";
+       } else {
+          new_uri = "ws:";
+       }
+       new_uri += "//" + loc.hostname + ':8000/simengine';
+       this.ws = new WebSocket(new_uri);
        this.ws.onopen = (() =>
        {
           // Web Socket is connected, send data using send()

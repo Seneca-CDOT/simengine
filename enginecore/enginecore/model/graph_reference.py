@@ -16,7 +16,7 @@ class GraphReference():
     def __init__(self):
         self._driver = GraphDatabase.driver(
             'bolt://localhost', 
-            auth=basic_auth(os.environ.get('NEO4J_USR', 'test'), os.environ.get('NEO4J_PSW', 'test'))
+            auth=basic_auth(os.environ.get('NEO4J_USR', 'simengine'), os.environ.get('NEO4J_PSW', 'simengine'))
         )
 
     
