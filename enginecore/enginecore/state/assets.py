@@ -82,17 +82,17 @@ class Asset(Component):
 
     @handler("ChildAssetPowerUp", "ChildAssetLoadIncreased")
     def on_load_increase(self, event, *args, **kwargs):
-        increased_by = kwargs['child_load']
+        increased_by = self._state.get_draw_percentage() * kwargs['child_load']
         old_load = self._state.get_load()
-        # print('Asset : {} : orig load {}, increased by: {}'.format(self._state.get_key(), old_load, increased_by))
+        print('Asset : {} : orig load {}, increased by: {}'.format(self._state.get_key(), old_load, increased_by))
         self._state.update_load(old_load + increased_by)
         return increased_by, self._state.get_key()
 
     @handler("ChildAssetPowerDown", "ChildAssetLoadDecreased")
     def on_load_decrease(self, event, *args, **kwargs):
-        decreased_by = kwargs['child_load']
+        decreased_by = self._state.get_draw_percentage() * kwargs['child_load']
         old_load = self._state.get_load()
-        # print('Asset : {} : orig load {}, decreased by: {}'.format(self._state.get_key(), old_load, decreased_by))
+        print('Asset : {} : orig load {}, decreased by: {}'.format(self._state.get_key(), old_load, decreased_by))
         self._state.update_load(old_load - decreased_by)
         return decreased_by, self._state.get_key()
 
@@ -319,6 +319,8 @@ class ServerWithBMC(Server):
     def __init__(self, asset_info):
         asset_info['ipmi_dir'] = tempfile.mkdtemp()
         super(ServerWithBMC, self).__init__(asset_info)
+
+        self._state.set_state_dir(asset_info['ipmi_dir'])
         self._ipmi_agent = IPMIAgent(asset_info['key'], asset_info['ipmi_dir'])
         
 

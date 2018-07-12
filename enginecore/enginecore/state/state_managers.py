@@ -1,6 +1,7 @@
 """This file contains definitions of State Managers classes """
 
 import time
+import os
 import pysnmp.proto.rfc1902 as snmp_data_types
 import redis
 import libvirt
@@ -32,6 +33,9 @@ class StateManger():
 
     def get_amperage(self):
         return 0
+
+    def get_draw_percentage(self):
+        return self._asset_info['draw'] if 'draw' in self._asset_info else 1
 
     
     def shut_down(self):
@@ -71,7 +75,7 @@ class StateManger():
             StateManger.get_store().set(self._get_rkey() + ":load", load)
 
     def get_load(self):
-        """ Get load stored in redis """
+        """ Get load stored in redis (in AMPs)"""
         return float(StateManger.get_store().get(self._get_rkey() + ":load"))
 
     def status(self):
@@ -401,19 +405,78 @@ class ServerStateManager(StaticDeviceStateManager):
         return super().power_off()
     
     def power_up(self):
-        if not self._vm.isActive():
+        powered = super().power_up()
+        if not self._vm.isActive() and powered:
             self._vm.create()
-        return super().power_up()
+        return powered
 
-class BMCServerStateManager(ServerStateManager):
+class IPMIComponent():
     """ 
-    IOUT_*: Current
-    POUT_*: Power (Watts)
-    VOUT_*: Voltage
+    PSU:
+        IOUT_*: Current
+        POUT_*: Power (Watts)
+        VOUT_*: Voltage
     """
-    def __init__(self, asset_info, asset_type='serverwithbmc', notify=False):
-        super(BMCServerStateManager, self).__init__(asset_info, asset_type, notify)
+    def __init__(self, server_key):
+        self._server_key = server_key
+        self._sensor_dir = 'sensor_dir'
 
-class PSUStateManager(StateManger):
+    def set_state_dir(self, state_dir):
+        """Set temp state dir for an IPMI component"""
+        StateManger.get_store().set(str(self._server_key)+ ":state_dir", state_dir)
+
+    def get_state_dir(self):
+        """Get temp IPMI state dir"""
+        # TODO: raise if it doesn't exist
+        return StateManger.get_store().get(str(self._server_key)+ ":state_dir").decode("utf-8")
+    
+    def _read_sensor_file(self, sensor_file):
+        """Retrieve a single value representing sensor state"""
+        with open(sensor_file) as sf_handler:
+            return sf_handler.readline()
+    
+    def _write_sensor_file(self, sensor_file, data):
+        """Update state of a sensor"""
+        with open(sensor_file, 'w') as sf_handler:
+            return sf_handler.write(str(int(data)) + '\n')
+
+    def _get_psu_current_file(self, psu_id):
+        """Get path to a file containing sensor current"""
+        return os.path.join(self.get_state_dir(), os.path.join(self._sensor_dir, 'IOUT_{}'.format(psu_id)))
+    
+    def _get_psu_wattage_file(self, psu_id):
+        """Get path to a file containing sensor wattage"""
+        return os.path.join(self.get_state_dir(), os.path.join(self._sensor_dir, 'POUT_{}'.format(psu_id)))
+
+class BMCServerStateManager(ServerStateManager, IPMIComponent):
+    """Manage Server with BMC """
+    def __init__(self, asset_info, asset_type='serverwithbmc', notify=False):
+        ServerStateManager.__init__(self, asset_info, asset_type, notify)
+        IPMIComponent.__init__(self, asset_info['key'])
+
+class PSUStateManager(StateManger, IPMIComponent):
+
     def __init__(self, asset_info, asset_type='psu', notify=False):
-        super(PSUStateManager, self).__init__(asset_info, asset_type, notify)
+        StateManger.__init__(self, asset_info, asset_type, notify)
+        IPMIComponent.__init__(self,int(repr(asset_info['key'])[:-1]))
+        self._psu_number = int(repr(asset_info['key'])[-1])
+    
+    def get_current(self):
+        """Read current info from a sensor file """        
+        return float(super()._read_sensor_file(super()._get_psu_current_file(self._psu_number)))
+
+    def _update_current(self, load):
+        """Update current inside state file """
+        if load >= 0:
+            super()._write_sensor_file(super()._get_psu_current_file(self._psu_number), load)
+    
+    def _update_waltage(self, wattage):
+        """Update wattage inside state file """        
+        if wattage >= 0:
+            super()._write_sensor_file(super()._get_psu_wattage_file(self._psu_number), wattage)
+
+    def update_load(self, load):
+        super().update_load(load)
+        self._update_current(load)
+        self._update_waltage(load * 120)
+        

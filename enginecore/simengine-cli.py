@@ -131,10 +131,12 @@ def create_asset(**kwargs):
     if kwargs['asset_key'] > 9999:
         raise argparse.ArgumentTypeError("asset-key must be <= 9999")
     if (asset_type == 'server' or asset_type == 'server-bmc'):
+        if kwargs['psu_num'] > 1 and (not kwargs['psu_load'] or len(kwargs['psu_load']) != kwargs['psu_num']):
+            raise argparse.ArgumentTypeError("psu-load is required for server(-bmc) type when there're multiple PSUs")
         if not kwargs['domain_name']:
-            raise argparse.ArgumentTypeError("domain-name is required for a server(-bmc) type")
+            raise argparse.ArgumentTypeError("domain-name is required for server(-bmc) type")
         if not kwargs['power_consumption']:
-            raise argparse.ArgumentTypeError("power-consumption is required for a server(-bmc) type")
+            raise argparse.ArgumentTypeError("power-consumption is required for server(-bmc) type")
             
 
     # attempt to add an asset to the system topology
@@ -203,7 +205,13 @@ create_asset_action.add_argument('--name')
 
 # vm asset options
 create_asset_action.add_argument('--domain-name', help="VM domain name")
-create_asset_action.add_argument('--psu-num', type=int, default=2, help="Number of PSUs installed in the server")
+create_asset_action.add_argument('--psu-num', type=int, default=1, help="Number of PSUs installed in the server")
+create_asset_action.add_argument(
+    '--psu-load', 
+    nargs='+',
+    type=float,
+    help="How much power PSU(s) draw (the downstream power is multiplied by the value, e.g. for 2 PSUs if '--psu-load 0.5 0.5', load is divivided equally) \n"
+)
 
 # configure existing asset
 configure_asset_action = subparsers.add_parser('configure', help="Configure Asset properties")

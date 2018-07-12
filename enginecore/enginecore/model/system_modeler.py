@@ -16,16 +16,18 @@ def link_assets(source_key, dest_key):
         CREATE (dst)-[:POWERED_BY]->(src)\
         ", source_key=source_key, dest_key=dest_key)
 
-def _add_psu(key, psu_index):
+def _add_psu(key, psu_index, draw_percentage=1):
     with graph_ref.get_session() as session:
         session.run("\
         MATCH (asset:Asset {key: $pkey})\
         CREATE (psu:Asset:PSU:Component { \
             name: $psuname,\
-            key: $psukey\
+            key: $psukey,\
+            draw: $draw\
         })\
         CREATE (asset)-[:HAS_COMPONENT]->(psu)\
-        CREATE (asset)-[:POWERED_BY]->(psu)", pkey=key, psuname='psu'+psu_index, psukey=int("{}{}".format(key,psu_index)))
+        CREATE (asset)-[:POWERED_BY]->(psu)", 
+        pkey=key, psuname='psu'+psu_index, draw=draw_percentage, psukey=int("{}{}".format(key,psu_index)))
     
 
 def create_outlet(key, attr):
@@ -48,7 +50,7 @@ def create_server(key, attr, server_variation='Server'):
         
         set_properties(key, attr)
         for i in range(attr['psu_num']):
-            _add_psu(key, str(i+1))
+            _add_psu(key, str(i+1), attr['psu_load'][i] if attr['psu_load'] else 1)
 
     
 def set_properties(key, attr):

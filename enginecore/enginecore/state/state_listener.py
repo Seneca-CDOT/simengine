@@ -166,18 +166,18 @@ class StateListener(Component):
             key=int(child_key)
         )
 
-        record = results.single()
  
-        if record and load_change:
-            parent_asset = dict(record['asset'])
-            print("-- child [{}] power/load update as '{}', updating load for [{}]".format(child_key, load_change, parent_asset['key']))
+        if results and load_change:
+            for record in results:
+                parent_asset = dict(record['asset'])
+                print("-- child [{}] power/load update as '{}', updating load for [{}]".format(child_key, load_change, parent_asset['key']))
 
-            if increased:
-                event = PowerEventManager.map_load_increased_by(load_change, child_key)
-            else: 
-                event = PowerEventManager.map_load_decreased_by(load_change, child_key)
-            
-            self.fire(event, self._assets[parent_asset['key']])
+                if increased:
+                    event = PowerEventManager.map_load_increased_by(load_change, child_key)
+                else: 
+                    event = PowerEventManager.map_load_decreased_by(load_change, child_key)
+                
+                self.fire(event, self._assets[parent_asset['key']])
 
         if load_change:
             # Notify web-socket client of a load update
@@ -201,28 +201,30 @@ class StateListener(Component):
             key=int(asset_key)
         )
 
-        record = results.single()
+        # record = results
 
-        # Meaning it's a leaf node -> update load up the power chain
-        if not record['childAssets'] and record['parentAsset']:
-            leaf_node_amp = self._assets[int(asset_key)].get_amperage()
-            if leaf_node_amp:
-                event = PowerEventManager.map_child_event(str(state), leaf_node_amp, asset_key)
-                self.fire(event, self._assets[int(record['parentAsset'].get('key'))])
+        for record in results:
+            print(dict(record))
+            # Meaning it's a leaf node -> update load up the power chain
+            if not record['childAssets'] and record['parentAsset']:
+                leaf_node_amp = self._assets[int(asset_key)].get_amperage()
+                if leaf_node_amp:
+                    event = PowerEventManager.map_child_event(str(state), leaf_node_amp, asset_key)
+                    self.fire(event, self._assets[int(record['parentAsset'].get('key'))])
 
-        # Power down any connected assets
-        for child in record['childAssets']:
-            key = child.get('key')
-            if record['nextAsset2ndParent']:
-                second_parent = record['nextAsset2ndParent']
-                parent_up = self._assets[int(second_parent.get('key'))].status()
-                if state == 0 and parent_up:
-                    continue
+            # Power down any connected assets
+            for child in record['childAssets']:
+                key = child.get('key')
+                parent_up = False
+                if record['nextAsset2ndParent']:
+                    second_parent = record['nextAsset2ndParent']
+                    parent_up = self._assets[int(second_parent.get('key'))].status()
+                
+                if state != 0 and not parent_up:
+                    event = PowerEventManager.map_parent_event(str(state))
+                    self.fire(event, self._assets[key])
 
 
-            event = PowerEventManager.map_parent_event(str(state))
-            self.fire(event, self._assets[key])
-           
     def _notify_client(self, data):
 
         asset_key, asset_type, state = data
