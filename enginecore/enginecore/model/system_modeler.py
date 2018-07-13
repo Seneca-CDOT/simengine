@@ -55,7 +55,7 @@ def create_server(key, attr, server_variation='Server'):
     
 def set_properties(key, attr):
     with graph_ref.get_session() as session:
-        if attr['host']:
+        if 'host' in attr and attr['host']:
             session.run("\
             MATCH (asset:Asset {key: $pkey})\
             SET asset.host=$host", pkey=key, host=attr['host'])

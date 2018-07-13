@@ -7,7 +7,7 @@ import redis
 from circuits.web import Logger, Server, Static
 from circuits.web.dispatchers import WebSocketsDispatcher
 
-from enginecore.state.assets import SUPPORTED_ASSETS
+from enginecore.state.assets import Asset
 from enginecore.state.utils import get_asset_type
 from enginecore.state.event_map import PowerEventManager
 from enginecore.model.graph_reference import GraphReference
@@ -49,7 +49,7 @@ class StateListener(Component):
 
         # query graph db for the nodes labeled as `Asset`
         results = self._graph_ref.get_session().run(
-            "MATCH (asset:Asset) OPTIONAL MATCH (asset)<-[:POWERED_BY]-(childAsset:Asset) return asset, collect(childAsset) as children"
+            "MATCH (asset:Asset) OPTIONAL MATCH (asset)<-[:POWERED_BY]-(childAsset:Asset) return asset, collect(childAsset) as children ORDER BY asset.key ASC"
         )
 
         # instantiate assets based on graph records
@@ -58,7 +58,7 @@ class StateListener(Component):
             try:
                 asset_type = get_asset_type(record['asset'].labels)
                 asset_key = record['asset'].get('key')
-                self._assets[asset_key] = SUPPORTED_ASSETS[asset_type](dict(record['asset'])).register(self)
+                self._assets[asset_key] = Asset.get_supported_assets()[asset_type](dict(record['asset'])).register(self)
                 if not record['children']:
                     leaf_nodes.append(asset_key) 
             except StopIteration:
@@ -98,7 +98,7 @@ class StateListener(Component):
     def _handle_state_update(self, asset_key, asset_type):
         
         
-        if asset_type not in SUPPORTED_ASSETS:
+        if asset_type not in Asset.get_supported_assets():
             return
         
         updated_asset = self._assets[int(asset_key)]
@@ -106,7 +106,7 @@ class StateListener(Component):
         asset_info = (asset_key, asset_type, asset_status)
 
         self._notify_client(asset_info)
-        self.fire(task(PowerEventManager.map_asset_event(asset_status), updated_asset))
+        self.fire(PowerEventManager.map_asset_event(asset_status), updated_asset)
         self._chain_power_update(asset_info)
             
         print("Key: {}-{} -> {}".format(asset_key, asset_type, asset_status))
@@ -204,7 +204,6 @@ class StateListener(Component):
         # record = results
 
         for record in results:
-            print(dict(record))
             # Meaning it's a leaf node -> update load up the power chain
             if not record['childAssets'] and record['parentAsset']:
                 leaf_node_amp = self._assets[int(asset_key)].get_amperage()
@@ -212,27 +211,34 @@ class StateListener(Component):
                     event = PowerEventManager.map_child_event(str(state), leaf_node_amp, asset_key)
                     self.fire(event, self._assets[int(record['parentAsset'].get('key'))])
 
-            # Power down any connected assets
+            # Check assets down the power stream
             for child in record['childAssets']:
                 key = child.get('key')
                 parent_up = False
+                
+                # check if there's an alternative power source
                 if record['nextAsset2ndParent']:
                     second_parent = record['nextAsset2ndParent']
                     parent_up = self._assets[int(second_parent.get('key'))].status()
                 
-                if state != 0 and not parent_up:
+                # power up/down child assets
+                if not parent_up or state == 1:
                     event = PowerEventManager.map_parent_event(str(state))
                     self.fire(event, self._assets[key])
-
+                else: # if parent up -> trigger load update
+                    print('Found an asset that has alternative asset[{}], child[{}]'.format(asset_key, key))
+                    node_load = self._assets[key].get_load()
+                    print('Child load calculated as : {}'.format(node_load))
+                    event = PowerEventManager.map_child_event(str(state), node_load, key)
+                    self.fire(event, self._assets[int(asset_key)])
 
     def _notify_client(self, data):
 
-        asset_key, asset_type, state = data
+        asset_key, _, state = data
 
         self.fire(NotifyClient({
             'key': int(asset_key),
             'data': {
-                'type':  asset_type,
                 'status': int(state)
         }}), self._ws)
 
@@ -253,7 +259,6 @@ class StateListener(Component):
     def ChildAssetLoadIncreased_success(self, evt, event_result):
         """ When load increases down the power stream """        
         self._chain_load_update(event_result)
-
 
 
     # Notify child asset of any parent events of interest

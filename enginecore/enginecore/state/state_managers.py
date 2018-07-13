@@ -6,8 +6,7 @@ import pysnmp.proto.rfc1902 as snmp_data_types
 import redis
 import libvirt
 from enginecore.model.graph_reference import GraphReference
-import enginecore.state.assets
-from enginecore.state.utils import get_asset_type, format_as_redis_key
+from enginecore.state.utils import format_as_redis_key
 
 
 class StateManger():
@@ -64,15 +63,10 @@ class StateManger():
             self._set_state_on()
         return self.status()
  
-
-    def calculate_load(self):
-        """Calculate load for the device """
-        raise NotImplementedError
-
     def update_load(self, load):
         """ Update load """
-        if load >= 0:
-            StateManger.get_store().set(self._get_rkey() + ":load", load)
+        load = load if load >= 0 else 0
+        StateManger.get_store().set(self._get_rkey() + ":load", load)
 
     def get_load(self):
         """ Get load stored in redis (in AMPs)"""
@@ -186,81 +180,6 @@ class StateManger():
 
         return cls.redis_store
 
-    @classmethod 
-    def _get_assets_states(cls, assets, flatten=True): 
-        """Query redis store and find states for each asset
-        
-        Args:
-            flatten(bool): If false, the returned assets in the dict will have their child-components nested
-        
-        Returns:
-            dict: Current information on assets including their states, load etc.
-        """
-        asset_keys = assets.keys()
-        
-        asset_values = cls.get_store().mget(
-            list(map(lambda k: "{}-{}".format(k, assets[k]['type']), asset_keys))
-        )
-
-        for rkey, rvalue in zip(assets, asset_values):
-            assets[rkey]['status'] = int(rvalue)
-            assets[rkey]['load'] = cls.get_state_manager(assets[rkey]['type'])(assets[rkey]).get_load()
-            
-            if not flatten and 'children' in assets[rkey]:
-                # call recursively on children    
-                assets[rkey]['children'] = cls._get_assets_states(assets[rkey]['children'])
-
-        return assets
-
-
-    @classmethod
-    def get_system_status(cls, flatten=True):
-        """Get states of all system components 
-        
-        Args:
-            flatten(bool): If false, the returned assets in the dict will have their child-components nested
-        
-        Returns:
-            dict: Current information on assets including their states, load etc.
-        """
-        graph_ref = GraphReference()
-        with graph_ref.get_session() as session:
-
-            # cache assets
-            assets = GraphReference.get_assets(session, flatten)
-            assets = cls._get_assets_states(assets, flatten)
-            return assets
-
-
-    @classmethod
-    def get_asset_status(cls, asset_key):
-        """Get state of an asset that has certain key 
-        
-        Args:
-            asset_ket(string): asset key
-        
-        Returns:
-            dict: asset detais
-        """
-
-        graph_ref = GraphReference()
-        with graph_ref.get_session() as session:
-            asset = GraphReference.get_asset_and_components(session, asset_key)
-            asset['status'] = int(cls.get_store().get("{}-{}".format(asset['key'], asset['type'])))
-            return asset
-
-
-    @classmethod 
-    def get_state_manager(cls, asset_type):
-        """Find StateManager class associated with an asset_type stored in graph db
-        
-        Args:
-            asset_type(string): asset type
-        
-        Returns:
-            class: State Manager class derived from StateManager
-        """
-        return enginecore.state.assets.SUPPORTED_ASSETS[asset_type].StateManagerCls
 
 
 class PDUStateManager(StateManger):
@@ -269,33 +188,6 @@ class PDUStateManager(StateManger):
     def __init__(self, asset_info, asset_type='pdu', notify=False):
          super(PDUStateManager, self).__init__(asset_info, asset_type, notify)
         
-
-    def calculate_load(self, exclude=False):
-        """Find PDU load by querying each outlet's load
-        Note that this function will traverse the graph & calculate load for every device down the power chain
-
-        Args:
-            exclude(string): asset key of the outlet excluded from query
-        
-        Returns:
-            float: load in amps
-        """
-
-        if not self.status():
-            return 0
-
-        results = self._graph_ref.get_session().run(
-            "MATCH (:Asset { key: $key })<-[:POWERED_BY]-(asset:Asset) RETURN asset",
-            key=int(self._asset_info['key'])
-        )
-
-        load = 0
-        for record in results:
-            if exclude != record['asset'].get('key'):
-                outlet_manager = OutletStateManager(dict(record['asset']))
-                load += outlet_manager.calculate_load()
-
-        return load
 
 
     def _update_current(self, load):
@@ -306,7 +198,8 @@ class PDUStateManager(StateManger):
         )
 
         record = results.single()
-        if record and load >= 0:
+        load = load if load >= 0 else 0
+        if record:
             self._update_oid(record['oid'], snmp_data_types.Gauge32(load * 10))
    
 
@@ -318,8 +211,8 @@ class PDUStateManager(StateManger):
         )
 
         record = results.single()
-
-        if record and wattage >= 0:
+        wattage = wattage if wattage >= 0 else 0
+        if record:
             self._update_oid(record['oid'], snmp_data_types.Integer32(wattage))
 
 
@@ -341,32 +234,6 @@ class OutletStateManager(StateManger):
     def __init__(self, asset_info, asset_type='outlet', notify=False):
         super(OutletStateManager, self).__init__(asset_info, asset_type, notify)
 
-    def calculate_load(self):
-        """Find what kind of device the outlet powers & return load of that device 
-        Note that this function will traverse the graph & calculate load for every device down the power chain
-        
-        Returns:
-            float: outlet load in amps
-        """
-        
-        if not self.status():
-            return 0
-
-        results = self._graph_ref.get_session().run(
-            "MATCH (:Asset { key: $key })<-[:POWERED_BY]-(asset:Asset) RETURN asset, labels(asset) as labels",
-            key=int(self._asset_info['key'])
-        )
-
-        record = results.single()
-        load = 0
-        
-        if record:
-            asset_type = get_asset_type(record['labels'])
-            load = self.get_state_manager(asset_type)(dict(record['asset'])).calculate_load()
-        
-        return load
-
-
 
 class StaticDeviceStateManager(StateManger):
     """Dummy Device that doesn't do much except drawing power """
@@ -376,14 +243,7 @@ class StaticDeviceStateManager(StateManger):
 
     def get_amperage(self):
         return self._asset_info['powerConsumption'] / self._asset_info['powerSource']
-    
-    def calculate_load(self):
-        """Calculate load in AMPs 
-        
-        Returns:
-            float: device load in amps
-        """
-        return self.get_amperage() if self.status() else 0
+
 
 class ServerStateManager(StaticDeviceStateManager):
     """Server state manager offers control over VM's state """
@@ -408,6 +268,7 @@ class ServerStateManager(StaticDeviceStateManager):
         powered = super().power_up()
         if not self._vm.isActive() and powered:
             self._vm.create()
+        self.update_load(self.get_amperage())
         return powered
 
 class IPMIComponent():
@@ -467,16 +328,15 @@ class PSUStateManager(StateManger, IPMIComponent):
 
     def _update_current(self, load):
         """Update current inside state file """
-        if load >= 0:
-            super()._write_sensor_file(super()._get_psu_current_file(self._psu_number), load)
+        load = load if load >= 0 else 0
+        super()._write_sensor_file(super()._get_psu_current_file(self._psu_number), load)
     
     def _update_waltage(self, wattage):
         """Update wattage inside state file """        
-        if wattage >= 0:
-            super()._write_sensor_file(super()._get_psu_wattage_file(self._psu_number), wattage)
+        wattage = wattage if wattage >= 0 else 0    
+        super()._write_sensor_file(super()._get_psu_wattage_file(self._psu_number), wattage)
 
     def update_load(self, load):
         super().update_load(load)
         self._update_current(load)
         self._update_waltage(load * 120)
-        

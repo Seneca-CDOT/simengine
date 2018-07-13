@@ -1,5 +1,5 @@
 """ Various helper functions """
-import enginecore.state.assets  
+from enginecore.state.asset_definition import SUPPORTED_ASSETS
 
 def format_as_redis_key(key, oid, key_formatted=True):
     """Convert asset key & OID into SNMPSim format as 
@@ -35,8 +35,8 @@ def get_asset_type(labels):
     Raises:
         StopIteration: when asset type is either not supported or undefined in the graph ref
     """
-    
-    asset_label = set(enginecore.state.assets.SUPPORTED_ASSETS).intersection(
+    print(SUPPORTED_ASSETS)
+    asset_label = set(SUPPORTED_ASSETS).intersection(
         map(lambda x: x.lower(), labels)
     )
 

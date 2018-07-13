@@ -6,8 +6,7 @@ import argparse
 import json
 import time
 import curses
-
-from enginecore.state.assets import SUPPORTED_ASSETS
+from enginecore.state.asset_definition import SUPPORTED_ASSETS
 from enginecore.model.graph_reference import GraphReference
 import enginecore.model.system_modeler as sm
 from enginecore.state.state_managers import StateManger

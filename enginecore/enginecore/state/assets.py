@@ -18,16 +18,8 @@ from string import Template
 
 from circuits import Component, handler
 import enginecore.state.state_managers as sm
-
-SUPPORTED_ASSETS = {}
-
-def register_asset(cls):
-    """
-    This decorator maps string class names to classes
-    (It is basically a factory)
-    """
-    SUPPORTED_ASSETS[cls.__name__.lower()] = cls
-    return cls
+from enginecore.state.asset_definition import register_asset, SUPPORTED_ASSETS
+ 
 
 
 class Asset(Component):
@@ -48,6 +40,9 @@ class Asset(Component):
     
     def get_amperage(self):
         return self._state.get_amperage()
+
+    def get_state(self):
+        return self._state
 
     def status(self):
         """ Get Asset status stored in redis db """
@@ -84,7 +79,8 @@ class Asset(Component):
     def on_load_increase(self, event, *args, **kwargs):
         increased_by = self._state.get_draw_percentage() * kwargs['child_load']
         old_load = self._state.get_load()
-        print('Asset : {} : orig load {}, increased by: {}'.format(self._state.get_key(), old_load, increased_by))
+        print('Asset : {} : orig load {}, increased by: {}, new load: {}'
+            .format(self._state.get_key(), old_load, increased_by, old_load - increased_by))
         self._state.update_load(old_load + increased_by)
         return increased_by, self._state.get_key()
 
@@ -95,6 +91,74 @@ class Asset(Component):
         print('Asset : {} : orig load {}, decreased by: {}'.format(self._state.get_key(), old_load, decreased_by))
         self._state.update_load(old_load - decreased_by)
         return decreased_by, self._state.get_key()
+
+    @classmethod
+    def get_supported_assets(cls):
+        return SUPPORTED_ASSETS
+
+    @classmethod 
+    def _get_assets_states(cls, assets, flatten=True): 
+        """Query redis store and find states for each asset
+        
+        Args:
+            flatten(bool): If false, the returned assets in the dict will have their child-components nested
+        
+        Returns:
+            dict: Current information on assets including their states, load etc.
+        """
+        asset_keys = assets.keys()
+        
+        asset_values = cls.get_store().mget(
+            list(map(lambda k: "{}-{}".format(k, assets[k]['type']), asset_keys))
+        )
+
+        for rkey, rvalue in zip(assets, asset_values):
+            assets[rkey]['status'] = int(rvalue)
+            assets[rkey]['load'] = cls.get_state_manager(assets[rkey]['type'])(assets[rkey]).get_load()
+            
+            if not flatten and 'children' in assets[rkey]:
+                # call recursively on children    
+                assets[rkey]['children'] = cls._get_assets_states(assets[rkey]['children'])
+
+        return assets
+
+
+    @classmethod
+    def get_system_status(cls, flatten=True):
+        """Get states of all system components 
+        
+        Args:
+            flatten(bool): If false, the returned assets in the dict will have their child-components nested
+        
+        Returns:
+            dict: Current information on assets including their states, load etc.
+        """
+        graph_ref = GraphReference()
+        with graph_ref.get_session() as session:
+
+            # cache assets
+            assets = GraphReference.get_assets(session, flatten)
+            assets = cls._get_assets_states(assets, flatten)
+            return assets
+
+
+    @classmethod
+    def get_asset_status(cls, asset_key):
+        """Get state of an asset that has certain key 
+        
+        Args:
+            asset_ket(string): asset key
+        
+        Returns:
+            dict: asset detais
+        """
+
+        graph_ref = GraphReference()
+        with graph_ref.get_session() as session:
+            asset = GraphReference.get_asset_and_components(session, asset_key)
+            asset['status'] = int(cls.get_store().get("{}-{}".format(asset['key'], asset['type'])))
+            return asset
+
 
 
 class Agent():
@@ -319,7 +383,7 @@ class ServerWithBMC(Server):
     def __init__(self, asset_info):
         asset_info['ipmi_dir'] = tempfile.mkdtemp()
         super(ServerWithBMC, self).__init__(asset_info)
-
+        
         self._state.set_state_dir(asset_info['ipmi_dir'])
         self._ipmi_agent = IPMIAgent(asset_info['key'], asset_info['ipmi_dir'])
         
