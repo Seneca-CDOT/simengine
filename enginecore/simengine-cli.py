@@ -6,10 +6,10 @@ import argparse
 import json
 import time
 import curses
-from enginecore.state.asset_definition import SUPPORTED_ASSETS
+from enginecore.state.assets import Asset
 from enginecore.model.graph_reference import GraphReference
 import enginecore.model.system_modeler as sm
-from enginecore.state.state_managers import StateManger
+from enginecore.state.state_managers import StateManager
 from enginecore.state.utils import get_asset_type
 
 ASSET_TYPES = ['pdu', 'outlet', 'server', 'server-bmc', 'static']
@@ -25,7 +25,7 @@ def manage_state(asset_key, action):
         asset_info = GraphReference.get_asset_and_components(session, asset_key)
         
         asset_type = get_asset_type(asset_info['labels'])
-        state_manager = SUPPORTED_ASSETS[asset_type].StateManagerCls(asset_info, notify=True)
+        state_manager = Asset.get_supported_assets()[asset_type].StateManagerCls(asset_info, notify=True)
         
         action(state_manager)
 
@@ -77,17 +77,17 @@ def get_status(**kwargs):
         with GraphReference().get_session() as session:
             asset_info = GraphReference.get_asset_and_components(session, int(kwargs['asset_key']))
             asset_type = get_asset_type(asset_info['labels'])
-            state_manager = SUPPORTED_ASSETS[asset_type].StateManagerCls(asset_info)
+            state_manager = Asset.get_supported_assets()[asset_type].StateManagerCls(asset_info)
             print("{}-{} : {}".format(asset_info['key'], asset_type, state_manager.get_load()))
             return
 
     elif kwargs['asset_key']:
-        asset = StateManger.get_asset_status(int(kwargs['asset_key']))
+        asset = StateManager.get_asset_status(int(kwargs['asset_key']))
         print("{key}-{type} : {status}".format(**asset))
         return
 
     ##### list states #####
-    assets = StateManger.get_system_status()
+    assets = StateManager.get_system_status()
 
     # json format
     if kwargs['print_as'] == 'json': 
@@ -108,7 +108,7 @@ def get_status(**kwargs):
             while True:
                 status_table_format(assets, stdscr)
                 time.sleep(kwargs['watch_rate'])
-                assets = StateManger.get_system_status()
+                assets = StateManager.get_system_status()
         except KeyboardInterrupt:
             pass
         finally:

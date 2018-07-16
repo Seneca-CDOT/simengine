@@ -1,4 +1,3 @@
-
 SUPPORTED_ASSETS = {}
 
 def register_asset(cls):

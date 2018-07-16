@@ -9,7 +9,7 @@ from enginecore.model.graph_reference import GraphReference
 from enginecore.state.utils import format_as_redis_key
 
 
-class StateManger():
+class StateManager():
 
     assets = {} # cache graph topology
     redis_store = None
@@ -41,8 +41,10 @@ class StateManger():
         """Implements state logic for graceful power-off event"""
         print('Graceful shutdown')
         self._sleep_shutdown()
+        print (self.status())
         if self.status():
             self._set_state_off()
+            self.update_load(0)
         return self.status()
 
 
@@ -66,11 +68,12 @@ class StateManger():
     def update_load(self, load):
         """ Update load """
         load = load if load >= 0 else 0
-        StateManger.get_store().set(self._get_rkey() + ":load", load)
+        StateManager.get_store().set(self._get_rkey() + ":load", load)
+        self._publish_load(load)
 
     def get_load(self):
         """ Get load stored in redis (in AMPs)"""
-        return float(StateManger.get_store().get(self._get_rkey() + ":load"))
+        return float(StateManager.get_store().get(self._get_rkey() + ":load"))
 
     def status(self):
         """Operational State 
@@ -78,11 +81,11 @@ class StateManger():
         Returns:
             int: 1 if on, 0 if off
         """
-        return int(StateManger.get_store().get(self._get_rkey()))
+        return int(StateManager.get_store().get(self._get_rkey()))
 
     def reset_boot_time(self):
         """Reset the boot time to now"""
-        StateManger.get_store().set(str(self._asset_info['key']) + ":start_time", int(time.time())) 
+        StateManager.get_store().set(str(self._asset_info['key']) + ":start_time", int(time.time())) 
 
     def _sleep_shutdown(self):
         if 'offDelay' in self._asset_info:
@@ -93,19 +96,22 @@ class StateManger():
             time.sleep(self._asset_info['onDelay'] / 1000.0) # ms to sec
     
     def _set_state_on(self):
-        StateManger.get_store().set(self._get_rkey(), '1')
+        StateManager.get_store().set(self._get_rkey(), '1')
         if self._notify:
-            self._publish()
+            self._publish_power()
 
     def _set_state_off(self):
-        StateManger.get_store().set(self._get_rkey(), '0')
+        StateManager.get_store().set(self._get_rkey(), '0')
         if self._notify:
-            self._publish()
+            self._publish_power()
 
-    def _publish(self):
+    def _publish_power(self):
         """ publish state changes """
-        StateManger.get_store().publish('state-upd', self._get_rkey())
+        StateManager.get_store().publish('state-upd', self._get_rkey())
 
+    def _publish_load(self, load):
+        """ publish load changes """
+        StateManager.get_store().publish('load-upd', "{}-{}".format(self._asset_info['key'], load))
 
     def _update_oid(self, oid_details, oid_value):
         """Update oid with a new value
@@ -114,7 +120,7 @@ class StateManger():
             oid_details(dict): information about an object identifier stored in the graph ref
             oid_value(object): OID value in rfc1902 format 
         """
-        redis_store = StateManger.get_store() 
+        redis_store = StateManager.get_store() 
         
         rvalue = "{}|{}".format(oid_details.get('dataType'), oid_value)
         rkey = format_as_redis_key(str(self._asset_info['key']), oid_details.get('OID'), key_formatted=False)
@@ -141,7 +147,7 @@ class StateManger():
         if not keys:
             return True
 
-        parent_values = StateManger.get_store().mget(keys)
+        parent_values = StateManager.get_store().mget(keys)
         pdown = 0
         pdown_msg = ''
         for rkey, rvalue in zip(keys, parent_values): 
@@ -179,10 +185,74 @@ class StateManger():
             cls.redis_store = redis.StrictRedis(host='localhost', port=6379)
 
         return cls.redis_store
+    
+    @classmethod 
+    def _get_assets_states(cls, assets, flatten=True): 
+        """Query redis store and find states for each asset
+        
+        Args:
+            flatten(bool): If false, the returned assets in the dict will have their child-components nested
+        
+        Returns:
+            dict: Current information on assets including their states, load etc.
+        """
+        asset_keys = assets.keys()
+        
+        asset_values = cls.get_store().mget(
+            list(map(lambda k: "{}-{}".format(k, assets[k]['type']), asset_keys))
+        )
+
+        for rkey, rvalue in zip(assets, asset_values):
+            assets[rkey]['status'] = int(rvalue)
+            assets[rkey]['load'] = StateManager(assets[rkey], assets[rkey]['type']).get_load()
+            
+            if not flatten and 'children' in assets[rkey]:
+                # call recursively on children    
+                assets[rkey]['children'] = cls._get_assets_states(assets[rkey]['children'])
+
+        return assets
+
+
+    @classmethod
+    def get_system_status(cls, flatten=True):
+        """Get states of all system components 
+        
+        Args:
+            flatten(bool): If false, the returned assets in the dict will have their child-components nested
+        
+        Returns:
+            dict: Current information on assets including their states, load etc.
+        """
+        graph_ref = GraphReference()
+        with graph_ref.get_session() as session:
+
+            # cache assets
+            assets = GraphReference.get_assets(session, flatten)
+            assets = cls._get_assets_states(assets, flatten)
+            return assets
+
+
+    @classmethod
+    def get_asset_status(cls, asset_key):
+        """Get state of an asset that has certain key 
+        
+        Args:
+            asset_ket(string): asset key
+        
+        Returns:
+            dict: asset detais
+        """
+
+        graph_ref = GraphReference()
+        with graph_ref.get_session() as session:
+            asset = GraphReference.get_asset_and_components(session, asset_key)
+            asset['status'] = int(cls.get_store().get("{}-{}".format(asset['key'], asset['type'])))
+            return asset
 
 
 
-class PDUStateManager(StateManger):
+
+class PDUStateManager(StateManager):
     """Handles state logic for PDU asset """
 
     def __init__(self, asset_info, asset_type='pdu', notify=False):
@@ -228,14 +298,14 @@ class PDUStateManager(StateManger):
 
 
 
-class OutletStateManager(StateManger):
+class OutletStateManager(StateManager):
     """Handles state logic for outlet asset """
 
     def __init__(self, asset_info, asset_type='outlet', notify=False):
         super(OutletStateManager, self).__init__(asset_info, asset_type, notify)
 
 
-class StaticDeviceStateManager(StateManger):
+class StaticDeviceStateManager(StateManager):
     """Dummy Device that doesn't do much except drawing power """
 
     def __init__(self, asset_info, asset_type='staticasset', notify=False):
@@ -284,12 +354,12 @@ class IPMIComponent():
 
     def set_state_dir(self, state_dir):
         """Set temp state dir for an IPMI component"""
-        StateManger.get_store().set(str(self._server_key)+ ":state_dir", state_dir)
+        StateManager.get_store().set(str(self._server_key)+ ":state_dir", state_dir)
 
     def get_state_dir(self):
         """Get temp IPMI state dir"""
         # TODO: raise if it doesn't exist
-        return StateManger.get_store().get(str(self._server_key)+ ":state_dir").decode("utf-8")
+        return StateManager.get_store().get(str(self._server_key)+ ":state_dir").decode("utf-8")
     
     def _read_sensor_file(self, sensor_file):
         """Retrieve a single value representing sensor state"""
@@ -315,10 +385,10 @@ class BMCServerStateManager(ServerStateManager, IPMIComponent):
         ServerStateManager.__init__(self, asset_info, asset_type, notify)
         IPMIComponent.__init__(self, asset_info['key'])
 
-class PSUStateManager(StateManger, IPMIComponent):
+class PSUStateManager(StateManager, IPMIComponent):
 
     def __init__(self, asset_info, asset_type='psu', notify=False):
-        StateManger.__init__(self, asset_info, asset_type, notify)
+        StateManager.__init__(self, asset_info, asset_type, notify)
         IPMIComponent.__init__(self,int(repr(asset_info['key'])[:-1]))
         self._psu_number = int(repr(asset_info['key'])[-1])
     

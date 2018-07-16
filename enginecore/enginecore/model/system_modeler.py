@@ -23,7 +23,8 @@ def _add_psu(key, psu_index, draw_percentage=1):
         CREATE (psu:Asset:PSU:Component { \
             name: $psuname,\
             key: $psukey,\
-            draw: $draw\
+            draw: $draw,\
+            type: 'psu'\
         })\
         CREATE (asset)-[:HAS_COMPONENT]->(psu)\
         CREATE (asset)-[:POWERED_BY]->(psu)", 
@@ -34,7 +35,7 @@ def create_outlet(key, attr):
     """Add outlet to the model """
     with graph_ref.get_session() as session:
         session.run("\
-        CREATE (:Asset:Outlet { name: $name,  key: $key })", key=key, name="out-{}".format(key))
+        CREATE (:Asset:Outlet { name: $name,  key: $key, type: 'outlet' })", key=key, name="out-{}".format(key))
         set_properties(key, attr)
 
 def create_server(key, attr, server_variation='Server'):
@@ -45,8 +46,8 @@ def create_server(key, attr, server_variation='Server'):
 
     with graph_ref.get_session() as session:
         session.run("\
-        CREATE (server:Asset { name: $name,  key: $key }) SET server :"+server_variation, 
-                    key=key, name=attr['domain_name'])
+        CREATE (server:Asset { name: $name,  key: $key, type: $stype }) SET server :"+server_variation, 
+                    key=key, name=attr['domain_name'], stype=server_variation.lower())
         
         set_properties(key, attr)
         for i in range(attr['psu_num']):
@@ -100,7 +101,8 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
         CREATE (:Asset:PDU:SNMPSim { \
             name: $name,\
             key: $key,\
-            staticOidFile: $oid_file\
+            staticOidFile: $oid_file,\
+            type: 'pdu'\
         })", key=key, name=data['assetName'], oid_file=data['staticOidFile'])
         
         set_properties(key, attr)
@@ -149,7 +151,8 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
                     })\
                     CREATE (out1:Asset:Outlet:Component { \
                         name: $outname,\
-                        key: $outkey\
+                        key: $outkey,\
+                        type: 'outlet'\
                     })\
                     CREATE (out1)-[:POWERED_BY]->(pdu)\
                     CREATE (out1)-[:POWERED_BY]->(oid)\
@@ -190,6 +193,7 @@ def create_static(key, attr):
         session.run("\
         CREATE (:Asset:StaticAsset { \
         name: $name, \
+        type: 'staticasset', \
         key: $key})", 
         name=attr['name'], key=key)
         set_properties(key, attr)

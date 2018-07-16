@@ -80,7 +80,7 @@ class Asset(Component):
         increased_by = self._state.get_draw_percentage() * kwargs['child_load']
         old_load = self._state.get_load()
         print('Asset : {} : orig load {}, increased by: {}, new load: {}'
-            .format(self._state.get_key(), old_load, increased_by, old_load - increased_by))
+            .format(self._state.get_key(), old_load, increased_by, old_load + increased_by))
         self._state.update_load(old_load + increased_by)
         return increased_by, self._state.get_key()
 
@@ -96,68 +96,6 @@ class Asset(Component):
     def get_supported_assets(cls):
         return SUPPORTED_ASSETS
 
-    @classmethod 
-    def _get_assets_states(cls, assets, flatten=True): 
-        """Query redis store and find states for each asset
-        
-        Args:
-            flatten(bool): If false, the returned assets in the dict will have their child-components nested
-        
-        Returns:
-            dict: Current information on assets including their states, load etc.
-        """
-        asset_keys = assets.keys()
-        
-        asset_values = cls.get_store().mget(
-            list(map(lambda k: "{}-{}".format(k, assets[k]['type']), asset_keys))
-        )
-
-        for rkey, rvalue in zip(assets, asset_values):
-            assets[rkey]['status'] = int(rvalue)
-            assets[rkey]['load'] = cls.get_state_manager(assets[rkey]['type'])(assets[rkey]).get_load()
-            
-            if not flatten and 'children' in assets[rkey]:
-                # call recursively on children    
-                assets[rkey]['children'] = cls._get_assets_states(assets[rkey]['children'])
-
-        return assets
-
-
-    @classmethod
-    def get_system_status(cls, flatten=True):
-        """Get states of all system components 
-        
-        Args:
-            flatten(bool): If false, the returned assets in the dict will have their child-components nested
-        
-        Returns:
-            dict: Current information on assets including their states, load etc.
-        """
-        graph_ref = GraphReference()
-        with graph_ref.get_session() as session:
-
-            # cache assets
-            assets = GraphReference.get_assets(session, flatten)
-            assets = cls._get_assets_states(assets, flatten)
-            return assets
-
-
-    @classmethod
-    def get_asset_status(cls, asset_key):
-        """Get state of an asset that has certain key 
-        
-        Args:
-            asset_ket(string): asset key
-        
-        Returns:
-            dict: asset detais
-        """
-
-        graph_ref = GraphReference()
-        with graph_ref.get_session() as session:
-            asset = GraphReference.get_asset_and_components(session, asset_key)
-            asset['status'] = int(cls.get_store().get("{}-{}".format(asset['key'], asset['type'])))
-            return asset
 
 
 

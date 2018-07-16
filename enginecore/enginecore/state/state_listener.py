@@ -213,23 +213,40 @@ class StateListener(Component):
 
             # Check assets down the power stream
             for child in record['childAssets']:
-                key = child.get('key')
+                child_key = child.get('key')
                 parent_up = False
                 
-                # check if there's an alternative power source
+                # check if there's an alternative power source of the child asset
+                '''
+                 e.g.
+                 (psu1)  (psu2)
+                   \       /
+                  [pow]  [pow]
+                     \   /
+                     (server) <- child
+                '''
                 if record['nextAsset2ndParent']:
                     second_parent = record['nextAsset2ndParent']
                     parent_up = self._assets[int(second_parent.get('key'))].status()
                 
                 # power up/down child assets
-                if not parent_up or state == 1:
+                if not parent_up:
                     event = PowerEventManager.map_parent_event(str(state))
-                    self.fire(event, self._assets[key])
-                else: # if parent up -> trigger load update
-                    print('Found an asset that has alternative asset[{}], child[{}]'.format(asset_key, key))
-                    node_load = self._assets[key].get_load()
-                    print('Child load calculated as : {}'.format(node_load))
-                    event = PowerEventManager.map_child_event(str(state), node_load, key)
+                    self.fire(event, self._assets[child_key])
+                
+                # check upstream & branching power
+                if parent_up: # if parent up -> trigger load update
+                    print('Found an asset that has alternative parent[{}], child[{}]'.format(second_parent.get('key'), child_key))
+                    node_load = self._assets[child_key].get_load()
+ 
+                    if int(state) == 0:         
+                        alt_branch_event = PowerEventManager.map_load_increased_by(node_load, child_key)
+                    else:
+                        alt_branch_event = PowerEventManager.map_load_decreased_by(node_load, child_key)
+                    
+                    event = PowerEventManager.map_child_event(str(state), node_load, child_key)
+                    
+                    self.fire(alt_branch_event, self._assets[int(second_parent.get('key'))])
                     self.fire(event, self._assets[int(asset_key)])
 
     def _notify_client(self, data):
