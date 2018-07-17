@@ -69,7 +69,7 @@ class StateManager():
         """ Update load """
         load = load if load >= 0 else 0
         StateManager.get_store().set(self._get_rkey() + ":load", load)
-        self._publish_load(load)
+        self._publish_load()
 
     def get_load(self):
         """ Get load stored in redis (in AMPs)"""
@@ -109,9 +109,9 @@ class StateManager():
         """ publish state changes """
         StateManager.get_store().publish('state-upd', self._get_rkey())
 
-    def _publish_load(self, load):
+    def _publish_load(self):
         """ publish load changes """
-        StateManager.get_store().publish('load-upd', "{}-{}".format(self._asset_info['key'], load))
+        StateManager.get_store().publish('load-upd', self._get_rkey())
 
     def _update_oid(self, oid_details, oid_value):
         """Update oid with a new value
@@ -327,11 +327,13 @@ class ServerStateManager(StaticDeviceStateManager):
     def shut_down(self):
         if self._vm.isActive():
             self._vm.shutdown()
+            self.update_load(0)
         return super().shut_down()
 
     def power_off(self):
         if self._vm.isActive():
             self._vm.destroy()
+            self.update_load(0)
         return super().power_off()
     
     def power_up(self):

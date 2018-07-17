@@ -47,6 +47,9 @@ class Asset(Component):
     def status(self):
         """ Get Asset status stored in redis db """
         return self._state.status()
+    
+    def get_draw_percentage(self):
+        return self._state.get_draw_percentage()
 
     def power_up(self):
         """ Power up this asset """
@@ -77,7 +80,7 @@ class Asset(Component):
 
     @handler("ChildAssetPowerUp", "ChildAssetLoadIncreased")
     def on_load_increase(self, event, *args, **kwargs):
-        increased_by = self._state.get_draw_percentage() * kwargs['child_load']
+        increased_by = kwargs['child_load']
         old_load = self._state.get_load()
         print('Asset : {} : orig load {}, increased by: {}, new load: {}'
             .format(self._state.get_key(), old_load, increased_by, old_load + increased_by))
@@ -86,7 +89,7 @@ class Asset(Component):
 
     @handler("ChildAssetPowerDown", "ChildAssetLoadDecreased")
     def on_load_decrease(self, event, *args, **kwargs):
-        decreased_by = self._state.get_draw_percentage() * kwargs['child_load']
+        decreased_by = kwargs['child_load']
         old_load = self._state.get_load()
         print('Asset : {} : orig load {}, decreased by: {}'.format(self._state.get_key(), old_load, decreased_by))
         self._state.update_load(old_load - decreased_by)
