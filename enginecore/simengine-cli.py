@@ -243,6 +243,7 @@ power_up_action.add_argument('-k', '--asset-key', type=int, required=True)
 
 power_down_action = subparsers.add_parser('down', help="Power down a particular component/asset")
 power_down_action.add_argument('-k', '--asset-key', type=int, required=True)
+power_down_action.add_argument('--hard', dest='hard', action='store_true')
 
 ############ Callbacks for actions
 
@@ -272,13 +273,13 @@ drop_system_action.set_defaults(func=lambda args: sm.drop_model())
 
 ## power_group callbacks
 power_up_action.set_defaults(
-    func=lambda args: manage_state(args['asset_key'], lambda asset: asset.power_up())
+    func=lambda args: manage_state(args['asset_key'], lambda a: a.power_up())
 )
 
 power_down_action.set_defaults(
-    func=lambda args: manage_state(args['asset_key'], lambda asset: asset.shut_down())
+    hard=False,
+    func=lambda args: manage_state(args['asset_key'], lambda a: a.power_off() if args['hard'] else a.shut_down())
 )
-
 
 try:
     options = argparser.parse_args()

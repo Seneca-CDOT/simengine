@@ -116,11 +116,16 @@ bmc_set_chassis_control(lmc_data_t *mc, int op, unsigned char *val,
 	struct timeval now;
 	sys->get_real_time(sys, &now);
 	sys->log(sys, DEBUG, NULL, "Power request for all boards,"
-		 " val=%d, now=%ld.%ld, asset=%d",
-		 *val, now.tv_sec, now.tv_sec, server_id);
+		 " val=%d, now=%ld.%ld, asset=%d, op=%d",
+		 *val, now.tv_sec, now.tv_sec, server_id, op);
   
-  if (*val == 0) {
-    sprintf(power_cmd, "simengine-cli.py power down --asset-key=%d", server_id);
+  if (*val == 0 || op == CHASSIS_CONTROL_GRACEFUL_SHUTDOWN) {
+    char* hard_flag = "--hard";
+    if (op == CHASSIS_CONTROL_GRACEFUL_SHUTDOWN) {
+      hard_flag = "";
+    }
+    sprintf(power_cmd, "simengine-cli.py power down --asset-key=%d %s", server_id, hard_flag);
+    sys->log(sys, DEBUG, NULL, power_cmd);
     system(power_cmd);
   } else if (*val == 1) {
     sprintf(power_cmd, "simengine-cli.py power up --asset-key=%d", server_id);
