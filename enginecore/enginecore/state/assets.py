@@ -327,7 +327,16 @@ class ServerWithBMC(Server):
         
         self._state.set_state_dir(asset_info['ipmi_dir'])
         self._ipmi_agent = IPMIAgent(asset_info['key'], asset_info['ipmi_dir'])
-        
+    
+    @handler("ParentAssetPowerDown")
+    def on_parent_power_down(self):
+        self._ipmi_agent.stop_agent()
+        return self.power_off()
+
+    @handler("ParentAssetPowerUp")
+    def on_parent_power_up(self):
+        self._ipmi_agent.start_agent() 
+        return self.power_up()
 
 @register_asset
 class PSU(StaticAsset):

@@ -50,30 +50,44 @@ sensor_set_event_support 0x30 0 1 enable scanning per-state \
 	000111111000000 000111111000000 \
 	000111111000000 000111111000000
 
+
+########################
 # Power supply sensors
+########################
 # sensor_add\fP \fImc-addr\fP \fILUN\fP \fIsensor-num\fP \fIsensor-type\fP \fIevent-reading-code\fP [\fIpoll\fP \fIpoll_rate\fP \fIpoll_type\fP \fIpoll_type_options\fP] [event-only]
 
-sensor_add 0x20  0    8     8     0x6f
-sensor_add 0x20  0    9     8     0x6f
-sensor_add 0x20  0   10     2     1 poll 2000 \
-        file "${ipmi_dir}/sensor_dir/VOUT_1" 
-# mult=8 div=125 sub=10000 \
-# depends=0x20,0,8,0
-sensor_add 0x20  0   11     2     1 poll 2000 \
-        file "${ipmi_dir}/sensor_dir/VOUT_2"
-# depends=0x20,0,9,0
+
+# Status
+sensor_add 0x20  0    8     8     0x6f  poll 2000 \
+        file "${ipmi_dir}/sensor_dir/STATUS_1"
+sensor_add 0x20  0    9     8     0x6f  poll 2000 \
+		file "${ipmi_dir}/sensor_dir/STATUS_2"
+
+# PSU Fans
+sensor_add 0x20  0   0x70     3     1 poll 2000 \
+        file "${ipmi_dir}/sensor_dir/FAN_1" depends=0x20,0,8,0
+sensor_add 0x20  0   0x71     3     1 poll 2000 \
+        file "${ipmi_dir}/sensor_dir/FAN_2" depends=0x20,0,9,0
+
+# Current
 sensor_add 0x20  0   12     3     1 poll 2000 \
-        file "${ipmi_dir}/sensor_dir/IOUT_1" 
-# depends=0x20,0,8,0
+        file "${ipmi_dir}/sensor_dir/IOUT_1" depends=0x20,0,8,0
 sensor_add 0x20  0   13     3     1 poll 2000 \
-        file "${ipmi_dir}/sensor_dir/IOUT_2" 
-# depends=0x20,0,9,0
+        file "${ipmi_dir}/sensor_dir/IOUT_2" depends=0x20,0,9,0
+
+# Wattage
 sensor_add 0x20  0   14     3     1 poll 2000 \
-        file "${ipmi_dir}/sensor_dir/POUT_1" div=10
-# depends=0x20,0,8,0
+        file "${ipmi_dir}/sensor_dir/POUT_1" div=10 depends=0x20,0,8,0
 sensor_add 0x20  0   15     3     1 poll 2000 \
-        file "${ipmi_dir}/sensor_dir/POUT_2" div=10
-# depends=0x20,0,9,0
+        file "${ipmi_dir}/sensor_dir/POUT_2" div=10 depends=0x20,0,9,0
+
+
+# Voltage
+sensor_add 0x20  0   10     2     1 poll 2000 \
+ 		file "${ipmi_dir}/sensor_dir/VOUT_1" depends=0x20,0,8,0
+sensor_add 0x20  0   11     2     1 poll 2000 \
+ 		file "${ipmi_dir}/sensor_dir/VOUT_2" depends=0x20,0,9,0
+
 
 mc_enable 0x30
 

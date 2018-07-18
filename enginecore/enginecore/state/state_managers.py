@@ -44,7 +44,7 @@ class StateManager():
         print (self.status())
         if self.status():
             self._set_state_off()
-            self.update_load(0)
+            # self.update_load(0)
         return self.status()
 
 
@@ -314,6 +314,13 @@ class StaticDeviceStateManager(StateManager):
     def get_amperage(self):
         return self._asset_info['powerConsumption'] / self._asset_info['powerSource']
 
+        
+    def power_up(self):
+        powered = super().power_up()
+        if powered:
+            self.update_load(self.get_amperage())
+        return powered
+
 
 class ServerStateManager(StaticDeviceStateManager):
     """Server state manager offers control over VM's state """
@@ -340,7 +347,7 @@ class ServerStateManager(StaticDeviceStateManager):
         powered = super().power_up()
         if not self._vm.isActive() and powered:
             self._vm.create()
-        self.update_load(self.get_amperage())
+            self.update_load(self.get_amperage())
         return powered
 
 class IPMIComponent():
@@ -381,6 +388,10 @@ class IPMIComponent():
         """Get path to a file containing sensor wattage"""
         return os.path.join(self.get_state_dir(), os.path.join(self._sensor_dir, 'POUT_{}'.format(psu_id)))
 
+    def _get_psu_fan_file(self, psu_id):
+        """Get path to a file containing fan RPM"""
+        return os.path.join(self.get_state_dir(), os.path.join(self._sensor_dir, 'FAN_{}'.format(psu_id)))
+
 class BMCServerStateManager(ServerStateManager, IPMIComponent):
     """Manage Server with BMC """
     def __init__(self, asset_info, asset_type='serverwithbmc', notify=False):
@@ -408,7 +419,12 @@ class PSUStateManager(StateManager, IPMIComponent):
         wattage = wattage if wattage >= 0 else 0    
         super()._write_sensor_file(super()._get_psu_wattage_file(self._psu_number), wattage)
 
+    def _update_fan_speed(self, value):
+        value = value if value >= 0 else 0    
+        super()._write_sensor_file(super()._get_psu_fan_file(self._psu_number), value)
+
     def update_load(self, load):
         super().update_load(load)
         self._update_current(load)
         self._update_waltage(load * 120)
+        self._update_fan_speed(100 if load > 0 else 0)

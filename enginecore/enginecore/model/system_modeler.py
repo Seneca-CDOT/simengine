@@ -10,8 +10,11 @@ graph_ref = GraphReference()
 def link_assets(source_key, dest_key):
     """Power a component by another component """
     with graph_ref.get_session() as session:
+
+        
         session.run("\
         MATCH (src:Asset {key: $source_key})\
+        WHERE NOT src:PDU\
         MATCH (dst:Asset {key: $dest_key})\
         CREATE (dst)-[:POWERED_BY]->(src)\
         ", source_key=source_key, dest_key=dest_key)
