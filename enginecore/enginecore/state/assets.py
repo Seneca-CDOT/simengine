@@ -128,7 +128,7 @@ class IPMIAgent(Agent):
         lan_conf = os.path.join(self._ipmi_dir, 'lan.conf')
         ipmisim_emu = os.path.join(self._ipmi_dir, 'ipmisim1.emu')
 
-        lan_conf_opt = {'asset_key': key, 'extend_lib': '/home/huanshi/dev/simengine/enginecore/ipmi_sim/haos_extend.so'}
+        lan_conf_opt = {'asset_key': key, 'extend_lib': '/usr/lib/simengine/haos_extend.so'}
         ipmisim_emu_opt = {'ipmi_dir': self._ipmi_dir}
 
         with open(lan_conf, "r+") as filein:
