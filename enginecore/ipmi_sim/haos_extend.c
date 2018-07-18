@@ -26,7 +26,7 @@
 #include <OpenIPMI/ipmi_msgbits.h>
 #include <OpenIPMI/ipmi_bits.h>
 #include <OpenIPMI/serv.h>
-#include <hiredis/hiredis.h>
+// #include <hiredis/hiredis.h>
 
 #define PVERSION "0.0.0"
 
@@ -55,7 +55,7 @@
 
 static lmc_data_t *bmc_mc;
 static unsigned int server_id = 0;
-redisContext *redis_store;
+// redisContext *redis_store;
 
 static struct board_info {
     sys_data_t *sys;
@@ -162,13 +162,13 @@ int ipmi_sim_module_init(sys_data_t *sys, const char *options) {
 
   free(initstr);
 
-  redis_store = redisConnect("localhost", 6379);
-  if (redis_store != NULL && redis_store->err) {
-    sys->log(sys, OS_ERROR, NULL,"Unable to connect to redis: %s", redis_store->errstr);
-    return 0;
-  } else {
-     sys->log(sys, DEBUG, NULL, "Connected to Redis\n");
-  }
+  // redis_store = redisConnect("localhost", 6379);
+  // if (redis_store != NULL && redis_store->err) {
+  //   sys->log(sys, OS_ERROR, NULL,"Unable to connect to redis: %s", redis_store->errstr);
+  //   return 0;
+  // } else {
+  //    sys->log(sys, DEBUG, NULL, "Connected to Redis\n");
+  // }
 
   ipmi_emu_add_cmd("say_hello", NOMC, say_hello);
   rv = ipmi_mc_alloc_unconfigured(sys, 0x20, &bmc_mc);
