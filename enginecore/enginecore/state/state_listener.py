@@ -295,6 +295,8 @@ class StateListener(Component):
                 'status': int(state)
         }}), self._ws)
 
+    # Events are camel-case
+    # pylint: disable=C0103
 
     # Notify parent asset of any child events
     def ChildAssetPowerDown_success(self, evt, event_result):
@@ -332,6 +334,13 @@ class StateListener(Component):
 
     def SignalUp_success(self, evt, event_result):
         """ When asset is powered up """
+        self._notify_client(event_result)
+        self._chain_power_update(event_result)
+
+    def SignalReboot_success(self, evt, event_result):
+        """ Rebooted """
+        print('REBOOT')
+        print(event_result)
         self._notify_client(event_result)
         self._chain_power_update(event_result)
 

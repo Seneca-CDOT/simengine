@@ -38,3 +38,8 @@ class SignalDown(Event):
 class SignalUp(Event):
     """ Asset Received power Up request """
     success = True
+
+class SignalReboot(Event):
+    """ Asset Received reboot request """
+    success = True
+    

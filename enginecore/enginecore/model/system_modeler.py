@@ -134,9 +134,10 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
                     CREATE (OutletStateDetails:OIDDesc {{\
                         OIDName: $name, \
                         {}: \"switchOn\",\
-                        {}: \"switchOff\" \
+                        {}: \"switchOff\", \
+                        {}: \"immediateReboot\"\
                     }})\
-                    ".format(oid_desc["switchOn"], oid_desc["switchOff"])
+                    ".format(oid_desc["switchOn"], oid_desc["switchOff"], oid_desc["immediateReboot"])
                     session.run(query, name="{}-{}".format(k,key))
 
                 for i in range(outlet_count):

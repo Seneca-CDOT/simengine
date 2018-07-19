@@ -8,7 +8,8 @@ class PowerEventManager:
     STATE_SPECS = {
         'OutletState': {
             "switchOff": events.SignalDown(),
-            "switchOn": events.SignalUp()
+            "switchOn": events.SignalUp(),
+            "immediateReboot": events.SignalReboot()
         }
     }
 

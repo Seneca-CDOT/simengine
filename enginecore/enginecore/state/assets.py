@@ -36,19 +36,23 @@ class Asset(Component):
         return self._state.get_key()
 
     def get_load(self):
+        """Current asset load (in AMPs)"""
         return self._state.get_load()
     
     def get_amperage(self):
+        """Power consumption in amps"""
         return self._state.get_amperage()
 
     def get_state(self):
+        """State manager instance"""
         return self._state
 
     def status(self):
-        """ Get Asset status stored in redis db """
+        """Get Asset status stored in redis db """
         return self._state.status()
     
     def get_draw_percentage(self):
+        """How much this asset draws from the downstream"""
         return self._state.get_draw_percentage()
 
     def power_up(self):
@@ -60,21 +64,21 @@ class Asset(Component):
         return self._state.get_key(), self._state.get_type(), self._state.power_off()
 
     ##### React to events associated with the asset #####
-    def on_asset_power_down(self):
+    def on_asset_did_power_off(self):
         """ Call when state of an asset is switched to 'off' """
         raise NotImplementedError
 
-    def on_asset_power_up(self):
+    def on_asset_did_power_on(self):
         """ Call when state of an asset is switched to 'on' """
         raise NotImplementedError
 
 
     ##### React to any events of the connected components #####
-    def on_parent_power_down(self):
+    def on_power_off_request_received(self):
         """ Upstream loss of power """
         raise NotImplementedError
 
-    def on_parent_power_up(self):
+    def on_power_up_request_received(self):
         """ Upstream power restored """        
         raise NotImplementedError
 
@@ -244,21 +248,21 @@ class PDU(Asset):
 
     ##### Create/kill SNMP agent when PDU state changes
     @handler("AssetPowerDown")
-    def on_asset_power_down(self):
+    def on_asset_did_power_off(self):
         self._snmp_agent.stop_agent()
 
 
     @handler("AssetPowerUp")
-    def on_asset_power_up(self):
+    def on_asset_did_power_on(self):
         self._snmp_agent.start_agent()
 
     ##### React to any events of the connected components #####
     @handler("ParentAssetPowerDown")
-    def on_parent_power_down(self): 
+    def on_power_off_request_received(self): 
         return self.power_off()
 
     @handler("ParentAssetPowerUp")
-    def on_parent_power_up(self):
+    def on_power_up_request_received(self):
         return self.power_up()
 
 
@@ -275,17 +279,28 @@ class Outlet(Asset):
 
 
     ##### React to any events of the connected components #####    
-    @handler("ParentAssetPowerDown", "SignalDown")
-    def on_parent_power_down(self):
+    @handler("ParentAssetPowerDown", "SignalDown", "SignalReboot", priority=2)
+    def on_power_off_request_received(self):
         """ React to events with power down """
         return self.power_off()
 
 
-    @handler("ParentAssetPowerUp", "SignalUp")
-    def on_parent_power_up(self):
+    @handler("ParentAssetPowerUp", "SignalUp", "SignalReboot", priority=1)
+    def on_power_up_request_received(self, event):
         """ React to events with power up """
-        return self.power_up()
 
+        if self._state.status():
+            event.success = False
+        print (event.success)
+        return self.power_up()
+        
+    @handler("SignalReboot")
+    def on_reboot_request_received(self, event):
+        init_state = self.status()
+        self.on_power_off_request_received()
+        a = self.on_power_up_request_received(event)
+        print(event.success)
+        return a
 
 @register_asset
 class StaticAsset(Asset):
@@ -297,12 +312,12 @@ class StaticAsset(Asset):
         self._state.update_load(self._state.get_amperage())
 
     @handler("ParentAssetPowerDown")
-    def on_parent_power_down(self): 
+    def on_power_off_request_received(self): 
         return self.power_off()
 
 
     @handler("ParentAssetPowerUp")
-    def on_parent_power_up(self):
+    def on_power_up_request_received(self):
         return self.power_up()
 
 @register_asset
@@ -323,18 +338,20 @@ class ServerWithBMC(Server):
     
     def __init__(self, asset_info):
         asset_info['ipmi_dir'] = tempfile.mkdtemp()
+        self._ipmi_agent = IPMIAgent(asset_info['key'], asset_info['ipmi_dir'])
+
         super(ServerWithBMC, self).__init__(asset_info)
         self._state.set_state_dir(asset_info['ipmi_dir'])
 
-        self._ipmi_agent = IPMIAgent(asset_info['key'], asset_info['ipmi_dir'])
+        
     
     @handler("ParentAssetPowerDown")
-    def on_parent_power_down(self):
+    def on_power_off_request_received(self):
         self._ipmi_agent.stop_agent()
         return self.power_off()
 
     @handler("ParentAssetPowerUp")
-    def on_parent_power_up(self):
+    def on_power_up_request_received(self):
         self._ipmi_agent.start_agent() 
         return self.power_up()
 
@@ -346,12 +363,13 @@ class PSU(StaticAsset):
 
     def __init__(self, asset_info):
         super(PSU, self).__init__(asset_info)
+        print(asset_info)
 
     @handler("AssetPowerDown")
-    def on_asset_power_down(self):
+    def on_asset_did_power_off(self):
         self._state.set_psu_status(0x08)
 
     
     @handler("AssetPowerUp")
-    def on_asset_power_up(self):
+    def on_asset_did_power_on(self):
         self._state.set_psu_status(0x01)

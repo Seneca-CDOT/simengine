@@ -367,9 +367,9 @@ class IPMIComponent():
 
     def get_state_dir(self):
         """Get temp IPMI state dir"""
-        # TODO: raise if it doesn't exist
-        return StateManager.get_store().get(str(self._server_key)+ ":state_dir").decode("utf-8")
-    
+        state_dir = StateManager.get_store().get(str(self._server_key)+ ":state_dir")
+        return state_dir.decode("utf-8") if state_dir else False
+
     def _read_sensor_file(self, sensor_file):
         """Retrieve a single value representing sensor state"""
         with open(sensor_file) as sf_handler:
@@ -408,6 +408,8 @@ class BMCServerStateManager(ServerStateManager, IPMIComponent):
     def __init__(self, asset_info, asset_type='serverwithbmc', notify=False):
         ServerStateManager.__init__(self, asset_info, asset_type, notify)
         IPMIComponent.__init__(self, asset_info['key'])
+        if 'ipmi_dir' in asset_info:
+            super().set_state_dir(asset_info['ipmi_dir'])
 
     def power_up(self):
         powered = super().power_up()
@@ -418,9 +420,14 @@ class BMCServerStateManager(ServerStateManager, IPMIComponent):
     def shut_down(self):
         super()._update_cpu_temp(0)
         return super().shut_down()
+
     def power_off(self):
         super()._update_cpu_temp(0)
         return super().power_off()
+
+# class PSUStateManager(StateManager):
+#     def __init__(self, asset_info, asset_type='psu', notify=False):
+#         StateManager.__init__(self, asset_info, asset_type, notify)
 
 class PSUStateManager(StateManager, IPMIComponent):
 
@@ -451,10 +458,13 @@ class PSUStateManager(StateManager, IPMIComponent):
         
     def set_psu_status(self, value):
         """0x08 indicates AC loss"""
-        super()._write_sensor_file(super()._get_psu_status_file(self._psu_number), value)
+        if super().get_state_dir():
+            super()._write_sensor_file(super()._get_psu_status_file(self._psu_number), value)
 
     def update_load(self, load):
         super().update_load(load)
-        self._update_current(load)
-        self._update_waltage(load * 10)
-        self._update_fan_speed(100 if load > 0 else 0)
+
+        if super().get_state_dir():
+            self._update_current(load)
+            self._update_waltage(load * 10)
+            self._update_fan_speed(100 if load > 0 else 0)

@@ -31,7 +31,11 @@
             "dataType": 2,
             "oidDesc": {
                 "`1`": "switchOn",
-                "`2`": "switchOff"
+                "`2`": "switchOff",
+                "`3`": "immediateReboot",
+                "`4`": "delayedOn",
+                "`5`": "delayedOff",
+                "`6`": "delayedReboot"
             }
         }
     }
