@@ -28,7 +28,10 @@ export default class Pdu extends React.Component {
       // because "image" property is changed
       this.setState({ c14: image });
     };
+  }
 
+  componentWillReceiveProps(newProps) {
+    this.setState({ x: newProps.x, y: newProps.y });
   }
 
   /** Notify Parent of Selection */
@@ -75,6 +78,7 @@ export default class Pdu extends React.Component {
           powered={this.props.asset.status}
           parentSelected={this.props.selected}
           red_means_on={true}
+          onPosChange={this.props.onPosChange}
         />
       );
       x += 90;

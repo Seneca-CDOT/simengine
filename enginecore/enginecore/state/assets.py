@@ -142,7 +142,7 @@ class IPMIAgent(Agent):
             filein.write(template.substitute(ipmisim_emu_opt))
 
 
-        print(self._ipmi_dir)
+        # print(self._ipmi_dir)
 
         self.start_agent()
         IPMIAgent.agent_num += 1
@@ -324,8 +324,8 @@ class ServerWithBMC(Server):
     def __init__(self, asset_info):
         asset_info['ipmi_dir'] = tempfile.mkdtemp()
         super(ServerWithBMC, self).__init__(asset_info)
-        
         self._state.set_state_dir(asset_info['ipmi_dir'])
+
         self._ipmi_agent = IPMIAgent(asset_info['key'], asset_info['ipmi_dir'])
     
     @handler("ParentAssetPowerDown")
@@ -346,3 +346,12 @@ class PSU(StaticAsset):
 
     def __init__(self, asset_info):
         super(PSU, self).__init__(asset_info)
+
+    @handler("AssetPowerDown")
+    def on_asset_power_down(self):
+        self._state.set_psu_status(0x08)
+
+    
+    @handler("AssetPowerUp")
+    def on_asset_power_up(self):
+        self._state.set_psu_status(0x01)

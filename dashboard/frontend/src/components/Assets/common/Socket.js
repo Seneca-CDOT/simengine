@@ -37,7 +37,6 @@ export default class Socket extends React.Component {
       }
     }
 
-
     /** Load Socket Image */
     componentDidMount() {
       const image = new window.Image();
@@ -50,7 +49,10 @@ export default class Socket extends React.Component {
           image: image
         });
       };
+    }
 
+    componentWillReceiveProps(newProps) {
+      this.setState({ x: newProps.x, y: newProps.y });
     }
 
      /** Notify Parent of Selection */

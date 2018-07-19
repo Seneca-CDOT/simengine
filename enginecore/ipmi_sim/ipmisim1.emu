@@ -28,12 +28,12 @@ sensor_set_event_support 0x20 0 1 enable scanning per-state \
 	000111111000000 000111111000000
 
 # Add a memory module presence sensor.
-sensor_add 0x20 0 2 37 0x6f
-sensor_set_bit_clr_rest 0x20 0 2 1 1
+# sensor_add 0x20 0 2 37 0x6f
+# sensor_set_bit_clr_rest 0x20 0 2 1 1
 #sensor_set_bit_clr_rest 0x20 0 2 0 1
-sensor_set_event_support 0x20 0 2 enable scanning per-state \
-	000000000000011 000000000000011 \
-	000000000000011 000000000000011
+# sensor_set_event_support 0x20 0 2 enable scanning per-state \
+# 	000000000000011 000000000000011 \
+# 	000000000000011 000000000000011
 
 # FRU data for entity 8.2
 mc_add_fru_data 0x30 3 128 data 0
@@ -50,6 +50,9 @@ sensor_set_event_support 0x30 0 1 enable scanning per-state \
 	000111111000000 000111111000000 \
 	000111111000000 000111111000000
 
+#### CPU Sensors
+sensor_add 0x20  0    2     1     1  poll 2000 \
+         file "../ipmi_template/sensor_dir/CPU_TEMP"
 # Power supply sensors
 # sensor_add\fP \fImc-addr\fP \fILUN\fP \fIsensor-num\fP \fIsensor-type\fP \fIevent-reading-code\fP [\fIpoll\fP \fIpoll_rate\fP \fIpoll_type\fP \fIpoll_type_options\fP] [event-only]
 

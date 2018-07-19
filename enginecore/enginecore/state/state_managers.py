@@ -392,11 +392,35 @@ class IPMIComponent():
         """Get path to a file containing fan RPM"""
         return os.path.join(self.get_state_dir(), os.path.join(self._sensor_dir, 'FAN_{}'.format(psu_id)))
 
+    def _get_psu_status_file(self, psu_id):
+        """Get path to a file indicating PSU status"""
+        return os.path.join(self.get_state_dir(), os.path.join(self._sensor_dir, 'STATUS_{}'.format(psu_id)))
+
+    def _get_cpu_temp_file(self):
+        """Get path to a file indicating current CPU temp in C"""
+        return os.path.join(self.get_state_dir(), os.path.join(self._sensor_dir, 'CPU_TEMP'))
+
+    def _update_cpu_temp(self, value):
+        self._write_sensor_file(self._get_cpu_temp_file(), value)
+
 class BMCServerStateManager(ServerStateManager, IPMIComponent):
     """Manage Server with BMC """
     def __init__(self, asset_info, asset_type='serverwithbmc', notify=False):
         ServerStateManager.__init__(self, asset_info, asset_type, notify)
         IPMIComponent.__init__(self, asset_info['key'])
+
+    def power_up(self):
+        powered = super().power_up()
+        if powered: 
+            super()._update_cpu_temp(32)
+        return powered
+
+    def shut_down(self):
+        super()._update_cpu_temp(0)
+        return super().shut_down()
+    def power_off(self):
+        super()._update_cpu_temp(0)
+        return super().power_off()
 
 class PSUStateManager(StateManager, IPMIComponent):
 
@@ -420,11 +444,17 @@ class PSUStateManager(StateManager, IPMIComponent):
         super()._write_sensor_file(super()._get_psu_wattage_file(self._psu_number), wattage)
 
     def _update_fan_speed(self, value):
+        """Speed in In RPMs"""
         value = value if value >= 0 else 0    
         super()._write_sensor_file(super()._get_psu_fan_file(self._psu_number), value)
+    
+        
+    def set_psu_status(self, value):
+        """0x08 indicates AC loss"""
+        super()._write_sensor_file(super()._get_psu_status_file(self._psu_number), value)
 
     def update_load(self, load):
         super().update_load(load)
         self._update_current(load)
-        self._update_waltage(load * 120)
+        self._update_waltage(load * 10)
         self._update_fan_speed(100 if load > 0 else 0)
