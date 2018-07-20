@@ -4,7 +4,7 @@ import json
 from circuits import handler, Component
 from circuits.net.events import write
 from enginecore.state.assets import SUPPORTED_ASSETS
-from enginecore.state.state_managers import StateManger
+from enginecore.state.state_managers import StateManager
 from enginecore.model.graph_reference import GraphReference
 
 class WebSocket(Component):
@@ -24,8 +24,8 @@ class WebSocket(Component):
         print("WebSocket Client Connected:", host, port)
         
         # Return assets and their states to the new client
-        assets = StateManger.get_system_status(flatten=False)
-        self.fire(write(sock, json.dumps(assets)))
+        assets = StateManager.get_system_status(flatten=False)
+        self.fire(write(sock, json.dumps(assets))) 
 
 
     def read(self, _, data):

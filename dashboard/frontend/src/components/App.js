@@ -84,6 +84,9 @@ const styles = theme => ({
 
     // Scale Layout on wheel event
     let stage = this.refs.stage.getStage();
+    stage.scale({ x: 0.7, y: 0.7 });
+    stage.position({x: window.innerWidth * 0.3, y: window.innerHeight * 0.3 });
+
     const scaleBy = 1.03;
     window.addEventListener('wheel', (e) => {
       e.preventDefault();
@@ -151,19 +154,27 @@ const styles = theme => ({
 
           } else { // initial query
             let connections = {};
-
             Object.keys(data).map((k) => {
               let x1 = data[k].x?data[k].x:40;
               let y1 = data[k].y?data[k].y:0;
+              let x1_pad = 0;
               if (data[k]['parent']) {
-
-
                 for (const p of data[k]['parent']) {
                   const isComponent = !data[p.key];
-                  const parent_key = isComponent?this._get_parent_key(p.key):p.key;
-                  let x = data[parent_key].x?data[parent_key].x:50;
-                  let y = data[parent_key].y?data[parent_key].y:50;
-                  connections[p.key] = {x, y, x1, y1, ckey: k };
+
+                  let x = 0;
+                  let y = 0;
+                  if (isComponent) {
+                    const parent_key = this._get_parent_key(p.key);
+                    x = data[parent_key].children[p.key].x;
+                    y = data[parent_key].children[p.key].y;
+                  } else {
+                    x = data[p.key].x?data[p.key].x:50;
+                    y = data[p.key].y?data[p.key].y:50;
+                  }
+
+                  connections[p.key] = {x, y, x1: x1+x1_pad, y1, ckey: k };
+                  x1_pad+=250;
                 }
               }
             });
@@ -264,8 +275,15 @@ const styles = theme => ({
 
   saveLayout() {
     let data = {};
-    const assets = this.state.assets;
+    const {assets, connections} = this.state;
     Object.keys(assets).map((a) => ( data[a]= {x: assets[a].x, y: assets[a].y} ));
+
+    Object.keys(connections).map((a) => {
+      if (!assets[a]) {
+        data[a]= { x: connections[a].x, y: connections[a].y };
+      }
+    });
+
     this.ws.send(JSON.stringify({request: 'layout', data }));
   }
 
@@ -447,6 +465,7 @@ const styles = theme => ({
                 changeStatus={this.changeStatus.bind(this)}
               /> : ''
             }
+            {/* Display message if backend is not available */}
             <Snackbar
               anchorOrigin={{
                 vertical: 'bottom',

@@ -24,9 +24,11 @@ class ChildAssetPowerUp(Event):
     success = True
 
 class ChildAssetLoadIncreased(Event):
+    """ On Child Load Change"""
     success = True
 
 class ChildAssetLoadDecreased(Event):
+    """ On Child Load Change"""    
     success = True
 
 class SignalDown(Event):
@@ -36,3 +38,8 @@ class SignalDown(Event):
 class SignalUp(Event):
     """ Asset Received power Up request """
     success = True
+
+class SignalReboot(Event):
+    """ Asset Received reboot request """
+    success = True
+    

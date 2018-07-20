@@ -18,9 +18,11 @@ cp main.bsdr emu_state/ipmi_sim/ipmisim1/sdr.20.main
 
 ### ipmi_sim_extend
 
-`sudo dnf install -y hiredis-devel`
+`gcc -shared -o ./haos_extend.so -fPIC ./haos_extend.c`
 
-` gcc -shared -o ./haos_extend.so -fPIC ./haos_extend.c -lhiredis`
+`sudo mkdir /usr/lib/simengine`
+
+`sudo cp ./haos_extend.so  /usr/lib/simengine`
 
 ### Running Simulator
 

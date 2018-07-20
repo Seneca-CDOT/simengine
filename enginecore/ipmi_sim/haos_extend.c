@@ -26,7 +26,7 @@
 #include <OpenIPMI/ipmi_msgbits.h>
 #include <OpenIPMI/ipmi_bits.h>
 #include <OpenIPMI/serv.h>
-#include <hiredis/hiredis.h>
+// #include <hiredis/hiredis.h>
 
 #define PVERSION "0.0.0"
 
@@ -55,7 +55,7 @@
 
 static lmc_data_t *bmc_mc;
 static unsigned int server_id = 0;
-redisContext *redis_store;
+// redisContext *redis_store;
 
 static struct board_info {
     sys_data_t *sys;
@@ -89,7 +89,7 @@ static int say_hello(emu_out_t  *out,
 				   emu_data_t *emu,
 				   lmc_data_t *mc,
 				   char       **toks) {
-    out->printf(out, "Hi there \n");
+    out->eprintf(out, "Hi there \n");
     return EINVAL;
         
 }
@@ -116,11 +116,16 @@ bmc_set_chassis_control(lmc_data_t *mc, int op, unsigned char *val,
 	struct timeval now;
 	sys->get_real_time(sys, &now);
 	sys->log(sys, DEBUG, NULL, "Power request for all boards,"
-		 " val=%d, now=%ld.%ld, asset=%d",
-		 *val, now.tv_sec, now.tv_sec, server_id);
+		 " val=%d, now=%ld.%ld, asset=%d, op=%d",
+		 *val, now.tv_sec, now.tv_sec, server_id, op);
   
-  if (*val == 0) {
-    sprintf(power_cmd, "simengine-cli.py power down --asset-key=%d", server_id);
+  if (*val == 0 || op == CHASSIS_CONTROL_GRACEFUL_SHUTDOWN) {
+    char* hard_flag = "--hard";
+    if (op == CHASSIS_CONTROL_GRACEFUL_SHUTDOWN) {
+      hard_flag = "";
+    }
+    sprintf(power_cmd, "simengine-cli.py power down --asset-key=%d %s", server_id, hard_flag);
+    sys->log(sys, DEBUG, NULL, power_cmd);
     system(power_cmd);
   } else if (*val == 1) {
     sprintf(power_cmd, "simengine-cli.py power up --asset-key=%d", server_id);
@@ -162,13 +167,13 @@ int ipmi_sim_module_init(sys_data_t *sys, const char *options) {
 
   free(initstr);
 
-  redis_store = redisConnect("localhost", 6379);
-  if (redis_store != NULL && redis_store->err) {
-    sys->log(sys, OS_ERROR, NULL,"Unable to connect to redis: %s", redis_store->errstr);
-    return 0;
-  } else {
-     sys->log(sys, DEBUG, NULL, "Connected to Redis\n");
-  }
+  // redis_store = redisConnect("localhost", 6379);
+  // if (redis_store != NULL && redis_store->err) {
+  //   sys->log(sys, OS_ERROR, NULL,"Unable to connect to redis: %s", redis_store->errstr);
+  //   return 0;
+  // } else {
+  //    sys->log(sys, DEBUG, NULL, "Connected to Redis\n");
+  // }
 
   ipmi_emu_add_cmd("say_hello", NOMC, say_hello);
   rv = ipmi_mc_alloc_unconfigured(sys, 0x20, &bmc_mc);

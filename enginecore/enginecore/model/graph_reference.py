@@ -1,6 +1,6 @@
 import os
 from neo4j.v1 import GraphDatabase, basic_auth
-from enginecore.state.utils import format_as_redis_key, get_asset_type
+from enginecore.state.utils import format_as_redis_key
 
 class Singleton(type):
     _instances = {}
@@ -52,7 +52,7 @@ class GraphReference():
         oid_keys = {}
         for record in results:
             
-            asset_type = get_asset_type(record['parent'].labels)
+            asset_type = record['parent']['type']
             
             asset_key = record['parent'].get('key')           
             asset_keys.append("{asset_key}-{property}".format(
@@ -83,7 +83,6 @@ class GraphReference():
         for record in results:
             
             asset = dict(record['asset'])
-            asset['type'] = get_asset_type(record['asset'].labels)
             asset['parent'] = list(map(dict, list(record['parent']))) if record['parent'] else None
 
             if (asset['type'] == 'server' or asset['type'] == 'serverwithbmc') and asset['parent']:
@@ -99,7 +98,7 @@ class GraphReference():
 
 
             if record['children']:
-                nested_assets = {c['key']: {**dict(c), 'type': get_asset_type(c.labels)} for c in record['children']}
+                nested_assets = {c['key']: {**dict(c), 'type': c['type']} for c in record['children']}
                 if flatten:
                     asset['children'] = sorted(list(map(lambda x: x['key'], record['children'])))
                     assets = {**assets, **nested_assets} # merge dicts
@@ -141,7 +140,6 @@ class GraphReference():
     @classmethod
     def save_layout(cls, session, data):
         """ Save system layout """
-        print(data)
         for k in data:
             if data[k]:
                 session.run(

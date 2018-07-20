@@ -28,7 +28,10 @@ export default class Pdu extends React.Component {
       // because "image" property is changed
       this.setState({ c14: image });
     };
+  }
 
+  componentWillReceiveProps(newProps) {
+    this.setState({ x: newProps.x, y: newProps.y });
   }
 
   /** Notify Parent of Selection */
@@ -75,6 +78,7 @@ export default class Pdu extends React.Component {
           powered={this.props.asset.status}
           parentSelected={this.props.selected}
           red_means_on={true}
+          onPosChange={this.props.onPosChange}
         />
       );
       x += 90;
@@ -100,7 +104,7 @@ export default class Pdu extends React.Component {
         <Text y={-85} text={pduName}/>
         <Group y={15} x={845}>
           <Rect width={60} height={60} fill={"#4d4d4d"} stroke={"black"}/>
-          <Text y={10} x={5} text={load} fontFamily={'DSEG7Modern'} fontSize={30} fill={this.props.powered?'yellow':'grey'} />
+          <Text y={10} x={5} text={load} fontFamily={'DSEG7Modern'} fontSize={30} fill={this.props.asset.status?'yellow':'grey'} />
           <Text y={65} x={8} text={"AMPS"} />
         </Group>
         {/* Draw Sockets */}

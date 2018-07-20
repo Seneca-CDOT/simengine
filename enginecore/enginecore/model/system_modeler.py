@@ -10,8 +10,11 @@ graph_ref = GraphReference()
 def link_assets(source_key, dest_key):
     """Power a component by another component """
     with graph_ref.get_session() as session:
+
+        
         session.run("\
         MATCH (src:Asset {key: $source_key})\
+        WHERE NOT src:PDU\
         MATCH (dst:Asset {key: $dest_key})\
         CREATE (dst)-[:POWERED_BY]->(src)\
         ", source_key=source_key, dest_key=dest_key)
@@ -23,7 +26,8 @@ def _add_psu(key, psu_index, draw_percentage=1):
         CREATE (psu:Asset:PSU:Component { \
             name: $psuname,\
             key: $psukey,\
-            draw: $draw\
+            draw: $draw,\
+            type: 'psu'\
         })\
         CREATE (asset)-[:HAS_COMPONENT]->(psu)\
         CREATE (asset)-[:POWERED_BY]->(psu)", 
@@ -34,7 +38,7 @@ def create_outlet(key, attr):
     """Add outlet to the model """
     with graph_ref.get_session() as session:
         session.run("\
-        CREATE (:Asset:Outlet { name: $name,  key: $key })", key=key, name="out-{}".format(key))
+        CREATE (:Asset:Outlet { name: $name,  key: $key, type: 'outlet' })", key=key, name="out-{}".format(key))
         set_properties(key, attr)
 
 def create_server(key, attr, server_variation='Server'):
@@ -45,8 +49,8 @@ def create_server(key, attr, server_variation='Server'):
 
     with graph_ref.get_session() as session:
         session.run("\
-        CREATE (server:Asset { name: $name,  key: $key }) SET server :"+server_variation, 
-                    key=key, name=attr['domain_name'])
+        CREATE (server:Asset { name: $name,  key: $key, type: $stype }) SET server :"+server_variation, 
+                    key=key, name=attr['domain_name'], stype=server_variation.lower())
         
         set_properties(key, attr)
         for i in range(attr['psu_num']):
@@ -55,7 +59,7 @@ def create_server(key, attr, server_variation='Server'):
     
 def set_properties(key, attr):
     with graph_ref.get_session() as session:
-        if attr['host']:
+        if 'host' in attr and attr['host']:
             session.run("\
             MATCH (asset:Asset {key: $pkey})\
             SET asset.host=$host", pkey=key, host=attr['host'])
@@ -100,7 +104,8 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
         CREATE (:Asset:PDU:SNMPSim { \
             name: $name,\
             key: $key,\
-            staticOidFile: $oid_file\
+            staticOidFile: $oid_file,\
+            type: 'pdu'\
         })", key=key, name=data['assetName'], oid_file=data['staticOidFile'])
         
         set_properties(key, attr)
@@ -129,9 +134,19 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
                     CREATE (OutletStateDetails:OIDDesc {{\
                         OIDName: $name, \
                         {}: \"switchOn\",\
-                        {}: \"switchOff\" \
+                        {}: \"switchOff\", \
+                        {}: \"immediateReboot\",\
+                        {}: \"delayedOn\",\
+                        {}: \"delayedOff\"\
                     }})\
-                    ".format(oid_desc["switchOn"], oid_desc["switchOff"])
+                    ".format(
+                        oid_desc["switchOn"], 
+                        oid_desc["switchOff"], 
+                        oid_desc["immediateReboot"],
+                        oid_desc["delayedOn"],
+                        oid_desc["delayedOff"]
+                    )
+
                     session.run(query, name="{}-{}".format(k,key))
 
                 for i in range(outlet_count):
@@ -149,7 +164,8 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
                     })\
                     CREATE (out1:Asset:Outlet:Component { \
                         name: $outname,\
-                        key: $outkey\
+                        key: $outkey,\
+                        type: 'outlet'\
                     })\
                     CREATE (out1)-[:POWERED_BY]->(pdu)\
                     CREATE (out1)-[:POWERED_BY]->(oid)\
@@ -165,7 +181,25 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
                     outname='out'+str(i+1),
                     oid_desc="{}-{}".format(k,key),
                     outkey=int("{}{}".format(key,str(i+1))))
-            # TODO: else -> general OID
+            else:
+                oid = v['OID']
+                session.run("\
+                    MATCH (pdu:PDU {key: $pkey})\
+                    CREATE (oid:OID { \
+                        OID: $oid,\
+                        OIDName: $name,\
+                        name: $name, \
+                        defaultValue: $dv,\
+                        dataType: $dt \
+                    })\
+                    CREATE (pdu)-[:HAS_OID]->(oid)\
+                    ", 
+                    pkey=key, 
+                    oid=oid, 
+                    name=k,
+                    dv=v['defaultValue'], 
+                    dt=v['dataType'])
+
 
 def drop_model():
     """ Drop system model """
@@ -190,6 +224,7 @@ def create_static(key, attr):
         session.run("\
         CREATE (:Asset:StaticAsset { \
         name: $name, \
+        type: 'staticasset', \
         key: $key})", 
         name=attr['name'], key=key)
         set_properties(key, attr)

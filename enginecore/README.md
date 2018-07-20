@@ -80,3 +80,8 @@ You can also remove & detach specific assets by key (note that you may need to r
 `sudo python3 -m pip install pylint`
 
 This lintrc file is based on Google Style Guide. See this docstring [example](http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html) for documentation format reference.
+
+
+## Sample Unit test invocation
+
+`python3 -m unittest tests.server_load_m1`
