@@ -13,14 +13,19 @@ import subprocess
 import os
 import signal
 import tempfile
+import time
+from collections import namedtuple
 from distutils.dir_util import copy_tree
 from string import Template
 
 from circuits import Component, handler
 import enginecore.state.state_managers as sm
 from enginecore.state.asset_definition import register_asset, SUPPORTED_ASSETS
- 
 
+PowerEventResult = namedtuple("PowerEventResult", "old_state new_state asset_key asset_type")
+PowerEventResult.__new__.__defaults__ = (None,) * len(PowerEventResult._fields)
+LoadEventResult = namedtuple("LoadEventResult", "load_change old_load new_load asset_key asset_type")
+LoadEventResult.__new__.__defaults__ = (None,) * len(PowerEventResult._fields)
 
 class Asset(Component):
     """ Abstract Asset Class """
@@ -57,11 +62,64 @@ class Asset(Component):
 
     def power_up(self):
         """ Power up this asset """
-        return self._state.get_key(), self._state.get_type(), self._state.power_up()
+        old_state = self.status()
+        return PowerEventResult(
+            asset_key=self._state.get_key(), 
+            asset_type=self._state.get_type(), 
+            old_state=old_state,
+            new_state=self._state.power_up()
+        )
 
     def power_off(self):
         """ Power down this asset """
-        return self._state.get_key(), self._state.get_type(), self._state.power_off()
+        old_state = self.status()
+        return PowerEventResult(
+            asset_key=self._state.get_key(), 
+            asset_type=self._state.get_type(), 
+            old_state=old_state,
+            new_state=self._state.power_off()
+        )
+
+    def update_load(self, load_change, op, msg=''):
+        """React to load changes by updating asset load
+        
+        Args:
+            load_change(float): how much AMPs need to be added/subtracted
+            op(callable): calculates new load (receives old load & measured load change)
+            msg(str): message to be printed
+        
+        Returns:
+            LoadEventResult: Event result containing old & new load values as well as value subtracted/added
+        """
+        
+        old_load = self._state.get_load()
+        new_load = op(old_load, load_change)
+        
+        if msg:
+            print(msg.format(self._state.get_key(), old_load, load_change, new_load))
+        
+        self._state.update_load(new_load)
+
+        return LoadEventResult(
+            load_change=load_change,
+            old_load = old_load,
+            new_load=new_load,
+            asset_key=self._state.get_key()
+        )
+
+    @handler("ChildAssetPowerUp", "ChildAssetLoadIncreased")
+    def on_load_increase(self, event, *args, **kwargs):
+        """Load is ramped up if child is powered up or child asset's load is increased"""
+        increased_by = kwargs['child_load']
+        msg = 'Asset : {} : orig load {}, increased by: {}, new load: {}'
+        return self.update_load(increased_by, lambda old, change: old+change, msg)
+
+    @handler("ChildAssetPowerDown", "ChildAssetLoadDecreased")
+    def on_load_decrease(self, event, *args, **kwargs):
+        """Load is decreased if child is powered off or child asset's load is decreased"""
+        decreased_by = kwargs['child_load']
+        msg = 'Asset : {} : orig load {}, decreased by: {}, new load: {}'
+        return self.update_load(decreased_by, lambda old, change: old-change, msg)
 
     ##### React to events associated with the asset #####
     def on_asset_did_power_off(self):
@@ -82,25 +140,9 @@ class Asset(Component):
         """ Upstream power restored """        
         raise NotImplementedError
 
-    @handler("ChildAssetPowerUp", "ChildAssetLoadIncreased")
-    def on_load_increase(self, event, *args, **kwargs):
-        increased_by = kwargs['child_load']
-        old_load = self._state.get_load()
-        print('Asset : {} : orig load {}, increased by: {}, new load: {}'
-            .format(self._state.get_key(), old_load, increased_by, old_load + increased_by))
-        self._state.update_load(old_load + increased_by)
-        return increased_by, self._state.get_key()
-
-    @handler("ChildAssetPowerDown", "ChildAssetLoadDecreased")
-    def on_load_decrease(self, event, *args, **kwargs):
-        decreased_by = kwargs['child_load']
-        old_load = self._state.get_load()
-        print('Asset : {} : orig load {}, decreased by: {}'.format(self._state.get_key(), old_load, decreased_by))
-        self._state.update_load(old_load - decreased_by)
-        return decreased_by, self._state.get_key()
-
     @classmethod
     def get_supported_assets(cls):
+        """Get factory containing registered assets"""
         return SUPPORTED_ASSETS
 
 
@@ -279,28 +321,44 @@ class Outlet(Asset):
 
 
     ##### React to any events of the connected components #####    
-    @handler("ParentAssetPowerDown", "SignalDown", "SignalReboot", priority=2)
-    def on_power_off_request_received(self):
+    @handler("ParentAssetPowerDown", "SignalDown")
+    def on_power_off_request_received(self, event, *args, **kwargs):
         """ React to events with power down """
+        if 'delayed' in kwargs and kwargs['delayed']:
+            time.sleep(self._state.get_config_off_delay())
+
         return self.power_off()
 
 
-    @handler("ParentAssetPowerUp", "SignalUp", "SignalReboot", priority=1)
-    def on_power_up_request_received(self, event):
+    @handler("ParentAssetPowerUp", "SignalUp")
+    def on_power_up_request_received(self, event, *args, **kwargs):
         """ React to events with power up """
 
-        if self._state.status():
+        if 'delayed' in kwargs and kwargs['delayed']:
+            time.sleep(self._state.get_config_on_delay())
+
+        e_result = self.power_up()
+        if not e_result.new_state:
             event.success = False
-        print (event.success)
-        return self.power_up()
+
+        return e_result
         
     @handler("SignalReboot")
-    def on_reboot_request_received(self, event):
-        init_state = self.status()
-        self.on_power_off_request_received()
-        a = self.on_power_up_request_received(event)
-        print(event.success)
-        return a
+    def on_reboot_request_received(self, event, *args, **kwargs):
+        """Received reboot request"""
+        old_state = self.status()
+        
+        self.power_off()
+        e_result_up = self.power_up()
+        if not e_result_up.new_state:
+            event.success = False
+
+        return PowerEventResult(
+            old_state=old_state,
+            new_state=e_result_up.new_state,
+            asset_key=self._state.get_key(),
+            asset_type=self._state.get_type()
+        )
 
 @register_asset
 class StaticAsset(Asset):
@@ -312,7 +370,7 @@ class StaticAsset(Asset):
         self._state.update_load(self._state.get_amperage())
 
     @handler("ParentAssetPowerDown")
-    def on_power_off_request_received(self): 
+    def on_power_off_request_received(self, event, *args, **kwargs): 
         return self.power_off()
 
 
@@ -346,7 +404,7 @@ class ServerWithBMC(Server):
         
     
     @handler("ParentAssetPowerDown")
-    def on_power_off_request_received(self):
+    def on_power_off_request_received(self, event, *args, **kwargs):
         self._ipmi_agent.stop_agent()
         return self.power_off()
 
@@ -363,7 +421,6 @@ class PSU(StaticAsset):
 
     def __init__(self, asset_info):
         super(PSU, self).__init__(asset_info)
-        print(asset_info)
 
     @handler("AssetPowerDown")
     def on_asset_did_power_off(self):

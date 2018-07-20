@@ -135,9 +135,18 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
                         OIDName: $name, \
                         {}: \"switchOn\",\
                         {}: \"switchOff\", \
-                        {}: \"immediateReboot\"\
+                        {}: \"immediateReboot\",\
+                        {}: \"delayedOn\",\
+                        {}: \"delayedOff\"\
                     }})\
-                    ".format(oid_desc["switchOn"], oid_desc["switchOff"], oid_desc["immediateReboot"])
+                    ".format(
+                        oid_desc["switchOn"], 
+                        oid_desc["switchOff"], 
+                        oid_desc["immediateReboot"],
+                        oid_desc["delayedOn"],
+                        oid_desc["delayedOff"]
+                    )
+
                     session.run(query, name="{}-{}".format(k,key))
 
                 for i in range(outlet_count):
@@ -172,7 +181,25 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
                     outname='out'+str(i+1),
                     oid_desc="{}-{}".format(k,key),
                     outkey=int("{}{}".format(key,str(i+1))))
-            # TODO: else -> general OID
+            else:
+                oid = v['OID']
+                session.run("\
+                    MATCH (pdu:PDU {key: $pkey})\
+                    CREATE (oid:OID { \
+                        OID: $oid,\
+                        OIDName: $name,\
+                        name: $name, \
+                        defaultValue: $dv,\
+                        dataType: $dt \
+                    })\
+                    CREATE (pdu)-[:HAS_OID]->(oid)\
+                    ", 
+                    pkey=key, 
+                    oid=oid, 
+                    name=k,
+                    dv=v['defaultValue'], 
+                    dt=v['dataType'])
+
 
 def drop_model():
     """ Drop system model """

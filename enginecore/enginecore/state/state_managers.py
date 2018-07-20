@@ -41,7 +41,6 @@ class StateManager():
         """Implements state logic for graceful power-off event"""
         print('Graceful shutdown')
         self._sleep_shutdown()
-        print (self.status())
         if self.status():
             self._set_state_off()
             # self.update_load(0)
@@ -87,6 +86,12 @@ class StateManager():
         """Reset the boot time to now"""
         StateManager.get_store().set(str(self._asset_info['key']) + ":start_time", int(time.time())) 
 
+    def get_config_off_delay(self):
+        return NotImplementedError
+    
+    def get_config_on_delay(self):
+        return NotImplementedError
+
     def _sleep_shutdown(self):
         if 'offDelay' in self._asset_info:
             time.sleep(self._asset_info['offDelay'] / 1000.0) # ms to sec
@@ -127,6 +132,10 @@ class StateManager():
 
         redis_store.set(rkey, rvalue)
         
+    def _get_oid(self, oid, key):
+        redis_store = StateManager.get_store() 
+        rkey = format_as_redis_key(str(key), oid, key_formatted=False)
+        return redis_store.get(rkey).decode()
 
     def _get_rkey(self):
         """Get asset key in redis format"""
@@ -275,7 +284,7 @@ class PDUStateManager(StateManager):
 
     def _update_wattage(self, wattage):
         """Update OID associated with the current wattage draw """
-        results = self._graph_ref.get_session().run(
+        results = self._graph_ref.get_session().run( # TODO: Close session!!!!!!!
             "MATCH (:Asset { key: $key })-[:HAS_OID]->(oid {name: 'WattageDraw'}) return oid",
             key=int(self._asset_info['key'])
         )
@@ -304,6 +313,24 @@ class OutletStateManager(StateManager):
     def __init__(self, asset_info, asset_type='outlet', notify=False):
         super(OutletStateManager, self).__init__(asset_info, asset_type, notify)
 
+    def _get_outlet_oid(self, oid_name):
+        with self._graph_ref.get_session() as s:
+            result = s.run(
+                "MATCH (outlet:Component { key: 11})<-[:HAS_COMPONENT]-(p:Asset)-[:HAS_OID]->(oid:OID {name: $oid_name}) return oid, p.key as parent_key",
+                oid_name=oid_name
+            )
+            record = result.single()
+            return record.get('parent_key'), dict(record.get('oid')) if record else None
+
+    def get_config_off_delay(self):
+        pkey, oid_info = self._get_outlet_oid("OutletConfigPowerOffTime")
+        oid = "{}.{}".format(oid_info['OID'], str(self.get_key())[-1]) 
+        return int(self._get_oid(oid, key=pkey).split('|')[1])
+
+    def get_config_on_delay(self):
+        pkey, oid_info = self._get_outlet_oid("OutletConfigPowerOnTime")
+        oid = "{}.{}".format(oid_info['OID'], str(self.get_key())[-1]) 
+        return int(self._get_oid(oid, key=pkey).split('|')[1])
 
 class StaticDeviceStateManager(StateManager):
     """Dummy Device that doesn't do much except drawing power """

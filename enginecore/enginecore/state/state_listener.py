@@ -7,7 +7,7 @@ import redis
 from circuits.web import Logger, Server, Static
 from circuits.web.dispatchers import WebSocketsDispatcher
 
-from enginecore.state.assets import Asset
+from enginecore.state.assets import Asset, PowerEventResult, LoadEventResult
 from enginecore.state.utils import get_asset_type
 from enginecore.state.event_map import PowerEventManager
 from enginecore.model.graph_reference import GraphReference
@@ -65,7 +65,12 @@ class StateListener(Component):
                 print('Detected asset that is not supported', file=sys.stderr)
 
         for key in leaf_nodes:
-            self._chain_load_update((self._assets[key].get_amperage(), key))
+            self._chain_load_update( 
+                LoadEventResult(
+                    load_change=self._assets[key].get_amperage(),
+                    asset_key=key
+                )
+            )
 
 
 
@@ -103,7 +108,7 @@ class StateListener(Component):
         
         updated_asset = self._assets[int(asset_key)]
         asset_status = str(updated_asset.status())
-        asset_info = (asset_key, asset_type, asset_status)
+        asset_info = PowerEventResult(asset_key=asset_key, asset_type=asset_type, new_state=asset_status)
 
         self._notify_client(asset_info)
         self.fire(PowerEventManager.map_asset_event(asset_status), updated_asset)
@@ -159,7 +164,8 @@ class StateListener(Component):
 
     def _chain_load_update(self, event_result, increased=True):
 
-        load_change, child_key = event_result
+        load_change = event_result.load_change 
+        child_key = event_result.asset_key
 
         results = self._graph_db.run(
             "MATCH (:Asset { key: $key })-[:POWERED_BY]->(asset:Asset) RETURN asset",
@@ -191,9 +197,9 @@ class StateListener(Component):
             }}), self._ws)
 
     
-    def _chain_power_update(self, data):
-
-        asset_key, _, new_state = data
+    def _chain_power_update(self, event_result):
+        asset_key = event_result.asset_key
+        new_state = event_result.new_state
 
         # look up child nodes & parent node
         results = self._graph_db.run(
@@ -285,9 +291,9 @@ class StateListener(Component):
                     self.fire(event, self._assets[int(asset_key)])
                     
 
-    def _notify_client(self, data):
-
-        asset_key, _, state = data
+    def _notify_client(self, event_result):
+        asset_key = event_result.asset_key
+        state = event_result.new_state
 
         self.fire(NotifyClient({
             'key': int(asset_key),
@@ -337,13 +343,14 @@ class StateListener(Component):
         self._notify_client(event_result)
         self._chain_power_update(event_result)
 
-    def SignalReboot_success(self, evt, event_result):
+    def SignalReboot_success(self, evt, e_result):
         """ Rebooted """
-        print('REBOOT')
-        print(event_result)
-        self._notify_client(event_result)
-        self._chain_power_update(event_result)
 
+        # need to do power chain
+        if not e_result.old_state and e_result.old_state != e_result.new_state:
+            self._chain_power_update(e_result)
+
+        self._notify_client(e_result)
 
 if __name__ == '__main__':
     StateListener().run()

@@ -9,7 +9,9 @@ class PowerEventManager:
         'OutletState': {
             "switchOff": events.SignalDown(),
             "switchOn": events.SignalUp(),
-            "immediateReboot": events.SignalReboot()
+            "immediateReboot": events.SignalReboot(),
+            "delayedOff": events.SignalDown(delayed=True),
+            "delayedOn": events.SignalUp(delayed=True)
         }
     }
 
