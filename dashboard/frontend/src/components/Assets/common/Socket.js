@@ -63,6 +63,7 @@ export default class Socket extends React.Component {
     };
 
     updateSocketPos = (s) => {
+      this.refs.socket.setZIndex(100);
       this.setState({ x: s.target.attrs.x, y : s.target.attrs.y });
       this.props.onPosChange(this.props.assetId, s);
     }
@@ -83,6 +84,7 @@ export default class Socket extends React.Component {
           y={this.state.y}
           draggable={this.props.draggable}
           onDragMove={this.updateSocketPos.bind(this)}
+          ref="socket"
         >
           {this.state.bgImage !== null &&
             <Image

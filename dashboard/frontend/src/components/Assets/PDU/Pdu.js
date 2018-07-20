@@ -36,6 +36,7 @@ export default class Pdu extends React.Component {
 
   /** Notify Parent of Selection */
   handleClick = () => {
+    this.refs.pdu.setZIndex(100);
     this.props.onElementSelection(this.props.assetId, this.props.asset);
   };
 
@@ -90,6 +91,7 @@ export default class Pdu extends React.Component {
         onDragMove={this.updatePduPos.bind(this)}
         x={this.state.x}
         y={this.state.y}
+        ref="pdu"
       >
 
         {/* Draw PDU - SVG Path */}

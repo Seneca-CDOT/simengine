@@ -38,6 +38,7 @@ export default class Server extends React.Component {
 
   /** Notify Parent of Selection */
   handleClick = () => {
+    this.refs.server.setZIndex(100);
     this.props.onElementSelection(this.props.assetId, this.props.asset);
   };
 
@@ -87,6 +88,7 @@ export default class Server extends React.Component {
         onDragMove={this.updateServerPos.bind(this)}
         x={this.state.x}
         y={this.state.y}
+        ref="server"
       >
 
 

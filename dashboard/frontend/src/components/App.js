@@ -73,6 +73,7 @@ const styles = theme => ({
       selectedAssetKey: 0,
       connections:{},
       socketOffline: true,
+      changesSaved: false,
       anchorEl: null
     };
 
@@ -82,7 +83,7 @@ const styles = theme => ({
 
   componentDidMount() {
 
-    // Scale Layout on wheel event
+    /////// Scale Layout on wheel event //////////
     let stage = this.refs.stage.getStage();
     stage.scale({ x: 0.7, y: 0.7 });
     stage.position({x: window.innerWidth * 0.3, y: window.innerHeight * 0.3 });
@@ -107,6 +108,31 @@ const styles = theme => ({
       };
       stage.position(newPos);
       stage.batchDraw();
+    });
+
+    ////////// Move canvas on middle mouse button down ///////////
+    const moveCanvas = (e) => {
+      e.preventDefault();
+        const newPos = {
+          x: (stage.x() + e.movementX),
+          y: (stage.y() + e.movementY),
+      };
+      stage.position(newPos);
+      stage.batchDraw();
+    };
+
+    window.addEventListener("mousedown", (e) => {
+      if (e.button == 1) {
+        e.preventDefault();
+        window.addEventListener("mousemove", moveCanvas);
+      }
+    });
+
+    window.addEventListener("mouseup", (e) => {
+      if (e.button == 1) {
+        e.preventDefault();
+        window.removeEventListener("mousemove", moveCanvas);
+      }
     });
   }
 
@@ -284,7 +310,10 @@ const styles = theme => ({
       }
     });
 
-    this.ws.send(JSON.stringify({request: 'layout', data }));
+    if (this.ws.readyState == this.ws.OPEN) {
+      this.ws.send(JSON.stringify({request: 'layout', data }));
+      this.setState({ changesSaved: true });
+    }
   }
 
   handleMenu = event => {
@@ -394,6 +423,7 @@ const styles = theme => ({
           points={[connections[key].x+socketX1pad , connections[key].y+socketYpad, connections[key].x1- socketXpad , connections[key].y1+socketYpad]}
           stroke={asset.status  === 1?"green":"grey"}
           strokeWidth={5}
+          zIndex={300}
         />
       );
     }
@@ -473,9 +503,23 @@ const styles = theme => ({
               }}
               open={this.state.socketOffline}
               ContentProps={{
+                'aria-describedby': 'socket-id',
+              }}
+              message={<span id="socket-id">Socket is unavailable: trying to reconnect...</span>}
+            />
+            {/* 'Changes Applied' Message */}
+            <Snackbar
+              anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'left',
+              }}
+              open={this.state.changesSaved}
+              onClose={()=>this.setState({changesSaved: false})}
+              autoHideDuration={1500}
+              ContentProps={{
                 'aria-describedby': 'message-id',
               }}
-              message={<span id="message-id">Socket is unavailable: trying to reconnect...</span>}
+              message={<span id="message-id">Changes saved!</span>}
             />
           </main>
         </div>
