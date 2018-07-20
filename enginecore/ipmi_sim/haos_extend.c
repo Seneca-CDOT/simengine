@@ -89,7 +89,7 @@ static int say_hello(emu_out_t  *out,
 				   emu_data_t *emu,
 				   lmc_data_t *mc,
 				   char       **toks) {
-    out->printf(out, "Hi there \n");
+    out->eprintf(out, "Hi there \n");
     return EINVAL;
         
 }
