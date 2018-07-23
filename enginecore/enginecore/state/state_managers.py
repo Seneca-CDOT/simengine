@@ -235,8 +235,8 @@ class StateManager():
         graph_ref = GraphReference()
         with graph_ref.get_session() as session:
 
-            # cache assets
-            assets = GraphReference.get_assets(session, flatten)
+            # cache assets 
+            assets = GraphReference.get_assets_and_connections(session, flatten)
             assets = cls._get_assets_states(assets, flatten)
             return assets
 
