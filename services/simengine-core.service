@@ -1,0 +1,10 @@
+[Unit]
+Description=SimEngine Core Daemon
+After=neo4j.service
+After=redis.service
+
+[Service]
+ExecStart=/usr/share/simengine/enginecore/app.py
+
+[Install]
+WantedBy=multi-user.target
