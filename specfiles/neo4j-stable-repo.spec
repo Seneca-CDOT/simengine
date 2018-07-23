@@ -12,11 +12,13 @@ BuildArch: noarch
 Installs files necessary for access to the Neo4j Stable Release repository.
 
 %prep
-autosetup -c %{name}
+%autosetup -c %{name}
 
 %build
 
 %install
+mkdir -p %{buildroot}%{_sysconfdir}/pki/rpm-pgp/
+mkdir -p %{buildroot}%{_sysconfdir}/yum.repos.d/
 cp -fp neotechnology.gpg.key %{buildroot}%{_sysconfdir}/pki/rpm-pgp/
 cp -fp neo4j.repo %{buildroot}%{_sysconfdir}/yum.repos.d/
 
