@@ -17,13 +17,13 @@ Installs files necessary for access to the Neo4j Stable Release repository.
 %build
 
 %install
-mkdir -p %{buildroot}%{_sysconfdir}/pki/rpm-pgp/
+mkdir -p %{buildroot}%{_sysconfdir}/pki/rpm-gpg/
 mkdir -p %{buildroot}%{_sysconfdir}/yum.repos.d/
-cp -fp neotechnology.gpg.key %{buildroot}%{_sysconfdir}/pki/rpm-pgp/
+cp -fp RPM-GPG-KEY-NEO4J-STABLE %{buildroot}%{_sysconfdir}/pki/rpm-gpg/
 cp -fp neo4j.repo %{buildroot}%{_sysconfdir}/yum.repos.d/
 
 %files
-%attr(644, root, root) %{_sysconfdir}/pki/rpm-pgp/neotechnology.gpg.key
+%attr(644, root, root) %{_sysconfdir}/pki/rpm-gpg/RPM-GPG-KEY-NEO4J-STABLE
 %attr(644, root, root) %{_sysconfdir}/yum.repos.d/neo4j.repo
 
 %changelog
