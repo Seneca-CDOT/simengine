@@ -1,4 +1,4 @@
-Name:      simengine-neo4j
+Name:      simengine-neo4jdb
 Version:   1
 Release:   1
 Summary:   SimEngine - Neo4j Database
