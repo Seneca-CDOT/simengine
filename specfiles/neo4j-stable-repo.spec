@@ -14,6 +14,8 @@ Installs files necessary for access to the Neo4j Stable Release repository.
 %prep
 autosetup -c %{name}
 
+%build
+
 %install
 cp -fp neotechnology.gpg.key %{buildroot}%{_sysconfdir}/pki/rpm-pgp/
 cp -fp neo4j.repo %{buildroot}%{_sysconfdir}/yum.repos.d/
@@ -24,3 +26,4 @@ cp -fp neo4j.repo %{buildroot}%{_sysconfdir}/yum.repos.d/
 
 %changelog
 * Mon Jul 23 2018 Chris Johnson <chris.johnson@senecacollege.ca>
+- Initial alpha test file
