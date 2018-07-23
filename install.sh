@@ -111,8 +111,8 @@ create_dbuser () {
 	sleep 10
 	echo "CALL dbms.changePassword('neo4j-simengine'); CALL dbms.security.createUser('simengine', 'simengine', false);"|cypher-shell -u neo4j -p neo4j
 	systemctl restart neo4j
-	sleep 10
 	echo "Restarting Neo4j, please wait..."
+	sleep 10
 	echo ""
 }
 
@@ -128,7 +128,7 @@ install_coredaemon () {
 install_openIPMI () {
 	echo "-- Instaling OpenIPMI Emulator Dependencies --"
 	echo ""
-	dnf -y install OpenIPMI OpenIPMI-lanserv gcc
+	dnf -y install OpenIPMI OpenIPMI-lanserv OpenIPMI-devel gcc
 	echo ""
 }
 
@@ -137,7 +137,7 @@ build_ipmiplugin () {
 	echo ""
 	mkdir /usr/lib/simengine/
 	ln -s /usr/share/simengine/enginecore/simengine-cli.py /usr/bin/simengine-cli.py
-	gcc -shared -o /usr/lib/simengine/enginecore/ipmi_sim/haos_extend.so -fPIC /usr/share/simengine/haos_extend.c
+	gcc -shared -o /usr/lib/simengine/haos_extend.so -fPIC /usr/share/simengine/enginecore/ipmi_sim/haos_extend.c
 	echo ""
 }
 
