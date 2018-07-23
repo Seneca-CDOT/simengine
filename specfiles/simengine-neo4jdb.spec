@@ -11,10 +11,9 @@ BuildArch: x86_64
 Requires:  neo4j
 
 %description
+Installs the SimEngine database configuration for Neo4j.
 
 %pre
-systemctl enable iptables --now &> /dev/null
-iptables -F
 
 %prep
 autosetup -c %{name}
@@ -24,6 +23,7 @@ autosetup -c %{name}
 %files
 
 %post
+systemctl enable neo4j --now
 
 %postun
 
