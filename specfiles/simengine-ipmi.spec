@@ -6,27 +6,33 @@ URL:       https://github.com/Seneca-CDOT/simengine
 License:   GPLv3+
 
 Source0:   %{name}-%{version}.tar.gz
-BuildArch: noarch
+BuildArch: x86_64
 
 Requires: simengine-cli, OpenIPMI, OpenIPMI-lanserv, OpenIPMI-devel, gcc
 
 %description
 Compiles and installs the OpenIPMI plugin for use with SimEngine.
 
+%global debug_package %{nil}
+
 %prep
 %autosetup -c %{name}
 
 %build
-gcc -shared -o %{_bindir}/%{name}/haos_extend.so -fPIC %{_sharedstate}/simengine/ipmi_sim/haos_extend.c
+gcc -Og -shared -o %{_builddir}/%{name}-%{version}/haos_extend.so -fPIC %{_builddir}/%{name}-%{version}/ipmi_sim/haos_extend.c
 
 %install
-mkdir -p %{buildroot}%{_sharedstate}/simengine/
-cp -fRp ipmi_sim %{buildroot}%{_sharedstate}/simengine/
-cp -fRp ipmi_template %{buildroot}%{_sharedstate}/simengine/
+mkdir -p %{buildroot}%{_sharedstatedir}/simengine/
+mkdir -p %{buildroot}%{_libdir}/simengine/
+cp -fRp ipmi_sim %{buildroot}%{_sharedstatedir}/simengine/
+cp -fRp ipmi_template %{buildroot}%{_sharedstatedir}/simengine/
+cp -fp haos_extend.so %{buildroot}%{_libdir}/simengine/
 
 %files
-%{_sharedstate}/simengine/ipmi_sim
-%{_sharedstate}/simengine/ipmi_template
+%{_sharedstatedir}/simengine/ipmi_sim
+%{_sharedstatedir}/simengine/ipmi_template
+%{_libdir}/simengine/haos_extend.so
+
 
 %changelog
 * Tue Jul 24 2018 Chris Johnson <chris.johnson@senecacollege.ca>
