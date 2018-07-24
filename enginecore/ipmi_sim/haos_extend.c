@@ -1,11 +1,9 @@
 /*
- * marvel_mod.c
+ * haos_extend.c
  *
- * Marvell specific modules for handling BMC and MC functions.
+ * Simengine extended chassis control
  *
- * Author: MontaVista Software, Inc.
- *         Corey Minyard <minyard@mvista.com>
- *         source@mvista.com
+ * Author: OSTEP Team, CDOT
  *
  */
 
@@ -45,9 +43,6 @@
 #define SET_ALL_FANS_DUTY_CMD		3
 #define GET_ALL_FANS_DUTY_CMD		4
 
-#define BOARD_FRU_FILE "/etc/ipmi/axp_board_fru"
-#define COLD_POWER_FILE "/var/lib/ipmi_sim_coldpower"
-#define RESET_REASON_FILE "/var/lib/reset_reason"
 #define RESET_REASON_UNKNOWN 0
 #define RESET_REASON_COLD_BOOT 1
 #define RESET_REASON_WARM_BOOT 2
@@ -85,14 +80,14 @@ int ipmi_sim_module_print_version(sys_data_t *sys, char *options) {
   return 0;
 }
 
-static int say_hello(emu_out_t  *out,
-				   emu_data_t *emu,
-				   lmc_data_t *mc,
-				   char       **toks) {
-    out->eprintf(out, "Hi there \n");
-    return EINVAL;
+// static int say_hello(emu_out_t  *out,
+// 				   emu_data_t *emu,
+// 				   lmc_data_t *mc,
+// 				   char       **toks) {
+//     out->eprintf(out, "Hi there \n");
+//     return EINVAL;
         
-}
+// }
 
 static int
 bmc_set_chassis_control(lmc_data_t *mc, int op, unsigned char *val,
@@ -124,11 +119,11 @@ bmc_set_chassis_control(lmc_data_t *mc, int op, unsigned char *val,
     if (op == CHASSIS_CONTROL_GRACEFUL_SHUTDOWN) {
       hard_flag = "";
     }
-    sprintf(power_cmd, "simengine-cli.py power down --asset-key=%d %s", server_id, hard_flag);
+    sprintf(power_cmd, "simengine-cli power down --asset-key=%d %s", server_id, hard_flag);
     sys->log(sys, DEBUG, NULL, power_cmd);
     system(power_cmd);
   } else if (*val == 1) {
-    sprintf(power_cmd, "simengine-cli.py power up --asset-key=%d", server_id);
+    sprintf(power_cmd, "simengine-cli power up --asset-key=%d", server_id);
     system(power_cmd);
   }
 
@@ -175,7 +170,7 @@ int ipmi_sim_module_init(sys_data_t *sys, const char *options) {
   //    sys->log(sys, DEBUG, NULL, "Connected to Redis\n");
   // }
 
-  ipmi_emu_add_cmd("say_hello", NOMC, say_hello);
+  // ipmi_emu_add_cmd("say_hello", NOMC, say_hello);
   rv = ipmi_mc_alloc_unconfigured(sys, 0x20, &bmc_mc);
 
   if (rv) {
