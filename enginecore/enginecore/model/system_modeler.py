@@ -104,6 +104,36 @@ def id_generator(size=12, chars=string.ascii_uppercase + string.digits):
     return ''.join(secrets.choice(chars) for _ in range(size))
 
 
+def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'presets/apc_ups.json')):
+    """Add UPS to the system model """
+    with open(preset_file) as f, graph_ref.get_session() as session:
+        data = json.load(f)
+
+        session.run("\
+        CREATE (:Asset:UPS:SNMPSim { \
+            name: $name,\
+            key: $key,\
+            staticOidFile: $oid_file,\
+            type: 'ups'\
+        })", key=key, name=data['assetName'], oid_file=data['staticOidFile'])
+
+        set_properties(key, attr)
+
+        for k, v in data["OIDs"].items():
+            if k == 'SerialNumber':
+                v['defaultValue'] = id_generator()
+
+            session.run("\
+            MATCH (ups:UPS {key: $pkey})\
+            CREATE (oid:OID { \
+                OID: $oid,\
+                OIDName: $name,\
+                name: $name, \
+                defaultValue: $dv,\
+                dataType: $dt \
+            })<-[:HAS_OID]-(ups)", pkey=key, oid=v['OID'], name=k, dv=v['defaultValue'], dt=v['dataType'])
+
+
 def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'presets/apc_pdu.json')):
     """Add PDU to the model """    
     with open(preset_file) as f, graph_ref.get_session() as session:

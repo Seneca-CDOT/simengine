@@ -283,24 +283,18 @@ class SNMPAgent(Agent):
         )
 
         print("Started SNMPsim process under pid {}".format(self._process.pid))
+
+
+class SNMPSim():
     
-
-@register_asset
-class PDU(Asset):
-
-    channel = "engine-pdu"
-    StateManagerCls = sm.PDUStateManager
-
-    def __init__(self, asset_info):
-        super(PDU, self).__init__(PDU.StateManagerCls(asset_info))
-
+    def __init__(self, key, host=False):
         self._snmp_agent = SNMPAgent(
-            asset_info['key'],
-            host=asset_info['host'] if 'host' in asset_info else False
+            key,
+            host=host
         )
 
 
-    ##### Create/kill SNMP agent when PDU state changes
+    ##### Create/kill SNMP agent when state changes
     @handler("AssetPowerDown")
     def on_asset_did_power_off(self):
         self._snmp_agent.stop_agent()
@@ -309,6 +303,20 @@ class PDU(Asset):
     @handler("AssetPowerUp")
     def on_asset_did_power_on(self):
         self._snmp_agent.start_agent()
+
+@register_asset
+class PDU(Asset, SNMPSim):
+
+    channel = "engine-pdu"
+    StateManagerCls = sm.PDUStateManager
+
+    def __init__(self, asset_info):
+        Asset.__init__(self, PDU.StateManagerCls(asset_info))
+        SNMPSim.__init__(
+            self, 
+            key=asset_info['key'],
+            host=asset_info['host'] if 'host' in asset_info else False
+        )
 
     ##### React to any events of the connected components #####
     @handler("ParentAssetPowerDown")
@@ -320,6 +328,27 @@ class PDU(Asset):
         return self.power_up()
 
 
+@register_asset
+class UPS(Asset, SNMPSim):
+    channel = "engine-ups"
+    StateManagerCls = sm.PDUStateManager # TODO: make its own State Manager
+
+    def __init__(self, asset_info):
+        Asset.__init__(self, UPS.StateManagerCls(asset_info))
+        SNMPSim.__init__(
+            self, 
+            key=asset_info['key'],
+            host=asset_info['host'] if 'host' in asset_info else False
+        )
+
+    ##### React to any events of the connected components #####
+    @handler("ParentAssetPowerDown")
+    def on_power_off_request_received(self): 
+        return self.power_off()
+
+    @handler("ParentAssetPowerUp")
+    def on_power_up_request_received(self):
+        return self.power_up()
 
 @register_asset
 class Outlet(Asset):

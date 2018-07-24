@@ -12,7 +12,7 @@ import enginecore.model.system_modeler as sm
 from enginecore.state.state_managers import StateManager
 from enginecore.state.utils import get_asset_type
 
-ASSET_TYPES = ['pdu', 'outlet', 'server', 'server-bmc', 'static']
+ASSET_TYPES = ['pdu', 'outlet', 'server', 'server-bmc', 'static', 'ups']
 
 def manage_state(asset_key, action):
     """ Perform action for a node/asset with a certain key
@@ -150,6 +150,8 @@ def create_asset(**kwargs):
             sm.create_server(kwargs['asset_key'], kwargs)
         elif asset_type == 'server-bmc':
             sm.create_server(kwargs['asset_key'], kwargs, server_variation='ServerWithBMC')
+        elif asset_type == 'ups':
+            sm.create_ups(kwargs['asset_key'], kwargs)
         else:
             print("The asset type must be either 'outlet', 'pdu' or 'static'")
     except KeyError as e:
