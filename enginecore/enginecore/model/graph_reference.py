@@ -120,12 +120,20 @@ class GraphReference():
 
         results = session.run(
             """
-            MATCH (asset:Asset) OPTIONAL MATCH (asset)<-[:POWERED_BY]-(childAsset:Asset) 
-            RETURN asset, collect(childAsset) as children ORDER BY asset.key ASC
+            MATCH (asset:Asset) 
+            OPTIONAL MATCH (asset)-[:HAS_COMPONENT]->(component:Component)
+            OPTIONAL MATCH (asset)<-[:POWERED_BY]-(childAsset:Asset) 
+            RETURN asset, count(DISTINCT component) as num_components, collect(childAsset) as children 
+            ORDER BY asset.key ASC
             """
         )
 
-        assets = list(map(lambda x: dict({**x['asset'], 'children': x['children']}), list(results)))
+        assets = list(map(lambda x: dict({
+            **x['asset'], 
+            'children': x['children'],
+            'num_components': x['num_components']
+        }), list(results)))
+
         return assets
             
     @classmethod

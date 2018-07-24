@@ -355,7 +355,7 @@ class ServerStateManager(StaticDeviceStateManager):
     def __init__(self, asset_info, asset_type='server', notify=False):
         super(ServerStateManager, self).__init__(asset_info, asset_type, notify)
         self._vm_conn = libvirt.open("qemu:///system")
-        # TODO: error handling if the domain is missing (throws libvirtError)
+        # TODO: error handling if the domain is missing (throws libvirtError) & close the connection
         self._vm = self._vm_conn.lookupByName(asset_info['name'])
 
     def shut_down(self):

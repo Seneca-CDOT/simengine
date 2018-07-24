@@ -13,6 +13,7 @@ import subprocess
 import os
 import signal
 import tempfile
+import shutil
 import time
 from collections import namedtuple
 from distutils.dir_util import copy_tree
@@ -163,36 +164,47 @@ class Agent():
 
 class IPMIAgent(Agent):
     """IPMIsim instance """
-    def __init__(self, key, ipmi_dir):
+    def __init__(self, key, ipmi_dir, num_psu):
         super(IPMIAgent, self).__init__()
         self._asset_key = key
         self._process = None
         self._ipmi_dir = ipmi_dir
         copy_tree(os.environ.get('SIMENGINE_IPMI_TEMPL'), self._ipmi_dir)
-        
-        # Substitute a template
+
+        # sensor, emu & lan configuration file paths
         lan_conf = os.path.join(self._ipmi_dir, 'lan.conf')
         ipmisim_emu = os.path.join(self._ipmi_dir, 'ipmisim1.emu')
+        sdr_main = os.path.join(*[self._ipmi_dir, 'emu_state', 'ipmi_sim', 'ipmisim1', 'sdr.20.main'])
+        sensor_def = os.path.join(self._ipmi_dir, 'main.sdrs')
 
+        # Template options
         lan_conf_opt = {'asset_key': key, 'extend_lib': '/usr/lib/simengine/haos_extend.so'}
-        ipmisim_emu_opt = {'ipmi_dir': self._ipmi_dir}
+        ipmisim_emu_opt = {'ipmi_dir': self._ipmi_dir, 'includes': ''}
+        main_sdr_opt = {'ipmi_dir': self._ipmi_dir, 'includes': ''}
 
-        with open(lan_conf, "r+") as filein:
-            template = Template(filein.read())
-            filein.seek(0)
-            filein.write(template.substitute(lan_conf_opt))
+        # Set server-specific includes
+        if num_psu == 2:
+            ipmisim_emu_opt['includes'] = 'include "{}"'.format(os.path.join(self._ipmi_dir, 'ipmisim1_psu.emu'))
+            main_sdr_opt['includes'] = 'include "{}"'.format(os.path.join(self._ipmi_dir, 'main_dual_psu.sdrs'))
 
-        with open(ipmisim_emu, "r+") as filein:
-            template = Template(filein.read())
-            filein.seek(0)
-            filein.write(template.substitute(ipmisim_emu_opt))
+        # Substitute a template
+        self._substitute_template_file(lan_conf, lan_conf_opt)
+        self._substitute_template_file(ipmisim_emu, ipmisim_emu_opt)
+        self._substitute_template_file(sensor_def, main_sdr_opt)
 
-
-        # print(self._ipmi_dir)
+        # compile sensor definitions
+        os.system("sdrcomp -o {} {}".format(sdr_main, sensor_def))
 
         self.start_agent()
         IPMIAgent.agent_num += 1
-    
+
+    def _substitute_template_file(self, filename, options):
+        """Update file using python templating """
+        with open(filename, "r+") as filein:
+            template = Template(filein.read())
+            filein.seek(0)
+            filein.write(template.substitute(options))
+
     def stop_agent(self):
         """ Logic for agent's termination """
         os.kill(self._process.pid, signal.SIGSTOP)
@@ -397,7 +409,7 @@ class ServerWithBMC(Server):
     
     def __init__(self, asset_info):
         asset_info['ipmi_dir'] = tempfile.mkdtemp()
-        self._ipmi_agent = IPMIAgent(asset_info['key'], asset_info['ipmi_dir'])
+        self._ipmi_agent = IPMIAgent(asset_info['key'], asset_info['ipmi_dir'], num_psu=asset_info['num_components'])
 
         super(ServerWithBMC, self).__init__(asset_info)
         self._state.set_state_dir(asset_info['ipmi_dir'])

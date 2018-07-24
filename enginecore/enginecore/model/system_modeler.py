@@ -2,6 +2,7 @@
 import json
 import os
 import secrets
+import libvirt
 import string
 from enginecore.model.graph_reference import GraphReference
 
@@ -46,6 +47,15 @@ def create_server(key, attr, server_variation='Server'):
         raise KeyError('Server asset requires power_consumption attribute')
     if not attr['domain_name']:
         raise KeyError('Must provide VM name (domain name)')
+
+    try:
+        conn = libvirt.open("qemu:///system")
+        conn.lookupByName(attr['domain_name'])
+    except libvirt.libvirtError:
+        raise KeyError('VM does not exist')
+    finally:
+        conn.close()
+
 
     with graph_ref.get_session() as session:
         session.run("\

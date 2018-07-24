@@ -1,0 +1,31 @@
+########################
+# Power supply sensors
+########################
+
+
+# PSU Fans
+sensor_add 0x20  0   0x74    3     1 poll 2000 \
+        file $TEMP_IPMI_DIR"/sensor_dir/FAN_1" depends=0x20,0,8,0
+sensor_add 0x20  0   0x75     3     1 poll 2000 \
+        file $TEMP_IPMI_DIR"/sensor_dir/FAN_2" depends=0x20,0,9,0
+
+# Current
+sensor_add 0x20  0   12     3     1 poll 2000 \
+        file $TEMP_IPMI_DIR"/sensor_dir/IOUT_1" depends=0x20,0,8,0
+sensor_add 0x20  0   13     3     1 poll 2000 \
+        file $TEMP_IPMI_DIR"/sensor_dir/IOUT_2" depends=0x20,0,9,0
+
+# Wattage
+sensor_add 0x20  0   14     3     1 poll 2000 \
+        file $TEMP_IPMI_DIR"/sensor_dir/POUT_1" div=10 depends=0x20,0,8,0
+sensor_add 0x20  0   15     3     1 poll 2000 \
+        file $TEMP_IPMI_DIR"/sensor_dir/POUT_2" div=10 depends=0x20,0,9,0
+
+
+# Voltage
+sensor_add 0x20  0   10     2     1 poll 2000 \
+ 		file $TEMP_IPMI_DIR"/sensor_dir/VOUT_1" depends=0x20,0,8,0
+sensor_add 0x20  0   11     2     1 poll 2000 \
+ 		file $TEMP_IPMI_DIR"/sensor_dir/VOUT_2" depends=0x20,0,9,0
+        
+

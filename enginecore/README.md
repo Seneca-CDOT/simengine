@@ -82,7 +82,28 @@ Source Code:
     simengine-cli model power-link --source-key=11133 --dest-key=2013
     simengine-cli model power-link --source-key=11127 --dest-key=2014
     
+    
+### Server Type
 
+
+    # Create 2 outlets, one powers PDU another one powers PSU2
+    simengine-cli model create --asset-key=1 --asset-type=outlet
+    simengine-cli model create --asset-key=2 --asset-type=outlet
+
+    # Add a PDU 
+    simengine-cli model create --asset-key=3 --asset-type=pdu
+   
+    # Add one useless microwave
+    simengine-cli model create --asset-key=4 --asset-type=static --name='Panasonic' --img-url=http://z3central.cdot.systems/docs/microwave-159076_640.png --power-source=120 --power-consumption=120
+
+    # Add server that supports BMC & IPMI
+    simengine-cli model create -k=5 -t=server-bmc --domain-name=fedora27 --power-consumption=480 --psu-num=2 --psu-load 0.5 0.5
+
+    # Power up the components
+    simengine-cli model power-link --source-key=1 --dest-key=3
+    simengine-cli model power-link --source-key=31 --dest-key=4
+    simengine-cli model power-link --source-key=35 --dest-key=51
+    simengine-cli model power-link --source-key=2 --dest-key=52
 
 ### Updating the Model
 
