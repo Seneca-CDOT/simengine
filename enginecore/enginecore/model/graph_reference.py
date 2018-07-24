@@ -191,7 +191,9 @@ class GraphReference():
             asset_key(int): key of the updated asset
         
         Returns:
-
+            tuple: consisting of 3 (optional) items: 1) child assets that are powered by the updated asset
+                                                     2) parent(s) of the updated asset
+                                                     3) second parent of the child assets  
         """
 
         # look up child nodes & parent node

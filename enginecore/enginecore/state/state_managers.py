@@ -316,8 +316,8 @@ class OutletStateManager(StateManager):
     def _get_outlet_oid(self, oid_name):
         with self._graph_ref.get_session() as s:
             result = s.run(
-                "MATCH (outlet:Component { key: 11})<-[:HAS_COMPONENT]-(p:Asset)-[:HAS_OID]->(oid:OID {name: $oid_name}) return oid, p.key as parent_key",
-                oid_name=oid_name
+                "MATCH (outlet:Component { key: $key})<-[:HAS_COMPONENT]-(p:Asset)-[:HAS_OID]->(oid:OID {name: $oid_name}) return oid, p.key as parent_key",
+                oid_name=oid_name, key=self.get_key()
             )
             record = result.single()
             return record.get('parent_key'), dict(record.get('oid')) if record else None
@@ -428,6 +428,7 @@ class IPMIComponent():
         return os.path.join(self.get_state_dir(), os.path.join(self._sensor_dir, 'CPU_TEMP'))
 
     def _update_cpu_temp(self, value):
+        """Set cpu temp value"""
         self._write_sensor_file(self._get_cpu_temp_file(), value)
 
 class BMCServerStateManager(ServerStateManager, IPMIComponent):

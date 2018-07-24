@@ -22,7 +22,7 @@ import Pdu from './Assets/PDU/Pdu';
 import Socket from './Assets/common/Socket';
 import Server from './Assets/Server/Server';
 
-import SimpleCard from './SimpleCard';
+import AssetDetails from './AssetDetails';
 import initialState from './InitialState';
 
 const drawerWidth = 240;
@@ -489,7 +489,7 @@ const styles = theme => ({
             </Stage>
             {/* LeftMost Card -> Display Element Details */}
             {(this.state.selectedAssetKey) ?
-              <SimpleCard
+              <AssetDetails
                 assetInfo={selectedAsset}
                 assetKey={this.state.selectedAssetKey}
                 changeStatus={this.changeStatus.bind(this)}

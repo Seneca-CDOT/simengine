@@ -338,7 +338,8 @@ class Outlet(Asset):
             time.sleep(self._state.get_config_on_delay())
 
         e_result = self.power_up()
-        if not e_result.new_state:
+
+        if e_result.new_state == e_result.old_state:
             event.success = False
 
         return e_result

@@ -119,12 +119,11 @@ class StateListener(Component):
         
         updated_asset = self._assets[int(asset_key)]
         asset_status = str(updated_asset.status())
-        asset_info = PowerEventResult(asset_key=asset_key, new_state=asset_status)
 
         # write to a web socket, 
-        self._notify_client(asset_info)
+        self._notify_client(asset_key, {'status':  int(asset_status)})
         self.fire(PowerEventManager.map_asset_event(asset_status), updated_asset)
-        self._chain_power_update(asset_info)
+        self._chain_power_update(PowerEventResult(asset_key=asset_key, new_state=asset_status))
             
 
     def monitor(self):
@@ -208,14 +207,10 @@ class StateListener(Component):
 
                 self.fire(event, parent)
 
-        # Notify web-socket client of a load update
-        self.fire(NotifyClient({ # TODO: refactor
-            'key': int(child_key),
-            'data': {
-                'load': self._assets[int(child_key)].get_load()
-        }}), self._ws)
-
-
+        # Notify web-socket client of the load update
+        # TODO: move _notify_client outside of the function
+        self._notify_client(child_key, {'load': self._assets[child_key].get_load()})
+    
     
     def _chain_power_update(self, event_result):
         """React to power state event by analysing the parent, child & neighbouring assets
@@ -230,7 +225,7 @@ class StateListener(Component):
         new_state = int(event_result.new_state)
 
         with self._graph_ref.get_session() as session:
-            children, parent_assets, _2nd_parent = GraphReference.get_affected_assets(session, int(asset_key))
+            children, parent_assets, _2nd_parent = GraphReference.get_affected_assets(session, asset_key)
             updated_asset = self._assets[asset_key]
 
             # Meaning it's a leaf node -> update load up the power chain if needed
@@ -314,18 +309,25 @@ class StateListener(Component):
                     self.fire(event, updated_asset)
 
 
-    def _notify_client(self, event_result):
-        asset_key = event_result.asset_key
-        state = event_result.new_state
+    def _notify_client(self, asset_key, data):
+        """Notify the WebSocket client(s) of any changes in asset states 
+
+        Args:
+            asset_key(int): key of the updated asset
+            data(dict): updated key/values (e.g. status, load)
+        """
 
         self.fire(NotifyClient({
             'key': int(asset_key),
-            'data': {
-                'status': int(state)
-        }}), self._ws)
+            'data': data
+        }), self._ws)
 
     # **Events are camel-case
     # pylint: disable=C0103
+
+    ############### Load Events - Callbacks 
+
+    # def _load_success(event_result, increase)
 
     # Notify parent asset of any child events
     def ChildAssetPowerDown_success(self, evt, event_result):
@@ -345,26 +347,29 @@ class StateListener(Component):
         self._chain_load_update(event_result)
 
 
-    # Notify child asset of any parent events of interest
+    ############### Power Events - Callbacks 
+
+    def _power_success(self, event_result):
+        """Handle power event success by dispatching power events down the power stream"""
+        self._notify_client(event_result.asset_key, {'status': int(event_result.new_state)})
+        self._chain_power_update(event_result)
+    
+     # Notify child asset of any parent events of interest
     def ParentAssetPowerDown_success(self, evt, event_result):
         """ When assets parent successfully powered down """
-        self._notify_client(event_result)
-        self._chain_power_update(event_result)
+        self._power_success(event_result)
 
     def ParentAssetPowerUp_success(self, evt, event_result):
         """ When assets parent successfully powered up """
-        self._notify_client(event_result)
-        self._chain_power_update(event_result)
+        self._power_success(event_result)
 
     def SignalDown_success(self, evt, event_result):
         """ When asset is powered down """
-        self._notify_client(event_result)
-        self._chain_power_update(event_result)
+        self._power_success(event_result)
 
     def SignalUp_success(self, evt, event_result):
         """ When asset is powered up """
-        self._notify_client(event_result)
-        self._chain_power_update(event_result)
+        self._power_success(event_result)
 
     def SignalReboot_success(self, evt, e_result):
         """ Rebooted """
@@ -373,7 +378,7 @@ class StateListener(Component):
         if not e_result.old_state and e_result.old_state != e_result.new_state:
             self._chain_power_update(e_result)
 
-        self._notify_client(e_result)
+        self._notify_client(e_result.asset_key, {'status': e_result.new_state})
 
 if __name__ == '__main__':
     StateListener().run()
