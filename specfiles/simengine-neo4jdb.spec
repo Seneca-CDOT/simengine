@@ -17,14 +17,14 @@ Installs the SimEngine database configuration for Neo4j.
 systemctl stop neo4j
 
 %prep
-autosetup -c %{name}
+%autosetup -c %{name}
 
 %install
 mkdir -p %{buildroot}%{_sharedstatedir}/neo4j/data/dbms/
 cp -fp auth %{buildroot}%{_sharedstatedir}/neo4j/data/dbms/
 
 %files
-%attr(0644, neo4j, neo4j) %{buildroot}%{_sharedstatedir}/neo4j/data/dbms/auth
+%attr(0644, neo4j, neo4j) %{_sharedstatedir}/neo4j/data/dbms/auth
 
 %post
 systemctl enable neo4j --now
