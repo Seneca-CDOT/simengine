@@ -19,7 +19,7 @@ Compiles and installs the OpenIPMI plugin for use with SimEngine.
 %autosetup -c %{name}
 
 %build
-gcc -Og -shared -o %{_builddir}/%{name}-%{version}/haos_extend.so -fPIC %{_builddir}/%{name}-%{version}/ipmi_sim/haos_extend.c
+gcc -shared -o %{_builddir}/%{name}-%{version}/haos_extend.so -fPIC %{_builddir}/%{name}-%{version}/ipmi_sim/haos_extend.c
 
 %install
 mkdir -p %{buildroot}%{_sharedstatedir}/simengine/
