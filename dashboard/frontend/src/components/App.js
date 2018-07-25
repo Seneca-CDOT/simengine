@@ -21,6 +21,7 @@ import Divider from '@material-ui/core/Divider';
 import Pdu from './Assets/PDU/Pdu';
 import Socket from './Assets/common/Socket';
 import Server from './Assets/Server/Server';
+import Ups from './Assets/UPS/Ups';
 
 import AssetDetails from './AssetDetails';
 import initialState from './InitialState';
@@ -270,12 +271,28 @@ const styles = theme => ({
     let asset_details = {...assets[key]};
     assets[key] = {...asset_details, ...{x: e.target.x(), y: e.target.y()}};
 
-    if (asset.children) {
+    if (asset.children && asset.type == 'pdu') {
+
       let x=100;
       for (const ckey of Object.keys(asset.children)) {
         const c = this._update_wiring(this._get_asset_by_key(ckey), ckey, e.target.x()+x, e.target.y());
         Object.assign(childConn, c);
         x += 90;
+      }
+    } else if (asset.children && asset.type == 'ups') {
+
+      let x = 485;
+      let y = -40;
+      let outletIndex = 0;
+      for (const ckey of Object.keys(asset.children)) {
+        const c = this._update_wiring(this._get_asset_by_key(ckey), ckey, e.target.x()+x, e.target.y() + y);
+        Object.assign(childConn, c);
+        y += 100;
+        outletIndex++;
+        if (outletIndex == 4) {
+          x = 580;
+          y = -40;
+        }
       }
     }
 
@@ -374,7 +391,27 @@ const styles = theme => ({
       assetId={key}
       asset={asset}
       selected={this.state.selectedAssetKey === key}
-      pduSocketSelected={this.state.selectedAssetKey in asset.children}
+      powerSupplySelected={this.state.selectedAssetKey in asset.children}
+      powered={powered}
+      x={asset.x}
+      y={asset.y}
+    />);
+  }
+
+  drawUps(key, asset) {
+    let powered = false;
+    if (asset.parent) {
+      powered = asset.parent.find((x) => this._get_asset_by_key(x.key).status != 0) !== undefined;
+    }
+
+    return (
+    <Ups
+      onPosChange={this.onPosChange.bind(this)}
+      onElementSelection={this.onElementSelection.bind(this)}
+      assetId={key}
+      asset={asset}
+      selected={this.state.selectedAssetKey === key}
+      upsSocketSelected={this.state.selectedAssetKey in asset.children}
       powered={powered}
       x={asset.x}
       y={asset.y}
@@ -399,28 +436,33 @@ const styles = theme => ({
         systemLayout.push(this.drawPdu(key, assets[key]));
       } else if (assets[key].type === 'server' || assets[key].type === 'serverwithbmc') {
         systemLayout.push(this.drawServer(key, assets[key]));
+      } else if (assets[key].type === 'ups') {
+        systemLayout.push(this.drawUps(key, assets[key]));
       }
     }
 
     // draw wires
     for (const key of Object.keys(connections)) {
-      const socketX1pad = 34;
-      const socketYpad = 35;
+      const socketX1pad = 34; // X1, Y1 are for parents
+      const socketY1pad = 35;
+      let socketYpad = 35;
+
       let socketXpad = socketX1pad;
       const asset = this._get_asset_by_key(key);
       const child_type = this.state.assets[connections[key].ckey].type;
 
       if (child_type == 'staticasset') {
         socketXpad = -35;
-      }
-
-      if (child_type == 'server' || child_type === 'serverwithbmc') {
+      } else if (child_type == 'server' || child_type === 'serverwithbmc') {
         socketXpad = -220;
+      } else if (child_type == 'ups') {
+        socketXpad = -390;
+        socketYpad = 222;
       }
 
       wireDrawing.push(
         <Line
-          points={[connections[key].x+socketX1pad , connections[key].y+socketYpad, connections[key].x1- socketXpad , connections[key].y1+socketYpad]}
+          points={[connections[key].x+socketX1pad, connections[key].y+socketY1pad, connections[key].x1-socketXpad , connections[key].y1+socketYpad]}
           stroke={asset.status  === 1?"green":"grey"}
           strokeWidth={5}
           zIndex={300}
@@ -479,7 +521,7 @@ const styles = theme => ({
             <div className={classes.toolbar} />
             <Stage
               width={window.innerWidth}
-              height={1100}
+              height={window.innerHeight * 0.88}
               ref="stage"
             >
               <Layer>

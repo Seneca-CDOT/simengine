@@ -124,14 +124,31 @@ def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
                 v['defaultValue'] = id_generator()
 
             session.run("\
-            MATCH (ups:UPS {key: $pkey})\
+            MATCH (ups:UPS {key: $key})\
             CREATE (oid:OID { \
                 OID: $oid,\
                 OIDName: $name,\
                 name: $name, \
                 defaultValue: $dv,\
                 dataType: $dt \
-            })<-[:HAS_OID]-(ups)", pkey=key, oid=v['OID'], name=k, dv=v['defaultValue'], dt=v['dataType'])
+            })<-[:HAS_OID]-(ups)", key=key, oid=v['OID'], name=k, dv=v['defaultValue'], dt=v['dataType'])
+
+            for i in range(data["numOutlets"]):
+                oid = v['OID'] + "." + str(i+1)
+
+                session.run("\
+                MATCH (ups:UPS {key: $key})\
+                CREATE (out1:Asset:Outlet:Component { \
+                    name: $outname,\
+                    key: $outkey,\
+                    type: 'outlet'\
+                })\
+                CREATE (out1)-[:POWERED_BY]->(ups)\
+                CREATE (ups)-[:HAS_COMPONENT]->(out1)\
+                ", 
+                key=key,
+                outname='out'+str(i+1),
+                outkey=int("{}{}".format(key,str(i+1))))
 
 
 def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'presets/apc_pdu.json')):

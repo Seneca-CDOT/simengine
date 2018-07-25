@@ -259,15 +259,18 @@ class StateManager():
             return asset
 
 
+class UPSStateManager(StateManager):
+    """Handles UPS state logic """
 
+    def __init__(self, asset_info, asset_type='ups', notify=False):
+        super(UPSStateManager, self).__init__(asset_info, asset_type, notify)
 
 class PDUStateManager(StateManager):
     """Handles state logic for PDU asset """
 
     def __init__(self, asset_info, asset_type='pdu', notify=False):
-         super(PDUStateManager, self).__init__(asset_info, asset_type, notify)
+        super(PDUStateManager, self).__init__(asset_info, asset_type, notify)
         
-
 
     def _update_current(self, load):
         """Update OID associated with the current amp value """

@@ -331,7 +331,7 @@ class PDU(Asset, SNMPSim):
 @register_asset
 class UPS(Asset, SNMPSim):
     channel = "engine-ups"
-    StateManagerCls = sm.PDUStateManager # TODO: make its own State Manager
+    StateManagerCls = sm.UPSStateManager
 
     def __init__(self, asset_info):
         Asset.__init__(self, UPS.StateManagerCls(asset_info))

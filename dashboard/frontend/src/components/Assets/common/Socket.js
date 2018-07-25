@@ -104,7 +104,9 @@ export default class Socket extends React.Component {
           {this.props.selectable &&
             <SocketStatus socketOn={this.props.red_means_on?!this.props.asset.status:this.props.asset.status} powered={this.props.powered}/>
           }
-          <Text text={this.props.asset && this.props.asset.name ? this.props.asset.name :'socket'}  y={this.state.bgImage ? 175: 105} />
+          { !this.props.hideName &&
+            <Text text={this.props.asset && this.props.asset.name ? this.props.asset.name :'socket'}  y={this.state.bgImage ? 175: 105} />
+          }
         </Group>
       );
     }
@@ -121,5 +123,6 @@ Socket.propTypes = {
   selected: PropTypes.bool, // Selected by user
   parentSelected: PropTypes.bool, // Used when an outlet belongs to an asset
   onElementSelection: PropTypes.func, // Notify parent component of selection
-  selectable: PropTypes.bool.isRequired, // Outlet is an asset
+  selectable: PropTypes.bool.isRequired, // Outlet is an asset,
+  hideName: PropTypes.bool, // Display outlet name
 };

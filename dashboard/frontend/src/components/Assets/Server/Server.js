@@ -59,10 +59,10 @@ export default class Server extends React.Component {
     // const inputSocket = <Socket x={-70} socketName={"input socket"} selectable={false} draggable={false}/>;
 
     let x=50;
-    const serverName = this.props.asset.name ? this.props.asset.name:'pdu';
+    const serverName = this.props.asset.name ? this.props.asset.name:'ups';
     const asset = this.props.asset;
 
-    // Initialize outlets that are part of the PDU
+    // Initialize Powe Supplies
     for (const ckey of Object.keys(asset.children)) {
 
       asset.children[ckey].name = `[${ckey}]`;
@@ -75,7 +75,7 @@ export default class Server extends React.Component {
           draggable={false}
           asset={asset.children[ckey]}
           assetId={ckey}
-          selected={this.state.selectedSocketKey === ckey && this.props.pduSocketSelected}
+          selected={this.state.selectedSocketKey === ckey && this.props.powerSupplySelected}
           powered={this.props.powered}
           parentSelected={this.props.selected}
         />
@@ -124,5 +124,5 @@ Server.propTypes = {
   assetId: PropTypes.string.isRequired, // Asset Key
   selected: PropTypes.bool.isRequired, // Asset Selected by a user
   onElementSelection: PropTypes.func.isRequired, // Notify parent component of selection
-  pduSocketSelected: PropTypes.bool.isRequired, // One of the PDU outlets are selected
+  powerSupplySelected: PropTypes.bool.isRequired, // One of the powerSupplies are selected
 };
