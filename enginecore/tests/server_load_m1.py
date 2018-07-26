@@ -47,7 +47,7 @@ class ServerLoadTest(unittest.TestCase):
         sm.create_outlet(2, attr)
 
         sm.create_pdu(3, attr)
-        sm.create_server(4, server_attr, server_variation='ServerWithBMC')
+        sm.create_server(4, server_attr, server_variation=sm.ServerVariations.ServerWithBMC)
         sm.create_static(5, {
             'power_consumption': 240,
             'power_source': 120,

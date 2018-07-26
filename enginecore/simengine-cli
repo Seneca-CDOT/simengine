@@ -149,7 +149,7 @@ def create_asset(**kwargs):
         elif asset_type == 'server':
             sm.create_server(kwargs['asset_key'], kwargs)
         elif asset_type == 'server-bmc':
-            sm.create_server(kwargs['asset_key'], kwargs, server_variation='ServerWithBMC')
+            sm.create_server(kwargs['asset_key'], kwargs, server_variation=sm.ServerVariations.ServerWithBMC)
         elif asset_type == 'ups':
             sm.create_ups(kwargs['asset_key'], kwargs)
         else:
@@ -194,7 +194,7 @@ create_asset_action.add_argument(
 create_asset_action.add_argument(
     '-t', '--asset-type', required=True, help="Type of the machine/asset", choices=ASSET_TYPES
     )
-create_asset_action.add_argument('--host')
+create_asset_action.add_argument('--host', type=str, default='localhost', help="SNMP/IPMI interface host")
 create_asset_action.add_argument('--on-delay', type=int, help="Power on delay in ms", default=-1)
 create_asset_action.add_argument('--off-delay', type=int, help="Power on delay in ms", default=-1)
 
@@ -206,6 +206,14 @@ create_asset_action.add_argument('--name')
 
 # vm asset options
 create_asset_action.add_argument('--domain-name', help="VM domain name")
+create_asset_action.add_argument('--user', type=str, default='ipmiusr', help="BMC-enabled server: IPMI admin user")
+create_asset_action.add_argument('--password', type=str, default='test', help="BMC-enabled server: IPMI user password")
+create_asset_action.add_argument('--port', type=int, default=9001, help="IPMI interface port")
+create_asset_action.add_argument(
+    '--vmport', type=int, default=9002, help="IPMI serial VM inteface for channel 15 (the system interface)"
+)
+
+
 create_asset_action.add_argument('--psu-num', type=int, default=1, help="Number of PSUs installed in the server")
 create_asset_action.add_argument(
     '--psu-load', 

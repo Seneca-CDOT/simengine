@@ -417,6 +417,8 @@ sdr type 1
 endsdr
 
 define FAN "5"
+define PSU_NUM "1"
 include $IPMI_DIR"/psu_fan.sdrs"
 define FAN "6"
+define PSU_NUM "2"
 include $IPMI_DIR"/psu_fan.sdrs" 

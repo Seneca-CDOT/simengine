@@ -4,6 +4,7 @@ import os
 import secrets
 import libvirt
 import string
+from enum import Enum
 from enginecore.model.graph_reference import GraphReference
 
 graph_ref = GraphReference()
@@ -42,7 +43,22 @@ def create_outlet(key, attr):
         CREATE (:Asset:Outlet { name: $name,  key: $key, type: 'outlet' })", key=key, name="out-{}".format(key))
         set_properties(key, attr)
 
-def create_server(key, attr, server_variation='Server'):
+class ServerVariations(Enum):
+    """Supported variations of the server asset """
+    Server = 1
+    ServerWithBMC = 2
+
+IPMI_LAN_DEFAULTS = {
+    'user': 'ipmiusr',
+    'password': 'test',
+    'host': 'localhost',
+    'port': 9001,
+    'vmport': 9002
+}
+    
+def create_server(key, attr, server_variation=ServerVariations.Server):
+    """Create a simulated server """
+
     if not attr['power_consumption']:
         raise KeyError('Server asset requires power_consumption attribute')
     if not attr['domain_name']:
@@ -58,9 +74,25 @@ def create_server(key, attr, server_variation='Server'):
 
 
     with graph_ref.get_session() as session:
+        
         session.run("\
-        CREATE (server:Asset { name: $name,  key: $key, type: $stype }) SET server :"+server_variation, 
-                    key=key, name=attr['domain_name'], stype=server_variation.lower())
+        CREATE (server:Asset { name: $name,  key: $key, type: $stype }) SET server :"+server_variation.name, 
+                    key=key, name=attr['domain_name'], stype=server_variation.name.lower())
+
+        if server_variation == ServerVariations.ServerWithBMC:
+            bmc_attr = {**IPMI_LAN_DEFAULTS, **attr}
+            session.run("""
+                MATCH (a:Asset {key: $key})
+                SET a.user=$user, a.password=$password, a.host=$host, a.port=$port, a.vmport=$vmport
+                """, 
+                key=key, 
+                user=bmc_attr['user'],
+                password=bmc_attr['password'],
+                host=bmc_attr['host'],
+                port=bmc_attr['port'],
+                vmport=bmc_attr['vmport']              
+            )
+
         
         set_properties(key, attr)
         for i in range(attr['psu_num']):

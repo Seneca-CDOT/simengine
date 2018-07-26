@@ -164,7 +164,7 @@ class Agent():
 
 class IPMIAgent(Agent):
     """IPMIsim instance """
-    def __init__(self, key, ipmi_dir, num_psu):
+    def __init__(self, key, ipmi_dir, num_psu, host='localhost', port=9001, vmport=9002, user='ipmiusr', password='test'):
         super(IPMIAgent, self).__init__()
         self._asset_key = key
         self._process = None
@@ -178,7 +178,15 @@ class IPMIAgent(Agent):
         sensor_def = os.path.join(self._ipmi_dir, 'main.sdrs')
 
         # Template options
-        lan_conf_opt = {'asset_key': key, 'extend_lib': '/usr/lib/simengine/haos_extend.so'}
+        lan_conf_opt = {
+            'asset_key': key, 
+            'extend_lib': '/usr/lib64/simengine/haos_extend.so',
+            'host': host,
+            'port': port,
+            'user': user,
+            'password': password,
+            'vmport': vmport
+        }
         ipmisim_emu_opt = {'ipmi_dir': self._ipmi_dir, 'includes': ''}
         main_sdr_opt = {'ipmi_dir': self._ipmi_dir, 'includes': ''}
 
@@ -438,7 +446,16 @@ class ServerWithBMC(Server):
     
     def __init__(self, asset_info):
         asset_info['ipmi_dir'] = tempfile.mkdtemp()
-        self._ipmi_agent = IPMIAgent(asset_info['key'], asset_info['ipmi_dir'], num_psu=asset_info['num_components'])
+        self._ipmi_agent = IPMIAgent(
+            asset_info['key'], 
+            asset_info['ipmi_dir'], 
+            num_psu=asset_info['num_components'],
+            host=asset_info['host'],
+            user=asset_info['user'],
+            password=asset_info['password'],
+            port=asset_info['port'],
+            vmport=asset_info['vmport']
+        )
 
         super(ServerWithBMC, self).__init__(asset_info)
         self._state.set_state_dir(asset_info['ipmi_dir'])

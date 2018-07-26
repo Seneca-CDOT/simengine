@@ -20,9 +20,9 @@ cp main.bsdr emu_state/ipmi_sim/ipmisim1/sdr.20.main
 
 `gcc -shared -o ./haos_extend.so -fPIC ./haos_extend.c`
 
-`sudo mkdir /usr/lib/simengine`
+`sudo mkdir /usr/lib64/simengine`
 
-`sudo cp ./haos_extend.so  /usr/lib/simengine`
+`sudo cp ./haos_extend.so  /usr/lib64/simengine`
 
 ### Running Simulator
 
