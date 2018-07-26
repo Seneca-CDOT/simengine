@@ -1,4 +1,5 @@
-### Project Structure
+### Project Structure [![Documentation Status](https://readthedocs.org/projects/simengine/badge/?version=latest)](https://simengine.readthedocs.io/en/latest/?badge=latest)
+                
 
 `./dashboard` - simengine frontend 
 
