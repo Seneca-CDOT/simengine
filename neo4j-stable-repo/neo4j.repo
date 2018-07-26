@@ -1,6 +1,0 @@
-[neo4j]
-name=Neo4j Yum Repo
-baseurl=http://yum.neo4j.org/stable
-enabled=1
-gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-NEO4J-STABLE
