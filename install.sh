@@ -135,9 +135,9 @@ install_openIPMI () {
 build_ipmiplugin () {
 	echo "-- Building IPMI Emulator Plugin --"
 	echo ""
-	mkdir /usr/lib/simengine/
+	mkdir /usr/lib64/simengine/
 	ln -s /usr/share/simengine/enginecore/simengine-cli.py /usr/bin/simengine-cli.py
-	gcc -shared -o /usr/lib/simengine/haos_extend.so -fPIC /usr/share/simengine/enginecore/ipmi_sim/haos_extend.c
+	gcc -shared -o /usr/lib64/simengine/haos_extend.so -fPIC /usr/share/simengine/enginecore/ipmi_sim/haos_extend.c
 	echo ""
 }
 
