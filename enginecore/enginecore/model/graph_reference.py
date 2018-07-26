@@ -168,7 +168,7 @@ class GraphReference():
             if (asset['type'] == 'server' or asset['type'] == 'serverwithbmc') and asset['parent']:
                 keys = map(lambda x: x['key'], asset['parent'])
                 presults = session.run(
-                    "MATCH (c:Component)-[:POWERED_BY]->(parent) WHERE c.key IN $list RETURN parent", list=keys
+                    "MATCH (c:Component)-[:POWERED_BY]->(parent) WHERE c.key IN $list RETURN parent ORDER BY c.key", list=keys
                 )
 
                 asset['parent'] = []
