@@ -251,7 +251,7 @@ class SNMPAgent(Agent):
         self._process = None
         self._snmp_rec_filename = community + '.snmprec'
         self._snmp_rec_dir = tempfile.mkdtemp()
-        self._host = host if host else "127.0.0.{}:1024".format(SNMPAgent.agent_num)
+        self._host = '{}:1024'.format(host) if host else "127.0.0.{}:1024".format(SNMPAgent.agent_num)
 
         snmp_rec_filepath = os.path.join(self._snmp_rec_dir, self._snmp_rec_filename)
         redis_script_sha = os.environ.get('SIMENGINE_SNMP_SHA')
@@ -285,7 +285,7 @@ class SNMPAgent(Agent):
         cmd += " --variation-module-options=redis:host:127.0.0.1,port:6379,db:0,key-spaces-id:"+str(self._key_space_id)
         cmd += " --data-dir="+self._snmp_rec_dir
         cmd += " --transport-id-offset="+str(SNMPAgent.agent_num)
-
+        
         self._process = subprocess.Popen(
             cmd, shell=True, stderr=subprocess.DEVNULL, stdout=open(os.devnull, 'wb'), close_fds=True
         )
