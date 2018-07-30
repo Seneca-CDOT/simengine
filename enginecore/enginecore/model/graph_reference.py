@@ -109,6 +109,55 @@ class GraphReference():
         return keys_oid_powers, oid_specs
 
     @classmethod
+    def get_asset_oid_by_name(cls, session, asset_key, oid_name):
+        """Get OID that belongs to a particular asset by human-readable name
+        Args:
+            session: database session
+            asset_key(int): key of the asset OID belongs to
+            oid_name(str): OID name
+        Returns:
+            tuple: str as SNMP OID that belongs to the asset, followed by an int as datatype; 
+                   returns None if there's no such OID
+        """
+
+
+        results = session.run( 
+            "MATCH (:Asset { key: $key })-[:HAS_OID]->(oid {name: $oid_name}) RETURN oid",
+            key=asset_key, oid_name=oid_name
+        )
+
+        record = results.single()
+        details = record.get('oid')  
+            
+        return details['OID'], int(details['dataType']) if (details and 'OID' in details) else None
+
+    @classmethod
+    def get_component_oid_by_name(cls, session, component_key, oid_name):
+        """Get OID that is associated with a particular component (by human-readable name)
+        Args:
+            session: database session
+            component_key(int): key of the component
+            oid_name(str): OID name
+        Returns:
+            tuple: SNMP OID that belongs to the enclosing asset (as str), key of the asset component belongs to (int)
+        """
+
+
+        result = session.run(
+            """
+            MATCH (outlet:Component { key: $key})<-[:HAS_COMPONENT]-(p:Asset)-[:HAS_OID]->(oid:OID {name: $oid_name})
+            RETURN oid, p.key as parent_key
+            """,
+            oid_name=oid_name, key=component_key
+        )
+        record = result.single()
+
+        oid_info = record.get('oid')
+        parent_key = record.get('parent_key')
+        
+        return oid_info['OID'], int(parent_key) if (oid_info and 'OID' in oid_info) else None
+
+    @classmethod
     def get_assets_and_children(cls, session):
         """Get assets and children that are powered by them
         

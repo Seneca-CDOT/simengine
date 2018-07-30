@@ -37,51 +37,37 @@ class Asset(Component):
         self._state.reset_boot_time()
         self._state.update_load(0)
 
-    def get_key(self):
+    @property
+    def key(self):
         """ Get ID assigned to the asset """
-        return self._state.get_key()
+        return self._state.key
 
-    def get_load(self):
-        """Current asset load (in AMPs)"""
-        return self._state.get_load()
-    
-    def get_amperage(self):
-        """Power consumption in amps"""
-        return self._state.get_amperage()
-
-    def get_state(self):
+    @property
+    def state(self):
         """State manager instance"""
         return self._state
-
-    def status(self):
-        """Get Asset status stored in redis db """
-        return self._state.status()
     
-    def get_draw_percentage(self):
-        """How much this asset draws from the downstream"""
-        return self._state.get_draw_percentage()
-
     def power_up(self):
         """ Power up this asset """
-        old_state = self.status()
+        old_state = self.state.status
         return PowerEventResult(
-            asset_key=self._state.get_key(), 
-            asset_type=self._state.get_type(), 
+            asset_key=self._state.key, 
+            asset_type=self._state.asset_type, 
             old_state=old_state,
             new_state=self._state.power_up()
         )
 
     def power_off(self):
         """ Power down this asset """
-        old_state = self.status()
+        old_state = self.state.status
         return PowerEventResult(
-            asset_key=self._state.get_key(), 
-            asset_type=self._state.get_type(), 
+            asset_key=self._state.key, 
+            asset_type=self._state.asset_type, 
             old_state=old_state,
             new_state=self._state.power_off()
         )
 
-    def update_load(self, load_change, op, msg=''):
+    def _update_load(self, load_change, op, msg=''):
         """React to load changes by updating asset load
         
         Args:
@@ -93,19 +79,19 @@ class Asset(Component):
             LoadEventResult: Event result containing old & new load values as well as value subtracted/added
         """
         
-        old_load = self._state.get_load()
+        old_load = self._state.load
         new_load = op(old_load, load_change)
         
         if msg:
-            print(msg.format(self._state.get_key(), old_load, load_change, new_load))
+            print(msg.format(self._state.key, old_load, load_change, new_load))
         
-        self._state.update_load(new_load)
+        self.state.update_load(new_load)
 
         return LoadEventResult(
             load_change=load_change,
             old_load = old_load,
             new_load=new_load,
-            asset_key=self._state.get_key()
+            asset_key=self._state.key
         )
 
     @handler("ChildAssetPowerUp", "ChildAssetLoadIncreased")
@@ -113,14 +99,14 @@ class Asset(Component):
         """Load is ramped up if child is powered up or child asset's load is increased"""
         increased_by = kwargs['child_load']
         msg = 'Asset : {} : orig load {}, increased by: {}, new load: {}'
-        return self.update_load(increased_by, lambda old, change: old+change, msg)
+        return self._update_load(increased_by, lambda old, change: old+change, msg)
 
     @handler("ChildAssetPowerDown", "ChildAssetLoadDecreased")
     def on_load_decrease(self, event, *args, **kwargs):
         """Load is decreased if child is powered off or child asset's load is decreased"""
         decreased_by = kwargs['child_load']
         msg = 'Asset : {} : orig load {}, decreased by: {}, new load: {}'
-        return self.update_load(decreased_by, lambda old, change: old-change, msg)
+        return self._update_load(decreased_by, lambda old, change: old-change, msg)
 
     ##### React to events associated with the asset #####
     def on_asset_did_power_off(self):
@@ -244,20 +230,26 @@ class IPMIAgent(Agent):
 class SNMPAgent(Agent):
     """ SNMP simulator instance """
 
-    def __init__(self, key, community='public', lookup_oid='1.3.6', host=False):
+    def __init__(self, key, public_community='public', private_community='private', lookup_oid='1.3.6', host=False):
 
         super(SNMPAgent, self).__init__()
         self._key_space_id = key
         self._process = None
-        self._snmp_rec_filename = community + '.snmprec'
+        self._snmp_rec_public_fname = public_community + '.snmprec'
+        self._snmp_rec_private_fname = private_community + '.snmprec'
+
         self._snmp_rec_dir = tempfile.mkdtemp()
         self._host = '{}:1024'.format(host) if host else "127.0.0.{}:1024".format(SNMPAgent.agent_num)
 
-        snmp_rec_filepath = os.path.join(self._snmp_rec_dir, self._snmp_rec_filename)
-        redis_script_sha = os.environ.get('SIMENGINE_SNMP_SHA')
+        snmp_rec_public_filepath = os.path.join(self._snmp_rec_dir, self._snmp_rec_public_fname)
+        snmp_rec_private_filepath = os.path.join(self._snmp_rec_dir, self._snmp_rec_private_fname)
 
-        with open(snmp_rec_filepath, "a") as tmp:
-            tmp.write("{}|:redis|key-spaces-id={},evalsha={}\n".format(lookup_oid, key, redis_script_sha))
+        redis_script_sha = os.environ.get('SIMENGINE_SNMP_SHA')
+        snmpsim_config = "{}|:redis|key-spaces-id={},evalsha={}\n".format(lookup_oid, key, redis_script_sha)
+
+        with open(snmp_rec_public_filepath, "a") as tmp_pub, open(snmp_rec_private_filepath, "a") as tmp_priv:
+            tmp_pub.write(snmpsim_config)
+            tmp_priv.write(snmpsim_config)
             
         self.start_agent()
 
@@ -270,7 +262,7 @@ class SNMPAgent(Agent):
 
 
     def __exit__(self, exc_type, exc_value, traceback):
-        os.remove(os.path.join(self._snmp_rec_dir, self._snmp_rec_filename))
+        os.remove(os.path.join(self._snmp_rec_dir, self._snmp_rec_public_fname))
 
 
     def start_agent(self):
@@ -396,7 +388,7 @@ class Outlet(Asset):
     @handler("SignalReboot")
     def on_reboot_request_received(self, event, *args, **kwargs):
         """Received reboot request"""
-        old_state = self.status()
+        old_state = self.state.status
         
         self.power_off()
         e_result_up = self.power_up()
@@ -406,8 +398,8 @@ class Outlet(Asset):
         return PowerEventResult(
             old_state=old_state,
             new_state=e_result_up.new_state,
-            asset_key=self._state.get_key(),
-            asset_type=self._state.get_type()
+            asset_key=self._state.key,
+            asset_type=self._state.asset_type
         )
 
 @register_asset
@@ -417,7 +409,7 @@ class StaticAsset(Asset):
     StateManagerCls = sm.StaticDeviceStateManager
     def __init__(self, asset_info):
         super(StaticAsset, self).__init__(self.StateManagerCls(asset_info))
-        self._state.update_load(self._state.get_amperage())
+        self._state.update_load(self._state.power_usage)
 
     @handler("ParentAssetPowerDown")
     def on_power_off_request_received(self, event, *args, **kwargs): 

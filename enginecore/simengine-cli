@@ -78,7 +78,7 @@ def get_status(**kwargs):
             asset_info = GraphReference.get_asset_and_components(session, int(kwargs['asset_key']))
             asset_type = get_asset_type(asset_info['labels'])
             state_manager = Asset.get_supported_assets()[asset_type].StateManagerCls(asset_info)
-            print("{}-{} : {}".format(asset_info['key'], asset_type, state_manager.get_load()))
+            print("{}-{} : {}".format(asset_info['key'], asset_type, state_manager.load))
             return
 
     elif kwargs['asset_key']:

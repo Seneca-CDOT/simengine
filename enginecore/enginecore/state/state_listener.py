@@ -16,9 +16,9 @@ from circuits.web.dispatchers import WebSocketsDispatcher
 
 from enginecore.state.assets import Asset, PowerEventResult, LoadEventResult
 from enginecore.state.event_map import PowerEventManager
-from enginecore.model.graph_reference import GraphReference
 from enginecore.state.web_socket import WebSocket
-
+from enginecore.state.redis_channels import RedisChannels
+from enginecore.model.graph_reference import GraphReference
 
 class NotifyClient(Event):
     """Notify websocket clients of any data updates"""
@@ -35,7 +35,7 @@ class StateListener(Component):
         # subscribe to redis key events
         self.redis_store = redis.StrictRedis(host='localhost', port=6379)
         self.pubsub = self.redis_store.pubsub()
-        self.pubsub.psubscribe('oid-upd', 'state-upd')
+        self.pubsub.psubscribe(RedisChannels.oid_update_channel, RedisChannels.state_update_channel)
 
         # assets will store all the devices/items including PDUs, switches etc.
         self._assets = {}
@@ -76,7 +76,7 @@ class StateListener(Component):
         # initialize load by dispatching load update
         for key in leaf_nodes:
             asset_key = int(key)
-            new_load = self._assets[key].get_amperage()
+            new_load = self._assets[key].state.power_usage
 
             # notify parents of load changes
             self._chain_load_update( 
@@ -124,10 +124,12 @@ class StateListener(Component):
         """
         
         updated_asset = self._assets[int(asset_key)]
-        asset_status = str(updated_asset.status())
+        asset_status = str(updated_asset.state.status)
 
-        # write to a web socket, 
+        # write to a web socket
         self._notify_client(asset_key, {'status':  int(asset_status)})
+
+        # fire-up power events down the power stream
         self.fire(PowerEventManager.map_asset_event(asset_status), updated_asset)
         self._chain_power_update(PowerEventResult(asset_key=asset_key, new_state=asset_status))
             
@@ -148,12 +150,12 @@ class StateListener(Component):
         # "state-upd" indicates that certain asset was powered on/off by the interface(s)
         # "oid-upd" is published when SNMPsim updates an OID
         try:
-            if message['channel'] == b"state-upd":
+            if message['channel'] == str.encode(RedisChannels.state_update_channel):
                 asset_key, asset_type = data.split('-')
                 if asset_type in Asset.get_supported_assets():
                     self._handle_state_update(int(asset_key))
 
-            elif message['channel'] == b"oid-upd":
+            elif message['channel'] == str.encode(RedisChannels.oid_update_channel):
                 value = (self.redis_store.get(data)).decode()
                 asset_key, oid = data.split('-')
                 self._handle_oid_update(int(asset_key), oid, value)
@@ -202,9 +204,9 @@ class StateListener(Component):
             for parent_info in parent_assets:
                 parent = self._assets[parent_info['key']]
 
-                parent_load_change = load_change * parent.get_draw_percentage()
+                parent_load_change = load_change * parent.state.draw_percentage
                 print("-- child [{}] load_upd as '{}', updating load for [{}], old load: {}"
-                      .format(child_key, load_change, parent.get_key(), parent.get_load()))
+                      .format(child_key, load_change, parent.key, parent.state.load))
 
                 if increased:
                     event = PowerEventManager.map_load_increased_by(parent_load_change, child_key)
@@ -237,21 +239,21 @@ class StateListener(Component):
 
                 for parent_info in parent_assets:
                     parent = self._assets[parent_info['key']]
-                    parent_load_change = updated_asset.get_amperage() * parent.get_draw_percentage()
+                    parent_load_change = updated_asset.state.power_usage * parent.state.draw_percentage
 
-                    if not parent.get_load() and not parent.status():
+                    if not parent.state.load and not parent.state.status:
                         # if offline -> find how much power parent should draw 
                         # (so it will be redistributed among other assets)
                         offline_parents_load += parent_load_change
                     else:
-                        online_parents.append(parent.get_key())
+                        online_parents.append(parent.key)
 
                 # for each parent that is either online of it's load is not zero
                 # update the load value
                 for parent_key in online_parents:
 
                     parent_asset = self._assets[parent_key]
-                    leaf_node_amp = updated_asset.get_amperage() * parent_asset.get_draw_percentage()
+                    leaf_node_amp = updated_asset.state.power_usage * parent_asset.state.draw_percentage
 
                     if new_state == 0:
                         event = PowerEventManager.map_load_decreased_by(offline_parents_load + leaf_node_amp, asset_key)
@@ -261,7 +263,7 @@ class StateListener(Component):
                     self.fire(event, parent_asset)
 
                 if new_state == 0:
-                    updated_asset.get_state().update_load(0)
+                    updated_asset.state.update_load(0)
 
 
             # Check assets down the power stream
@@ -281,7 +283,7 @@ class StateListener(Component):
                 '''
                 if _2nd_parent:
                     second_parent_asset = self._assets[int(_2nd_parent['key'])]
-                    second_parent_up = second_parent_asset.status()
+                    second_parent_up = second_parent_asset.state.status
                 
                 # power up/down child assets if there's no alternative power source
                 if not second_parent_up:
@@ -291,17 +293,17 @@ class StateListener(Component):
                 # check upstream & branching power
                 # alternative power source is available, therefore the load needs to be re-directed
                 if second_parent_up:
-                    print('Found an asset that has alternative parent[{}], child[{}]'.format(second_parent_asset.get_key(), child_asset.get_key()))
+                    print('Found an asset that has alternative parent[{}], child[{}]'.format(second_parent_asset.key, child_asset.key))
 
                     # find out how much load the 2nd parent should take
                     # (how much updated asset was drawing)
-                    node_load = child_asset.get_load() * updated_asset.get_draw_percentage()
+                    node_load = child_asset.state.load * updated_asset.state.draw_percentage
 
                     # print('Child load : {}'.format(node_load))
                     if int(new_state) == 0:  
-                        alt_branch_event = PowerEventManager.map_load_increased_by(node_load, child_asset.get_key())             
+                        alt_branch_event = PowerEventManager.map_load_increased_by(node_load, child_asset.key)             
                     else:
-                        alt_branch_event = PowerEventManager.map_load_decreased_by(node_load, child_asset.get_key())
+                        alt_branch_event = PowerEventManager.map_load_decreased_by(node_load, child_asset.key)
                     
                     # increase power on the neighbouring power stream 
                     self.fire(alt_branch_event, second_parent_asset)
@@ -334,7 +336,7 @@ class StateListener(Component):
         self._chain_load_update(event_result, increased)
         if event_result.load_change:
             ckey = int(event_result.asset_key)
-            self._notify_client(ckey, {'load': self._assets[ckey].get_load()})
+            self._notify_client(ckey, {'load': self._assets[ckey].state.load})
 
     # Notify parent asset of any child events
     def ChildAssetPowerDown_success(self, evt, event_result):

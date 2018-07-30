@@ -3,7 +3,7 @@
 State managers provide interface for manipulating assets' states
 
 Example: 
-    a Server state manager will contain server-specific logic powering up/down a VM 
+    a Server State Manager will contain server-specific logic for powering up/down a VM 
 """
 
 import time
@@ -13,84 +13,108 @@ import redis
 import libvirt
 from enginecore.model.graph_reference import GraphReference
 from enginecore.state.utils import format_as_redis_key
+from enginecore.state.redis_channels import RedisChannels
 
 
 class StateManager():
+    """Base class for all the state managers """
 
-    assets = {} # cache graph topology
     redis_store = None
 
     def __init__(self, asset_info, asset_type, notify=False):
         self._graph_ref = GraphReference()
-        self._asset_info = asset_info
+        self._asset_key = asset_info['key']
         self._asset_type = asset_type
+        self._asset_info = asset_info
+
         self._notify = notify
 
-
-    def get_key(self):
+    @property
+    def key(self):
         """Asset Key """
-        return self._asset_info['key']
+        return self._asset_key
     
+    @property
+    def redis_key(self):
+        """Asset key in redis format as '{key}-{type}' """
+        return "{}-{}".format(str(self.key), self._asset_type)
 
-    def get_type(self):
+    @property
+    def asset_type(self):
         """Asset Type """
         return self._asset_type
 
-    def get_amperage(self):
+    @property
+    def power_usage(self):
+        """Normal power usage in AMPS when powered up"""
         return 0
 
-    def get_draw_percentage(self):
+    @property
+    def draw_percentage(self):
+        """How much power the asset draws"""
         return self._asset_info['draw'] if 'draw' in self._asset_info else 1
 
-    
-    def shut_down(self):
-        """Implements state logic for graceful power-off event"""
-        print('Graceful shutdown')
-        self._sleep_shutdown()
-        if self.status():
-            self._set_state_off()
-            # self.update_load(0)
-        return self.status()
+    @property
+    def load(self):
+        """Get current load stored in redis (in AMPs)"""
+        return float(StateManager.get_store().get(self.redis_key + ":load"))
 
-
-    def power_off(self):
-        """Implements state logic for abrupt power loss """
-        print("Powering down {}".format(self._asset_info['key']))
-        if self.status():
-            self._set_state_off()
-        return self.status()
-
-    def power_up(self):
-        """Implements state logic for power up event """
-        print("Powering up {}".format(self._asset_info['key']))
-        if self._parents_available() and not self.status():
-            self._sleep_powerup()
-            # udpate machine start time & turn on
-            self.reset_boot_time()
-            self._set_state_on()
-        return self.status()
- 
-    def update_load(self, load):
-        """ Update load """
-        load = load if load >= 0 else 0
-        StateManager.get_store().set(self.get_rkey() + ":load", load)
-        self._publish_load()
-
-    def get_load(self):
-        """ Get load stored in redis (in AMPs)"""
-        return float(StateManager.get_store().get(self.get_rkey() + ":load"))
-
+    @property
     def status(self):
         """Operational State 
         
         Returns:
             int: 1 if on, 0 if off
         """
-        return int(StateManager.get_store().get(self.get_rkey()))
+        return int(StateManager.get_store().get(self.redis_key))
+
+    def shut_down(self):
+        """Implements state logic for graceful power-off event, sleeps for the pre-configured time
+            
+        Returns:
+            int: Asset's status after power-off operation
+        """
+        print('Graceful shutdown')
+        self._sleep_shutdown()
+        if self.status:
+            self._set_state_off()
+        return self.status
+
+
+    def power_off(self):
+        """Implements state logic for abrupt power loss 
+        
+        Returns:
+            int: Asset's status after power-off operation
+        """
+        print("Powering down {}".format(self._asset_key))
+        if self.status:
+            self._set_state_off()
+        return self.status
+
+    def power_up(self):
+        """Implements state logic for power up, sleeps for the pre-configured time & resets boot time
+        
+        Returns:
+            int: Asset's status after power-on operation
+        """
+        print("Powering up {}".format(self._asset_key))
+        if self._parents_available() and not self.status:
+            self._sleep_powerup()
+            # udpate machine start time & turn on
+            self.reset_boot_time()
+            self._set_state_on()
+        return self.status
+ 
+    def update_load(self, load):
+        """Update load """
+        load = load if load >= 0 else 0
+        StateManager.get_store().set(self.redis_key + ":load", load)
+        self._publish_load()
 
     def reset_boot_time(self):
         """Reset the boot time to now"""
-        StateManager.get_store().set(str(self._asset_info['key']) + ":start_time", int(time.time())) 
+        StateManager.get_store().set(str(self._asset_key) + ":start_time", int(time.time())) 
 
     def get_config_off_delay(self):
         return NotImplementedError
@@ -107,45 +131,42 @@ class StateManager():
             time.sleep(self._asset_info['onDelay'] / 1000.0) # ms to sec
     
     def _set_state_on(self):
-        StateManager.get_store().set(self.get_rkey(), '1')
+        StateManager.get_store().set(self.redis_key, '1')
         if self._notify:
             self._publish_power()
 
     def _set_state_off(self):
-        StateManager.get_store().set(self.get_rkey(), '0')
+        StateManager.get_store().set(self.redis_key, '0')
         if self._notify:
             self._publish_power()
 
     def _publish_power(self):
         """ publish state changes """
-        StateManager.get_store().publish('state-upd', self.get_rkey())
+        StateManager.get_store().publish(RedisChannels.state_update_channel, self.redis_key)
 
     def _publish_load(self):
         """ publish load changes """
-        StateManager.get_store().publish('load-upd', self.get_rkey())
+        StateManager.get_store().publish(RedisChannels.load_update_channel, self.redis_key)
 
-    def _update_oid(self, oid_details, oid_value):
+    def _update_oid_value(self, oid, data_type, oid_value):
         """Update oid with a new value
         
         Args:
-            oid_details(dict): information about an object identifier stored in the graph ref
+            oid(str): SNMP object id
+            data_type(int): Data type in redis format
             oid_value(object): OID value in rfc1902 format 
         """
         redis_store = StateManager.get_store() 
         
-        rvalue = "{}|{}".format(oid_details.get('dataType'), oid_value)
-        rkey = format_as_redis_key(str(self._asset_info['key']), oid_details.get('OID'), key_formatted=False)
+        rvalue = "{}|{}".format(data_type, oid_value)
+        rkey = format_as_redis_key(str(self._asset_key), oid, key_formatted=False)
 
         redis_store.set(rkey, rvalue)
         
-    def _get_oid(self, oid, key):
+    def _get_oid_value(self, oid, key):
         redis_store = StateManager.get_store() 
         rkey = format_as_redis_key(str(key), oid, key_formatted=False)
         return redis_store.get(rkey).decode()
-
-    def get_rkey(self):
-        """Get asset key in redis format"""
-        return "{}-{}".format(str(self._asset_info['key']), self._asset_type)
 
 
     def _check_parents(self, keys, parent_down, msg='Cannot perform the action: [{}] parent is off'):
@@ -184,7 +205,7 @@ class StateManager():
         Returns:
             bool: True if parents are available
         """
-        asset_keys, oid_keys = GraphReference.get_parent_keys(self._graph_ref.get_session(), self._asset_info['key'])
+        asset_keys, oid_keys = GraphReference.get_parent_keys(self._graph_ref.get_session(), self._asset_key)
         
         assets_up = self._check_parents(asset_keys, lambda rvalue, _: rvalue == b'0')
         oid_clause = lambda rvalue, rkey: rvalue.split(b'|')[1].decode() == oid_keys[rkey]['switchOff']
@@ -207,7 +228,7 @@ class StateManager():
         
         Args:
             flatten(bool): If false, the returned assets in the dict will have their child-components nested
-        
+        .
         Returns:
             dict: Current information on assets including their states, load etc.
         """
@@ -219,7 +240,7 @@ class StateManager():
 
         for rkey, rvalue in zip(assets, asset_values):
             assets[rkey]['status'] = int(rvalue)
-            assets[rkey]['load'] = StateManager(assets[rkey], assets[rkey]['type']).get_load()
+            assets[rkey]['load'] = StateManager(assets[rkey], assets[rkey]['type']).load
             
             if not flatten and 'children' in assets[rkey]:
                 # call recursively on children    
@@ -280,28 +301,20 @@ class PDUStateManager(StateManager):
 
     def _update_current(self, load):
         """Update OID associated with the current amp value """
-        results = self._graph_ref.get_session().run(
-            "MATCH (:Asset { key: $key })-[:HAS_OID]->(oid {name: 'AmpOnPhase'}) return oid",
-            key=int(self._asset_info['key'])
-        )
-
-        record = results.single()
-        load = load if load >= 0 else 0
-        if record:
-            self._update_oid(record['oid'], snmp_data_types.Gauge32(load * 10))
+        with self._graph_ref.get_session() as session:
+            oid, data_type = GraphReference.get_asset_oid_by_name(session, int(self._asset_key), 'AmpOnPhase')
+            if oid:
+                load = load if load >= 0 else 0
+                self._update_oid_value(oid, data_type, snmp_data_types.Gauge32(load * 10))
    
 
     def _update_wattage(self, wattage):
         """Update OID associated with the current wattage draw """
-        results = self._graph_ref.get_session().run( # TODO: Close session!!!!!!!
-            "MATCH (:Asset { key: $key })-[:HAS_OID]->(oid {name: 'WattageDraw'}) return oid",
-            key=int(self._asset_info['key'])
-        )
-
-        record = results.single()
-        wattage = wattage if wattage >= 0 else 0
-        if record:
-            self._update_oid(record['oid'], snmp_data_types.Integer32(wattage))
+        with self._graph_ref.get_session() as session:
+            oid, data_type = GraphReference.get_asset_oid_by_name(session, int(self._asset_key), 'WattageDraw')
+            wattage = wattage if wattage >= 0 else 0
+            if oid:
+                self._update_oid_value(oid, data_type, snmp_data_types.Integer32(wattage))
 
 
     def update_load(self, load):
@@ -322,24 +335,21 @@ class OutletStateManager(StateManager):
     def __init__(self, asset_info, asset_type='outlet', notify=False):
         super(OutletStateManager, self).__init__(asset_info, asset_type, notify)
 
-    def _get_outlet_oid(self, oid_name):
-        with self._graph_ref.get_session() as s:
-            result = s.run(
-                "MATCH (outlet:Component { key: $key})<-[:HAS_COMPONENT]-(p:Asset)-[:HAS_OID]->(oid:OID {name: $oid_name}) return oid, p.key as parent_key",
-                oid_name=oid_name, key=self.get_key()
-            )
-            record = result.single()
-            return record.get('parent_key'), dict(record.get('oid')) if record else None
+    def _get_oid_value_by_name(self, oid_name):
+        """Get value under object id name"""
+        with self._graph_ref.get_session() as session:
+            oid, parent_key = GraphReference.get_component_oid_by_name(session, self.key, oid_name)
+            oid = "{}.{}".format(oid, str(self.key)[-1])
+            return int(self._get_oid_value(oid, key=parent_key).split('|')[1])
+
 
     def get_config_off_delay(self):
-        pkey, oid_info = self._get_outlet_oid("OutletConfigPowerOffTime")
-        oid = "{}.{}".format(oid_info['OID'], str(self.get_key())[-1]) 
-        return int(self._get_oid(oid, key=pkey).split('|')[1])
+        return self._get_oid_value_by_name("OutletConfigPowerOffTime")
+
 
     def get_config_on_delay(self):
-        pkey, oid_info = self._get_outlet_oid("OutletConfigPowerOnTime")
-        oid = "{}.{}".format(oid_info['OID'], str(self.get_key())[-1]) 
-        return int(self._get_oid(oid, key=pkey).split('|')[1])
+        return self._get_oid_value_by_name("OutletConfigPowerOnTime")
+
 
 class StaticDeviceStateManager(StateManager):
     """Dummy Device that doesn't do much except drawing power """
@@ -347,14 +357,14 @@ class StaticDeviceStateManager(StateManager):
     def __init__(self, asset_info, asset_type='staticasset', notify=False):
         super(StaticDeviceStateManager, self).__init__(asset_info, asset_type, notify)
 
-    def get_amperage(self):
+    @property
+    def power_usage(self):
         return self._asset_info['powerConsumption'] / self._asset_info['powerSource']
 
-        
     def power_up(self):
         powered = super().power_up()
         if powered:
-            self.update_load(self.get_amperage())
+            self.update_load(self.power_usage)
         return powered
 
 
@@ -383,7 +393,7 @@ class ServerStateManager(StaticDeviceStateManager):
         powered = super().power_up()
         if not self._vm.isActive() and powered:
             self._vm.create()
-            self.update_load(self.get_amperage())
+            self.update_load(self.power_usage)
         return powered
 
 class IPMIComponent():
@@ -442,6 +452,8 @@ class IPMIComponent():
 
 class BMCServerStateManager(ServerStateManager, IPMIComponent):
     """Manage Server with BMC """
+
+
     def __init__(self, asset_info, asset_type='serverwithbmc', notify=False):
         ServerStateManager.__init__(self, asset_info, asset_type, notify)
         IPMIComponent.__init__(self, asset_info['key'])
@@ -462,20 +474,14 @@ class BMCServerStateManager(ServerStateManager, IPMIComponent):
         super()._update_cpu_temp(0)
         return super().power_off()
 
-# class PSUStateManager(StateManager):
-#     def __init__(self, asset_info, asset_type='psu', notify=False):
-#         StateManager.__init__(self, asset_info, asset_type, notify)
 
 class PSUStateManager(StateManager, IPMIComponent):
 
+
     def __init__(self, asset_info, asset_type='psu', notify=False):
         StateManager.__init__(self, asset_info, asset_type, notify)
-        IPMIComponent.__init__(self,int(repr(asset_info['key'])[:-1]))
+        IPMIComponent.__init__(self, int(repr(asset_info['key'])[:-1]))
         self._psu_number = int(repr(asset_info['key'])[-1])
-    
-    def get_current(self):
-        """Read current info from a sensor file """        
-        return float(super()._read_sensor_file(super()._get_psu_current_file(self._psu_number)))
 
     def _update_current(self, load):
         """Update current inside state file """
