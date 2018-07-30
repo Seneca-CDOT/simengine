@@ -1,4 +1,10 @@
-"""This file contains definitions of State Managers classes """
+"""This file contains definitions of State Manager classes 
+
+State managers provide interface for manipulating assets' states
+
+Example: 
+    a Server state manager will contain server-specific logic powering up/down a VM 
+"""
 
 import time
 import os
@@ -67,12 +73,12 @@ class StateManager():
     def update_load(self, load):
         """ Update load """
         load = load if load >= 0 else 0
-        StateManager.get_store().set(self._get_rkey() + ":load", load)
+        StateManager.get_store().set(self.get_rkey() + ":load", load)
         self._publish_load()
 
     def get_load(self):
         """ Get load stored in redis (in AMPs)"""
-        return float(StateManager.get_store().get(self._get_rkey() + ":load"))
+        return float(StateManager.get_store().get(self.get_rkey() + ":load"))
 
     def status(self):
         """Operational State 
@@ -80,7 +86,7 @@ class StateManager():
         Returns:
             int: 1 if on, 0 if off
         """
-        return int(StateManager.get_store().get(self._get_rkey()))
+        return int(StateManager.get_store().get(self.get_rkey()))
 
     def reset_boot_time(self):
         """Reset the boot time to now"""
@@ -101,22 +107,22 @@ class StateManager():
             time.sleep(self._asset_info['onDelay'] / 1000.0) # ms to sec
     
     def _set_state_on(self):
-        StateManager.get_store().set(self._get_rkey(), '1')
+        StateManager.get_store().set(self.get_rkey(), '1')
         if self._notify:
             self._publish_power()
 
     def _set_state_off(self):
-        StateManager.get_store().set(self._get_rkey(), '0')
+        StateManager.get_store().set(self.get_rkey(), '0')
         if self._notify:
             self._publish_power()
 
     def _publish_power(self):
         """ publish state changes """
-        StateManager.get_store().publish('state-upd', self._get_rkey())
+        StateManager.get_store().publish('state-upd', self.get_rkey())
 
     def _publish_load(self):
         """ publish load changes """
-        StateManager.get_store().publish('load-upd', self._get_rkey())
+        StateManager.get_store().publish('load-upd', self.get_rkey())
 
     def _update_oid(self, oid_details, oid_value):
         """Update oid with a new value
@@ -137,7 +143,7 @@ class StateManager():
         rkey = format_as_redis_key(str(key), oid, key_formatted=False)
         return redis_store.get(rkey).decode()
 
-    def _get_rkey(self):
+    def get_rkey(self):
         """Get asset key in redis format"""
         return "{}-{}".format(str(self._asset_info['key']), self._asset_type)
 

@@ -1,24 +1,27 @@
 """Test Specs:  
-A simple model with 2 outlets, 1 pdu & a server with dual PSU
+A simple model with 2 outlets, 1 pdu, 1 static asset & a server with dual PSU
 where power stream forks in 2 directions
 
 All Powered:            
 --------------
                                               [4Amp]
-     [2Amp]             [2Amp]   [2Amp]         |
+     [4Amp]             [4Amp]   [2Amp]         |
        |                   |       |       |(Server)- 4Amp|
     (out-1) -[:POWERS]->(pdu-3)->(pdu-31)->|(psu-41)- 2Amp|
-                                 (out-2) ->|(psu-42)- 2Amp|
-                                   |
-                                 [2Amp]
-
+                                    :-     |(psu-42)- 2Amp|<-(out-2)
+                                    :-                          |
+                                 (pdu-34)->(static-5)         [2Amp]
+                                    |           |
+                                  [2Amp]      [2Amp]
 """
-
-import redis
+# pylint: disable=E0402
 import time
 import unittest
-import enginecore.model.system_modeler as sm
+import redis
 from threading import Thread
+
+from .redis_helpers import wait_redis_update 
+import enginecore.model.system_modeler as sm
 
 from enginecore.state.state_managers import BMCServerStateManager, StateManager, StaticDeviceStateManager
 
@@ -60,46 +63,6 @@ class ServerLoadTest(unittest.TestCase):
         sm.link_assets(2, 42)
 
 
-    def wait_redis_update(self, expected_kv, num_expected_updates, empty_msg_limit=10):
-        
-        pubsub = ServerLoadTest.redis_store.pubsub()
-        pubsub.psubscribe('load-upd')
-
-        CHECK = True
-        keys_updated = {}
-        num_updated = 0
-        empty_msg = 0
-
-        while CHECK:                                                              
-            message = pubsub.get_message()
-            # print(message)
-                                                    
-            if message and message['pattern'] == b"load-upd":
-                data = message['data'].decode("utf-8")
-                # print(message)    
-                key, _ = data.split('-')                                     
-                keys_updated[int(key)] = data
-                num_updated += 1 
-
-                if num_updated >= num_expected_updates:
-                    CHECK = False                               
-                                           
-            else:
-                empty_msg += 1
-
-            if empty_msg == empty_msg_limit:
-                self.fail("One of the values haven't been updated: {}".format(set(expected_kv.keys())-set(keys_updated.keys())))
-
-
-            time.sleep(0.2)
-
-            # time.sleep(0.2)
-        return keys_updated
-        
-        # for k in keys_updated.keys():
-        #     print(k, keys_updated[k])
-
-
     def check_redis_values(self, expected_kv):
         for key, value in expected_kv.items():
             # check values
@@ -110,14 +73,6 @@ class ServerLoadTest(unittest.TestCase):
 
 
     def test_server_power(self):
-        """
-        All Zero Load:            
-        --------------
-            0Amp       0Amp      0Amp     0Amp     |(Server)- 0Amp|
-            (out-1) -[:POWERS]->(pdu-3)->(pdu-31)->|(psu-41)- 0Amp|
-                                         (out-2) ->|(psu-42)- 0Amp|
-                                          0Amp
-        """
 
         try:
             
@@ -126,7 +81,7 @@ class ServerLoadTest(unittest.TestCase):
     
             # power down server
             print('-> Powering down server')
-            thread = Thread(target=self.wait_redis_update, args=(server_down,7))
+            thread = Thread(target=wait_redis_update, args=(ServerLoadTest.redis_store, 'load-upd', server_down,7))
             thread.start()
             server = BMCServerStateManager({
                 'key': 4, 
@@ -141,7 +96,7 @@ class ServerLoadTest(unittest.TestCase):
             
             # power up server
             print('-> Powering up server')
-            thread = Thread(target=self.wait_redis_update, args=(server_up,7))
+            thread = Thread(target=wait_redis_update, args=(ServerLoadTest.redis_store, 'load-upd', server_up,7))
             thread.start()
             server.power_up()
             thread.join()
@@ -157,7 +112,7 @@ class ServerLoadTest(unittest.TestCase):
         static_down = {'1-outlet': 2, '2-outlet':2, '3-pdu':2, '31-outlet':2, '33-outlet':0, '4-serverwithbmc':4, '5-staticasset':0, '41-psu':2, '42-psu':2}
 
         print('-> Powering down Static Asset')
-        thread = Thread(target=self.wait_redis_update, args=(static_down, 4))
+        thread = Thread(target=wait_redis_update, args=(ServerLoadTest.redis_store, 'load-upd', static_down, 4))
         thread.start()
 
         static.shut_down()
@@ -165,7 +120,7 @@ class ServerLoadTest(unittest.TestCase):
         self.check_redis_values(static_down)
 
         print('-> Powering up Static Asset')
-        thread = Thread(target=self.wait_redis_update, args=(static_up, 4))
+        thread = Thread(target=wait_redis_update, args=(ServerLoadTest.redis_store, 'load-upd', static_up, 4))
         thread.start()
 
         static.power_up()
@@ -175,27 +130,7 @@ class ServerLoadTest(unittest.TestCase):
         print('-> Powering up Static Asset')
 
     def test_server_psu(self):
-        """
-        PSU 1 down           
-        --------------
-            0Amp       0Amp      0Amp     0Amp     |(Server)- 4Amp|
-            (out-1) -[:POWERS]->(pdu-3)->(pdu-31)->|(psu-41)- 0Amp|
-                                         (out-2) ->|(psu-42)- 4Amp|
-                                          4Amp
-        All Powered:            
-        --------------
-            2Amp       2Amp      2Amp     2Amp     |(Server)- 4Amp|
-            (out-1) -[:POWERS]->(pdu-3)->(pdu-31)->|(psu-41)- 2Amp|
-                                         (out-2) ->|(psu-42)- 2Amp|
-                                          2Amp
-        
-        PSU 2 down           
-        --------------
-            4Amp       4Amp      4Amp     4Amp     |(Server)- 4Amp|
-            (out-1) -[:POWERS]->(pdu-3)->(pdu-31)->|(psu-41)- 4Amp|
-                                         (out-2) ->|(psu-42)- 0Amp|
-                                          0Amp      
-        """
+
         try:
             psu_1 = StateManager({ 'key': 41 }, 'psu', notify=True)
             psu_2 = StateManager({ 'key': 42 }, 'psu', notify=True)
@@ -208,7 +143,7 @@ class ServerLoadTest(unittest.TestCase):
 
             # power down psu 1
             print('-> Powering down PSU 1')
-            thread = Thread(target=self.wait_redis_update, args=(only_psu1_down, 6))
+            thread = Thread(target=wait_redis_update, args=(ServerLoadTest.redis_store, 'load-upd', only_psu1_down, 6))
             thread.start()
 
             psu_1.shut_down()
@@ -217,7 +152,7 @@ class ServerLoadTest(unittest.TestCase):
 
             # power up psu 1
             print('-> Bringing back PSU 1')
-            thread = Thread(target=self.wait_redis_update, args=(both_up, 6))
+            thread = Thread(target=wait_redis_update, args=(ServerLoadTest.redis_store, 'load-upd', both_up, 6))
             thread.start()
 
             psu_1.power_up()
@@ -227,7 +162,7 @@ class ServerLoadTest(unittest.TestCase):
 
             # power down psu 1
             print('-> Powering down PSU 2')
-            thread = Thread(target=self.wait_redis_update, args=(only_psu2_down, 6))
+            thread = Thread(target=wait_redis_update, args=(ServerLoadTest.redis_store, 'load-upd', only_psu2_down, 6))
             thread.start()
             
             psu_2.shut_down()
@@ -236,7 +171,7 @@ class ServerLoadTest(unittest.TestCase):
 
             # power up psu 2
             print('-> Bringing back PSU 2')
-            thread = Thread(target=self.wait_redis_update, args=(both_up, 6))
+            thread = Thread(target=wait_redis_update, args=(ServerLoadTest.redis_store, 'load-upd', both_up, 6))
             thread.start()
 
             psu_2.power_up()
@@ -245,8 +180,8 @@ class ServerLoadTest(unittest.TestCase):
 
             # power down both PSUs
             print('-> Powering down both PSUs')
-            t1 = Thread(target=self.wait_redis_update, args=(only_psu1_down, 5))
-            t2 = Thread(target=self.wait_redis_update, args=(both_down, 4))
+            t1 = Thread(target=wait_redis_update, args=(ServerLoadTest.redis_store, 'load-upd', only_psu1_down, 5))
+            t2 = Thread(target=wait_redis_update, args=(ServerLoadTest.redis_store, 'load-upd', both_down, 4))
 
             t1.start()
             psu_1.shut_down()
@@ -259,8 +194,8 @@ class ServerLoadTest(unittest.TestCase):
 
             # power up both PSUs
             print('-> Powering up both PSUs')
-            t1 = Thread(target=self.wait_redis_update, args=(only_psu2_down, 5))
-            t2 = Thread(target=self.wait_redis_update, args=(both_up, 4))
+            t1 = Thread(target=wait_redis_update, args=(ServerLoadTest.redis_store, 'load-upd', only_psu2_down, 5))
+            t2 = Thread(target=wait_redis_update, args=(ServerLoadTest.redis_store, 'load-upd', both_up, 4))
 
             t1.start()
             psu_1.power_up()

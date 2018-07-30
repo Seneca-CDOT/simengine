@@ -75,15 +75,21 @@ class StateListener(Component):
 
         # initialize load by dispatching load update
         for key in leaf_nodes:
+            asset_key = int(key)
+            new_load = self._assets[key].get_amperage()
+
+            # notify parents of load changes
             self._chain_load_update( 
                 LoadEventResult(
-                    load_change=self._assets[key].get_amperage(),
-                    new_load=self._assets[key].get_amperage(),
+                    load_change=new_load,
+                    new_load=new_load,
                     old_load=0,
-                    asset_key=int(key)
+                    asset_key=asset_key
                 )
             )
 
+            # update websocket
+            self._notify_client(asset_key, {'load': new_load})
 
 
     def _handle_oid_update(self, asset_key, oid, value):
@@ -206,10 +212,6 @@ class StateListener(Component):
                     event = PowerEventManager.map_load_decreased_by(parent_load_change, child_key)
 
                 self.fire(event, parent)
-
-        # Notify web-socket client of the load update
-        # TODO: move _notify_client outside of the function
-        self._notify_client(child_key, {'load': self._assets[child_key].get_load()})
     
     
     def _chain_power_update(self, event_result):
@@ -323,28 +325,33 @@ class StateListener(Component):
         }), self._ws)
 
     # **Events are camel-case
-    # pylint: disable=C0103
+    # pylint: disable=C0103,W0613
 
     ############### Load Events - Callbacks 
 
-    # def _load_success(event_result, increase)
+    def _load_success(self, event_result, increased=True):
+        """Handle load event changes by dispatching load update events up the power stream"""
+        self._chain_load_update(event_result, increased)
+        if event_result.load_change:
+            ckey = int(event_result.asset_key)
+            self._notify_client(ckey, {'load': self._assets[ckey].get_load()})
 
     # Notify parent asset of any child events
     def ChildAssetPowerDown_success(self, evt, event_result):
         """ When child is powered down -> get the new load value of child asset"""
-        self._chain_load_update(event_result, increased=False)
+        self._load_success(event_result, increased=False)
         
     def ChildAssetPowerUp_success(self, evt, event_result):
         """ When child is powered up -> get the new load value of child asset"""        
-        self._chain_load_update(event_result)
+        self._load_success(event_result)
 
     def ChildAssetLoadDecreased_success(self, evt, event_result):
         """ When load decreases down the power stream """        
-        self._chain_load_update(event_result, increased=False)
+        self._load_success(event_result, increased=False)
 
     def ChildAssetLoadIncreased_success(self, evt, event_result):
         """ When load increases down the power stream """        
-        self._chain_load_update(event_result)
+        self._load_success(event_result)
 
 
     ############### Power Events - Callbacks 
