@@ -234,6 +234,9 @@ class StateManager():
         """
         asset_keys = assets.keys()
         
+        if not asset_keys:
+            return None
+
         asset_values = cls.get_store().mget(
             list(map(lambda k: "{}-{}".format(k, assets[k]['type']), asset_keys))
         )

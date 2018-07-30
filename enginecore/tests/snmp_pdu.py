@@ -73,12 +73,13 @@ class PduSnmpTest(unittest.TestCase):
 
     def test_outlet_power(self):
 
-        all_up_state = {'1-outlet': 1, '3-pdu':1, '35-outlet':1, '33-outlet':1, '31-outlet':1}
+        all_up_state = {'1-outlet': 1, '3-pdu':1, '35-outlet':1, '33-outlet':1, '31-outlet':1, '4-staticasset': 1, '5-staticasset': 1, '6-staticasset': 1}
         expected_state = all_up_state.copy()
 
         # power down server
         print('-> Powering down outlet through SNMP-set')
         expected_state['31-outlet'] = 0
+        expected_state['4-staticasset'] = 0
 
         thread = Thread(target=wait_redis_update, args=(PduSnmpTest.redis_store, 'load-upd', expected_state, 3))
         thread.start()
@@ -113,7 +114,9 @@ class PduSnmpTest(unittest.TestCase):
         print("-> Test DelayOff")
         expected_state = all_up_state.copy()
         expected_state['33-outlet'] = 0
+        expected_state['5-staticasset'] = 0
         expected_state['35-outlet'] = 0
+        expected_state['6-staticasset'] = 0
 
         thread = Thread(target=wait_redis_update, args=(PduSnmpTest.redis_store, 'load-upd', expected_state, 4))
         thread.start()
@@ -138,7 +141,7 @@ class PduSnmpTest(unittest.TestCase):
         self.check_redis_values(expected_state)
 
     def test_pdu_load(self):
-        all_up_state = {'1-outlet': 1, '3-pdu':1, '35-outlet':1, '33-outlet':1, '31-outlet':1}
+        all_up_state = {'1-outlet': 1, '3-pdu':1, '35-outlet':1, '33-outlet':1, '31-outlet':1, '4-staticasset': 1, '5-staticasset': 1, '6-staticasset': 1}
         expected_state = all_up_state.copy()
 
         print("-> Test pdu load")
@@ -148,13 +151,19 @@ class PduSnmpTest(unittest.TestCase):
         amp_oid = '1.3.6.1.4.1.318.1.1.12.2.3.1.1.2.1'
         wattage_oid = '1.3.6.1.4.1.318.1.1.12.1.16.0'
 
+        # Check initial OID values
+
         amp = self.get_oid_value(amp_oid)
         wattage = self.get_oid_value(wattage_oid)
         
         self.assertEqual(int(amp), 6*10)
         self.assertEqual(int(wattage), 6*120)
 
+
+        # Check OIDs once load gets updated
         expected_state['1-outlet'] = 0
+        expected_state['4-staticasset'] = 0
+
         thread = Thread(target=wait_redis_update, args=(PduSnmpTest.redis_store, 'load-upd', expected_state, 3))
         thread.start()
         sm_out_1.shut_down()
@@ -167,7 +176,17 @@ class PduSnmpTest(unittest.TestCase):
         self.assertEqual(int(amp), 4*10)
         self.assertEqual(int(wattage), 4*120)
         
+
+        # Power back the Outlet
+        expected_state = all_up_state.copy()
+
+        thread = Thread(target=wait_redis_update, args=(PduSnmpTest.redis_store, 'load-upd', expected_state, 4))
+        thread.start()
+
         sm_out_1.power_up()
+
+        thread.join()
+        self.check_redis_values(expected_state)
 
     def test_pdu_uptime(self):
         

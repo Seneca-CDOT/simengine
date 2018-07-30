@@ -24,7 +24,6 @@ import Server from './Assets/Server/Server';
 import Ups from './Assets/UPS/Ups';
 
 import AssetDetails from './AssetDetails';
-import initialState from './InitialState';
 
 const drawerWidth = 240;
 
@@ -70,7 +69,7 @@ const styles = theme => ({
     super();
 
     this.state = {
-      assets: initialState,
+      assets: null,
       selectedAssetKey: 0,
       connections:{},
       socketOffline: true,
@@ -163,7 +162,7 @@ const styles = theme => ({
           const data = JSON.parse(evt.data);
           // console.log(data)
           // Update state of the existing asset
-          if('key' in data) {
+          if(data && 'key' in data) {
 
             let assets = {...this.state.assets};
             const isComponent = !this.state.assets[data.key];
@@ -179,7 +178,7 @@ const styles = theme => ({
 
             this.setState({ assets });
 
-          } else { // initial query
+          } else if (data) { // initial query
             let connections = {};
             Object.keys(data).map((k) => {
               let x1 = data[k].x?data[k].x:40;
@@ -424,51 +423,54 @@ const styles = theme => ({
     const { classes } = this.props;
     const { assets, connections } = this.state;
 
-    const selectedAsset = this._get_asset_by_key(this.state.selectedAssetKey)
+    const selectedAsset = assets ? this._get_asset_by_key(this.state.selectedAssetKey) : null;
     let systemLayout = [];
-    let wireDrawing=[];
+    let wireDrawing = [];
 
-    // Initialize HA system layout
-    for (const key of Object.keys(assets)) {
-      if (assets[key].type == 'outlet' || assets[key].type === 'staticasset') {
-        systemLayout.push(this.drawSocket(key, assets[key]));
-      } else if (assets[key].type === 'pdu') {
-        systemLayout.push(this.drawPdu(key, assets[key]));
-      } else if (assets[key].type === 'server' || assets[key].type === 'serverwithbmc') {
-        systemLayout.push(this.drawServer(key, assets[key]));
-      } else if (assets[key].type === 'ups') {
-        systemLayout.push(this.drawUps(key, assets[key]));
+    if (assets) {
+      // Initialize HA system layout
+      for (const key of Object.keys(assets)) {
+        if (assets[key].type == 'outlet' || assets[key].type === 'staticasset') {
+          systemLayout.push(this.drawSocket(key, assets[key]));
+        } else if (assets[key].type === 'pdu') {
+          systemLayout.push(this.drawPdu(key, assets[key]));
+        } else if (assets[key].type === 'server' || assets[key].type === 'serverwithbmc') {
+          systemLayout.push(this.drawServer(key, assets[key]));
+        } else if (assets[key].type === 'ups') {
+          systemLayout.push(this.drawUps(key, assets[key]));
+        }
+      }
+
+      // draw wires
+      for (const key of Object.keys(connections)) {
+        const socketX1pad = 34; // X1, Y1 are for parents
+        const socketY1pad = 35;
+        let socketYpad = 35;
+
+        let socketXpad = socketX1pad;
+        const asset = this._get_asset_by_key(key);
+        const child_type = this.state.assets[connections[key].ckey].type;
+
+        if (child_type == 'staticasset') {
+          socketXpad = -35;
+        } else if (child_type == 'server' || child_type === 'serverwithbmc') {
+          socketXpad = -220;
+        } else if (child_type == 'ups') {
+          socketXpad = -390;
+          socketYpad = 222;
+        }
+
+        wireDrawing.push(
+          <Line
+            points={[connections[key].x+socketX1pad, connections[key].y+socketY1pad, connections[key].x1-socketXpad , connections[key].y1+socketYpad]}
+            stroke={asset.status  === 1?"green":"grey"}
+            strokeWidth={5}
+            zIndex={300}
+          />
+        );
       }
     }
 
-    // draw wires
-    for (const key of Object.keys(connections)) {
-      const socketX1pad = 34; // X1, Y1 are for parents
-      const socketY1pad = 35;
-      let socketYpad = 35;
-
-      let socketXpad = socketX1pad;
-      const asset = this._get_asset_by_key(key);
-      const child_type = this.state.assets[connections[key].ckey].type;
-
-      if (child_type == 'staticasset') {
-        socketXpad = -35;
-      } else if (child_type == 'server' || child_type === 'serverwithbmc') {
-        socketXpad = -220;
-      } else if (child_type == 'ups') {
-        socketXpad = -390;
-        socketYpad = 222;
-      }
-
-      wireDrawing.push(
-        <Line
-          points={[connections[key].x+socketX1pad, connections[key].y+socketY1pad, connections[key].x1-socketXpad , connections[key].y1+socketYpad]}
-          stroke={asset.status  === 1?"green":"grey"}
-          strokeWidth={5}
-          zIndex={300}
-        />
-      );
-    }
 
     const { anchorEl } = this.state;
     const open = Boolean(anchorEl);
@@ -562,6 +564,19 @@ const styles = theme => ({
                 'aria-describedby': 'message-id',
               }}
               message={<span id="message-id">Changes saved!</span>}
+            />
+
+            <Snackbar
+              anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'left',
+              }}
+              open={!this.state.socketOffline && !assets}
+              ContentProps={{
+                'aria-describedby': 'message-id',
+              }}
+              message={<span id="message-id">The system toplology appears to be empty. <br/> Please, refer to the documentation
+                (System Modelling <a href="https://simengine.readthedocs.io/en/latest/SystemModeling/">link</a>)</span>}
             />
           </main>
         </div>
