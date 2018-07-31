@@ -3,65 +3,23 @@ import { Stage, Layer, Line } from 'react-konva';
 import gridBackground from '../images/grid.png';
 
 // Material
-import AppBar from '@material-ui/core/AppBar';
-import Toolbar from '@material-ui/core/Toolbar';
 import { withStyles } from '@material-ui/core/styles';
 import Snackbar from '@material-ui/core/Snackbar';
-import Typography from '@material-ui/core/Typography';
-import SettingsIcon from "@material-ui/icons/Settings";
-import classNames from 'classnames';
-import IconButton from '@material-ui/core/IconButton';
-import Drawer from '@material-ui/core/Drawer';
-import List from '@material-ui/core/List';
-import ListItem from '@material-ui/core/ListItem';
-import ListItemText from '@material-ui/core/ListItemText';
-import Divider from '@material-ui/core/Divider';
 
-// Local Components
+// Local Components - Layout
 import Pdu from './Assets/PDU/Pdu';
 import Socket from './Assets/common/Socket';
 import Server from './Assets/Server/Server';
 import Ups from './Assets/UPS/Ups';
 
+// Text & info boxes
 import AssetDetails from './AssetDetails';
+import TopNav from './TopNav';
+
+// few helpers
+import { onWheelScroll, onWheelDown } from './canvasEvents';
 
 const drawerWidth = 240;
-
-const styles = theme => ({
-  root: {
-    flexGrow: 1,
-  },
-  appFrame: {
-    zIndex: 1,
-    overflow: 'hidden',
-    position: 'relative',
-    display: 'flex',
-    width: '100%',
-  },
-  appBar: {
-    width: `100%`,
-  },
-  'appBar-left': {
-    backgroundColor: "#36454F",
-    marginLeft: drawerWidth,
-  },
-  drawerPaper: {
-    width: drawerWidth
-  },
-  toolbar: theme.mixins.toolbar,
-  content: {
-    flexGrow: 1,
-    backgroundColor: theme.palette.background.default,
-    padding: theme.spacing.unit * 3,
-  },
-  menuButton: {
-    marginLeft: -12,
-    marginRight: 20,
-  },
-  list: {
-    width: 250,
-  },
-});
 
  class App extends Component {
 
@@ -74,66 +32,16 @@ const styles = theme => ({
       connections:{},
       socketOffline: true,
       changesSaved: false,
-      anchorEl: null
     };
 
     this.connectToSocket();
   }
 
-
   componentDidMount() {
-
-    /////// Scale Layout on wheel event //////////
     let stage = this.refs.stage.getStage();
-    stage.scale({ x: 0.7, y: 0.7 });
-    stage.position({x: window.innerWidth * 0.3, y: window.innerHeight * 0.3 });
-
-    const scaleBy = 1.03;
-    window.addEventListener('wheel', (e) => {
-      e.preventDefault();
-
-      const oldScale = stage.scaleX();
-
-      const mousePointTo = {
-          x: stage.getPointerPosition().x / oldScale - stage.x() / oldScale,
-          y: stage.getPointerPosition().y / oldScale - stage.y() / oldScale,
-      };
-
-      const newScale = e.deltaY > 0 ? oldScale * scaleBy : oldScale / scaleBy;
-      stage.scale({ x: newScale, y: newScale });
-
-      const newPos = {
-          x: -(mousePointTo.x - stage.getPointerPosition().x / newScale) * newScale,
-          y: -(mousePointTo.y - stage.getPointerPosition().y / newScale) * newScale
-      };
-      stage.position(newPos);
-      stage.batchDraw();
-    });
-
-    ////////// Move canvas on middle mouse button down ///////////
-    const moveCanvas = (e) => {
-      e.preventDefault();
-        const newPos = {
-          x: (stage.x() + e.movementX),
-          y: (stage.y() + e.movementY),
-      };
-      stage.position(newPos);
-      stage.batchDraw();
-    };
-
-    window.addEventListener("mousedown", (e) => {
-      if (e.button == 1) {
-        e.preventDefault();
-        window.addEventListener("mousemove", moveCanvas);
-      }
-    });
-
-    window.addEventListener("mouseup", (e) => {
-      if (e.button == 1) {
-        e.preventDefault();
-        window.removeEventListener("mousemove", moveCanvas);
-      }
-    });
+    // scale on wheel scroll, and move canvas on middle button click
+    onWheelScroll(stage);
+    onWheelDown(stage);
   }
 
   connectToSocket() {
@@ -214,7 +122,7 @@ const styles = theme => ({
        }).bind(this);
        this.ws.onclose =  (() =>
        {
-          // websocket is closed.
+          // websocket is closed. try to reconnect every 5 seconds
           // alert("Connection is closed...");
           this.setState({ socketOffline: true });
           setTimeout(() => {this.connectToSocket();}, 5000);
@@ -257,7 +165,7 @@ const styles = theme => ({
     return newConn;
   }
 
-/** Update connections between assets (wires) */
+  /** Update connections between assets (wires) */
   onPosChange(key, e) {
 
     const asset = this._get_asset_by_key(key);
@@ -332,13 +240,6 @@ const styles = theme => ({
     }
   }
 
-  handleMenu = event => {
-    this.setState({ anchorEl: event.currentTarget });
-  };
-
-  handleClose = () => {
-    this.setState({ anchorEl: null });
-  };
 
 
   /** Add Socket to the Layout */
@@ -370,13 +271,14 @@ const styles = theme => ({
       assetId={key}
       asset={asset}
       selected={this.state.selectedAssetKey === key}
-      pduSocketSelected={this.state.selectedAssetKey in asset.children}
+      nestedComponentSelected={this.state.selectedAssetKey in asset.children}
       powered={powered}
       x={asset.x}
       y={asset.y}
     />);
   }
 
+  /* Add Server to the layout */
   drawServer(key, asset) {
     let powered = false;
     if (asset.parent) {
@@ -390,13 +292,14 @@ const styles = theme => ({
       assetId={key}
       asset={asset}
       selected={this.state.selectedAssetKey === key}
-      powerSupplySelected={this.state.selectedAssetKey in asset.children}
+      nestedComponentSelected={this.state.selectedAssetKey in asset.children}
       powered={powered}
       x={asset.x}
       y={asset.y}
     />);
   }
 
+  /* Add Ups to the layout */
   drawUps(key, asset) {
     let powered = false;
     if (asset.parent) {
@@ -410,7 +313,7 @@ const styles = theme => ({
       assetId={key}
       asset={asset}
       selected={this.state.selectedAssetKey === key}
-      upsSocketSelected={this.state.selectedAssetKey in asset.children}
+      nestedComponentSelected={this.state.selectedAssetKey in asset.children}
       powered={powered}
       x={asset.x}
       y={asset.y}
@@ -423,7 +326,10 @@ const styles = theme => ({
     const { classes } = this.props;
     const { assets, connections } = this.state;
 
+    // currently selected asset
     const selectedAsset = assets ? this._get_asset_by_key(this.state.selectedAssetKey) : null;
+
+    // asset drawings & their connections
     let systemLayout = [];
     let wireDrawing = [];
 
@@ -471,56 +377,23 @@ const styles = theme => ({
       }
     }
 
-
-    const { anchorEl } = this.state;
-    const open = Boolean(anchorEl);
+    const snackbarOrigin = {vertical: 'bottom', horizontal: 'left',};
 
     return (
       <div className={classes.root}>
         <div className={classes.appFrame}>
-          {/* Top-bar */}
-          <AppBar
-            position="absolute"
-            className={classNames(classes.appBar, classes[`appBar-left`])}
-          >
-            <Toolbar>
-              <Typography variant="title" color="inherit" noWrap>
-                HAos Simulation Engine
-              </Typography>
-              <div>
-                <IconButton aria-owns={open ? 'menu-appbar' : null}
-                    aria-haspopup="true"
-                    color="inherit"
-                    onClick={this.handleMenu}
-                >
-                <SettingsIcon/>
-                </IconButton>
-                  <Drawer open={open} onClose={this.handleClose}
-                    classes={{paper: classes.drawerPaper,}} anchor={'left'}>
-                    <div className={classes.toolbar}/>
-                    <Divider />
-                    <div
-                      tabIndex={0}
-                      role="button"
-                      onClick={this.handleClose}
-                      onKeyDown={this.handleClose}
-                    >
-                      <div className={classes.fullList}>
-                        <List>
-                          <ListItem button onClick={this.saveLayout.bind(this)}>
-                            <ListItemText primary="Save Layout" />
-                          </ListItem>
-                        </List>
-                      </div>
-                    </div>
-                </Drawer>
-              </div>
-            </Toolbar>
-          </AppBar>
+
+          {/* Top-Navigation component */}
+          <TopNav
+            saveLayout={this.saveLayout.bind(this)}
+            classes={classes}
+          />
 
           {/* Main Canvas */}
           <main className={classes.content} style={{ backgroundImage: 'url('+gridBackground+')', backgroundRepeat: "repeat" }}>
             <div className={classes.toolbar} />
+
+            {/* Drawings */}
             <Stage
               width={window.innerWidth}
               height={window.innerHeight * 0.88}
@@ -531,6 +404,7 @@ const styles = theme => ({
                 {wireDrawing}
               </Layer>
             </Stage>
+
             {/* LeftMost Card -> Display Element Details */}
             {(this.state.selectedAssetKey) ?
               <AssetDetails
@@ -539,43 +413,27 @@ const styles = theme => ({
                 changeStatus={this.changeStatus.bind(this)}
               /> : ''
             }
+
             {/* Display message if backend is not available */}
             <Snackbar
-              anchorOrigin={{
-                vertical: 'bottom',
-                horizontal: 'left',
-              }}
+              anchorOrigin={snackbarOrigin}
               open={this.state.socketOffline}
-              ContentProps={{
-                'aria-describedby': 'socket-id',
-              }}
-              message={<span id="socket-id">Socket is unavailable: trying to reconnect...</span>}
+              message={<span>Socket is unavailable: trying to reconnect...</span>}
             />
-            {/* 'Changes Applied' Message */}
+
+            {/* 'Changes Applied'/'Saved' Message */}
             <Snackbar
-              anchorOrigin={{
-                vertical: 'bottom',
-                horizontal: 'left',
-              }}
+              anchorOrigin={snackbarOrigin}
               open={this.state.changesSaved}
               onClose={()=>this.setState({changesSaved: false})}
               autoHideDuration={1500}
-              ContentProps={{
-                'aria-describedby': 'message-id',
-              }}
-              message={<span id="message-id">Changes saved!</span>}
+              message={<span>Changes saved!</span>}
             />
-
+            {/* The layout was not initialized -> display link to the documentation*/}
             <Snackbar
-              anchorOrigin={{
-                vertical: 'bottom',
-                horizontal: 'left',
-              }}
+              anchorOrigin={snackbarOrigin}
               open={!this.state.socketOffline && !assets}
-              ContentProps={{
-                'aria-describedby': 'message-id',
-              }}
-              message={<span id="message-id">The system toplology appears to be empty. <br/> Please, refer to the documentation
+              message={<span>The system toplology appears to be empty. <br/> Please, refer to the documentation
                 (System Modelling <a href="https://simengine.readthedocs.io/en/latest/SystemModeling/">link</a>)</span>}
             />
           </main>
@@ -584,5 +442,40 @@ const styles = theme => ({
     );
   }
 }
+const styles = theme => ({
+  root: {
+    flexGrow: 1,
+  },
+  appFrame: {
+    zIndex: 1,
+    overflow: 'hidden',
+    position: 'relative',
+    display: 'flex',
+    width: '100%',
+  },
+  appBar: {
+    width: `100%`,
+  },
+  'appBar-left': {
+    backgroundColor: "#36454F",
+    marginLeft: drawerWidth,
+  },
+  drawerPaper: {
+    width: drawerWidth
+  },
+  toolbar: theme.mixins.toolbar,
+  content: {
+    flexGrow: 1,
+    backgroundColor: theme.palette.background.default,
+    padding: theme.spacing.unit * 3,
+  },
+  menuButton: {
+    marginLeft: -12,
+    marginRight: 20,
+  },
+  list: {
+    width: 250,
+  },
+});
 
 export default withStyles(styles)(App);

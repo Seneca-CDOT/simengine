@@ -9,26 +9,6 @@ import Typography from '@material-ui/core/Typography';
 import Switch from '@material-ui/core/Switch';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 
-const styles = {
-  card: {
-    minWidth: 320,
-    position: 'absolute',
-    top: 90,
-    right: 20,
-  },
-  bullet: {
-    display: 'inline-block',
-    margin: '0 2px',
-    transform: 'scale(0.8)',
-  },
-  title: {
-    marginBottom: 16,
-    fontSize: 14,
-  },
-  pos: {
-    marginBottom: 12,
-  },
-};
 
 function AssetDetails(props) {
   const { classes, assetInfo, assetKey, changeStatus } = props;
@@ -82,11 +62,6 @@ function AssetDetails(props) {
           {/* Display any nested elements */}
           {children}
         </CardContent>
-        {/*
-        <CardActions>
-          <Button size="small">Learn More</Button>
-        </CardActions>
-        */}
       </Card>
     </div>
   );
@@ -97,6 +72,28 @@ AssetDetails.propTypes = {
   assetInfo: PropTypes.object.isRequired,
   assetKey: PropTypes.object.isRequired,
   changeStatus: PropTypes.func.isRequired, // Change asset state
+};
+
+
+const styles = {
+  card: {
+    minWidth: 320,
+    position: 'absolute',
+    top: 90,
+    right: 20,
+  },
+  bullet: {
+    display: 'inline-block',
+    margin: '0 2px',
+    transform: 'scale(0.8)',
+  },
+  title: {
+    marginBottom: 16,
+    fontSize: 14,
+  },
+  pos: {
+    marginBottom: 12,
+  },
 };
 
 export default withStyles(styles)(AssetDetails);

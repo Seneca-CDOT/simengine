@@ -75,7 +75,7 @@ export default class Pdu extends React.Component {
           draggable={false}
           asset={asset.children[ckey]}
           assetId={ckey}
-          selected={this.state.selectedSocketKey === ckey && this.props.pduSocketSelected}
+          selected={this.state.selectedSocketKey === ckey && this.props.nestedComponentSelected}
           powered={this.props.asset.status}
           parentSelected={this.props.selected}
           red_means_on={true}
@@ -124,5 +124,5 @@ Pdu.propTypes = {
   assetId: PropTypes.string.isRequired, // Asset Key
   selected: PropTypes.bool.isRequired, // Asset Selected by a user
   onElementSelection: PropTypes.func.isRequired, // Notify parent component of selection
-  pduSocketSelected: PropTypes.bool.isRequired, // One of the PDU outlets are selected
+  nestedComponentSelected: PropTypes.bool.isRequired, // One of the PDU outlets are selected
 };

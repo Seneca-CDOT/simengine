@@ -91,7 +91,7 @@ export default class Ups extends React.Component {
           draggable={false}
           asset={asset.children[ckey]}
           assetId={ckey}
-          selected={this.state.selectedSocketKey === ckey && this.props.upsSocketSelected}
+          selected={this.state.selectedSocketKey === ckey && this.props.nestedComponentSelected}
           powered={this.props.asset.status}
           parentSelected={this.props.selected}
           hideName={true}
@@ -198,5 +198,5 @@ Ups.propTypes = {
   assetId: PropTypes.string.isRequired, // Asset Key
   selected: PropTypes.bool.isRequired, // Asset Selected by a user
   onElementSelection: PropTypes.func.isRequired, // Notify parent component of selection
-  upsSocketSelected: PropTypes.bool.isRequired, // One of the UPS outlets are selected
+  nestedComponentSelected: PropTypes.bool.isRequired, // One of the UPS outlets are selected
 };

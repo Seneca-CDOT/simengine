@@ -13,7 +13,7 @@ export default class Server extends React.Component {
     super(props);
     this.state = {
       color: 'grey',
-      selectedSocketKey: -1,
+      selectedPsuKey: -1,
       x: props.x?props.x:40,
       y: props.y?props.y:40,
       frontimg: null
@@ -44,7 +44,7 @@ export default class Server extends React.Component {
 
   /** Notify top-lvl Component that PDU-Outlet was selected*/
   selectSocket = (ckey) => {
-    this.setState({ selectedSocketKey: ckey });
+    this.setState({ selectedPsuKey: ckey });
     this.props.onElementSelection(ckey, this.props.asset.children[ckey]);
   }
 
@@ -75,7 +75,7 @@ export default class Server extends React.Component {
           draggable={false}
           asset={asset.children[ckey]}
           assetId={ckey}
-          selected={this.state.selectedSocketKey === ckey && this.props.powerSupplySelected}
+          selected={this.state.selectedPsuKey === ckey && this.props.nestedComponentSelected}
           powered={this.props.powered}
           parentSelected={this.props.selected}
         />
@@ -124,5 +124,5 @@ Server.propTypes = {
   assetId: PropTypes.string.isRequired, // Asset Key
   selected: PropTypes.bool.isRequired, // Asset Selected by a user
   onElementSelection: PropTypes.func.isRequired, // Notify parent component of selection
-  powerSupplySelected: PropTypes.bool.isRequired, // One of the powerSupplies are selected
+  nestedComponentSelected: PropTypes.bool.isRequired, // One of the powerSupplies are selected
 };
