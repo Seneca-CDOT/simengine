@@ -155,32 +155,69 @@ def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
             if k == 'SerialNumber':
                 v['defaultValue'] = id_generator()
 
+            if k == "PowerOff":
+                oid = v['OID']
+                if 'oidDesc' in v:
+                    oid_desc = dict((y,x) for x,y in v["oidDesc"].items())
+                    query = "\
+                    CREATE (PowerOffDetails:OIDDesc {{\
+                        OIDName: $name, \
+                        {}: \"switchOff\", \
+                        {}: \"switchOffGraceful\"\
+                    }})".format(oid_desc["switchOff"], oid_desc["switchOffGraceful"])
+
+                    session.run(query, name="{}-{}".format(k,key))
+
+                    session.run("\
+                    MATCH (ups:UPS {key: $key})\
+                    MATCH (oidDesc:OIDDesc {OIDName: $oid_desc})\
+                    CREATE (oid:OID { \
+                        OID: $oid,\
+                        OIDName: $name,\
+                        name: $name, \
+                        defaultValue: $dv,\
+                        dataType: $dt \
+                    })\
+                    CREATE (oid)-[:HAS_STATE_DETAILS]->(oidDesc)\
+                    CREATE (ups)-[:POWERED_BY]->(oid)\
+                    CREATE (ups)-[:HAS_OID]->(oid)\
+                    ", 
+                    key=key, 
+                    oid=oid, 
+                    name=k,
+                    dv=v['defaultValue'], 
+                    dt=v['dataType'],
+                    oid_desc="{}-{}".format(k,key))
+                else:
+                    session.run("\
+                    MATCH (ups:UPS {key: $key})\
+                    CREATE (oid:OID { \
+                        OID: $oid,\
+                        OIDName: $name,\
+                        name: $name, \
+                        defaultValue: $dv,\
+                        dataType: $dt \
+                    })<-[:HAS_OID]-(ups)", key=key, oid=v['OID'], name=k, dv=v['defaultValue'], dt=v['dataType'])
+
+
+        for i in range(data["numOutlets"]):
+            oid = v['OID'] + "." + str(i+1)
+
             session.run("\
             MATCH (ups:UPS {key: $key})\
-            CREATE (oid:OID { \
-                OID: $oid,\
-                OIDName: $name,\
-                name: $name, \
-                defaultValue: $dv,\
-                dataType: $dt \
-            })<-[:HAS_OID]-(ups)", key=key, oid=v['OID'], name=k, dv=v['defaultValue'], dt=v['dataType'])
+            CREATE (out1:Asset:Outlet:Component { \
+                name: $outname,\
+                key: $outkey,\
+                type: 'outlet'\
+            })\
+            CREATE (out1)-[:POWERED_BY]->(ups)\
+            CREATE (ups)-[:HAS_COMPONENT]->(out1)\
+            ", 
+            key=key,
+            outname='out'+str(i+1),
+            outkey=int("{}{}".format(key,str(i+1))))
 
-            for i in range(data["numOutlets"]):
-                oid = v['OID'] + "." + str(i+1)
 
-                session.run("\
-                MATCH (ups:UPS {key: $key})\
-                CREATE (out1:Asset:Outlet:Component { \
-                    name: $outname,\
-                    key: $outkey,\
-                    type: 'outlet'\
-                })\
-                CREATE (out1)-[:POWERED_BY]->(ups)\
-                CREATE (ups)-[:HAS_COMPONENT]->(out1)\
-                ", 
-                key=key,
-                outname='out'+str(i+1),
-                outkey=int("{}{}".format(key,str(i+1))))
 
 
 def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'presets/apc_pdu.json')):
@@ -289,6 +326,19 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
                     dv=v['defaultValue'], 
                     dt=v['dataType'])
 
+def create_static(key, attr):
+    """Create Dummy static asset"""
+    if not attr['power_consumption']:
+        raise KeyError('Static asset requires power_consumption')
+        
+    with graph_ref.get_session() as session:
+        session.run("\
+        CREATE (:Asset:StaticAsset { \
+        name: $name, \
+        type: 'staticasset', \
+        key: $key})", 
+        name=attr['name'], key=key)
+        set_properties(key, attr)
 
 def drop_model():
     """ Drop system model """
@@ -304,16 +354,3 @@ def delete_asset(key):
         OPTIONAL MATCH (oid)-[:HAS_STATE_DETAILS]->(sd) \
         DETACH DELETE a,s,oid,sd", key=key)
 
-def create_static(key, attr):
-    """Create Dummy static asset"""
-    if not attr['power_consumption']:
-        raise KeyError('Static asset requires power_consumption')
-        
-    with graph_ref.get_session() as session:
-        session.run("\
-        CREATE (:Asset:StaticAsset { \
-        name: $name, \
-        type: 'staticasset', \
-        key: $key})", 
-        name=attr['name'], key=key)
-        set_properties(key, attr)

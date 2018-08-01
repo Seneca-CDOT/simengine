@@ -295,6 +295,19 @@ class UPSStateManager(StateManager):
     def __init__(self, asset_info, asset_type='ups', notify=False):
         super(UPSStateManager, self).__init__(asset_info, asset_type, notify)
 
+    def _reset_power_off_oid(self):
+        """Reset upsAdvControlUpsOff to 1 """
+        with self._graph_ref.get_session() as session:
+            oid, data_type = GraphReference.get_asset_oid_by_name(session, int(self._asset_key), 'PowerOff')
+            if oid:
+                self._update_oid_value(oid, data_type, 1)
+
+    def power_up(self):
+        powered = super().power_up()
+        if powered:
+            self._reset_power_off_oid()
+        return powered
+
 class PDUStateManager(StateManager):
     """Handles state logic for PDU asset """
 

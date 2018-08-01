@@ -57,6 +57,16 @@ class Asset(Component):
             new_state=self._state.power_up()
         )
 
+    def shut_down(self):
+        """ Shut down this asset """
+        old_state = self.state.status
+        return PowerEventResult(
+            asset_key=self._state.key, 
+            asset_type=self._state.asset_type, 
+            old_state=old_state,
+            new_state=self._state.shut_down()
+        )
+
     def power_off(self):
         """ Power down this asset """
         old_state = self.state.status
@@ -342,8 +352,11 @@ class UPS(Asset, SNMPSim):
         )
 
     ##### React to any events of the connected components #####
-    @handler("ParentAssetPowerDown")
-    def on_power_off_request_received(self): 
+    @handler("ParentAssetPowerDown", "SignalDown")
+    def on_power_off_request_received(self, event, *args, **kwargs):
+        if 'graceful' in kwargs and kwargs['graceful']:
+            return self.shut_down()
+
         return self.power_off()
 
     @handler("ParentAssetPowerUp")

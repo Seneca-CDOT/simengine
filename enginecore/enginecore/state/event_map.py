@@ -12,6 +12,10 @@ class PowerEventManager:
             "immediateReboot": events.SignalReboot(),
             "delayedOff": events.SignalDown(delayed=True),
             "delayedOn": events.SignalUp(delayed=True)
+        },
+        'PowerOff': {
+            "switchOff": events.SignalDown(),
+            "switchOffGraceful": events.SignalDown(graceful=True)
         }
     }
 
