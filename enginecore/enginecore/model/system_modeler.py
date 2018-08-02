@@ -150,6 +150,18 @@ def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
         })", key=key, name=data['assetName'], oid_file=data['staticOidFile'])
 
         set_properties(key, attr)
+        
+        # add batteries
+        session.run("\
+        MATCH (ups:UPS {key: $key})\
+        CREATE (bat:UPSBattery:Battery { \
+            name: $name,\
+            type: 'battery'\
+        })\
+        CREATE (ups)-[:HAS_BATTERY]->(bat)\
+        CREATE (ups)-[:POWERED_BY]->(bat)\
+        ",key=key, name='bat1'
+        )
 
         for k, v in data["OIDs"].items():
             if k == 'SerialNumber':
@@ -199,7 +211,7 @@ def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
                         dataType: $dt \
                     })<-[:HAS_OID]-(ups)", key=key, oid=v['OID'], name=k, dv=v['defaultValue'], dt=v['dataType'])
 
-
+        # Set output outlets
         for i in range(data["numOutlets"]):
             oid = v['OID'] + "." + str(i+1)
 
@@ -343,7 +355,7 @@ def create_static(key, attr):
 def drop_model():
     """ Drop system model """
     with graph_ref.get_session() as session:
-        session.run("MATCH (a) WHERE a:Asset OR a:OID OR a:OIDDesc DETACH DELETE a")
+        session.run("MATCH (a) WHERE a:Asset OR a:OID OR a:OIDDesc OR a:Battery DETACH DELETE a")
     
 def delete_asset(key):
     """ Delete by key """
