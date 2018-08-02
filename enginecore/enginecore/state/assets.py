@@ -407,9 +407,8 @@ class UPS(Asset, SNMPSim):
     
     @handler("AssetPowerUp")
     def on_ups_signal_up(self):
-        print(self._parent_up)
         if self._parent_up:
-            self._battery_charge_t = Thread(target=self._charge_battery,  args=(lambda: self._parent_up,))
+            self._battery_charge_t = Thread(target=self._charge_battery, args=(lambda: self._parent_up,))
             self._battery_charge_t.start()
         else:
             self._battery_drain_t = Thread(target=self._drain_battery, args=(lambda: self._parent_up,))

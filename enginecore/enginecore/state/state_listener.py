@@ -164,7 +164,6 @@ class StateListener(Component):
                 asset_key, oid = data.split('-')
                 self._handle_oid_update(int(asset_key), oid, value)
             elif message['channel'] == str.encode(RedisChannels.battery_update_channel):
-                
                 asset_key, _ = data.split('-')
                 self._notify_client(int(asset_key), {'battery': self._assets[int(asset_key)].state.battery_level})
 

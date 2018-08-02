@@ -320,7 +320,12 @@ class UPSStateManager(StateManager):
 
 
     def update_battery(self, charge_level):
-        """Update battery level"""
+        """Updates battery level, checks for the charge level being in valid range, sets battery-related OIDs
+        and publishes changes;
+
+        Args:
+            charge_level(int): new battery level (between 0 & 1000)
+        """
         charge_level = 0 if charge_level < 0 else charge_level
         charge_level = self._max_battery_level if charge_level > self._max_battery_level else charge_level
 
@@ -330,19 +335,24 @@ class UPSStateManager(StateManager):
     
 
     def _update_battery_oids(self, charge_level):
-        """Update OIDs associated with UPS Battery"""
-        with self._graph_ref.get_session() as session:
-            oid_adv, data_type_adv = GraphReference.get_asset_oid_by_name(session, int(self._asset_key), 'AdvBatteryCapacity')
-            oid_hp, data_type_hp= GraphReference.get_asset_oid_by_name(session, int(self._asset_key), 'HighPrecBatteryCapacity')
+        """Update OIDs associated with UPS Battery
+        
+        Args:
+            charge_level(int): new battery level (between 0 & 1000)
+        """
+        with self._graph_ref.get_session() as db_s:
+            oid_adv, dt_adv = GraphReference.get_asset_oid_by_name(db_s, int(self._asset_key), 'AdvBatteryCapacity')
+            oid_hp, dt_hp = GraphReference.get_asset_oid_by_name(db_s, int(self._asset_key), 'HighPrecBatteryCapacity')
             
             if oid_adv:
-                self._update_oid_value(oid_adv, data_type_adv, snmp_data_types.Gauge32(charge_level/10))
+                self._update_oid_value(oid_adv, dt_adv, snmp_data_types.Gauge32(charge_level/10))
             if oid_hp:
-                self._update_oid_value(oid_hp, data_type_hp, snmp_data_types.Gauge32(charge_level))
+                self._update_oid_value(oid_hp, dt_hp, snmp_data_types.Gauge32(charge_level))
 
     def power_up(self):
-        """Implements state logic for power up, sleeps for the pre-configured time & resets boot time
-        
+        """Implements state logic for power up, sleeps for the pre-configured time & resets boot time;
+        Almost identical to the base implementation except UPS can still be powered on when battery level is above 0
+
         Returns:
             int: Asset's status after power-on operation
         """
