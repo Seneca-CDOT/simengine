@@ -1,0 +1,5 @@
+[simengine]
+name=SimEngine Repository
+baseurl=http://arcturus.cdot.systems
+enabled=1
+gpgcheck=1
