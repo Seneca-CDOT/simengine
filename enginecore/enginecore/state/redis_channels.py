@@ -10,3 +10,4 @@ class RedisChannels():
     load_update_channel = 'load-upd'
     state_update_channel = 'state-upd'
     oid_update_channel = 'oid-upd'
+    battery_update_channel = 'battery-upd'

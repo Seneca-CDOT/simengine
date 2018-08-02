@@ -15,6 +15,7 @@ import signal
 import tempfile
 import shutil
 import time
+from threading import Thread
 from collections import namedtuple
 from distutils.dir_util import copy_tree
 from string import Template
@@ -99,7 +100,7 @@ class Asset(Component):
 
         return LoadEventResult(
             load_change=load_change,
-            old_load = old_load,
+            old_load=old_load,
             new_load=new_load,
             asset_key=self._state.key
         )
@@ -310,7 +311,7 @@ class SNMPSim():
         self._snmp_agent.stop_agent()
 
 
-    @handler("AssetPowerUp")
+    @handler("AssetPowerUp", "ParentAssetPowerUp")
     def on_asset_did_power_on(self):
         self._snmp_agent.start_agent()
 
@@ -330,7 +331,7 @@ class PDU(Asset, SNMPSim):
 
     ##### React to any events of the connected components #####
     @handler("ParentAssetPowerDown")
-    def on_power_off_request_received(self): 
+    def on_power_off_request_received(self):
         return self.power_off()
 
     @handler("ParentAssetPowerUp")
@@ -351,16 +352,76 @@ class UPS(Asset, SNMPSim):
             host=asset_info['host'] if 'host' in asset_info else False
         )
 
+        # Threads responsible for battery charge/discharge
+
+        self._parent_up = True
+        self._battery_drain_t = None
+        self._battery_charge_t = None
+
+        self._state.update_battery(self._state.battery_max_level)
+        self._battery_discharge = 100
+
+
+    def _drain_battery(self, parent_up):
+        
+        battery_level = self._state.battery_level
+        # drain power
+        while battery_level > 0 and self._state.status and not parent_up():
+            battery_level = battery_level - self._battery_discharge
+            self._state.update_battery(battery_level)
+            time.sleep(1)
+        
+        # power off if still alive
+        if self._state.status and not parent_up():
+            self._state.power_off()
+            self._state.publish_power()
+
+
+    def _charge_battery(self, parent_up):
+        
+        battery_level = self._state.battery_level
+
+        # charge -> (only if the upstream power is available (the battery is not being drained))
+        while battery_level != self._state.battery_max_level and parent_up():
+            battery_level = battery_level + self._battery_discharge
+            self._state.update_battery(battery_level)
+            time.sleep(1)
+
     ##### React to any events of the connected components #####
     @handler("ParentAssetPowerDown", "SignalDown")
     def on_power_off_request_received(self, event, *args, **kwargs):
+
+        self._parent_up = False
+
+        if self._state.battery_level:
+            self._battery_drain_t = Thread(target=self._drain_battery, args=(lambda: self._parent_up,))
+            self._battery_drain_t.start()
+
+            event.success = False
+            return
+
         if 'graceful' in kwargs and kwargs['graceful']:
             return self.shut_down()
 
         return self.power_off()
+    
+    @handler("AssetPowerUp")
+    def on_ups_signal_up(self):
+        print(self._parent_up)
+        if self._parent_up:
+            self._battery_charge_t = Thread(target=self._charge_battery,  args=(lambda: self._parent_up,))
+            self._battery_charge_t.start()
+        else:
+            self._battery_drain_t = Thread(target=self._drain_battery, args=(lambda: self._parent_up,))
+            self._battery_drain_t.start()
 
     @handler("ParentAssetPowerUp")
     def on_power_up_request_received(self):
+
+        self._parent_up = True
+
+        self._battery_charge_t = Thread(target=self._charge_battery,  args=(lambda: self._parent_up,))
+        self._battery_charge_t.start()
         return self.power_up()
 
 @register_asset

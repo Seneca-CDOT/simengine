@@ -73,6 +73,9 @@ export default class Ups extends React.Component {
     const inputSocket = <Image image={this.state.c14} x={370} y={175}/>;
     //let x=50;
     const upsName = this.props.asset.name ? this.props.asset.name:'ups';
+    let chargeBar = "|||||||||||||||||||||||||||||||||||";
+    chargeBar = this.props.asset.battery === 1000 ? chargeBar: chargeBar.substring(chargeBar.length * (1-this.props.asset.battery * 0.001));
+
     const asset = this.props.asset;
     let y=10;
     let x=5;
@@ -163,20 +166,20 @@ export default class Ups extends React.Component {
           />
 
           <Text y={112} x={18}
-            text={"Output Off"}
+            text={`Output ${this.props.asset.status?'ON':'OFF'}`}
             fontFamily={'DSEG14Modern'}
             fontSize={11}
             fill={this.props.asset.status?'white':'grey'}
           />
 
           <Text y={135} x={18}
-            text={"Batt 100%"}
+            text={`Batt ${this.props.asset.battery/10}%`}
             fontFamily={'DSEG14Modern'}
             fontSize={11}
             fill={this.props.asset.status?'white':'grey'}
           />
           <Text y={135} x={115}
-            text={"|||||||||||||||||||||||||||||||||||"}
+            text={chargeBar}
 
             fontSize={11}
             fill={this.props.asset.status?'white':'grey'}

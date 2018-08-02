@@ -167,7 +167,38 @@ def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
             if k == 'SerialNumber':
                 v['defaultValue'] = id_generator()
 
-            if k == "PowerOff":
+            if k == "BasicBatteryStatus":
+                oid_desc = dict((y,x) for x,y in v["oidDesc"].items())
+                query = "\
+                CREATE (PowerOffDetails:OIDDesc {{\
+                    OIDName: $name, \
+                    {}: \"batteryNormal\", \
+                    {}: \"batteryLow\"\
+                }})".format(oid_desc["batteryNormal"], oid_desc["batteryLow"])
+
+                session.run(query, name="{}-{}".format(k,key))
+
+                session.run("\
+                    MATCH (ups:UPS {key: $key})\
+                    MATCH (oidDesc:OIDDesc {OIDName: $oid_desc})\
+                    CREATE (oid:OID { \
+                        OID: $oid,\
+                        OIDName: $name,\
+                        name: $name, \
+                        defaultValue: $dv,\
+                        dataType: $dt \
+                    })\
+                    CREATE (oid)-[:HAS_STATE_DETAILS]->(oidDesc)\
+                    CREATE (ups)-[:HAS_OID]->(oid)\
+                    ", 
+                    key=key, 
+                    oid=v['OID'], 
+                    name=k,
+                    dv=v['defaultValue'], 
+                    dt=v['dataType'],
+                    oid_desc="{}-{}".format(k,key))
+
+            elif k == "PowerOff":
                 oid = v['OID']
                 if 'oidDesc' in v:
                     oid_desc = dict((y,x) for x,y in v["oidDesc"].items())
@@ -200,16 +231,16 @@ def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
                     dv=v['defaultValue'], 
                     dt=v['dataType'],
                     oid_desc="{}-{}".format(k,key))
-                else:
-                    session.run("\
-                    MATCH (ups:UPS {key: $key})\
-                    CREATE (oid:OID { \
-                        OID: $oid,\
-                        OIDName: $name,\
-                        name: $name, \
-                        defaultValue: $dv,\
-                        dataType: $dt \
-                    })<-[:HAS_OID]-(ups)", key=key, oid=v['OID'], name=k, dv=v['defaultValue'], dt=v['dataType'])
+            else:
+                session.run("\
+                MATCH (ups:UPS {key: $key})\
+                CREATE (oid:OID { \
+                    OID: $oid,\
+                    OIDName: $name,\
+                    name: $name, \
+                    defaultValue: $dv,\
+                    dataType: $dt \
+                })<-[:HAS_OID]-(ups)", key=key, oid=v['OID'], name=k, dv=v['defaultValue'], dt=v['dataType'])
 
         # Set output outlets
         for i in range(data["numOutlets"]):

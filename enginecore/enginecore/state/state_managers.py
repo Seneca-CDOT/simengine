@@ -133,14 +133,14 @@ class StateManager():
     def _set_state_on(self):
         StateManager.get_store().set(self.redis_key, '1')
         if self._notify:
-            self._publish_power()
+            self.publish_power()
 
     def _set_state_off(self):
         StateManager.get_store().set(self.redis_key, '0')
         if self._notify:
-            self._publish_power()
+            self.publish_power()
 
-    def _publish_power(self):
+    def publish_power(self):
         """ publish state changes """
         StateManager.get_store().publish(RedisChannels.state_update_channel, self.redis_key)
 
@@ -242,8 +242,11 @@ class StateManager():
         )
 
         for rkey, rvalue in zip(assets, asset_values):
+            asset_state = StateManager(assets[rkey], assets[rkey]['type']) if assets[rkey]['type'] != 'ups' else UPSStateManager(assets[rkey])
             assets[rkey]['status'] = int(rvalue)
-            assets[rkey]['load'] = StateManager(assets[rkey], assets[rkey]['type']).load
+            assets[rkey]['load'] = asset_state.load
+            if assets[rkey]['type'] == 'ups':
+                assets[rkey]['battery'] = asset_state.battery_level
             
             if not flatten and 'children' in assets[rkey]:
                 # call recursively on children    
@@ -294,6 +297,7 @@ class UPSStateManager(StateManager):
 
     def __init__(self, asset_info, asset_type='ups', notify=False):
         super(UPSStateManager, self).__init__(asset_info, asset_type, notify)
+        self._max_battery_level = 1000#%
 
     def _reset_power_off_oid(self):
         """Reset upsAdvControlUpsOff to 1 """
@@ -302,11 +306,63 @@ class UPSStateManager(StateManager):
             if oid:
                 self._update_oid_value(oid, data_type, 1)
 
+
+    @property
+    def battery_level(self):
+        """Get current level (high-precision)"""
+        return int(StateManager.get_store().get(self.redis_key + ":battery"))
+
+
+    @property
+    def battery_max_level(self):
+        """Max battery level"""
+        return self._max_battery_level
+
+
+    def update_battery(self, charge_level):
+        """Update battery level"""
+        charge_level = 0 if charge_level < 0 else charge_level
+        charge_level = self._max_battery_level if charge_level > self._max_battery_level else charge_level
+
+        self._update_battery_oids(charge_level)
+        StateManager.get_store().set(self.redis_key + ":battery", charge_level)
+        self._publish_battery()
+    
+
+    def _update_battery_oids(self, charge_level):
+        """Update OIDs associated with UPS Battery"""
+        with self._graph_ref.get_session() as session:
+            oid_adv, data_type_adv = GraphReference.get_asset_oid_by_name(session, int(self._asset_key), 'AdvBatteryCapacity')
+            oid_hp, data_type_hp= GraphReference.get_asset_oid_by_name(session, int(self._asset_key), 'HighPrecBatteryCapacity')
+            
+            if oid_adv:
+                self._update_oid_value(oid_adv, data_type_adv, snmp_data_types.Gauge32(charge_level/10))
+            if oid_hp:
+                self._update_oid_value(oid_hp, data_type_hp, snmp_data_types.Gauge32(charge_level))
+
     def power_up(self):
-        powered = super().power_up()
+        """Implements state logic for power up, sleeps for the pre-configured time & resets boot time
+        
+        Returns:
+            int: Asset's status after power-on operation
+        """
+        print("Powering up {}".format(self._asset_key))
+        if self.battery_level and not self.status:
+            self._sleep_powerup()
+            # udpate machine start time & turn on
+            self.reset_boot_time()
+            self._set_state_on()
+        
+        powered = self.status
         if powered:
             self._reset_power_off_oid()
-        return powered
+
+        return self.status
+
+
+    def _publish_battery(self):
+        """Publish battery update"""
+        StateManager.get_store().publish(RedisChannels.battery_update_channel, self.redis_key)
 
 class PDUStateManager(StateManager):
     """Handles state logic for PDU asset """

@@ -35,7 +35,11 @@ class StateListener(Component):
         # subscribe to redis key events
         self.redis_store = redis.StrictRedis(host='localhost', port=6379)
         self.pubsub = self.redis_store.pubsub()
-        self.pubsub.psubscribe(RedisChannels.oid_update_channel, RedisChannels.state_update_channel)
+        self.pubsub.psubscribe(
+            RedisChannels.oid_update_channel, 
+            RedisChannels.state_update_channel,
+            RedisChannels.battery_update_channel
+        )
 
         # assets will store all the devices/items including PDUs, switches etc.
         self._assets = {}
@@ -159,6 +163,10 @@ class StateListener(Component):
                 value = (self.redis_store.get(data)).decode()
                 asset_key, oid = data.split('-')
                 self._handle_oid_update(int(asset_key), oid, value)
+            elif message['channel'] == str.encode(RedisChannels.battery_update_channel):
+                
+                asset_key, _ = data.split('-')
+                self._notify_client(int(asset_key), {'battery': self._assets[int(asset_key)].state.battery_level})
 
         except KeyError as error:
             print("Detected unregistered asset under key [{}]".format(error), file=sys.stderr)
