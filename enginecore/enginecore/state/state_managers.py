@@ -344,6 +344,26 @@ class UPSStateManager(StateManager):
         if 'outputPowerCapacity' in self._asset_info:
             self._update_load_perc_oids(load)
             self._update_current_oids(load)
+    
+
+    def update_time_on_battery(self, timeticks):
+        pass
+    
+
+    def update_time_left(self, timeticks):
+        """Update OIDs associated with UPS runtime (estimation)
+        
+        Args:
+            load(float): new load in AMPs
+        """
+        with self._graph_ref.get_session() as db_s:
+            oid, data_type, _ = GraphReference.get_asset_oid_by_name(
+                db_s, int(self._asset_key), 'BatteryRunTimeRemaining'
+            )
+
+            if oid:
+                self._update_oid_value(oid, data_type, snmp_data_types.TimeTicks(timeticks))
+
 
     def _update_current_oids(self, load):
         """Update OIDs associated with UPS Output - Current in AMPs
@@ -364,6 +384,7 @@ class UPSStateManager(StateManager):
                 self._update_oid_value(oid_adv, dt_adv, snmp_data_types.Gauge32(load))
             if oid_hp:
                 self._update_oid_value(oid_hp, dt_hp, snmp_data_types.Gauge32(load*10))
+
 
     def _update_load_perc_oids(self, load):
         """Update OIDs associated with UPS Output - % of the power capacity
@@ -448,6 +469,8 @@ class UPSStateManager(StateManager):
         """Publish battery update"""
         StateManager.get_store().publish(RedisChannels.battery_update_channel, self.redis_key)
 
+
+
 class PDUStateManager(StateManager):
     """Handles state logic for PDU asset """
 
@@ -513,9 +536,11 @@ class StaticDeviceStateManager(StateManager):
     def __init__(self, asset_info, asset_type='staticasset', notify=False):
         super(StaticDeviceStateManager, self).__init__(asset_info, asset_type, notify)
 
+
     @property
     def power_usage(self):
         return self._asset_info['powerConsumption'] / self._asset_info['powerSource']
+
 
     def power_up(self):
         powered = super().power_up()
@@ -533,17 +558,20 @@ class ServerStateManager(StaticDeviceStateManager):
         # TODO: error handling if the domain is missing (throws libvirtError) & close the connection
         self._vm = self._vm_conn.lookupByName(asset_info['name'])
 
+
     def shut_down(self):
         if self._vm.isActive():
             self._vm.shutdown()
             self.update_load(0)
         return super().shut_down()
 
+
     def power_off(self):
         if self._vm.isActive():
             self._vm.destroy()
             self.update_load(0)
         return super().power_off()
+    
     
     def power_up(self):
         powered = super().power_up()
@@ -559,48 +587,59 @@ class IPMIComponent():
         POUT_*: Power (Watts)
         VOUT_*: Voltage
     """
+
     def __init__(self, server_key):
         self._server_key = server_key
         self._sensor_dir = 'sensor_dir'
 
+
     def set_state_dir(self, state_dir):
         """Set temp state dir for an IPMI component"""
         StateManager.get_store().set(str(self._server_key)+ ":state_dir", state_dir)
+
 
     def get_state_dir(self):
         """Get temp IPMI state dir"""
         state_dir = StateManager.get_store().get(str(self._server_key)+ ":state_dir")
         return state_dir.decode("utf-8") if state_dir else False
 
+
     def _read_sensor_file(self, sensor_file):
         """Retrieve a single value representing sensor state"""
         with open(sensor_file) as sf_handler:
             return sf_handler.readline()
+    
     
     def _write_sensor_file(self, sensor_file, data):
         """Update state of a sensor"""
         with open(sensor_file, 'w') as sf_handler:
             return sf_handler.write(str(int(data)) + '\n')
 
+
     def _get_psu_current_file(self, psu_id):
         """Get path to a file containing sensor current"""
         return os.path.join(self.get_state_dir(), os.path.join(self._sensor_dir, 'IOUT_{}'.format(psu_id)))
+    
     
     def _get_psu_wattage_file(self, psu_id):
         """Get path to a file containing sensor wattage"""
         return os.path.join(self.get_state_dir(), os.path.join(self._sensor_dir, 'POUT_{}'.format(psu_id)))
 
+
     def _get_psu_fan_file(self, psu_id):
         """Get path to a file containing fan RPM"""
         return os.path.join(self.get_state_dir(), os.path.join(self._sensor_dir, 'FAN_{}'.format(psu_id)))
+
 
     def _get_psu_status_file(self, psu_id):
         """Get path to a file indicating PSU status"""
         return os.path.join(self.get_state_dir(), os.path.join(self._sensor_dir, 'STATUS_{}'.format(psu_id)))
 
+
     def _get_cpu_temp_file(self):
         """Get path to a file indicating current CPU temp in C"""
         return os.path.join(self.get_state_dir(), os.path.join(self._sensor_dir, 'CPU_TEMP'))
+
 
     def _update_cpu_temp(self, value):
         """Set cpu temp value"""
