@@ -334,6 +334,62 @@ class UPSStateManager(StateManager):
         self._publish_battery()
     
 
+    def update_load(self, load):
+        """Update any load state associated with the device in the redis db 
+        
+        Args:
+            load(float): New load in amps
+        """
+        super().update_load(load)
+        if 'outputPowerCapacity' in self._asset_info:
+            self._update_load_perc_oids(load)
+            self._update_current_oids(load)
+
+    def _update_current_oids(self, load):
+        """Update OIDs associated with UPS Output - Current in AMPs
+        
+        Args:
+            load(float): new load in AMPs
+        """
+        with self._graph_ref.get_session() as db_s:
+            # 100%
+            oid_adv, dt_adv, _ = GraphReference.get_asset_oid_by_name(db_s, int(self._asset_key), 'AdvOutputCurrent')
+            
+            # 1000 (/10=%)
+            oid_hp, dt_hp, _ = GraphReference.get_asset_oid_by_name(
+                db_s, int(self._asset_key), 'HighPrecOutputCurrent'
+            )
+
+            if oid_adv:
+                self._update_oid_value(oid_adv, dt_adv, snmp_data_types.Gauge32(load))
+            if oid_hp:
+                self._update_oid_value(oid_hp, dt_hp, snmp_data_types.Gauge32(load*10))
+
+    def _update_load_perc_oids(self, load):
+        """Update OIDs associated with UPS Output - % of the power capacity
+        
+        Args:
+            load(float): new load in AMPs
+        """
+
+        power_capacity = self._asset_info['outputPowerCapacity']
+        with self._graph_ref.get_session() as db_s:
+            # 100%
+            oid_adv, dt_adv, _ = GraphReference.get_asset_oid_by_name(db_s, int(self._asset_key), 'AdvOutputLoad')
+            
+            # 1000 (/10=%)
+            oid_hp, dt_hp, _ = GraphReference.get_asset_oid_by_name(
+                db_s, int(self._asset_key), 'HighPrecOutputLoad'
+            )
+
+            value_hp = (1000*(load*120)) / power_capacity
+
+            if oid_adv:
+                self._update_oid_value(oid_adv, dt_adv, snmp_data_types.Gauge32(value_hp/10))
+            if oid_hp:
+                self._update_oid_value(oid_hp, dt_hp, snmp_data_types.Gauge32(value_hp))
+            
+
     def _update_battery_oids(self, charge_level, old_level):
         """Update OIDs associated with UPS Battery
         
