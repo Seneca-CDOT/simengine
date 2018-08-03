@@ -14,6 +14,7 @@ import os
 import signal
 import tempfile
 import shutil
+import json
 import time
 from threading import Thread
 from collections import namedtuple
@@ -352,22 +353,50 @@ class UPS(Asset, SNMPSim):
             host=asset_info['host'] if 'host' in asset_info else False
         )
 
-        # Threads responsible for battery charge/discharge
-
+        # Store known { wattage: time_remaining } key/value pairs (runtime graph)
+        self._runtime_details = json.loads(asset_info['runtime'])
+        
+        # Track upstream power availability
         self._parent_up = True
+
+        # Threads responsible for battery charge/discharge
         self._battery_drain_t = None
         self._battery_charge_t = None
 
+        # set battery to max
         self._state.update_battery(self._state.battery_max_level)
-        self._battery_discharge = 100
+        
+        # typical recharge time 3hour(s)
+        self._charge_per_second = self._state.battery_max_level / (3*60*60)
 
+    def _calc_battery_discharge(self):
+        """Approximate battery discharge based on the runtime model """
+
+        # Get the wattage 
+        wattage = self._state.load * 120
+        # print("WAT ->{}".format(wattage))
+        if wattage: 
+            close_wattage = min(self._runtime_details, key=lambda x: abs(int(x)-wattage))
+            close_timeleft = self._runtime_details[close_wattage]
+            estimated_timeleft = (close_timeleft * int(close_wattage)) / wattage # inverse proportion
+            
+            # print("CLOSE WAT ->{}".format(close_wattage))
+            # print("CLOSE TimeLeft (Min) ->{}".format(close_timeleft))
+            # print("EST TimeLeft (Min) ->{}".format(estimated_timeleft))
+            # print("Drain BY ->{}".format(self._state.battery_max_level / (estimated_timeleft*60)))
+
+            return self._state.battery_max_level / (estimated_timeleft*60)
+        else:
+            return 0.05
 
     def _drain_battery(self, parent_up):
-        
+        """When parent is not available -> drain battery """
+
         battery_level = self._state.battery_level
+       
         # drain power
         while battery_level > 0 and self._state.status and not parent_up():
-            battery_level = battery_level - self._battery_discharge
+            battery_level = battery_level - self._calc_battery_discharge()
             self._state.update_battery(battery_level)
             time.sleep(1)
         
@@ -378,14 +407,25 @@ class UPS(Asset, SNMPSim):
 
 
     def _charge_battery(self, parent_up):
-        
+        """Charge battery when there's upstream power source & battery is not full"""
+
         battery_level = self._state.battery_level
 
         # charge -> (only if the upstream power is available (the battery is not being drained))
         while battery_level != self._state.battery_max_level and parent_up():
-            battery_level = battery_level + self._battery_discharge
+            battery_level = battery_level + self._charge_per_second
             self._state.update_battery(battery_level)
             time.sleep(1)
+
+    def _launch_battery_drain(self):
+        self._battery_drain_t = Thread(target=self._drain_battery, args=(lambda: self._parent_up,))
+        self._battery_drain_t.daemon = True
+        self._battery_drain_t.start()
+
+    def _launch_battery_charge(self):
+        self._battery_charge_t = Thread(target=self._charge_battery, args=(lambda: self._parent_up,))
+        self._battery_charge_t.daemon = True
+        self._battery_charge_t.start()
 
     ##### React to any events of the connected components #####
     @handler("ParentAssetPowerDown", "SignalDown")
@@ -394,9 +434,7 @@ class UPS(Asset, SNMPSim):
         self._parent_up = False
 
         if self._state.battery_level:
-            self._battery_drain_t = Thread(target=self._drain_battery, args=(lambda: self._parent_up,))
-            self._battery_drain_t.start()
-
+            self._launch_battery_drain()
             event.success = False
             return
 
@@ -408,19 +446,14 @@ class UPS(Asset, SNMPSim):
     @handler("AssetPowerUp")
     def on_ups_signal_up(self):
         if self._parent_up:
-            self._battery_charge_t = Thread(target=self._charge_battery, args=(lambda: self._parent_up,))
-            self._battery_charge_t.start()
+            self._launch_battery_charge()
         else:
-            self._battery_drain_t = Thread(target=self._drain_battery, args=(lambda: self._parent_up,))
-            self._battery_drain_t.start()
+            self._launch_battery_drain()
 
     @handler("ParentAssetPowerUp")
     def on_power_up_request_received(self):
-
         self._parent_up = True
-
-        self._battery_charge_t = Thread(target=self._charge_battery,  args=(lambda: self._parent_up,))
-        self._battery_charge_t.start()
+        self._launch_battery_charge()
         return self.power_up()
 
 @register_asset

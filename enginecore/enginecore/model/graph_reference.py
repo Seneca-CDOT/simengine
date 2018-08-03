@@ -1,10 +1,11 @@
+"""DB driver (data-layer) that provides access to db sessions and contains commonly used queries """
+
 import os
 from neo4j.v1 import GraphDatabase, basic_auth
 from enginecore.state.utils import format_as_redis_key
 
 class GraphReference():
-    
-    
+
     def __init__(self):
         self._driver = GraphDatabase.driver(
             'bolt://localhost', 
@@ -68,13 +69,12 @@ class GraphReference():
             asset_keys.append("{asset_key}-{property}".format(
                 asset_key=asset_key, 
                 property=asset_type.lower()
-                )
-            )
+                ))
 
             if record['oid'] and record['oid_details']:
                 oid = record['oid'].get('OID')
                 oid_rkey = format_as_redis_key(str(asset_key), oid, key_formatted=False)
-                oid_keys[oid_rkey] = {v:k for k,v in dict(record['oid_details']).items()} # swap order
+                oid_keys[oid_rkey] = {v:k for k, v in dict(record['oid_details']).items()} # swap order
                 
         return asset_keys, oid_keys
 
@@ -116,20 +116,25 @@ class GraphReference():
             asset_key(int): key of the asset OID belongs to
             oid_name(str): OID name
         Returns:
-            tuple: str as SNMP OID that belongs to the asset, followed by an int as datatype; 
+            tuple: str as SNMP OID that belongs to the asset, followed by an int as datatype, followed by optional state details; 
                    returns None if there's no such OID
         """
 
 
         results = session.run( 
-            "MATCH (:Asset { key: $key })-[:HAS_OID]->(oid {name: $oid_name}) RETURN oid",
+            """
+            MATCH (:Asset { key: $key })-[:HAS_OID]->(oid {name: $oid_name}) 
+            OPTIONAL MATCH (oid)-[:HAS_STATE_DETAILS]->(oid_details)
+            RETURN oid, oid_details
+            """,
             key=asset_key, oid_name=oid_name
         )
 
         record = results.single()
-        details = record.get('oid')  
+        details = record.get('oid')
+        oid_specs = {v:k for k, v in dict(record['oid_details']).items()} if record['oid_details'] else None
             
-        return details['OID'], int(details['dataType']) if (details and 'OID' in details) else None
+        return details['OID'], int(details['dataType']), oid_specs if (details and 'OID' in details) else None
 
     @classmethod
     def get_component_oid_by_name(cls, session, component_key, oid_name):
@@ -217,7 +222,10 @@ class GraphReference():
             if (asset['type'] == 'server' or asset['type'] == 'serverwithbmc') and asset['parent']:
                 keys = map(lambda x: x['key'], asset['parent'])
                 presults = session.run(
-                    "MATCH (c:Component)-[:POWERED_BY]->(parent) WHERE c.key IN $list RETURN parent ORDER BY c.key", list=keys
+                    """
+                    MATCH (c:Component)-[:POWERED_BY]->(parent) 
+                    WHERE c.key IN $list RETURN parent ORDER BY c.key
+                    """"", list=keys
                 )
 
                 asset['parent'] = []
@@ -258,7 +266,8 @@ class GraphReference():
             """
             OPTIONAL MATCH  (parentAsset:Asset)<-[:POWERED_BY]-(updatedAsset { key: $key }) 
             OPTIONAL MATCH (nextAsset:Asset)-[:POWERED_BY]->({ key: $key }) 
-            OPTIONAL MATCH (nextAsset2ndParent)<-[:POWERED_BY]-(nextAsset) WHERE updatedAsset.key <> nextAsset2ndParent.key 
+            OPTIONAL MATCH (nextAsset2ndParent)<-[:POWERED_BY]-(nextAsset) 
+            WHERE updatedAsset.key <> nextAsset2ndParent.key 
             RETURN collect(nextAsset) as childAssets, collect(parentAsset) as parentAsset, nextAsset2ndParent
             """,
             key=asset_key
@@ -287,8 +296,10 @@ class GraphReference():
             dict: asset details with it's 'labels' and components as 'children' (sorted by key) 
         """
         results = session.run(
-            "MATCH (n:Asset { key: $key }) OPTIONAL MATCH (n)-[:HAS_COMPONENT]->(c) RETURN n as asset, labels(n) as labels, collect(c) as children",
-            key=int(asset_key)
+            """
+            MATCH (n:Asset { key: $key }) OPTIONAL MATCH (n)-[:HAS_COMPONENT]->(c) 
+            RETURN n as asset, labels(n) as labels, collect(c) as children
+            """, key=int(asset_key)
         )
 
         record = results.single()

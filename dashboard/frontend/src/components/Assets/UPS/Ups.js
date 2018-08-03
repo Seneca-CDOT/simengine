@@ -173,7 +173,7 @@ export default class Ups extends React.Component {
           />
 
           <Text y={135} x={18}
-            text={`Batt ${this.props.asset.battery/10}%`}
+            text={`Batt ${Math.floor(this.props.asset.battery/10)}%`}
             fontFamily={'DSEG14Modern'}
             fontSize={11}
             fill={this.props.asset.status?'white':'grey'}

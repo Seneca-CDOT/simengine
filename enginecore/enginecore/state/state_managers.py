@@ -302,7 +302,7 @@ class UPSStateManager(StateManager):
     def _reset_power_off_oid(self):
         """Reset upsAdvControlUpsOff to 1 """
         with self._graph_ref.get_session() as session:
-            oid, data_type = GraphReference.get_asset_oid_by_name(session, int(self._asset_key), 'PowerOff')
+            oid, data_type, _ = GraphReference.get_asset_oid_by_name(session, int(self._asset_key), 'PowerOff')
             if oid:
                 self._update_oid_value(oid, data_type, 1)
 
@@ -310,7 +310,7 @@ class UPSStateManager(StateManager):
     @property
     def battery_level(self):
         """Get current level (high-precision)"""
-        return int(StateManager.get_store().get(self.redis_key + ":battery"))
+        return int(StateManager.get_store().get(self.redis_key + ":battery").decode())
 
 
     @property
@@ -329,25 +329,43 @@ class UPSStateManager(StateManager):
         charge_level = 0 if charge_level < 0 else charge_level
         charge_level = self._max_battery_level if charge_level > self._max_battery_level else charge_level
 
-        self._update_battery_oids(charge_level)
-        StateManager.get_store().set(self.redis_key + ":battery", charge_level)
+        self._update_battery_oids(charge_level, self.battery_level)
+        StateManager.get_store().set(self.redis_key + ":battery", int(charge_level))
         self._publish_battery()
     
 
-    def _update_battery_oids(self, charge_level):
+    def _update_battery_oids(self, charge_level, old_level):
         """Update OIDs associated with UPS Battery
         
         Args:
             charge_level(int): new battery level (between 0 & 1000)
         """
         with self._graph_ref.get_session() as db_s:
-            oid_adv, dt_adv = GraphReference.get_asset_oid_by_name(db_s, int(self._asset_key), 'AdvBatteryCapacity')
-            oid_hp, dt_hp = GraphReference.get_asset_oid_by_name(db_s, int(self._asset_key), 'HighPrecBatteryCapacity')
-            
+            # 100%
+            oid_adv, dt_adv, _ = GraphReference.get_asset_oid_by_name(db_s, int(self._asset_key), 'AdvBatteryCapacity')
+            # 1000 (/10=%)
+            oid_hp, dt_hp, _ = GraphReference.get_asset_oid_by_name(
+                db_s, int(self._asset_key), 'HighPrecBatteryCapacity'
+            )
+            # low/good
+            oid_basic, dt_basic, oid_spec = GraphReference.get_asset_oid_by_name(
+                db_s, int(self._asset_key), 'BasicBatteryStatus'
+            )
+
             if oid_adv:
                 self._update_oid_value(oid_adv, dt_adv, snmp_data_types.Gauge32(charge_level/10))
             if oid_hp:
                 self._update_oid_value(oid_hp, dt_hp, snmp_data_types.Gauge32(charge_level))
+            
+            if oid_basic:
+                if charge_level <= 100:
+                    low_bat_value = oid_spec['batteryLow']
+                    self._update_oid_value(oid_basic, dt_basic, snmp_data_types.Integer32(low_bat_value))
+                elif old_level <= 100 and charge_level > 100:
+                    norm_bat_value = oid_spec['batteryNormal']
+                    self._update_oid_value(oid_basic, dt_basic, snmp_data_types.Integer32(norm_bat_value))
+
+
 
     def power_up(self):
         """Implements state logic for power up, sleeps for the pre-configured time & resets boot time;
@@ -384,7 +402,7 @@ class PDUStateManager(StateManager):
     def _update_current(self, load):
         """Update OID associated with the current amp value """
         with self._graph_ref.get_session() as session:
-            oid, data_type = GraphReference.get_asset_oid_by_name(session, int(self._asset_key), 'AmpOnPhase')
+            oid, data_type, _ = GraphReference.get_asset_oid_by_name(session, int(self._asset_key), 'AmpOnPhase')
             if oid:
                 load = load if load >= 0 else 0
                 self._update_oid_value(oid, data_type, snmp_data_types.Gauge32(load * 10))
@@ -393,7 +411,7 @@ class PDUStateManager(StateManager):
     def _update_wattage(self, wattage):
         """Update OID associated with the current wattage draw """
         with self._graph_ref.get_session() as session:
-            oid, data_type = GraphReference.get_asset_oid_by_name(session, int(self._asset_key), 'WattageDraw')
+            oid, data_type, _ = GraphReference.get_asset_oid_by_name(session, int(self._asset_key), 'WattageDraw')
             wattage = wattage if wattage >= 0 else 0
             if oid:
                 self._update_oid_value(oid, data_type, snmp_data_types.Integer32(wattage))
