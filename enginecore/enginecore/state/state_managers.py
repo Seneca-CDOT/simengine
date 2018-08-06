@@ -60,6 +60,10 @@ class StateManager():
         return float(StateManager.get_store().get(self.redis_key + ":load"))
 
     @property
+    def wattage(self):
+        return self.load * 120
+
+    @property
     def status(self):
         """Operational State 
         
@@ -318,6 +322,14 @@ class UPSStateManager(StateManager):
         """Max battery level"""
         return self._max_battery_level
 
+    @property
+    def wattage(self):
+        return (self.load + self.idle_ups_amp) * 120
+
+    @property
+    def idle_ups_amp(self):
+        """How much a UPS draws"""
+        return 0.2
 
     def update_battery(self, charge_level):
         """Updates battery level, checks for the charge level being in valid range, sets battery-related OIDs
@@ -329,8 +341,8 @@ class UPSStateManager(StateManager):
         charge_level = 0 if charge_level < 0 else charge_level
         charge_level = self._max_battery_level if charge_level > self._max_battery_level else charge_level
 
-        self._update_battery_oids(charge_level, self.battery_level)
         StateManager.get_store().set(self.redis_key + ":battery", int(charge_level))
+        self._update_battery_oids(charge_level, self.battery_level)
         self._publish_battery()
     
 
@@ -347,7 +359,18 @@ class UPSStateManager(StateManager):
     
 
     def update_time_on_battery(self, timeticks):
-        pass
+        """Update OIDs associated with UPS time on battery
+        
+        Args:
+            timeticks(int): time-on battery (seconds*100)
+        """
+        with self._graph_ref.get_session() as db_s:
+            oid, data_type, _ = GraphReference.get_asset_oid_by_name(
+                db_s, int(self._asset_key), 'TimeOnBattery'
+            )
+
+            if oid:
+                self._update_oid_value(oid, data_type, snmp_data_types.TimeTicks(timeticks))
     
 
     def update_time_left(self, timeticks):

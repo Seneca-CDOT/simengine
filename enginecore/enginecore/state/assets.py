@@ -18,6 +18,7 @@ import json
 import time
 from threading import Thread
 from collections import namedtuple
+import datetime as dt
 from distutils.dir_util import copy_tree
 from string import Template
 
@@ -363,6 +364,8 @@ class UPS(Asset, SNMPSim):
         self._battery_drain_t = None
         self._battery_charge_t = None
 
+        self._start_time_battery = None
+
         # set battery to max
         self._state.update_battery(self._state.battery_max_level)
         
@@ -380,22 +383,17 @@ class UPS(Asset, SNMPSim):
         return (close_timeleft * int(close_wattage)) / wattage # inverse proportion
 
     def _calc_battery_discharge(self):
-        """Approximate battery discharge based on the runtime model """
+        """Approximate battery discharge per second based on the runtime model & current wattage draw
+
+        Returns:
+            float: discharge per second 
+        """
 
         # Get the wattage 
-        wattage = self._state.load * 120
-        # print("WAT ->{}".format(wattage))
-        if wattage: 
-            fp_estimated_timeleft = self._calc_full_power_time_left(wattage)
+        wattage = self._state.wattage
+        fp_estimated_timeleft = self._calc_full_power_time_left(wattage)
+        return self._state.battery_max_level / (fp_estimated_timeleft*60)
 
-            # print("CLOSE WAT ->{}".format(close_wattage))
-            # print("CLOSE TimeLeft (Min) ->{}".format(close_timeleft))
-            # print("EST TimeLeft (Min) ->{}".format(estimated_timeleft))
-            # print("Drain BY ->{}".format(self._state.battery_max_level / (estimated_timeleft*60)))
-
-            return self._state.battery_max_level / (fp_estimated_timeleft*60)
-        else:
-            return 0.05
 
     def _drain_battery(self, parent_up):
         """When parent is not available -> drain battery """
@@ -406,7 +404,8 @@ class UPS(Asset, SNMPSim):
         while battery_level > 0 and self._state.status and not parent_up():
             battery_level = battery_level - self._calc_battery_discharge()
             self._state.update_battery(battery_level)
-            self._state.update_time_left(self._cacl_time_left(self._state.load * 120) * 60 * 100)
+            self._state.update_time_left(self._cacl_time_left(self._state.wattage) * 60 * 100)
+            self._state.update_time_on_battery((dt.datetime.now() - self._start_time_battery).seconds*100)
             time.sleep(1)
         
         # kill the thing if still breathing
@@ -424,15 +423,19 @@ class UPS(Asset, SNMPSim):
         while battery_level != self._state.battery_max_level and parent_up():
             battery_level = battery_level + self._charge_per_second
             self._state.update_battery(battery_level)
-            self._state.update_time_left(self._cacl_time_left(self._state.load * 120) * 60 * 100)
+            self._state.update_time_left(self._cacl_time_left(self._state.wattage) * 60 * 100)
             time.sleep(1)
 
     def _launch_battery_drain(self):
+        """Start a thread that will decrease battery level """
+        self._start_time_battery = dt.datetime.now()
         self._battery_drain_t = Thread(target=self._drain_battery, args=(lambda: self._parent_up,))
         self._battery_drain_t.daemon = True
         self._battery_drain_t.start()
 
     def _launch_battery_charge(self):
+        """Start a thread that will charge battery level """
+        self._state.update_time_on_battery(0)
         self._battery_charge_t = Thread(target=self._charge_battery, args=(lambda: self._parent_up,))
         self._battery_charge_t.daemon = True
         self._battery_charge_t.start()
@@ -459,6 +462,10 @@ class UPS(Asset, SNMPSim):
             self._launch_battery_charge()
         else:
             self._launch_battery_drain()
+
+    @handler("AssetLoadChanged")
+    def on_ups_load_update(self):
+        self._state.update_time_left(self._cacl_time_left(self._state.wattage) * 60 * 100)
 
     @handler("ParentAssetPowerUp")
     def on_power_up_request_received(self):
