@@ -478,12 +478,14 @@ class UPS(Asset, SNMPSim):
             
         return self.power_off()
     
+    
     @handler("AssetPowerUp")
     def on_ups_signal_up(self):
         if self._parent_up:
             self._launch_battery_charge()
         else:
             self._launch_battery_drain()
+
 
     @handler("ParentAssetPowerUp")
     def on_power_up_request_received(self):

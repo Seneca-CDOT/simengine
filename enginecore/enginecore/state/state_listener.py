@@ -301,7 +301,8 @@ class StateListener(Component):
                 # check upstream & branching power
                 # alternative power source is available, therefore the load needs to be re-directed
                 if second_parent_up:
-                    print('Found an asset that has alternative parent[{}], child[{}]'.format(second_parent_asset.key, child_asset.key))
+                    print('Found an asset that has alternative parent[{}], child[{}]'
+                          .format(second_parent_asset.key, child_asset.key))
 
                     # find out how much load the 2nd parent should take
                     # (how much updated asset was drawing)

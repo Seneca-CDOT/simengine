@@ -171,7 +171,7 @@ class StateManager():
     def _get_oid_value(self, oid, key):
         redis_store = StateManager.get_store() 
         rkey = format_as_redis_key(str(key), oid, key_formatted=False)
-        return redis_store.get(rkey).decode()
+        return redis_store.get(rkey).decode().split('|')[1]
 
 
     def _check_parents(self, keys, parent_down, msg='Cannot perform the action: [{}] parent is off'):
@@ -317,14 +317,6 @@ class UPSStateManager(StateManager):
         super(UPSStateManager, self).__init__(asset_info, asset_type, notify)
         self._max_battery_level = 1000#%
 
-    
-    def _reset_power_off_oid(self):
-        """Reset upsAdvControlUpsOff to 1 """
-        with self._graph_ref.get_session() as session:
-            oid, data_type, _ = GraphReference.get_asset_oid_by_name(session, int(self._asset_key), 'PowerOff')
-            if oid:
-                self._update_oid_value(oid, data_type, 1) # TODO: Can be something else
-
 
     @property
     def battery_level(self):
@@ -424,7 +416,14 @@ class UPSStateManager(StateManager):
             
             if oid:
                 self._update_oid_value(oid, data_type, snmp_data_types.Integer(oid_spec[status.name]))
-        
+    
+    def _reset_power_off_oid(self):
+        """Reset upsAdvControlUpsOff to 1 """
+        with self._graph_ref.get_session() as session:
+            oid, data_type, _ = GraphReference.get_asset_oid_by_name(session, int(self._asset_key), 'PowerOff')
+            if oid:
+                self._update_oid_value(oid, data_type, 1) # TODO: Can be something else
+    
     def _update_current_oids(self, load):
         """Update OIDs associated with UPS Output - Current in AMPs
         
@@ -503,17 +502,16 @@ class UPSStateManager(StateManager):
                     self._update_oid_value(oid_basic, dt_basic, snmp_data_types.Integer32(norm_bat_value))
 
 
+    def shut_down(self):
+        time.sleep(self.get_config_off_delay())
+        powered = super().shut_down()
+        return powered
 
     def power_up(self):
-        """Implements state logic for power up, sleeps for the pre-configured time & resets boot time;
-        Almost identical to the base implementation except UPS can still be powered on when battery level is above 0
-
-        Returns:
-            int: Asset's status after power-on operation
-        """
         print("Powering up {}".format(self._asset_key))
         if self.battery_level and not self.status:
             self._sleep_powerup()
+            time.sleep(self.get_config_on_delay())
             # udpate machine start time & turn on
             self.reset_boot_time()
             self._set_state_on()
@@ -524,6 +522,16 @@ class UPSStateManager(StateManager):
 
         return self.status
 
+
+    def get_config_off_delay(self):
+        with self._graph_ref.get_session() as db_s:
+            oid, _, _ = GraphReference.get_asset_oid_by_name(db_s, int(self._asset_key), 'AdvConfigShutoffDelay')
+            return int(self._get_oid_value(oid, key=self._asset_key))
+
+    def get_config_on_delay(self):
+        with self._graph_ref.get_session() as db_s:
+            oid, _, _ = GraphReference.get_asset_oid_by_name(db_s, int(self._asset_key), 'AdvConfigReturnDelay')
+            return int(self._get_oid_value(oid, key=self._asset_key))
 
     def _publish_battery(self):
         """Publish battery update"""
@@ -579,7 +587,7 @@ class OutletStateManager(StateManager):
         with self._graph_ref.get_session() as session:
             oid, parent_key = GraphReference.get_component_oid_by_name(session, self.key, oid_name)
             oid = "{}.{}".format(oid, str(self.key)[-1])
-            return int(self._get_oid_value(oid, key=parent_key).split('|')[1])
+            return int(self._get_oid_value(oid, key=parent_key))
 
 
     def get_config_off_delay(self):
