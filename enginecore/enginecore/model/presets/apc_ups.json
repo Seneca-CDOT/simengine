@@ -80,6 +80,26 @@
                 "`2`": "switchOff",
                 "`3`": "switchOffGraceful"
             }
+        },
+        "BasicOutputStatus" : {
+            "OID": "1.3.6.1.4.1.318.1.1.1.4.1.1.0",
+            "dataType": 2,
+            "defaultValue": 2,
+            "oidDesc": {
+                "`2`": "onLine",
+                "`3`": "onBattery",
+                "`7`": "off"
+            }
+        },
+        "InputLineFailCause": {
+            "OID": "1.3.6.1.4.1.318.1.1.1.3.2.5.0",
+            "dataType": 2,
+            "defaultValue": 1,
+            "oidDesc": {
+                "`1`": "noTransfer",
+                "`4`": "blackout",
+                "`6`": "deepMomentarySag"
+            }
         }
     }
 }

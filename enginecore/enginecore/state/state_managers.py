@@ -10,6 +10,7 @@ import time
 import os
 import pysnmp.proto.rfc1902 as snmp_data_types
 import redis
+from enum import Enum
 import libvirt
 from enginecore.model.graph_reference import GraphReference
 from enginecore.state.utils import format_as_redis_key
@@ -299,16 +300,30 @@ class StateManager():
 class UPSStateManager(StateManager):
     """Handles UPS state logic """
 
+
+    class OutputStatus(Enum):
+        """UPS output status """
+        onLine = 1
+        onBattery = 2
+        off = 3
+    
+    class InputLineFailCause(Enum):
+        """Reason for the occurrence of the last transfer to UPS """
+        noTransfer = 1
+        blackout = 2
+        deepMomentarySag = 3
+          
     def __init__(self, asset_info, asset_type='ups', notify=False):
         super(UPSStateManager, self).__init__(asset_info, asset_type, notify)
         self._max_battery_level = 1000#%
 
+    
     def _reset_power_off_oid(self):
         """Reset upsAdvControlUpsOff to 1 """
         with self._graph_ref.get_session() as session:
             oid, data_type, _ = GraphReference.get_asset_oid_by_name(session, int(self._asset_key), 'PowerOff')
             if oid:
-                self._update_oid_value(oid, data_type, 1)
+                self._update_oid_value(oid, data_type, 1) # TODO: Can be something else
 
 
     @property
@@ -387,7 +402,24 @@ class UPSStateManager(StateManager):
             if oid:
                 self._update_oid_value(oid, data_type, snmp_data_types.TimeTicks(timeticks))
 
+    def update_ups_output_status(self, status):
+        with self._graph_ref.get_session() as db_s:
+            oid, data_type, oid_spec = GraphReference.get_asset_oid_by_name(
+                db_s, int(self._asset_key), 'BasicOutputStatus'
+            )
+            
+            if oid:
+                self._update_oid_value(oid, data_type, snmp_data_types.Integer(oid_spec[status.name]))
 
+    def update_transfer_reason(self, status):
+        with self._graph_ref.get_session() as db_s:
+            oid, data_type, oid_spec = GraphReference.get_asset_oid_by_name(
+                db_s, int(self._asset_key), 'InputLineFailCause'
+            )
+            
+            if oid:
+                self._update_oid_value(oid, data_type, snmp_data_types.Integer(oid_spec[status.name]))
+        
     def _update_current_oids(self, load):
         """Update OIDs associated with UPS Output - Current in AMPs
         

@@ -20,7 +20,8 @@ def manage_state(asset_key, action):
             asset_key (int): supplied asset identifier
             action (func): callable object (lambda/function etc) that identifies action
     """
-    with GraphReference().get_session() as session:
+    gr = GraphReference()
+    with gr.get_session() as session:
         
         asset_info = GraphReference.get_asset_and_components(session, asset_key)
         

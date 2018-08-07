@@ -38,8 +38,7 @@ class StateListener(Component):
         self.pubsub.psubscribe(
             RedisChannels.oid_update_channel, 
             RedisChannels.state_update_channel,
-            RedisChannels.battery_update_channel,
-            RedisChannels.load_update_channel
+            RedisChannels.battery_update_channel
         )
 
         # assets will store all the devices/items including PDUs, switches etc.
@@ -164,10 +163,6 @@ class StateListener(Component):
                 value = (self.redis_store.get(data)).decode()
                 asset_key, oid = data.split('-')
                 self._handle_oid_update(int(asset_key), oid, value)
-
-            elif message['channel'] == str.encode(RedisChannels.load_update_channel):
-                asset_key, _ = data.split('-')
-                self.fire(PowerEventManager.map_asset_load_event(), self._assets[int(asset_key)])
 
             elif message['channel'] == str.encode(RedisChannels.battery_update_channel):
                 asset_key, _ = data.split('-')

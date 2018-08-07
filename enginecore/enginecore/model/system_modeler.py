@@ -178,11 +178,83 @@ def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
             if k == "BasicBatteryStatus":
                 oid_desc = dict((y,x) for x,y in v["oidDesc"].items())
                 query = "\
-                CREATE (PowerOffDetails:OIDDesc {{\
+                CREATE (:OIDDesc {{\
                     OIDName: $name, \
                     {}: \"batteryNormal\", \
                     {}: \"batteryLow\"\
                 }})".format(oid_desc["batteryNormal"], oid_desc["batteryLow"])
+
+                session.run(query, name="{}-{}".format(k,key))
+
+                session.run("\
+                    MATCH (ups:UPS {key: $key})\
+                    MATCH (oidDesc:OIDDesc {OIDName: $oid_desc})\
+                    CREATE (oid:OID { \
+                        OID: $oid,\
+                        OIDName: $name,\
+                        name: $name, \
+                        defaultValue: $dv,\
+                        dataType: $dt \
+                    })\
+                    CREATE (oid)-[:HAS_STATE_DETAILS]->(oidDesc)\
+                    CREATE (ups)-[:HAS_OID]->(oid)\
+                    ", 
+                    key=key, 
+                    oid=v['OID'], 
+                    name=k,
+                    dv=v['defaultValue'], 
+                    dt=v['dataType'],
+                    oid_desc="{}-{}".format(k,key))
+
+            elif k == "BasicOutputStatus":
+                oid_desc = dict((y,x) for x,y in v["oidDesc"].items())
+                query = "\
+                CREATE (:OIDDesc {{\
+                    OIDName: $name, \
+                    {}: \"onLine\", \
+                    {}: \"onBattery\", \
+                    {}: \"off\"\
+                }})".format(
+                    oid_desc["onLine"], 
+                    oid_desc["onBattery"],
+                    oid_desc["off"]
+                )
+
+                session.run(query, name="{}-{}".format(k,key))
+
+                session.run("\
+                    MATCH (ups:UPS {key: $key})\
+                    MATCH (oidDesc:OIDDesc {OIDName: $oid_desc})\
+                    CREATE (oid:OID { \
+                        OID: $oid,\
+                        OIDName: $name,\
+                        name: $name, \
+                        defaultValue: $dv,\
+                        dataType: $dt \
+                    })\
+                    CREATE (oid)-[:HAS_STATE_DETAILS]->(oidDesc)\
+                    CREATE (ups)-[:HAS_OID]->(oid)\
+                    ", 
+                    key=key, 
+                    oid=v['OID'], 
+                    name=k,
+                    dv=v['defaultValue'], 
+                    dt=v['dataType'],
+                    oid_desc="{}-{}".format(k,key))
+
+            elif k == "InputLineFailCause":
+                oid_desc = dict((y,x) for x,y in v["oidDesc"].items())
+                query = "\
+                CREATE (:OIDDesc {{\
+                    OIDName: $name, \
+                    {}: \"noTransfer\", \
+                    {}: \"blackout\", \
+                    {}: \"deepMomentarySag\"\
+                }})".format(
+                    oid_desc["noTransfer"], 
+                    oid_desc["blackout"],
+                    oid_desc["deepMomentarySag"]
+                )
 
                 session.run(query, name="{}-{}".format(k,key))
 

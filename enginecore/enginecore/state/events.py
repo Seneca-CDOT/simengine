@@ -7,9 +7,6 @@ class AssetPowerDown(Event):
 class AssetPowerUp(Event):
     """ On Asset Did Power Up """
 
-class AssetLoadChanged(Event):
-    """ Load Changes """
-
 class ParentAssetPowerDown(Event):
     """ On Parent Did Go Down """
     success = True
