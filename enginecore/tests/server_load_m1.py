@@ -36,7 +36,7 @@ class ServerLoadTest(unittest.TestCase):
     def setUp(self):
 
         server_attr = {
-            'domain_name': 'fedora27', 
+            'domain_name': 'an-a01n01', 
             'psu_num': 2, 
             'psu_load': [0.5, 0.5], 
             'power_consumption': 480, # amp -> 4
@@ -85,7 +85,7 @@ class ServerLoadTest(unittest.TestCase):
             thread.start()
             server = BMCServerStateManager({
                 'key': 4, 
-                'name': 'fedora27', 
+                'name': 'an-a01n01', 
                 'powerConsumption': 480,
                 'powerSource': 120
                 }, 'serverwithbmc', notify=True)

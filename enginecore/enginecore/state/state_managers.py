@@ -346,6 +346,11 @@ class UPSStateManager(StateManager):
         """How much a UPS draws"""
         return 0.2
 
+    @property
+    def output_capacity(self):
+        """UPS rated capacity"""
+        return self._asset_info['outputPowerCapacity']
+
     def update_battery(self, charge_level):
         """Updates battery level, checks for the charge level being in valid range, sets battery-related OIDs
         and publishes changes;
@@ -448,7 +453,7 @@ class UPSStateManager(StateManager):
             load(float): new load in AMPs
         """
 
-        power_capacity = self._asset_info['outputPowerCapacity']
+        power_capacity = self.output_capacity
         with self._graph_ref.get_session() as db_s:
             # 100%
             oid_adv, dt_adv, _ = GraphReference.get_asset_oid_by_name(db_s, int(self._asset_key), 'AdvOutputLoad')
