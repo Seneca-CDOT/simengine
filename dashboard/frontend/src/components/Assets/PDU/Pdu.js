@@ -103,7 +103,7 @@ export default class Pdu extends React.Component {
           y={-575}
           onClick={this.handleClick.bind(this)}
         />
-        <Text y={-85} text={pduName}/>
+        <Text y={-85} text={pduName} fontSize={18}  fontFamily={'Helvetica'}/>
         <Group y={15} x={845}>
           <Rect width={60} height={60} fill={"#4d4d4d"} stroke={"black"}/>
           <Text y={10} x={5} text={load} fontFamily={'DSEG7Modern'} fontSize={30} fill={this.props.asset.status?'yellow':'grey'} />

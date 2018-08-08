@@ -105,7 +105,7 @@ export default class Socket extends React.Component {
             <SocketStatus socketOn={this.props.red_means_on?!this.props.asset.status:this.props.asset.status} powered={this.props.powered}/>
           }
           { !this.props.hideName &&
-            <Text text={this.props.asset && this.props.asset.name ? this.props.asset.name :'socket'}  y={this.state.bgImage ? 175: 105} />
+            <Text fontSize={14}  fontFamily={'Helvetica'} text={this.props.asset && this.props.asset.name ? this.props.asset.name :'socket'}  y={this.state.bgImage ? 175: 105} />
           }
         </Group>
       );

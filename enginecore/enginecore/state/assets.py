@@ -252,7 +252,7 @@ class SNMPAgent(Agent):
         self._snmp_rec_private_fname = private_community + '.snmprec'
 
         self._snmp_rec_dir = tempfile.mkdtemp()
-        self._host = '{}:1024'.format(host) if host else "127.0.0.{}:1024".format(SNMPAgent.agent_num)
+        self._host = '{}:102{}'.format(host, 3+SNMPAgent.agent_num) if host else "127.0.0.{}:1024".format(SNMPAgent.agent_num)
 
         snmp_rec_public_filepath = os.path.join(self._snmp_rec_dir, self._snmp_rec_public_fname)
         snmp_rec_private_filepath = os.path.join(self._snmp_rec_dir, self._snmp_rec_private_fname)
@@ -290,7 +290,7 @@ class SNMPAgent(Agent):
         cmd += " --variation-module-options=redis:host:127.0.0.1,port:6379,db:0,key-spaces-id:"+str(self._key_space_id)
         cmd += " --data-dir="+self._snmp_rec_dir
         cmd += " --transport-id-offset="+str(SNMPAgent.agent_num)
-        
+        print(cmd)
         self._process = subprocess.Popen(
             cmd, shell=True, stderr=subprocess.DEVNULL, stdout=open(os.devnull, 'wb'), close_fds=True
         )

@@ -188,17 +188,17 @@ const drawerWidth = 240;
       }
     } else if (asset.children && asset.type == 'ups') {
 
-      let x = 485;
-      let y = -40;
+      let x = 250;
+      let y = 150;
       let outletIndex = 0;
       for (const ckey of Object.keys(asset.children)) {
         const c = this._update_wiring(this._get_asset_by_key(ckey), ckey, e.target.x()+x, e.target.y() + y);
         Object.assign(childConn, c);
-        y += 100;
+        x += 100;
         outletIndex++;
         if (outletIndex == 4) {
-          x = 580;
-          y = -40;
+          y += 100;
+          x = 250;
         }
       }
     }
@@ -362,8 +362,8 @@ const drawerWidth = 240;
         } else if (child_type == 'server' || child_type === 'serverwithbmc') {
           socketXpad = -220;
         } else if (child_type == 'ups') {
-          socketXpad = -390;
-          socketYpad = 222;
+          socketXpad = -300;
+          socketYpad = 45;
         }
 
         wireDrawing.push(

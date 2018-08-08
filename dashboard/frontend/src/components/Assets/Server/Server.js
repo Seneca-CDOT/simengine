@@ -102,7 +102,7 @@ export default class Server extends React.Component {
           onClick={this.handleClick.bind(this)}
         />
 
-        <Text y={-85} text={serverName} />
+        <Text y={-100} text={serverName} fontSize={18}  fontFamily={'Helvetica'}/>
         {/* Draw Power Supplies */}
         {psus}
 

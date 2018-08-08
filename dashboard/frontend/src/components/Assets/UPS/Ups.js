@@ -3,7 +3,7 @@ import React from 'react';
 import { Text, Group, Path, Image, Rect } from 'react-konva';
 import PropTypes from 'prop-types';
 
-import ups_monitor from '../../../images/ups_monitor.png';
+import ups_monitor from '../../../images/ups_monitor_2.png';
 import c14 from '../../../images/c14.svg';
 import Socket from '../common/Socket';
 
@@ -70,7 +70,7 @@ export default class Ups extends React.Component {
 
     let sockets = [];
     // const inputSocket = <Socket x={-70} socketName={"input socket"} selectable={false} draggable={false}/>;
-    const inputSocket = <Image image={this.state.c14} x={370} y={175}/>;
+    const inputSocket = <Image image={this.state.c14} x={254} y={5}/>;
     //let x=50;
     const upsName = this.props.asset.name ? this.props.asset.name:'ups';
     let chargeBar = "|||||||||||||||||||||||||||||||||||";
@@ -101,11 +101,11 @@ export default class Ups extends React.Component {
           onPosChange={this.props.onPosChange}
         />
       );
-      y += 100;
+      x += 100;
       socketIndex++;
       if (socketIndex == 4) {
-        x += 100;
-        y = 10;
+        y += 100;
+        x = 5;
       }
     }
 
@@ -129,63 +129,57 @@ export default class Ups extends React.Component {
           y={-575}
           onClick={this.handleClick.bind(this)}
         />
+
+        {/* UPS Output */}
         <Group
-         x={480}
-         y={-60}
+         x={250}
+         y={130}
         >
           <Rect
             ref="rect"
-            width="90"
-            height="410"
+            width="390"
+            height="210"
             fill="white"
             stroke={this.props.selected ? 'blue' : 'grey'}
             strokeWidth={1.4}
-          />
-
-          <Rect
-            ref="rect"
-            width="90"
-            height="410"
-            fill="white"
-            stroke={this.props.selected ? 'blue' : 'grey'}
-            strokeWidth={1.4}
-            x={100}
           />
           {sockets}
         </Group>
 
 
-        <Text y={-125} x={230} text={upsName} />
+        <Text y={-125} x={230} text={upsName} fontSize={18}  fontFamily={'Helvetica'} />
+
+        {/* UPS Display */}
         <Group
-          x={200}
-          y={-20}
+          x={345}
+          y={-50}
         >
           <Image
               image={this.state.ups_monitor}
               onClick={this.handleClick}
           />
+          <Group y={50} x={18}>
+            <Text
+              text={`Output ${this.props.asset.status?'ON':'OFF'}`}
+              fontFamily={'DSEG14Modern'}
+              fontSize={16}
+              fill={this.props.asset.status?'white':'grey'}
+            />
 
-          <Text y={112} x={18}
-            text={`Output ${this.props.asset.status?'ON':'OFF'}`}
-            fontFamily={'DSEG14Modern'}
-            fontSize={11}
-            fill={this.props.asset.status?'white':'grey'}
-          />
+            <Text y={30}
+              text={`Batt ${Math.floor(this.props.asset.battery/10)}%`}
+              fontFamily={'DSEG14Modern'}
+              fontSize={16}
+              fill={this.props.asset.status?'white':'grey'}
+            />
+            <Text y={30} x={110}
+              text={chargeBar}
 
-          <Text y={135} x={18}
-            text={`Batt ${Math.floor(this.props.asset.battery/10)}%`}
-            fontFamily={'DSEG14Modern'}
-            fontSize={11}
-            fill={this.props.asset.status?'white':'grey'}
-          />
-          <Text y={135} x={115}
-            text={chargeBar}
-
-            fontSize={11}
-            fill={this.props.asset.status?'white':'grey'}
-          />
+              fontSize={16}
+              fill={this.props.asset.status?'white':'grey'}
+            />
+          </Group>
         </Group>
-
 
         {/* Input Socket */}
         {inputSocket}
