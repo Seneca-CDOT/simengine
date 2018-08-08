@@ -150,7 +150,7 @@ class GraphReference():
 
         result = session.run(
             """
-            MATCH (outlet:Component { key: $key})<-[:HAS_COMPONENT]-(p:Asset)-[:HAS_OID]->(oid:OID {name: $oid_name})
+            MATCH (component:Component { key: $key})<-[:HAS_COMPONENT]-(p:Asset)-[:HAS_OID]->(oid:OID {name: $oid_name})
             RETURN oid, p.key as parent_key
             """,
             oid_name=oid_name, key=component_key

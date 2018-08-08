@@ -376,6 +376,7 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
 
         # Outlet-specific OIDs
         for k, v in data["outletOIDs"].items():
+            
             if k == "OutletState":
                 if 'oidDesc' in v:
                     oid_desc = dict((y,x) for x,y in v["oidDesc"].items())
@@ -398,40 +399,52 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
 
                     session.run(query, name="{}-{}".format(k,key))
 
-                for i in range(outlet_count):
-                    oid = v['OID'] + "." + str(i+1)
-
+                for j in range(outlet_count):
                     session.run("\
-                    MATCH (pdu:PDU {key: $pkey})\
-                    MATCH (oidDesc:OIDDesc {OIDName: $oid_desc})\
-                    CREATE (oid:OID { \
-                        OID: $oid,\
-                        OIDName: $name,\
-                        name: $name, \
-                        defaultValue: $dv,\
-                        dataType: $dt \
-                    })\
-                    CREATE (out1:Asset:Outlet:Component { \
-                        name: $outname,\
-                        key: $outkey,\
-                        type: 'outlet'\
-                    })\
-                    CREATE (out1)-[:POWERED_BY]->(pdu)\
-                    CREATE (out1)-[:POWERED_BY]->(oid)\
-                    CREATE (oid)-[:HAS_STATE_DETAILS]->(oidDesc)\
-                    CREATE (pdu)-[:HAS_COMPONENT]->(out1)\
-                    CREATE (pdu)-[:HAS_OID]->(oid)\
-                    ", 
-                    pkey=key, 
-                    oid=oid, 
-                    name=k,
-                    dv=v['defaultValue'], 
-                    dt=v['dataType'],
-                    outname='out'+str(i+1),
-                    oid_desc="{}-{}".format(k,key),
-                    outkey=int("{}{}".format(key,str(i+1))))
+                        MATCH (pdu:PDU {key: $pkey})\
+                        CREATE (out1:Asset:Outlet:Component { \
+                            name: $outname,\
+                            key: $outkey,\
+                            type: 'outlet'\
+                        })\
+                        CREATE (out1)-[:POWERED_BY]->(pdu)\
+                        CREATE (pdu)-[:HAS_COMPONENT]->(out1)\
+                        ", 
+                        pkey=key, 
+                        outname='out'+str(j+1),
+                        outkey=int("{}{}".format(key,str(j+1))))
+
+                
+                for j in range(outlet_count):
+                    for oid in v['OID']:
+                        oid = oid + "." + str(j+1)
+
+                        session.run("\
+                        MATCH (pdu:PDU {key: $pkey})\
+                        MATCH (oidDesc:OIDDesc {OIDName: $oid_desc})\
+                        MATCH (out1:Asset:Outlet:Component { key: $outkey })\
+                        CREATE (oid:OID { \
+                            OID: $oid,\
+                            OIDName: $name,\
+                            name: $name, \
+                            defaultValue: $dv,\
+                            dataType: $dt \
+                        })\
+                        CREATE (out1)-[:POWERED_BY]->(oid)\
+                        CREATE (oid)-[:HAS_STATE_DETAILS]->(oidDesc)\
+                        CREATE (pdu)-[:HAS_OID]->(oid)\
+                        ", 
+                        pkey=key, 
+                        oid=oid, 
+                        name=k,
+                        dv=v['defaultValue'], 
+                        dt=v['dataType'],
+                        outname='out'+str(j+1),
+                        oid_desc="{}-{}".format(k,key),
+                        outkey=int("{}{}".format(key,str(j+1))))
             else:
                 oid = v['OID']
+                
                 session.run("\
                     MATCH (pdu:PDU {key: $pkey})\
                     CREATE (oid:OID { \

@@ -579,6 +579,11 @@ class PDUStateManager(StateManager):
 class OutletStateManager(StateManager):
     """Handles state logic for outlet asset """
 
+    class OutletState(Enum):
+        """Outlet States (oid) """
+        switchOff = 1
+        switchOn = 2
+
     def __init__(self, asset_info, asset_type='outlet', notify=False):
         super(OutletStateManager, self).__init__(asset_info, asset_type, notify)
 
@@ -586,9 +591,28 @@ class OutletStateManager(StateManager):
         """Get value under object id name"""
         with self._graph_ref.get_session() as session:
             oid, parent_key = GraphReference.get_component_oid_by_name(session, self.key, oid_name)
-            oid = "{}.{}".format(oid, str(self.key)[-1])
-            return int(self._get_oid_value(oid, key=parent_key))
+            if oid:
+                oid = "{}.{}".format(oid, str(self.key)[-1])
+                return int(self._get_oid_value(oid, key=parent_key))
+            return 0
 
+    def set_parent_oid_states(self, state):
+        """Bulk-set parent oid values 
+        
+        Args:
+            state(OutletState): new parent(s) state
+        """
+        with self._graph_ref.get_session() as session:
+            _, oids = GraphReference.get_parent_keys(session, self._asset_key)
+            oid_keys = oids.keys()
+            parents_new_states = {}
+            parent_values = StateManager.get_store().mget(oid_keys)
+            
+            for rkey, rvalue in zip(oid_keys, parent_values):
+                #  datatype -> {} | {} <- value
+                parents_new_states[rkey] = "{}|{}".format(rvalue.split(b'|')[0].decode(), oids[rkey][state.name])
+            
+            StateManager.get_store().mset(parents_new_states)
 
     def get_config_off_delay(self):
         return self._get_oid_value_by_name("OutletConfigPowerOffTime")

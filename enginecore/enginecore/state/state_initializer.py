@@ -11,8 +11,10 @@ def initialize(force_snmp_init=False):
     redis_store = redis.StrictRedis(host='localhost', port=6379)
 
     results = graph_ref.get_session().run(
-        "MATCH (asset:Asset) OPTIONAL MATCH (asset:Asset)-[:HAS_OID]->(oid)"
-        "return asset, collect(oid) as oids"
+        """
+        MATCH (asset:Asset) OPTIONAL MATCH (asset:Asset)-[:HAS_OID]->(oid)
+        return asset, collect(oid) as oids
+        """
     )
 
     for record in results:
@@ -30,7 +32,7 @@ def initialize(force_snmp_init=False):
                 graph_oids[oid.get('OID')] = {
                     'dtype': oid.get('dataType'),
                     'value': oid.get('defaultValue')
-                }
+                }            
 
             # Set-up in the SNMPSim format
             if 'SNMPSim' in record['asset'].labels and record['oids'] and init_from_snmprec:
