@@ -131,10 +131,13 @@ class GraphReference():
         )
 
         record = results.single()
-        details = record.get('oid')
-        oid_specs = {v:k for k, v in dict(record['oid_details']).items()} if record['oid_details'] else None
-            
-        return details['OID'], int(details['dataType']), oid_specs if (details and 'OID' in details) else None
+        details = record.get('oid') if record else None
+
+        oid_info = details['OID'] if details else None
+        vendor_specs = {v:k for k, v in dict(record['oid_details']).items()} if (record and record['oid_details']) else None
+        oid_data_type = details['dataType'] if oid_info else None
+
+        return oid_info, oid_data_type, vendor_specs
 
     @classmethod
     def get_component_oid_by_name(cls, session, component_key, oid_name):

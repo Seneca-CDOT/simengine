@@ -5,6 +5,8 @@
     "assetName": "APC UPS",
     "numOutlets": 8,
     "numBatteries": 1,
+    "fullRechargeTime": 2,
+    "minPowerOnBatteryLevel": 1,
     "outputPowerCapacity": 980,
     "modelRuntime": {
         "50": 320,

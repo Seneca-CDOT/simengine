@@ -82,7 +82,7 @@ export default class PowerSupply extends React.Component {
 }
 
 PowerSupply.defaultProps = {
-  red_means_on: false,
+  red_means_on: true,
 };
 
 PowerSupply.propTypes = {
@@ -93,4 +93,5 @@ PowerSupply.propTypes = {
   parentSelected: PropTypes.bool, // Used when an outlet belongs to an asset
   onElementSelection: PropTypes.func, // Notify parent component of selection
   selectable: PropTypes.bool.isRequired, // Outlet is an asset
+  red_means_on: PropTypes.bool,
 };

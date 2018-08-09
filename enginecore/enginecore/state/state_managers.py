@@ -316,6 +316,8 @@ class UPSStateManager(StateManager):
     def __init__(self, asset_info, asset_type='ups', notify=False):
         super(UPSStateManager, self).__init__(asset_info, asset_type, notify)
         self._max_battery_level = 1000#%
+        self._min_restore_charge_level = self._asset_info['minPowerOnBatteryLevel']
+        self._full_recharge_time = self._asset_info['fullRechargeTime']
 
 
     @property
@@ -337,6 +339,16 @@ class UPSStateManager(StateManager):
     def idle_ups_amp(self):
         """How much a UPS draws"""
         return 0.2
+
+    @property
+    def min_restore_charge_level(self):
+        """min level of battery charge before UPS can be powered on"""
+        return self._min_restore_charge_level
+    
+    @property
+    def full_recharge_time(self):
+        """hours taken to recharge the battery when it's completely depleted"""
+        return self._full_recharge_time
 
     @property
     def output_capacity(self):
@@ -509,6 +521,7 @@ class UPSStateManager(StateManager):
 
     def power_up(self):
         print("Powering up {}".format(self._asset_key))
+
         if self.battery_level and not self.status:
             self._sleep_powerup()
             time.sleep(self.get_config_on_delay())
@@ -520,7 +533,7 @@ class UPSStateManager(StateManager):
         if powered:
             self._reset_power_off_oid()
 
-        return self.status
+        return powered
 
 
     def get_config_off_delay(self):

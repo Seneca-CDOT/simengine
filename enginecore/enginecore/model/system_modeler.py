@@ -147,6 +147,8 @@ def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
             key: $key,\
             staticOidFile: $oid_file,\
             outputPowerCapacity: $pc,\
+            minPowerOnBatteryLevel: $minbat,\
+            fullRechargeTime: $rechargehrs, \
             type: 'ups',\
             runtime: $runtime\
         })", 
@@ -154,6 +156,8 @@ def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
         name=data['assetName'],
         oid_file=data['staticOidFile'],
         pc=data['outputPowerCapacity'],
+        minbat=data['minPowerOnBatteryLevel'],
+        rechargehrs=data['fullRechargeTime'],
         runtime= json.dumps(data['modelRuntime'], sort_keys=True)
         )
 

@@ -172,6 +172,8 @@ class PduSnmpTest(unittest.TestCase):
         charge_output_status = self.get_oid_value(output_status_oid)
         self.assertEqual(charge_output_status.decode().rstrip(), 'onLine') # back online!
 
+        sm_out_31.power_up()
+
     def test_ups_uptime(self):
         
         print("-> Test ups UPTIME")

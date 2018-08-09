@@ -333,12 +333,23 @@ class PDU(Asset, SNMPSim):
 
     ##### React to any events of the connected components #####
     @handler("ParentAssetPowerDown")
-    def on_power_off_request_received(self):
-        return self.power_off()
+    def on_power_off_request_received(self, event, *args, **kwargs):
+        
+        e_result = self.power_off()
+        
+        if e_result.new_state == e_result.old_state:
+            event.success = False
+
+        return e_result
 
     @handler("ParentAssetPowerUp")
-    def on_power_up_request_received(self):
-        return self.power_up()
+    def on_power_up_request_received(self, event, *args, **kwargs):
+        e_result = self.power_up()
+
+        if e_result.new_state == e_result.old_state:
+            event.success = False
+
+        return e_result
 
 
 @register_asset
@@ -369,8 +380,8 @@ class UPS(Asset, SNMPSim):
         # set battery level to max
         self._state.update_battery(self._state.battery_max_level)
         
-        # typical recharge time 3hour(s)
-        self._charge_per_second = self._state.battery_max_level / (3*60*60)
+        # get charge per second using full recharge time (hrs)
+        self._charge_per_second = self._state.battery_max_level / (self._state.full_recharge_time*60*60)
 
 
     def _cacl_time_left(self, wattage):
@@ -389,7 +400,7 @@ class UPS(Asset, SNMPSim):
         Returns:
             float: discharge per second 
         """
-
+        # return 100
         # Get the wattage 
         wattage = self._state.wattage
         fp_estimated_timeleft = self._calc_full_power_time_left(wattage)
@@ -424,16 +435,22 @@ class UPS(Asset, SNMPSim):
             self._state.publish_power()
 
 
-    def _charge_battery(self, parent_up):
+    def _charge_battery(self, parent_up, power_up_on_charge=False):
         """Charge battery when there's upstream power source & battery is not full"""
 
         battery_level = self._state.battery_level
+        powered = False
 
         # charge -> (only if the upstream power is available (the battery is not being drained))
         while battery_level != self._state.battery_max_level and parent_up():
             battery_level = battery_level + self._charge_per_second
             self._state.update_battery(battery_level)
             self._state.update_time_left(self._cacl_time_left(self._state.wattage) * 60 * 100)
+            if (not powered and power_up_on_charge) and (battery_level > self._state.min_restore_charge_level):
+                e_result = self.power_up()
+                powered = e_result.new_state
+                self._state.publish_power()
+
             time.sleep(1)
 
     def _launch_battery_drain(self):
@@ -443,20 +460,29 @@ class UPS(Asset, SNMPSim):
         self._state.update_ups_output_status(sm.UPSStateManager.OutputStatus.onBattery)
         self._state.update_transfer_reason(sm.UPSStateManager.InputLineFailCause.deepMomentarySag)
         
-        self._battery_drain_t = Thread(target=self._drain_battery, args=(lambda: self._parent_up,))
+        self._battery_drain_t = Thread(
+            target=self._drain_battery, 
+            args=(lambda: self._parent_up,), 
+            name="battery_drain:{}".format(self.key)
+        )
         self._battery_drain_t.daemon = True
         self._battery_drain_t.start()
 
-    def _launch_battery_charge(self):
+    def _launch_battery_charge(self, power_up_on_charge=False):
         """Start a thread that will charge battery level """
         self._state.update_time_on_battery(0)
 
         self._state.update_ups_output_status(sm.UPSStateManager.OutputStatus.onLine)
         self._state.update_transfer_reason(sm.UPSStateManager.InputLineFailCause.noTransfer)
 
-        self._battery_charge_t = Thread(target=self._charge_battery, args=(lambda: self._parent_up,))
+        self._battery_charge_t = Thread(
+            target=self._charge_battery, 
+            args=(lambda: self._parent_up, power_up_on_charge),
+            name="battery_charge:{}".format(self.key)    
+        )
         self._battery_charge_t.daemon = True
         self._battery_charge_t.start()
+
 
     ##### React to any events of the connected components #####
     @handler("ParentAssetPowerDown", "SignalDown")
@@ -474,11 +500,16 @@ class UPS(Asset, SNMPSim):
         self._state.update_ups_output_status(sm.UPSStateManager.OutputStatus.off)
 
         if 'graceful' in kwargs and kwargs['graceful']:
-            return self.shut_down()
-            
-        return self.power_off()
+            e_result = self.shut_down()
+        else:
+            e_result = self.power_off()
+        
+        if e_result.new_state == e_result.old_state:
+            event.success = False
+
+        return e_result   
     
-    
+
     @handler("AssetPowerUp")
     def on_ups_signal_up(self):
         if self._parent_up:
@@ -488,12 +519,23 @@ class UPS(Asset, SNMPSim):
 
 
     @handler("ParentAssetPowerUp")
-    def on_power_up_request_received(self):
+    def on_power_up_request_received(self, event, *args, **kwargs):
         
         self._parent_up = True
-        self._launch_battery_charge()
-        return self.power_up()
-    
+        battery_level = self._state.battery_level
+        self._launch_battery_charge(power_up_on_charge=(not battery_level))
+
+        if battery_level:
+            e_result = self.power_up()
+            if e_result.new_state == e_result.old_state:
+                event.success = False
+
+            return e_result
+        else:
+            event.success = False
+            return None
+        
+
     def _update_load(self, load_change, op, msg=''):
         upd_result = super()._update_load(load_change, op, msg)
         self._state.update_time_left(self._cacl_time_left(self._state.wattage) * 60 * 100)
