@@ -196,6 +196,7 @@ create_asset_action.add_argument(
     '-t', '--asset-type', required=True, help="Type of the machine/asset", choices=ASSET_TYPES
     )
 create_asset_action.add_argument('--host', type=str, default='localhost', help="SNMP/IPMI interface host")
+create_asset_action.add_argument('--snmp_preset', type=str, help="Vendor-specific asset configurations")
 create_asset_action.add_argument('--on-delay', type=int, help="Power on delay in ms", default=-1)
 create_asset_action.add_argument('--off-delay', type=int, help="Power on delay in ms", default=-1)
 
@@ -203,7 +204,7 @@ create_asset_action.add_argument('--off-delay', type=int, help="Power on delay i
 create_asset_action.add_argument('--img-url')
 create_asset_action.add_argument('--power-source', type=int, default=120)
 create_asset_action.add_argument('--power-consumption', type=int, help="Power consumption in Watts")
-create_asset_action.add_argument('--name')
+create_asset_action.add_argument('--name', help="Name displayed on the UI")
 
 # vm asset options
 create_asset_action.add_argument('--domain-name', help="VM domain name")

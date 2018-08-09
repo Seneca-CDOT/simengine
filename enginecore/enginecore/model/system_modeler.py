@@ -138,9 +138,14 @@ def id_generator(size=12, chars=string.ascii_uppercase + string.digits):
 
 def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'presets/apc_ups.json')):
     """Add UPS to the system model """
+
+    preset_file = attr['snmp_preset'] if attr['snmp_preset'] else preset_file
+
     with open(preset_file) as f, graph_ref.get_session() as session:
         data = json.load(f)
 
+        name = attr['name'] if attr['name'] else data['assetName']
+        
         session.run("\
         CREATE (:Asset:UPS:SNMPSim { \
             name: $name,\
@@ -153,7 +158,7 @@ def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
             runtime: $runtime\
         })", 
         key=key, 
-        name=data['assetName'],
+        name=name,
         oid_file=data['staticOidFile'],
         pc=data['outputPowerCapacity'],
         minbat=data['minPowerOnBatteryLevel'],
@@ -348,18 +353,20 @@ def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
 
 
 def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'presets/apc_pdu.json')):
-    """Add PDU to the model """    
+    """Add PDU to the model """ 
+    preset_file = attr['snmp_preset'] if attr['snmp_preset'] else preset_file
     with open(preset_file) as f, graph_ref.get_session() as session:
         data = json.load(f)
         outlet_count = data['OIDs']['OutletCount']['defaultValue']
-
+        name = attr['name'] if attr['name'] else data['assetName']
+        
         session.run("\
         CREATE (:Asset:PDU:SNMPSim { \
             name: $name,\
             key: $key,\
             staticOidFile: $oid_file,\
             type: 'pdu'\
-        })", key=key, name=data['assetName'], oid_file=data['staticOidFile'])
+        })", key=key, name=name, oid_file=data['staticOidFile'])
         
         set_properties(key, attr)
         
