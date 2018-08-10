@@ -76,7 +76,7 @@ export default class Pdu extends React.Component {
           asset={asset.children[ckey]}
           assetId={ckey}
           selected={this.state.selectedSocketKey === ckey && this.props.nestedComponentSelected}
-          powered={this.props.asset.status}
+          powered={this.props.asset.status !== 0}
           parentSelected={this.props.selected}
           onPosChange={this.props.onPosChange}
         />
@@ -117,9 +117,12 @@ export default class Pdu extends React.Component {
 }
 
 Pdu.propTypes = {
+  x: PropTypes.number, // X position of the asset
+  y: PropTypes.number, // Y position of the asset
+  onPosChange: PropTypes.func.isRequired, // called on PDU position change
+  powered: PropTypes.bool.isRequired, // indicates if upstream power is present
   name: PropTypes.string,
   asset: PropTypes.object.isRequired, // Asset Details
-  powered: PropTypes.bool.isRequired, // indicates if upstream power is present
   assetId: PropTypes.string.isRequired, // Asset Key
   selected: PropTypes.bool.isRequired, // Asset Selected by a user
   onElementSelection: PropTypes.func.isRequired, // Notify parent component of selection

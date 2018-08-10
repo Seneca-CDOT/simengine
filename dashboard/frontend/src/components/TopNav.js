@@ -1,5 +1,8 @@
 import React from 'react';
 import classNames from 'classnames';
+import PropTypes from 'prop-types';
+
+// Material imports
 import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
 import IconButton from '@material-ui/core/IconButton';
@@ -10,7 +13,7 @@ import ListItem from '@material-ui/core/ListItem';
 import ListItemText from '@material-ui/core/ListItemText';
 import {Divider, Drawer} from '@material-ui/core';
 
-export default class TopNav extends React.Component {
+class TopNav extends React.Component {
 
   constructor(props) {
     super(props);
@@ -76,5 +79,12 @@ export default class TopNav extends React.Component {
       </AppBar>
     );
   }
-
 }
+
+TopNav.propTypes = {
+  classes: PropTypes.object, // styling
+  saveLayout: PropTypes.func.isRequired // drawer Save Layout callback
+};
+
+
+export default TopNav;

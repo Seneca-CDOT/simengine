@@ -119,6 +119,10 @@ export default class Server extends React.Component {
 }
 
 Server.propTypes = {
+  x: PropTypes.number, // X position of the asset
+  y: PropTypes.number, // Y position of the asset
+  onPosChange: PropTypes.func.isRequired, // called on asset position change
+  powered: PropTypes.bool.isRequired, // indicates if upstream power is present
   name: PropTypes.string,
   asset: PropTypes.object.isRequired, // Asset Details
   assetId: PropTypes.string.isRequired, // Asset Key

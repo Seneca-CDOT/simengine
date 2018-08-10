@@ -117,7 +117,12 @@ Socket.defaultProps = {
 };
 
 Socket.propTypes = {
-  x: PropTypes.number,
+  x: PropTypes.number, // X position of the asset
+  y: PropTypes.number, // Y position of the asset
+  onPosChange: PropTypes.func.isRequired, // called on asset position change
+  powered: PropTypes.bool.isRequired, // indicates if upstream power is present
+  draggable: PropTypes.bool, // Indicates if the outlet can be dragged
+  red_means_on: PropTypes.bool, // For LED color: if it is red -> powered on
   asset: PropTypes.object, // Asset Details
   assetId: PropTypes.string, // Asset Key
   selected: PropTypes.bool, // Selected by user

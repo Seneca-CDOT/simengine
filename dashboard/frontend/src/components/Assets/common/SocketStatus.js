@@ -1,22 +1,37 @@
 import React from 'react';
 import { Rect } from 'react-konva';
+import PropTypes from 'prop-types';
 
 /**
  * LED of a socket
  */
-export default class SocketStatus extends React.Component {
-
-  render() {
-    const color = this.props.powered?(this.props.socketOn?"green": "red"):"grey";
+function SocketStatus({ powered, socketOn, x, y }) {
+    const color = powered?(socketOn?"green": "red"):"grey";
     return (
       <Rect
-        x={this.props.x?this.props.x:20}
-        y={85}
+        x={x}
+        y={y}
         width={10}
         height={10}
         fill={color}
         shadowBlur={5}
-        onClick={this.handleClick}
-        />
-    )}
+       />
+    );
 }
+
+
+SocketStatus.defaultProps = {
+  red_means_on: false,
+  y: 85,
+  x: 20
+};
+
+SocketStatus.propTypes = {
+  x: PropTypes.number, // X position of the asset
+  y: PropTypes.number, // Y position of the asset
+  socketOn: PropTypes.number.isRequired, // socket status
+  powered: PropTypes.bool.isRequired, // indicates if upstream power is present
+
+};
+
+export default SocketStatus;

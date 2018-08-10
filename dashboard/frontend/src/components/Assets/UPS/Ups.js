@@ -95,7 +95,7 @@ export default class Ups extends React.Component {
           asset={asset.children[ckey]}
           assetId={ckey}
           selected={this.state.selectedSocketKey === ckey && this.props.nestedComponentSelected}
-          powered={this.props.asset.status}
+          powered={this.props.asset.status !== 0}
           parentSelected={this.props.selected}
           hideName={true}
           onPosChange={this.props.onPosChange}
@@ -191,6 +191,9 @@ export default class Ups extends React.Component {
 
 Ups.propTypes = {
   name: PropTypes.string,
+  x: PropTypes.number, // X position of the asset
+  y: PropTypes.number, // Y position of the asset
+  onPosChange: PropTypes.func.isRequired, // called on asset position change
   asset: PropTypes.object.isRequired, // Asset Details
   assetId: PropTypes.string.isRequired, // Asset Key
   selected: PropTypes.bool.isRequired, // Asset Selected by a user

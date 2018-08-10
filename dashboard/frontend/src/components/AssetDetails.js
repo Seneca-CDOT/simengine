@@ -16,13 +16,13 @@ function AssetDetails(props) {
 
   if(assetInfo.children) {
     children.push(
-      <div><h3> Connected Components </h3></div>
+      <div key={0}><h3> Connected Components </h3></div>
     );
 
     const c = assetInfo.children;
     for (const ckey of Object.keys(c)) {
         children.push(
-        <div key={ckey}>
+          <div key={ckey}>
             <Typography variant="subheading" component="h5">
               {ckey}-{c[ckey].type} is {c[ckey].status === 1?<span style={{color: 'green'}}>on</span>:<span style={{color: 'red'}}>off</span>}
             </Typography>
@@ -69,7 +69,7 @@ function AssetDetails(props) {
 AssetDetails.propTypes = {
   classes: PropTypes.object.isRequired,
   assetInfo: PropTypes.object.isRequired,
-  assetKey: PropTypes.object.isRequired,
+  assetKey: PropTypes.string.isRequired,
   changeStatus: PropTypes.func.isRequired, // Change asset state
 };
 

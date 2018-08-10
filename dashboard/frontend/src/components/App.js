@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { Stage, Layer, Line } from 'react-konva';
 import gridBackground from '../images/grid.png';
+import PropTypes from 'prop-types';
 
 // Material
 import { withStyles } from '@material-ui/core/styles';
@@ -47,7 +48,7 @@ const drawerWidth = 240;
   connectToSocket() {
     if ("WebSocket" in window)
     {
-       console.log("WebSocket is supported by your Browser!");
+       // console.log("WebSocket is supported by your Browser!");
        // Let us open a web socket
        let new_uri = '';
        let loc = window.location;
@@ -250,11 +251,12 @@ const drawerWidth = 240;
       onPosChange={this.onPosChange.bind(this)}
       onElementSelection={this.onElementSelection.bind(this)}
       assetId={key}
+      key={key}
       asset={asset}
       selectable={true}
       selected={this.state.selectedAssetKey === key}
       draggable={true}
-      powered={powered}
+      powered={powered !== 0}
       x={asset.x}
       y={asset.y}
     />);
@@ -269,10 +271,11 @@ const drawerWidth = 240;
       onPosChange={this.onPosChange.bind(this)}
       onElementSelection={this.onElementSelection.bind(this)}
       assetId={key}
+      key={key}
       asset={asset}
       selected={this.state.selectedAssetKey === key}
       nestedComponentSelected={this.state.selectedAssetKey in asset.children}
-      powered={powered}
+      powered={powered !== 0}
       x={asset.x}
       y={asset.y}
     />);
@@ -290,10 +293,11 @@ const drawerWidth = 240;
       onPosChange={this.onPosChange.bind(this)}
       onElementSelection={this.onElementSelection.bind(this)}
       assetId={key}
+      key={key}
       asset={asset}
       selected={this.state.selectedAssetKey === key}
       nestedComponentSelected={this.state.selectedAssetKey in asset.children}
-      powered={powered}
+      powered={powered !== 0}
       x={asset.x}
       y={asset.y}
     />);
@@ -311,10 +315,11 @@ const drawerWidth = 240;
       onPosChange={this.onPosChange.bind(this)}
       onElementSelection={this.onElementSelection.bind(this)}
       assetId={key}
+      key={key}
       asset={asset}
       selected={this.state.selectedAssetKey === key}
       nestedComponentSelected={this.state.selectedAssetKey in asset.children}
-      powered={powered}
+      powered={powered !== 0}
       x={asset.x}
       y={asset.y}
     />);
@@ -372,6 +377,7 @@ const drawerWidth = 240;
             stroke={asset.status  === 1?"green":"grey"}
             strokeWidth={5}
             zIndex={300}
+            key={`${key}${connections[key].ckey}`}
           />
         );
       }
@@ -477,5 +483,11 @@ const styles = theme => ({
     width: 250,
   },
 });
+
+
+App.propTypes = {
+  classes: PropTypes.object, // stype
+};
+
 
 export default withStyles(styles)(App);

@@ -62,7 +62,6 @@ export default class PowerSupply extends React.Component {
         <Group
           x={this.state.x}
           y={this.state.y}
-          draggable={this.props.draggable}
           onDragMove={this.updateSocketPos.bind(this)}
         >
           <Image
@@ -87,6 +86,8 @@ PowerSupply.defaultProps = {
 
 PowerSupply.propTypes = {
   x: PropTypes.number,
+  onPosChange: PropTypes.func, // called on asset position change
+  powered: PropTypes.bool.isRequired, // indicates if upstream power is present
   asset: PropTypes.object, // Asset Details
   assetId: PropTypes.string, // Asset Key
   selected: PropTypes.bool, // Selected by user
