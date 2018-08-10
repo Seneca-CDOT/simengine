@@ -390,7 +390,7 @@ const drawerWidth = 240;
           />
 
           {/* Main Canvas */}
-          <main className={classes.content} style={{ backgroundImage: 'url('+gridBackground+')', backgroundRepeat: "repeat" }}>
+          <main className={classes.content} style={{ backgroundImage: 'url('+gridBackground+')', backgroundRepeat: "repeat",  backgroundSize: "auto" }}>
             <div className={classes.toolbar} />
 
             {/* Drawings */}

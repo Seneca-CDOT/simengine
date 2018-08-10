@@ -24,11 +24,8 @@ function AssetDetails(props) {
         children.push(
         <div key={ckey}>
             <Typography variant="subheading" component="h5">
-              Nested Asset: {ckey}-{c[ckey].type}
+              {ckey}-{c[ckey].type} is {c[ckey].status === 1?<span style={{color: 'green'}}>on</span>:<span style={{color: 'red'}}>off</span>}
             </Typography>
-                <Typography component="p">
-                  ::Status-{c[ckey].status === 1?<span style={{color: 'green'}}>on</span>:<span style={{color: 'red'}}>off</span>}
-                </Typography>
           </div>
         );
     }
@@ -60,7 +57,9 @@ function AssetDetails(props) {
             />
           <Divider/>
           {/* Display any nested elements */}
-          {children}
+          <div style={{maxHeight: 500, overflow: 'auto'}}>
+            {children}
+          </div>
         </CardContent>
       </Card>
     </div>
