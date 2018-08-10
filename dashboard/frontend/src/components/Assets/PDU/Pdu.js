@@ -78,7 +78,6 @@ export default class Pdu extends React.Component {
           selected={this.state.selectedSocketKey === ckey && this.props.nestedComponentSelected}
           powered={this.props.asset.status}
           parentSelected={this.props.selected}
-          red_means_on={true}
           onPosChange={this.props.onPosChange}
         />
       );

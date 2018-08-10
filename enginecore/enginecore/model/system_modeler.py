@@ -4,6 +4,7 @@ import os
 import secrets
 import libvirt
 import string
+import random
 from enum import Enum
 from enginecore.model.graph_reference import GraphReference
 
@@ -135,6 +136,8 @@ def id_generator(size=12, chars=string.ascii_uppercase + string.digits):
     """ Ref: https://stackoverflow.com/a/23728630"""
     return ''.join(secrets.choice(chars) for _ in range(size))
 
+def mac_generator():
+    return ''.join(random.choice('0123456789abcdef') for _ in range(12))
 
 def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'presets/apc_ups.json')):
     """Add UPS to the system model """
@@ -183,6 +186,9 @@ def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
         for k, v in data["OIDs"].items():
             if k == 'SerialNumber':
                 v['defaultValue'] = id_generator()
+
+            if k == 'MAC':
+                v['defaultValue'] = mac_generator()
 
             if k == "BasicBatteryStatus":
                 oid_desc = dict((y,x) for x,y in v["oidDesc"].items())
@@ -374,6 +380,9 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
         for k, v in data["OIDs"].items():
             if k == 'SerialNumber':
                 v['defaultValue'] = id_generator()
+
+            if k == 'MAC':
+                v['defaultValue'] = mac_generator()
 
             session.run("\
             MATCH (pdu:PDU {key: $pkey})\

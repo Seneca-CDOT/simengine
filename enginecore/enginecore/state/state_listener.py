@@ -34,10 +34,17 @@ class StateListener(Component):
 
         # subscribe to redis key events
         self.redis_store = redis.StrictRedis(host='localhost', port=6379)
+
+        # State Channels
         self.pubsub = self.redis_store.pubsub()
         self.pubsub.psubscribe(
             RedisChannels.oid_update_channel, 
-            RedisChannels.state_update_channel,
+            RedisChannels.state_update_channel
+        )
+
+        # Battery Channel
+        self.bat_pubsub = self.redis_store.pubsub()
+        self.bat_pubsub.psubscribe(
             RedisChannels.battery_update_channel
         )
 
@@ -137,6 +144,22 @@ class StateListener(Component):
         self.fire(PowerEventManager.map_asset_event(asset_status), updated_asset)
         self._chain_power_update(PowerEventResult(asset_key=asset_key, new_state=asset_status))
             
+    def monitor_battery(self):
+        """Monitor battery in a separate pub/sub stream"""
+        message = self.bat_pubsub.get_message()
+
+        # validate message
+        if ((not message) or ('data' not in message) or (not isinstance(message['data'], bytes))):
+            return
+        
+        data = message['data'].decode("utf-8")
+        try:
+            if message['channel'] == str.encode(RedisChannels.battery_update_channel):
+                asset_key, _ = data.split('-')
+                self._notify_client(int(asset_key), {'battery': self._assets[int(asset_key)].state.battery_level})
+
+        except KeyError as error:
+            print("Detected unregistered asset under key [{}]".format(error), file=sys.stderr)
 
     def monitor(self):
         """ listens to redis events """
@@ -183,6 +206,7 @@ class StateListener(Component):
         """
         print('Listening to Redis events')
         Timer(0.5, Event.create("monitor"), persist=True).register(self)
+        Timer(1, Event.create("monitor_battery"), persist=True).register(self)
 
 
     def __exit__(self, exc_type, exc_value, traceback):

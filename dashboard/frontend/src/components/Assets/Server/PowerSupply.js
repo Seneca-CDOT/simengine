@@ -82,7 +82,7 @@ export default class PowerSupply extends React.Component {
 }
 
 PowerSupply.defaultProps = {
-  red_means_on: true,
+  red_means_on: false,
 };
 
 PowerSupply.propTypes = {

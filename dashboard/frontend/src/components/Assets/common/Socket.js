@@ -113,7 +113,7 @@ export default class Socket extends React.Component {
 }
 
 Socket.defaultProps = {
-  red_means_on: true,
+  red_means_on: false,
 };
 
 Socket.propTypes = {
