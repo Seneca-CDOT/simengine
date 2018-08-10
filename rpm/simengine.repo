@@ -1,0 +1,5 @@
+[simengine]
+name=SimEngine Repository
+baseurl=http://206.47.241.15/repos/simengine
+enabled=1
+gpgcheck=0
