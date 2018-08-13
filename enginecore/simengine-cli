@@ -12,7 +12,6 @@ import enginecore.model.system_modeler as sm
 from enginecore.state.state_managers import StateManager
 from enginecore.state.utils import get_asset_type
 
-ASSET_TYPES = ['pdu', 'outlet', 'server', 'server-bmc', 'static', 'ups']
 
 def manage_state(asset_key, action):
     """ Perform action for a node/asset with a certain key
@@ -157,25 +156,16 @@ status_group.add_argument('--watch-rate', nargs='?',
 
 
 ## -> Setup options for oid queries
-oid_group = subparsers.add_parser('oid', help="Manage OIDs")
+# oid_group = subparsers.add_parser('oid', help="Manage OIDs")
 
 ## -> Setup options for snapshot commands
-snapshot_group = subparsers.add_parser('snapshot', help="Manage snapshots of the assets' states")
+# snapshot_group = subparsers.add_parser('snapshot', help="Manage snapshots of the assets' states")
 
 ## -> Setup options for asset management commands
 
 asset_group = subparsers.add_parser('model', help="Manage system model: create new/update existing asset etc.")
 subparsers = asset_group.add_subparsers()
 create_asset_group = subparsers.add_parser('create', help="Create new asset")
-
-# configure existing asset
-configure_asset_action = subparsers.add_parser('configure', help="Configure Asset properties")
-configure_asset_action.add_argument('-k', '--asset-key', type=int, required=True)
-configure_asset_action.add_argument('--host')
-configure_asset_action.add_argument('--on-delay', type=int, help="Power on delay in ms", default=-1)
-configure_asset_action.add_argument('--off-delay', type=int, help="Power on delay in ms", default=-1)
-configure_asset_action.add_argument('--power-source', type=int)
-configure_asset_action.add_argument('--power-consumption', type=int, help="Power consumption in Watts")
 
 # detach & delete an asset by key
 delete_asset_action = subparsers.add_parser('delete', help="Remove individual asset by key")
@@ -221,24 +211,24 @@ create_power_parent.add_argument('--power-consumption', type=int, help="Power co
 
 ## > Add type-specific args < ##
 
-subparsers = create_asset_group.add_subparsers()
+create_subp = create_asset_group.add_subparsers()
 
 ## OUTLET
-create_outlet_action = subparsers.add_parser(
+create_outlet_action = create_subp.add_parser(
     'outlet', 
     help="Create a Simple outlet asset", 
     parents=[create_asset_parent]
 )
 
 ## PDU
-create_pdu_action = subparsers.add_parser(
+create_pdu_action = create_subp.add_parser(
     'pdu', 
     help="Create PDU asset", 
     parents=[create_asset_parent, create_snmp_parent]
 )
 
 ## UPS
-create_ups_action = subparsers.add_parser(
+create_ups_action = create_subp.add_parser(
     'ups', 
     help="Create UPS asset", 
     parents=[create_asset_parent, create_snmp_parent]
@@ -253,14 +243,14 @@ create_ups_action.add_argument(
 )
 
 ## SERVER
-create_server_action = subparsers.add_parser(
+create_server_action = create_subp.add_parser(
     'server', 
     help="Create a server asset (VM)", 
     parents=[create_asset_parent, create_server_parent, create_power_parent]
 )
 
 ## SERVER-BMC
-create_server_bmc_action = subparsers.add_parser(
+create_server_bmc_action = create_subp.add_parser(
     'server-bmc', 
     help="Create a server asset (VM) that supports IPMI interface", 
     parents=[create_asset_parent, create_server_parent, create_power_parent]
@@ -288,13 +278,94 @@ create_server_bmc_action.add_argument(
 )
 
 ## STATIC 
-create_static_action = subparsers.add_parser(
+create_static_action = create_subp.add_parser(
     'static', 
     help="Add static (dummy) asset", 
     parents=[create_asset_parent, create_power_parent]
 )
 
 create_static_action.add_argument('--img-url', help="URL of the image displayed on the frontend")
+
+### Configure / Update asset properties
+
+update_actions = []
+
+configure_asset_parent = argparse.ArgumentParser(add_help=False)
+configure_asset_parent.add_argument(
+    '-k', '--asset-key', type=int, required=True, help="Key of the asset to be updated"
+)
+configure_asset_parent.add_argument('--on-delay', type=int, help="Power on delay in ms")
+configure_asset_parent.add_argument('--off-delay', type=int, help="Power on delay in ms")
+configure_asset_parent.add_argument('-n', '--name', help="Name displayed on the UI")
+
+# snmp group parent will contain snmp-specific args
+configure_snmp_parent = argparse.ArgumentParser(add_help=False)
+configure_snmp_parent.add_argument('--host', type=str, default='localhost', help="SNMP interface host")
+configure_snmp_parent.add_argument('--snmp_preset', type=str, help="Vendor-specific asset configurations")
+
+# server group 
+configure_server_parent = argparse.ArgumentParser(add_help=False)
+configure_server_parent.add_argument('--domain-name', help="VM domain name")
+
+# power consuming assets group
+configure_power_parent = argparse.ArgumentParser(add_help=False)
+configure_power_parent.add_argument('--power-source', type=int, default=120)
+configure_power_parent.add_argument('--power-consumption', type=int, help="Power consumption in Watts")
+
+
+# configure existing asset
+update_asset_group = subparsers.add_parser('update', help="Update Asset properties")
+
+update_subp = update_asset_group.add_subparsers()
+
+## OUTLET
+update_outlet_action = update_subp.add_parser(
+    'outlet', 
+    help="Update outlet properties", 
+    parents=[configure_asset_parent]
+)
+
+## PDU
+update_pdu_action = update_subp.add_parser(
+    'pdu', 
+    help="Update PDU properties", 
+    parents=[configure_asset_parent, configure_snmp_parent]
+)
+
+## UPS
+update_ups_action = update_subp.add_parser(
+    'ups', 
+    help="Update UPS properties", 
+    parents=[configure_asset_parent, configure_snmp_parent]
+)
+
+## Server
+update_server_action = update_subp.add_parser(
+    'server', 
+    help="Update Server properties", 
+    parents=[configure_asset_parent, configure_server_parent, configure_power_parent]
+)
+
+## Server
+update_serverbmc_action = update_subp.add_parser(
+    'server-bmc', 
+    help="Update Server-With BMC properties", 
+    parents=[configure_asset_parent, configure_server_parent, configure_power_parent]
+)
+
+## Static
+update_static_action = update_subp.add_parser(
+    'static', 
+    help="Update Static Asset properties", 
+    parents=[configure_asset_parent, configure_power_parent]
+)
+
+update_actions.append(update_outlet_action)
+update_actions.append(update_pdu_action)
+update_actions.append(update_ups_action)
+update_actions.append(update_server_action)
+update_actions.append(update_serverbmc_action)
+update_actions.append(update_static_action)
 
 ###################################
 ## Assets' ower control subgroup ##
@@ -317,8 +388,8 @@ power_down_action.add_argument(
 
 status_group.set_defaults(func=lambda args: get_status(**args))
 
-oid_group.set_defaults(func=lambda _: print('Not Implemented Yet'))
-snapshot_group.set_defaults(func=lambda _: print('Not Implemented Yet'))
+# oid_group.set_defaults(func=lambda _: print('Not Implemented Yet'))
+# snapshot_group.set_defaults(func=lambda _: print('Not Implemented Yet'))
 
 ## asset_group callbacks
 create_outlet_action.set_defaults(
@@ -352,9 +423,8 @@ create_static_action.set_defaults(
 )
 
 
-configure_asset_action.set_defaults(
-    func=lambda args: sm.set_properties(args['asset_key'], args)
-)
+for action in update_actions:
+    action.set_defaults(func=lambda args: sm.configure_asset(args['asset_key'], args))
 
 delete_asset_action.set_defaults(
     func=lambda args: sm.delete_asset(args['asset_key'])

@@ -10,6 +10,21 @@ from enginecore.model.graph_reference import GraphReference
 
 graph_ref = GraphReference()
 
+def configure_asset(key, attr):
+
+    if 'func' in attr and attr['func']:
+        del attr['func']
+
+    with graph_ref.get_session() as session:
+        
+        existing = dict(filter(lambda k: attr[k[0]], attr.items()))
+        print(existing)
+        # existing = filter(lambda k: "asset.{}={}".format(k, repr(attr[k])) if attr[k] else None, attr)
+        set_statement = ','.join(map(lambda k: "asset.{}={}".format(k, repr(existing[k])), existing))
+        query = "MATCH (asset:Asset {{ key: {key} }}) SET {set_stm}".format(key=key, set_stm=set_statement)
+        
+        session.run(query)
+
 def link_assets(source_key, dest_key):
     """Power a component by another component """
     with graph_ref.get_session() as session:
