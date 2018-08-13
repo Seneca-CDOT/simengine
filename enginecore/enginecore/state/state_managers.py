@@ -8,10 +8,10 @@ Example:
 
 import time
 import os
-import pysnmp.proto.rfc1902 as snmp_data_types
 import redis
 from enum import Enum
 import libvirt
+import pysnmp.proto.rfc1902 as snmp_data_types
 from enginecore.model.graph_reference import GraphReference
 from enginecore.state.utils import format_as_redis_key
 from enginecore.state.redis_channels import RedisChannels

@@ -13,23 +13,27 @@ class WebSocket(Component):
     channel = "wsserver"
   
     def init(self):
-        """ Initialize socket clients"""
+        """Initialize socket clients"""
         self._clients = []
     
 
     def connect(self, sock, host, port):
-        """ Called upon new client connecting to the ws """
+        """Called upon new client connecting to the ws """
 
         self._clients.append(sock)
         print("WebSocket Client Connected:", host, port)
         
         # Return assets and their states to the new client
         assets = StateManager.get_system_status(flatten=False)
-        self.fire(write(sock, json.dumps(assets))) 
+        graph_ref = GraphReference()
+        with graph_ref.get_session() as session:
+            
+            stage_layout = GraphReference.get_stage_layout(session)
+            self.fire(write(sock, json.dumps({'assets': assets, 'stageLayout': stage_layout}))) 
 
 
     def read(self, _, data):
-        """ Client has sent some request """
+        """Client has sent some request """
 
         data = json.loads(data)
 
@@ -48,19 +52,20 @@ class WebSocket(Component):
                 else:
                     state_manager.shut_down()
             elif data['request'] == 'layout':
-                GraphReference.save_layout(session, data['data'])
+                GraphReference.save_layout(session, data['data']['assets'], stage=data['data']['stage'])
+
 
     def disconnect(self, sock):
-        """ A client has disconnected """
+        """A client has disconnected """
         self._clients.remove(sock)
 
 
     @handler('NotifyClient')
     def notify_client(self, data):
-        """ This handler is called upon state changes & is meant to notify web-client of any events 
+        """This handler is called upon state changes & is meant to notify web-client of any events 
         
         Args:
-            data: data to be sent to clients
+            data: data to be sent to ws clients
         """
         for client in self._clients:
             self.fireEvent(write(client, json.dumps(data)))

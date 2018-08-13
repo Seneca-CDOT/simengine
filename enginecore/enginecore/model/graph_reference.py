@@ -335,12 +335,13 @@ class GraphReference():
         return results.single()['labels']
 
     @classmethod
-    def save_layout(cls, session, layout):
-        """Save system layout (X, Y positions) 
+    def save_layout(cls, session, layout, stage=None):
+        """Save system layout (X, Y coordinates of the assets & stage) 
 
         Args:
             session: database session
             layout(list): list of new x & y positions in the format 'asset_key: { x: new_x, y: new_y }'
+            stage(dict): stage properties including x, y and scale
         """
         for k in layout:
             if layout[k]:
@@ -348,4 +349,25 @@ class GraphReference():
                     "MATCH (a:Asset { key: $key }) SET a.x=$x, a.y=$y",
                     key=int(k), x=layout[k]['x'], y=layout[k]['y']
                 )
-            
+        if stage:
+            session.run(
+                "MERGE (n:StageLayout { sref: 1 }) SET n.scale=$scale, n.x=$x, n.y=$y",
+                scale=stage['scale'], x=stage['x'], y=stage['y']
+            )
+    
+    @classmethod
+    def get_stage_layout(cls, session):
+        """Get Stage layout configurations
+
+        Args:
+            session: database session
+        Returns:
+            dict: stage coordinates (x,y) & its scale
+        """
+        results = session.run(
+            "MATCH (stageLayout:StageLayout) RETURN stageLayout"
+        )
+
+        stage_layout = results.single()
+
+        return dict(stage_layout.get('stageLayout')) if stage_layout else None

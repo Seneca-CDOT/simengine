@@ -1,5 +1,5 @@
+/** Scale Layout on wheel event */
 const onWheelScroll = (stage) => {
-  /////// Scale Layout on wheel event //////////
   stage.scale({ x: 0.7, y: 0.7 });
   stage.position({x: window.innerWidth * 0.3, y: window.innerHeight * 0.3 });
 
@@ -26,8 +26,8 @@ const onWheelScroll = (stage) => {
   });
 };
 
+/** Move canvas on middle mouse button down */
 const onWheelDown = (stage) => {
-  ////////// Move canvas on middle mouse button down ///////////
   const moveCanvas = (e) => {
     e.preventDefault();
       const newPos = {

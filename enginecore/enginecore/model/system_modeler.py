@@ -499,7 +499,7 @@ def create_static(key, attr):
 def drop_model():
     """ Drop system model """
     with graph_ref.get_session() as session:
-        session.run("MATCH (a) WHERE a:Asset OR a:OID OR a:OIDDesc OR a:Battery DETACH DELETE a")
+        session.run("MATCH (a) WHERE a:Asset OR a:OID OR a:OIDDesc OR a:Battery OR a:StageLayout DETACH DELETE a")
     
 def delete_asset(key):
     """ Delete by key """

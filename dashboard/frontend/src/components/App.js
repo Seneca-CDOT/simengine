@@ -87,25 +87,27 @@ const drawerWidth = 240;
 
             this.setState({ assets });
 
-          } else if (data) { // initial query
+          } else if (data && 'assets' in data) { // initial query
             let connections = {};
-            Object.keys(data).map((k) => {
-              let x1 = data[k].x?data[k].x:40;
-              let y1 = data[k].y?data[k].y:0;
+            const assetDetails = data['assets'];
+
+            Object.keys(assetDetails).map((k) => {
+              let x1 = assetDetails[k].x?assetDetails[k].x:40;
+              let y1 = assetDetails[k].y?assetDetails[k].y:0;
               let x1_pad = 0;
-              if (data[k]['parent']) {
-                for (const p of data[k]['parent']) {
-                  const isComponent = !data[p.key];
+              if (assetDetails[k]['parent']) {
+                for (const p of assetDetails[k]['parent']) {
+                  const isComponent = !assetDetails[p.key];
 
                   let x = 0;
                   let y = 0;
                   if (isComponent) {
                     const parent_key = this._get_parent_key(p.key);
-                    x = data[parent_key].children[p.key].x;
-                    y = data[parent_key].children[p.key].y;
+                    x = assetDetails[parent_key].children[p.key].x;
+                    y = assetDetails[parent_key].children[p.key].y;
                   } else {
-                    x = data[p.key].x?data[p.key].x:50;
-                    y = data[p.key].y?data[p.key].y:50;
+                    x = assetDetails[p.key].x?assetDetails[p.key].x:50;
+                    y = assetDetails[p.key].y?assetDetails[p.key].y:50;
                   }
 
                   connections[p.key] = {x, y, x1: x1+x1_pad, y1, ckey: k };
@@ -115,10 +117,17 @@ const drawerWidth = 240;
             });
 
             this.setState({
-              assets: data,
+              assets: assetDetails,
               connections
             });
           }
+
+          if (data && data['stageLayout']) {
+            let stage = this.refs.stage.getStage();
+            stage.position({ x: data['stageLayout'].x, y: data['stageLayout'].y });
+            stage.scale({ x: data['stageLayout'].scale, y: data['stageLayout'].scale });
+          }
+
 
        }).bind(this);
        this.ws.onclose =  (() =>
@@ -224,14 +233,26 @@ const drawerWidth = 240;
     this.ws.send(JSON.stringify({request: 'power', key: assetKey, data }));
   }
 
+  /** Save assets' coordinates in db  */
   saveLayout() {
     let data = {};
     const {assets, connections} = this.state;
-    Object.keys(assets).map((a) => ( data[a]= {x: assets[a].x, y: assets[a].y} ));
 
+    let stage = this.refs.stage.getStage();
+    const stageLayout = {
+      scale: stage.scaleX(),
+      x: stage.x(),
+      y: stage.y()
+    };
+
+    data['stage'] = stageLayout;
+    data['assets'] = {};
+
+    // add asset layout info
+    Object.keys(assets).map((a) => ( data['assets'][a]= {x: assets[a].x, y: assets[a].y} ));
     Object.keys(connections).map((a) => {
       if (!assets[a]) {
-        data[a]= { x: connections[a].x, y: connections[a].y };
+        data['assets'][a]= { x: connections[a].x, y: connections[a].y };
       }
     });
 
