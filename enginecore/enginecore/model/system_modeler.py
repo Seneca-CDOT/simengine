@@ -142,12 +142,12 @@ def mac_generator():
 def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'presets/apc_ups.json')):
     """Add UPS to the system model """
 
-    preset_file = attr['snmp_preset'] if attr['snmp_preset'] else preset_file
+    preset_file = attr['snmp_preset'] if 'snmp_preset' in attr and attr['snmp_preset'] else preset_file
 
     with open(preset_file) as f, graph_ref.get_session() as session:
         data = json.load(f)
 
-        name = attr['name'] if attr['name'] else data['assetName']
+        name = attr['name'] if 'name' in attr and attr['name'] else data['assetName']
         
         session.run("\
         CREATE (:Asset:UPS:SNMPSim { \
@@ -360,11 +360,11 @@ def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
 
 def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'presets/apc_pdu.json')):
     """Add PDU to the model """ 
-    preset_file = attr['snmp_preset'] if attr['snmp_preset'] else preset_file
+    preset_file = attr['snmp_preset'] if 'snmp_preset' in attr and attr['snmp_preset'] else preset_file
     with open(preset_file) as f, graph_ref.get_session() as session:
         data = json.load(f)
         outlet_count = data['OIDs']['OutletCount']['defaultValue']
-        name = attr['name'] if attr['name'] else data['assetName']
+        name = attr['name'] if 'name' in attr and attr['name'] else data['assetName']
         
         session.run("\
         CREATE (:Asset:PDU:SNMPSim { \

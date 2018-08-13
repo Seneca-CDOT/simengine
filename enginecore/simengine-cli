@@ -121,42 +121,20 @@ def get_status(**kwargs):
     else:
         status_table_format(assets)
 
-
-def create_asset(**kwargs):
-    """Add new asset to the system/model """
-
-    asset_type = kwargs['asset_type']
-    
-    # validation not done by argparser
-    if kwargs['asset_key'] > 9999:
+def validate_key(key):
+    """Validate asset key"""
+    if key > 9999:
         raise argparse.ArgumentTypeError("asset-key must be <= 9999")
-    if (asset_type == 'server' or asset_type == 'server-bmc'):
-        if kwargs['psu_num'] > 1 and (not kwargs['psu_load'] or len(kwargs['psu_load']) != kwargs['psu_num']):
-            raise argparse.ArgumentTypeError("psu-load is required for server(-bmc) type when there're multiple PSUs")
-        if not kwargs['domain_name']:
-            raise argparse.ArgumentTypeError("domain-name is required for server(-bmc) type")
-        if not kwargs['power_consumption']:
-            raise argparse.ArgumentTypeError("power-consumption is required for server(-bmc) type")
-            
 
-    # attempt to add an asset to the system topology
-    try:
-        if asset_type == 'pdu':
-            sm.create_pdu(kwargs['asset_key'], kwargs)
-        elif asset_type == 'outlet':
-            sm.create_outlet(kwargs['asset_key'], kwargs)
-        elif asset_type == 'static':
-            sm.create_static(kwargs['asset_key'], kwargs)
-        elif asset_type == 'server':
-            sm.create_server(kwargs['asset_key'], kwargs)
-        elif asset_type == 'server-bmc':
-            sm.create_server(kwargs['asset_key'], kwargs, server_variation=sm.ServerVariations.ServerWithBMC)
-        elif asset_type == 'ups':
-            sm.create_ups(kwargs['asset_key'], kwargs)
-        else:
-            print("The asset type must be either 'outlet', 'pdu' or 'static'")
-    except KeyError as e:
-        print(e)
+def validate_server(kwargs):
+    """Server-specific validation"""
+    if kwargs['psu_num'] > 1 and (not kwargs['psu_load'] or len(kwargs['psu_load']) != kwargs['psu_num']):
+        raise argparse.ArgumentTypeError("psu-load is required for server(-bmc) type when there're multiple PSUs")
+    if not kwargs['domain_name']:
+        raise argparse.ArgumentTypeError("domain-name is required for server(-bmc) type")
+    if not kwargs['power_consumption']:
+        raise argparse.ArgumentTypeError("power-consumption is required for server(-bmc) type")
+        
 
 ################ Define Command line options & arguments
 
@@ -188,41 +166,7 @@ snapshot_group = subparsers.add_parser('snapshot', help="Manage snapshots of the
 
 asset_group = subparsers.add_parser('model', help="Manage system model: create new/update existing asset etc.")
 subparsers = asset_group.add_subparsers()
-create_asset_action = subparsers.add_parser('create', help="Create new asset")
-create_asset_action.add_argument(
-    '-k', '--asset-key', type=int, required=True, help="Unique asset key (must be <= 9999)"
-    )
-create_asset_action.add_argument(
-    '-t', '--asset-type', required=True, help="Type of the machine/asset", choices=ASSET_TYPES
-    )
-create_asset_action.add_argument('--host', type=str, default='localhost', help="SNMP/IPMI interface host")
-create_asset_action.add_argument('--snmp_preset', type=str, help="Vendor-specific asset configurations")
-create_asset_action.add_argument('--on-delay', type=int, help="Power on delay in ms", default=-1)
-create_asset_action.add_argument('--off-delay', type=int, help="Power on delay in ms", default=-1)
-
-# static asset options
-create_asset_action.add_argument('--img-url')
-create_asset_action.add_argument('--power-source', type=int, default=120)
-create_asset_action.add_argument('--power-consumption', type=int, help="Power consumption in Watts")
-create_asset_action.add_argument('--name', help="Name displayed on the UI")
-
-# vm asset options
-create_asset_action.add_argument('--domain-name', help="VM domain name")
-create_asset_action.add_argument('--user', type=str, default='ipmiusr', help="BMC-enabled server: IPMI admin user")
-create_asset_action.add_argument('--password', type=str, default='test', help="BMC-enabled server: IPMI user password")
-create_asset_action.add_argument('--port', type=int, default=9001, help="IPMI interface port")
-create_asset_action.add_argument(
-    '--vmport', type=int, default=9002, help="IPMI serial VM inteface for channel 15 (the system interface)"
-)
-
-
-create_asset_action.add_argument('--psu-num', type=int, default=1, help="Number of PSUs installed in the server")
-create_asset_action.add_argument(
-    '--psu-load', 
-    nargs='+',
-    type=float,
-    help="How much power PSU(s) draw (the downstream power is multiplied by the value, e.g. for 2 PSUs if '--psu-load 0.5 0.5', load is divivided equally) \n"
-)
+create_asset_group = subparsers.add_parser('create', help="Create new asset")
 
 # configure existing asset
 configure_asset_action = subparsers.add_parser('configure', help="Configure Asset properties")
@@ -247,7 +191,113 @@ power_asset_action.add_argument(
 )
 power_asset_action.add_argument('-d', '--dest-key', type=int, required=True, help="Key of an powered by the source-key")
 
-## -> Setup options for power_group
+#################################
+## 'Create new asset' subgroup ##
+
+## > Group some args < ##
+
+# parent will contain args shared by all the asset types
+create_asset_parent = argparse.ArgumentParser(add_help=False)
+create_asset_parent.add_argument(
+    '-k', '--asset-key', type=int, required=True, help="Unique asset key (must be <= 9999)"
+)
+create_asset_parent.add_argument('--on-delay', type=int, help="Power on delay in ms", default=-1)
+create_asset_parent.add_argument('--off-delay', type=int, help="Power on delay in ms", default=-1)
+create_asset_parent.add_argument('-n', '--name', help="Name displayed on the UI")
+
+# snmp group parent will contain snmp-specific args
+create_snmp_parent = argparse.ArgumentParser(add_help=False)
+create_snmp_parent.add_argument('--host', type=str, default='localhost', help="SNMP interface host")
+create_snmp_parent.add_argument('--snmp_preset', type=str, help="Vendor-specific asset configurations")
+
+# server group 
+create_server_parent = argparse.ArgumentParser(add_help=False)
+create_server_parent.add_argument('--domain-name', help="VM domain name")
+
+# power consuming assets group
+create_power_parent = argparse.ArgumentParser(add_help=False)
+create_power_parent.add_argument('--power-source', type=int, default=120)
+create_power_parent.add_argument('--power-consumption', type=int, help="Power consumption in Watts")
+
+## > Add type-specific args < ##
+
+subparsers = create_asset_group.add_subparsers()
+
+## OUTLET
+create_outlet_action = subparsers.add_parser(
+    'outlet', 
+    help="Create a Simple outlet asset", 
+    parents=[create_asset_parent]
+)
+
+## PDU
+create_pdu_action = subparsers.add_parser(
+    'pdu', 
+    help="Create PDU asset", 
+    parents=[create_asset_parent, create_snmp_parent]
+)
+
+## UPS
+create_ups_action = subparsers.add_parser(
+    'ups', 
+    help="Create UPS asset", 
+    parents=[create_asset_parent, create_snmp_parent]
+)
+
+create_ups_action.add_argument('--power-source', help="Asset Voltage", type=int, default=120)
+create_ups_action.add_argument(
+    '--power-consumption', 
+    type=int, 
+    help="Power consumption in Watts (how much UPS draws when not powering anything)", 
+    default=24
+)
+
+## SERVER
+create_server_action = subparsers.add_parser(
+    'server', 
+    help="Create a server asset (VM)", 
+    parents=[create_asset_parent, create_server_parent, create_power_parent]
+)
+
+## SERVER-BMC
+create_server_bmc_action = subparsers.add_parser(
+    'server-bmc', 
+    help="Create a server asset (VM) that supports IPMI interface", 
+    parents=[create_asset_parent, create_server_parent, create_power_parent]
+)
+
+create_server_bmc_action.add_argument('--user', type=str, default='ipmiusr', help="BMC-enabled server: IPMI admin user")
+create_server_bmc_action.add_argument(
+    '--password', 
+    type=str, 
+    default='test',
+    help="BMC-enabled server: IPMI user password"
+)
+create_server_bmc_action.add_argument('--port', type=int, default=9001, help="IPMI interface port")
+create_server_bmc_action.add_argument(
+    '--vmport', type=int, default=9002, help="IPMI serial VM inteface for channel 15 (the system interface)"
+)
+
+create_server_bmc_action.add_argument('--psu-num', type=int, default=1, help="Number of PSUs installed in the server")
+create_server_bmc_action.add_argument(
+    '--psu-load', 
+    nargs='+',
+    type=float,
+    help="""How much power PSU(s) draw (the downstream power is multiplied by the value, e.g. 
+    for 2 PSUs if '--psu-load 0.5 0.5', load is divivided equally) \n"""
+)
+
+## STATIC 
+create_static_action = subparsers.add_parser(
+    'static', 
+    help="Add static (dummy) asset", 
+    parents=[create_asset_parent, create_power_parent]
+)
+
+create_static_action.add_argument('--img-url', help="URL of the image displayed on the frontend")
+
+###################################
+## Assets' ower control subgroup ##
 
 subparsers = power_group.add_subparsers()
 power_up_action = subparsers.add_parser('up', help="Power up a particular component/asset")
@@ -255,7 +305,13 @@ power_up_action.add_argument('-k', '--asset-key', type=int, required=True)
 
 power_down_action = subparsers.add_parser('down', help="Power down a particular component/asset")
 power_down_action.add_argument('-k', '--asset-key', type=int, required=True)
-power_down_action.add_argument('--hard', dest='hard', action='store_true')
+power_down_action.add_argument(
+    '--hard', 
+    help="Enable abrupt poweroff instead of shutdown",
+    dest='hard', 
+    action='store_true'
+)
+
 
 ############ Callbacks for actions
 
@@ -265,9 +321,36 @@ oid_group.set_defaults(func=lambda _: print('Not Implemented Yet'))
 snapshot_group.set_defaults(func=lambda _: print('Not Implemented Yet'))
 
 ## asset_group callbacks
-create_asset_action.set_defaults(
-    func=lambda args: create_asset(**args)
+create_outlet_action.set_defaults(
+    validate=lambda args: validate_key(args['asset_key']),
+    func=lambda args: sm.create_outlet(args['asset_key'], args)
 )
+
+create_pdu_action.set_defaults(
+    validate=lambda args: validate_key(args['asset_key']),
+    func=lambda args: sm.create_pdu(args['asset_key'], args)
+)
+
+create_ups_action.set_defaults(
+    validate=lambda args: validate_key(args['asset_key']),
+    func=lambda args: sm.create_ups(args['asset_key'], args)
+)
+
+create_server_action.set_defaults(
+    validate=lambda args: [validate_key(args['asset_key']), validate_server(args)],
+    func=lambda args: sm.create_server(args['asset_key'], args)
+)
+
+create_server_bmc_action.set_defaults(
+    validate=lambda args: [validate_key(args['asset_key']), validate_server(args)],
+    func=lambda args: sm.create_server(args['asset_key'], args, server_variation=sm.ServerVariations.ServerWithBMC)
+)
+
+create_static_action.set_defaults(
+    validate=lambda args: validate_key(args['asset_key']),
+    func=lambda args: sm.create_static(args['asset_key'], args)
+)
+
 
 configure_asset_action.set_defaults(
     func=lambda args: sm.set_properties(args['asset_key'], args)
@@ -295,7 +378,12 @@ power_down_action.set_defaults(
 
 try:
     options = argparser.parse_args()
+    # call callbacks
+    if hasattr(options, 'validate'):
+        options.validate(vars(options))
+
     options.func(vars(options))
+
 except AttributeError:
     argparser.print_help()
 except argparse.ArgumentTypeError as e:
