@@ -1,29 +1,38 @@
-"""Add asset to a system model or update/create connection(s). This module provides high-level control over system model. """
+"""Add asset to a system model or update/create connection(s). 
+This module provides high-level control over system model. 
+"""
 import json
 import os
 import secrets
 import libvirt
 import string
 import random
+import re
 from enum import Enum
 from enginecore.model.graph_reference import GraphReference
 
 graph_ref = GraphReference()
+def to_camelcase(s):
+    return re.sub(r'(?!^)_([a-zA-Z])', lambda m: m.group(1).upper(), s)
 
 def configure_asset(key, attr):
 
     if 'func' in attr and attr['func']:
         del attr['func']
 
+    if 'asset_key' in attr and attr['asset_key']:
+        del attr['asset_key']
+
     with graph_ref.get_session() as session:
         
         existing = dict(filter(lambda k: attr[k[0]], attr.items()))
-        print(existing)
+        # print(existing)
         # existing = filter(lambda k: "asset.{}={}".format(k, repr(attr[k])) if attr[k] else None, attr)
-        set_statement = ','.join(map(lambda k: "asset.{}={}".format(k, repr(existing[k])), existing))
+        set_statement = ','.join(map(lambda k: "asset.{}={}".format(to_camelcase(k), repr(existing[k])), existing))
         query = "MATCH (asset:Asset {{ key: {key} }}) SET {set_stm}".format(key=key, set_stm=set_statement)
         
         session.run(query)
+
 
 def link_assets(source_key, dest_key):
     """Power a component by another component """
@@ -36,6 +45,7 @@ def link_assets(source_key, dest_key):
         MATCH (dst:Asset {key: $dest_key})\
         CREATE (dst)-[:POWERED_BY]->(src)\
         ", source_key=source_key, dest_key=dest_key)
+
 
 def _add_psu(key, psu_index, draw_percentage=1):
     with graph_ref.get_session() as session:
@@ -59,6 +69,7 @@ def create_outlet(key, attr):
         CREATE (:Asset:Outlet { name: $name,  key: $key, type: 'outlet' })", key=key, name="out-{}".format(key))
         set_properties(key, attr)
 
+
 class ServerVariations(Enum):
     """Supported variations of the server asset """
     Server = 1
@@ -72,6 +83,7 @@ IPMI_LAN_DEFAULTS = {
     'vmport': 9002
 }
     
+
 def create_server(key, attr, server_variation=ServerVariations.Server):
     """Create a simulated server """
 
@@ -92,7 +104,7 @@ def create_server(key, attr, server_variation=ServerVariations.Server):
     with graph_ref.get_session() as session:
         
         session.run("\
-        CREATE (server:Asset { name: $name,  key: $key, type: $stype }) SET server :"+server_variation.name, 
+        CREATE (server:Asset { name: $name, domainName: $name, key: $key, type: $stype }) SET server :"+server_variation.name, 
                     key=key, name=attr['domain_name'], stype=server_variation.name.lower())
 
         if server_variation == ServerVariations.ServerWithBMC:
@@ -147,12 +159,15 @@ def set_properties(key, attr):
             MATCH (asset:Asset {key: $pkey})\
             SET asset.imgUrl=$img_url", pkey=key, img_url=attr['img_url'])
 
+
 def id_generator(size=12, chars=string.ascii_uppercase + string.digits):
     """ Ref: https://stackoverflow.com/a/23728630"""
     return ''.join(secrets.choice(chars) for _ in range(size))
 
+
 def mac_generator():
     return ''.join(random.choice('0123456789abcdef') for _ in range(12))
+
 
 def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'presets/apc_ups.json')):
     """Add UPS to the system model """
@@ -497,6 +512,7 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
                     dv=v['defaultValue'], 
                     dt=v['dataType'])
 
+
 def create_static(key, attr):
     """Create Dummy static asset"""
     if not attr['power_consumption']:
@@ -511,11 +527,13 @@ def create_static(key, attr):
         name=attr['name'], key=key)
         set_properties(key, attr)
 
+
 def drop_model():
     """ Drop system model """
     with graph_ref.get_session() as session:
         session.run("MATCH (a) WHERE a:Asset OR a:OID OR a:OIDDesc OR a:Battery OR a:StageLayout DETACH DELETE a")
     
+
 def delete_asset(key):
     """ Delete by key """
     with graph_ref.get_session() as session:

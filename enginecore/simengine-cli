@@ -300,8 +300,8 @@ configure_asset_parent.add_argument('-n', '--name', help="Name displayed on the 
 
 # snmp group parent will contain snmp-specific args
 configure_snmp_parent = argparse.ArgumentParser(add_help=False)
-configure_snmp_parent.add_argument('--host', type=str, default='localhost', help="SNMP interface host")
-configure_snmp_parent.add_argument('--snmp_preset', type=str, help="Vendor-specific asset configurations")
+configure_snmp_parent.add_argument('--host', type=str, help="SNMP interface host")
+configure_snmp_parent.add_argument('--snmp-preset', type=str, help="Vendor-specific asset configurations")
 
 # server group 
 configure_server_parent = argparse.ArgumentParser(add_help=False)
@@ -309,7 +309,7 @@ configure_server_parent.add_argument('--domain-name', help="VM domain name")
 
 # power consuming assets group
 configure_power_parent = argparse.ArgumentParser(add_help=False)
-configure_power_parent.add_argument('--power-source', type=int, default=120)
+configure_power_parent.add_argument('--power-source', type=int)
 configure_power_parent.add_argument('--power-consumption', type=int, help="Power consumption in Watts")
 
 
@@ -346,12 +346,18 @@ update_server_action = update_subp.add_parser(
     parents=[configure_asset_parent, configure_server_parent, configure_power_parent]
 )
 
-## Server
-update_serverbmc_action = update_subp.add_parser(
+## Server BMC
+update_server_bmc_action = update_subp.add_parser(
     'server-bmc', 
     help="Update Server-With BMC properties", 
     parents=[configure_asset_parent, configure_server_parent, configure_power_parent]
 )
+
+
+update_server_bmc_action.add_argument('--user', type=str, help="BMC-enabled server: IPMI admin user")
+update_server_bmc_action.add_argument('--password', type=str, help="BMC-enabled server: IPMI user password")
+update_server_bmc_action.add_argument('--port', type=int, help="IPMI interface port")
+update_server_bmc_action.add_argument('--vmport', type=int, help="IPMI serial VM inteface for channel 15 (the system interface)")
 
 ## Static
 update_static_action = update_subp.add_parser(
@@ -360,11 +366,13 @@ update_static_action = update_subp.add_parser(
     parents=[configure_asset_parent, configure_power_parent]
 )
 
+update_static_action.add_argument('--img-url', help="URL of the image displayed on the frontend")
+
 update_actions.append(update_outlet_action)
 update_actions.append(update_pdu_action)
 update_actions.append(update_ups_action)
 update_actions.append(update_server_action)
-update_actions.append(update_serverbmc_action)
+update_actions.append(update_server_bmc_action)
 update_actions.append(update_static_action)
 
 ###################################
