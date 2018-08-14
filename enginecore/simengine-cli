@@ -299,8 +299,24 @@ create_server_bmc_action.add_argument(
     '--psu-load', 
     nargs='+',
     type=float,
-    help="""How much power PSU(s) draw (the downstream power is multiplied by the value, e.g. 
+    help="""PSU(s) load distribution (the downstream power is multiplied by the value, e.g. 
     for 2 PSUs if '--psu-load 0.5 0.5', load is divivided equally) \n"""
+)
+
+create_server_bmc_action.add_argument(
+    '--psu-power-consumption', 
+    nargs='+',
+    type=int,
+    default=6,
+    help="""Power consumption of idle PSU \n"""
+)
+
+create_server_bmc_action.add_argument(
+    '--psu-power-source', 
+    nargs='+',
+    type=int,
+    default=120,
+    help="""PSU Voltage \n"""
 )
 
 ## STATIC 

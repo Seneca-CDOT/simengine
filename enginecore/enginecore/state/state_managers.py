@@ -823,11 +823,13 @@ class PSUStateManager(StateManager, IPMIComponent):
         """0x08 indicates AC loss"""
         if super().get_state_dir():
             super()._write_sensor_file(super()._get_psu_status_file(self._psu_number), value)
+    
 
     def update_load(self, load):
         super().update_load(load)
-
+        min_load = self._asset_info['powerConsumption'] / self._asset_info['powerSource']
+        
         if super().get_state_dir():
-            self._update_current(load)
-            self._update_waltage(load * 10)
+            self._update_current(load + min_load)
+            self._update_waltage((load + min_load) * 10)
             self._update_fan_speed(100 if load > 0 else 0)

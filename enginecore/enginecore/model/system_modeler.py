@@ -39,21 +39,39 @@ def link_assets(source_key, dest_key):
     """Power a component by another component """
     with graph_ref.get_session() as session:
 
-        
-        result = session.run("\
-        MATCH (src:Asset {key: $source_key})\
-        WHERE NOT src:PDU and NOT src:UPS and NOT src:Server and NOT src:ServerWithBMC\
-        MATCH (dst:Asset {key: $dest_key})\
-        WHERE NOT dst:Server and NOT dst:ServerWithBMC and (NOT dst:Component or dst:PSU) \
-        CREATE (dst)-[r:POWERED_BY]->(src) return r as link\
-        ", source_key=source_key, dest_key=dest_key)
+        # Validate that the asset does not power already existing device
+        result = session.run("""
+            MATCH (src:Asset {key: $source_key})<-[:POWERED_BY]-(existing_dest:Asset) RETURN existing_dest
+        """, source_key=source_key)
+
+        record = result.single()
+        if record:
+            print('The source asset already powers an existing asset!')
+            return
+
+        result = session.run("""
+            MATCH (src:Asset {key: $dest_key})-[:POWERED_BY]->(existing_src:Asset) RETURN existing_src
+        """, dest_key=dest_key)
+
+        record = result.single()
+        if record:
+            print('The destination asset is already powered by an existing asset!')
+            return
+
+        result = session.run("""
+        MATCH (src:Asset {key: $source_key})
+        WHERE NOT src:PDU and NOT src:UPS and NOT src:Server and NOT src:ServerWithBMC
+        MATCH (dst:Asset {key: $dest_key})
+        WHERE NOT dst:Server and NOT dst:ServerWithBMC and (NOT dst:Component or dst:PSU) 
+        CREATE (dst)-[r:POWERED_BY]->(src) return r as link
+        """, source_key=source_key, dest_key=dest_key)
         
         record = result.single()
 
         if (not record) or (not 'link' in dict(record)):
             print('Invalid link configuration was provided')
 
-def _add_psu(key, psu_index, draw_percentage=1):
+def _add_psu(key, psu_index, power_consumption, power_source, draw_percentage=1):
     with graph_ref.get_session() as session:
         session.run("\
         MATCH (asset:Asset {key: $pkey})\
@@ -61,11 +79,19 @@ def _add_psu(key, psu_index, draw_percentage=1):
             name: $psuname,\
             key: $psukey,\
             draw: $draw,\
-            type: 'psu'\
+            type: 'psu',\
+            powerConsumption: $pc,\
+            powerSource: $ps\
         })\
         CREATE (asset)-[:HAS_COMPONENT]->(psu)\
         CREATE (asset)-[:POWERED_BY]->(psu)", 
-        pkey=key, psuname='psu'+psu_index, draw=draw_percentage, psukey=int("{}{}".format(key,psu_index)))
+        pkey=key, 
+        pc=power_consumption,
+        ps=power_source, 
+        psuname='psu'+psu_index, 
+        draw=draw_percentage, 
+        psukey=int("{}{}".format(key, psu_index))
+        )
     
 
 def create_outlet(key, attr):
@@ -130,7 +156,13 @@ def create_server(key, attr, server_variation=ServerVariations.Server):
         
         set_properties(key, attr)
         for i in range(attr['psu_num']):
-            _add_psu(key, str(i+1), attr['psu_load'][i] if attr['psu_load'] else 1)
+            _add_psu(
+                key, 
+                str(i+1), 
+                attr['psu_power_consumption'], 
+                attr['psu_power_source'],
+                attr['psu_load'][i] if attr['psu_load'] else 1
+            )
 
     
 def set_properties(key, attr):
