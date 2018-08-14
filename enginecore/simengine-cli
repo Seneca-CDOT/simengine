@@ -167,18 +167,18 @@ status_group.add_argument('--watch-rate', nargs='?',
 ## -> Setup options for asset management commands
 
 asset_group = subparsers.add_parser('model', help="Manage system model: create new/update existing asset etc.")
-create_subp = asset_group.add_subparsers()
-create_asset_group = create_subp.add_parser('create', help="Create new asset")
+model_subp = asset_group.add_subparsers()
+create_asset_group = model_subp.add_parser('create', help="Create new asset")
 
 # detach & delete an asset by key
-delete_asset_action = create_subp.add_parser('delete', help="Remove individual asset by key")
+delete_asset_action = model_subp.add_parser('delete', help="Remove individual asset by key")
 delete_asset_action.add_argument('-k', '--asset-key', type=int, required=True)
 
 # drop entire system topology
-drop_system_action = create_subp.add_parser('drop', help="Delete/drop all the system components")
+drop_system_action = model_subp.add_parser('drop', help="Delete/drop all the system components")
 
 # link 2 assets together
-power_asset_action = create_subp.add_parser('power-link', help="Create a power link between 2 assets")
+power_asset_action = model_subp.add_parser('power-link', help="Create a power link between 2 assets")
 power_asset_action.add_argument(
     '-s', '--source-key', type=int, required=True, help="Key of an asset that POWERS dest. asset"
 )
@@ -187,7 +187,7 @@ power_asset_action.add_argument('-d', '--dest-key', type=int, required=True, hel
 
 ##############################
 ## state configure subgroup ##
-configure_state_group = subparsers.add_parser('configure-state', help="Update runtime state (e.g. UPS battery)")
+configure_state_group = subparsers.add_parser('configure-state', help="Update runtime state of the assets")
 conf_state_subp = configure_state_group.add_subparsers()
 conf_ups_action = conf_state_subp.add_parser('ups', help="Update UPS runtime properties")
 conf_ups_action.add_argument(
@@ -340,7 +340,7 @@ update_power_parent.add_argument('--power-consumption', type=int, help="Power co
 
 
 # update existing asset
-update_asset_group = subparsers.add_parser('update', help="Update Asset properties")
+update_asset_group = model_subp.add_parser('update', help="Update Asset properties")
 
 update_subp = update_asset_group.add_subparsers()
 
@@ -484,16 +484,17 @@ power_down_action.set_defaults(
     func=lambda args: manage_state(args['asset_key'], lambda a: a.power_off() if args['hard'] else a.shut_down())
 )
 
-# try:
-options = argparser.parse_args()
-# call callbacks
-if hasattr(options, 'validate'):
-    options.validate(vars(options))
-if hasattr(options, 'func'):
-    options.func(vars(options))
-else:
+try:
+    options = argparser.parse_args()
+    
+    # call callbacks
+    if hasattr(options, 'validate'):
+        options.validate(vars(options))
+    if hasattr(options, 'func'):
+        options.func(vars(options))
+    else:
+        argparser.print_help()
+except AttributeError:
     argparser.print_help()
-# except AttributeError:
-#     argparser.print_help()
-# except argparse.ArgumentTypeError as e:
-#   print(e)
+except argparse.ArgumentTypeError as e:
+    print(e)

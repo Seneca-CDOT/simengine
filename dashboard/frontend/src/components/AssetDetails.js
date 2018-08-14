@@ -45,6 +45,10 @@ function AssetDetails(props) {
           <Typography component="p">
             Status: {assetInfo.status === 1?<span style={{color: 'green'}}>on</span>:<span style={{color: 'red'}}>off</span>}
           </Typography>
+          <Typography component="p">
+            Name: {assetInfo.name}
+          </Typography>
+
 
           <Typography component="p">
             Current Load: {assetInfo.load ? assetInfo.load.toFixed(2): 0}

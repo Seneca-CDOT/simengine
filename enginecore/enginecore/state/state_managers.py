@@ -549,21 +549,24 @@ class UPSStateManager(StateManager):
             oid, _, _ = GraphReference.get_asset_oid_by_name(db_s, int(self._asset_key), 'AdvConfigShutoffDelay')
             return int(self._get_oid_value(oid, key=self._asset_key))
 
+
     def get_config_on_delay(self):
         with self._graph_ref.get_session() as db_s:
             oid, _, _ = GraphReference.get_asset_oid_by_name(db_s, int(self._asset_key), 'AdvConfigReturnDelay')
             return int(self._get_oid_value(oid, key=self._asset_key))
 
+
     def _publish_battery(self):
         """Publish battery update"""
         StateManager.get_store().publish(RedisChannels.battery_update_channel, self.redis_key)
     
+
     def set_drain_speed_factor(self, factor):
         """Publish battery update"""
         rkey = "{}|{}".format(self.redis_key, factor)
         StateManager.get_store().publish(RedisChannels.battery_conf_drain_channel, rkey)
-
     
+
     def set_charge_speed_factor(self, factor):
         """Publish battery update"""
         rkey = "{}|{}".format(self.redis_key, factor)

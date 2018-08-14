@@ -12,6 +12,7 @@ from enum import Enum
 from enginecore.model.graph_reference import GraphReference
 
 graph_ref = GraphReference()
+
 def to_camelcase(s):
     return re.sub(r'(?!^)_([a-zA-Z])', lambda m: m.group(1).upper(), s)
 
@@ -39,13 +40,18 @@ def link_assets(source_key, dest_key):
     with graph_ref.get_session() as session:
 
         
-        session.run("\
+        result = session.run("\
         MATCH (src:Asset {key: $source_key})\
-        WHERE NOT src:PDU\
+        WHERE NOT src:PDU and NOT src:UPS and NOT src:Server and NOT src:ServerWithBMC\
         MATCH (dst:Asset {key: $dest_key})\
-        CREATE (dst)-[:POWERED_BY]->(src)\
+        WHERE NOT dst:Server and NOT dst:ServerWithBMC and (NOT dst:Component or dst:PSU) \
+        CREATE (dst)-[r:POWERED_BY]->(src) return r as link\
         ", source_key=source_key, dest_key=dest_key)
+        
+        record = result.single()
 
+        if (not record) or (not 'link' in dict(record)):
+            print('Invalid link configuration was provided')
 
 def _add_psu(key, psu_index, draw_percentage=1):
     with graph_ref.get_session() as session:

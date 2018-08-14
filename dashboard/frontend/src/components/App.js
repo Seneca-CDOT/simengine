@@ -317,7 +317,7 @@ const drawerWidth = 240;
       asset={asset}
       selected={this.state.selectedAssetKey === key}
       nestedComponentSelected={this.state.selectedAssetKey in asset.children}
-      powered={powered !== 0}
+      powered={powered}
       x={asset.x}
       y={asset.y}
     />);

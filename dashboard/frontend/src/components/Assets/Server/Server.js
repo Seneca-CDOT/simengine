@@ -1,7 +1,7 @@
 import React from 'react';
 import { Text, Group, Path, Image } from 'react-konva';
 import PropTypes from 'prop-types';
-
+import SocketStatus from '../common/SocketStatus';
 import PowerSupply from './PowerSupply';
 import frontimg from '../../../images/server-front.svg';
 /**
@@ -113,6 +113,7 @@ export default class Server extends React.Component {
             y={-20}
             onClick={this.handleClick}
         />
+         <SocketStatus socketOn={this.props.asset.status} powered={this.props.powered}/>
       </Group>
     );
   }
