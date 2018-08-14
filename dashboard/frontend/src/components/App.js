@@ -69,7 +69,6 @@ const drawerWidth = 240;
        this.ws.onmessage = ((evt) =>
        {
           const data = JSON.parse(evt.data);
-          console.log(data);
           // Update state of the existing asset
           if(data && 'key' in data) {
 
@@ -103,8 +102,6 @@ const drawerWidth = 240;
                   let y = 0;
                   if (isComponent) {
                     const parent_key = this._get_parent_key(p.key);
-                    console.log(assetDetails)
-                    console.log(parent_key)
                     x = assetDetails[parent_key].children[p.key].x;
                     y = assetDetails[parent_key].children[p.key].y;
                   } else {

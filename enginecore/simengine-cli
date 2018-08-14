@@ -13,21 +13,14 @@ from enginecore.state.state_managers import StateManager
 from enginecore.state.utils import get_asset_type
 
 
-def manage_state(asset_key, action):
+def manage_state(asset_key, mng_action):
     """ Perform action for a node/asset with a certain key
     Args:
             asset_key (int): supplied asset identifier
-            action (func): callable object (lambda/function etc) that identifies action
+            mng_action (func): callable object (lambda/function etc) that identifies action
     """
-    gr = GraphReference()
-    with gr.get_session() as session:
-        
-        asset_info = GraphReference.get_asset_and_components(session, asset_key)
-        
-        asset_type = get_asset_type(asset_info['labels'])
-        state_manager = Asset.get_supported_assets()[asset_type].StateManagerCls(asset_info, notify=True)
-        
-        action(state_manager)
+    state_manager = Asset.get_state_manager_by_key(asset_key, notify=True)
+    mng_action(state_manager)
 
 class bcolors:
     """ curses colours """
@@ -43,7 +36,7 @@ def status_table_format(assets, stdscr=False):
     """
     
     # format headers
-    headers = ["Asset Key", "Type", "Status", "Children", "Load"]
+    headers = ["Asset Key", "Type", "Status", "Children", "Load (Amp)"]
     row_format = "{:>10}" * (len(headers) + 1)
 
     headers = row_format.format("", *headers, end='')
@@ -120,6 +113,16 @@ def get_status(**kwargs):
     else:
         status_table_format(assets)
 
+def configure_battery(key, kwargs):
+    """Udpate runtime battery status"""
+    if kwargs['drain_speed'] != None:
+        state_manager = Asset.get_state_manager_by_key(key, notify=True)
+        state_manager.set_drain_speed_factor(kwargs['drain_speed'])
+    if kwargs['charge_speed'] != None:
+        state_manager = Asset.get_state_manager_by_key(key, notify=True)
+        state_manager.set_charge_speed_factor(kwargs['charge_speed'])
+    
+
 def validate_key(key):
     """Validate asset key"""
     if key > 9999:
@@ -164,22 +167,45 @@ status_group.add_argument('--watch-rate', nargs='?',
 ## -> Setup options for asset management commands
 
 asset_group = subparsers.add_parser('model', help="Manage system model: create new/update existing asset etc.")
-subparsers = asset_group.add_subparsers()
-create_asset_group = subparsers.add_parser('create', help="Create new asset")
+create_subp = asset_group.add_subparsers()
+create_asset_group = create_subp.add_parser('create', help="Create new asset")
 
 # detach & delete an asset by key
-delete_asset_action = subparsers.add_parser('delete', help="Remove individual asset by key")
+delete_asset_action = create_subp.add_parser('delete', help="Remove individual asset by key")
 delete_asset_action.add_argument('-k', '--asset-key', type=int, required=True)
 
 # drop entire system topology
-drop_system_action = subparsers.add_parser('drop', help="Delete/drop all the system components")
+drop_system_action = create_subp.add_parser('drop', help="Delete/drop all the system components")
 
 # link 2 assets together
-power_asset_action = subparsers.add_parser('power-link', help="Create a power link between 2 assets")
+power_asset_action = create_subp.add_parser('power-link', help="Create a power link between 2 assets")
 power_asset_action.add_argument(
     '-s', '--source-key', type=int, required=True, help="Key of an asset that POWERS dest. asset"
 )
 power_asset_action.add_argument('-d', '--dest-key', type=int, required=True, help="Key of an powered by the source-key")
+
+
+##############################
+## state configure subgroup ##
+configure_state_group = subparsers.add_parser('configure-state', help="Update runtime state (e.g. UPS battery)")
+conf_state_subp = configure_state_group.add_subparsers()
+conf_ups_action = conf_state_subp.add_parser('ups', help="Update UPS runtime properties")
+conf_ups_action.add_argument(
+    '-k', '--asset-key', type=int, required=True, help="Unique asset key of the UPS"
+)
+
+conf_ups_action.add_argument(
+    '-d', '--drain-speed', type=float, help="Update factor of the battery drain", 
+    choices=range(1, 101), 
+    metavar="[1-101]"
+)
+
+conf_ups_action.add_argument(
+    '-c', '--charge-speed', type=float, help="Update factor of the battery charge", 
+    choices=range(1, 101), 
+    metavar="[1-101]"
+)
+
 
 #################################
 ## 'Create new asset' subgroup ##
@@ -290,30 +316,30 @@ create_static_action.add_argument('--img-url', help="URL of the image displayed 
 
 update_actions = []
 
-configure_asset_parent = argparse.ArgumentParser(add_help=False)
-configure_asset_parent.add_argument(
+update_asset_parent = argparse.ArgumentParser(add_help=False)
+update_asset_parent.add_argument(
     '-k', '--asset-key', type=int, required=True, help="Key of the asset to be updated"
 )
-configure_asset_parent.add_argument('--on-delay', type=int, help="Power on delay in ms")
-configure_asset_parent.add_argument('--off-delay', type=int, help="Power on delay in ms")
-configure_asset_parent.add_argument('-n', '--name', help="Name displayed on the UI")
+update_asset_parent.add_argument('--on-delay', type=int, help="Power on delay in ms")
+update_asset_parent.add_argument('--off-delay', type=int, help="Power on delay in ms")
+update_asset_parent.add_argument('-n', '--name', help="Name displayed on the UI")
 
 # snmp group parent will contain snmp-specific args
-configure_snmp_parent = argparse.ArgumentParser(add_help=False)
-configure_snmp_parent.add_argument('--host', type=str, help="SNMP interface host")
-configure_snmp_parent.add_argument('--snmp-preset', type=str, help="Vendor-specific asset configurations")
+update_snmp_parent = argparse.ArgumentParser(add_help=False)
+update_snmp_parent.add_argument('--host', type=str, help="SNMP interface host")
+update_snmp_parent.add_argument('--snmp-preset', type=str, help="Vendor-specific asset configurations")
 
 # server group 
-configure_server_parent = argparse.ArgumentParser(add_help=False)
-configure_server_parent.add_argument('--domain-name', help="VM domain name")
+update_server_parent = argparse.ArgumentParser(add_help=False)
+update_server_parent.add_argument('--domain-name', help="VM domain name")
 
 # power consuming assets group
-configure_power_parent = argparse.ArgumentParser(add_help=False)
-configure_power_parent.add_argument('--power-source', type=int)
-configure_power_parent.add_argument('--power-consumption', type=int, help="Power consumption in Watts")
+update_power_parent = argparse.ArgumentParser(add_help=False)
+update_power_parent.add_argument('--power-source', type=int)
+update_power_parent.add_argument('--power-consumption', type=int, help="Power consumption in Watts")
 
 
-# configure existing asset
+# update existing asset
 update_asset_group = subparsers.add_parser('update', help="Update Asset properties")
 
 update_subp = update_asset_group.add_subparsers()
@@ -322,48 +348,52 @@ update_subp = update_asset_group.add_subparsers()
 update_outlet_action = update_subp.add_parser(
     'outlet', 
     help="Update outlet properties", 
-    parents=[configure_asset_parent]
+    parents=[update_asset_parent]
 )
 
 ## PDU
 update_pdu_action = update_subp.add_parser(
     'pdu', 
     help="Update PDU properties", 
-    parents=[configure_asset_parent, configure_snmp_parent]
+    parents=[update_asset_parent, update_snmp_parent]
 )
 
 ## UPS
 update_ups_action = update_subp.add_parser(
     'ups', 
     help="Update UPS properties", 
-    parents=[configure_asset_parent, configure_snmp_parent]
+    parents=[update_asset_parent, update_snmp_parent]
 )
 
 ## Server
 update_server_action = update_subp.add_parser(
     'server', 
     help="Update Server properties", 
-    parents=[configure_asset_parent, configure_server_parent, configure_power_parent]
+    parents=[update_asset_parent, update_server_parent, update_power_parent]
 )
 
 ## Server BMC
 update_server_bmc_action = update_subp.add_parser(
     'server-bmc', 
     help="Update Server-With BMC properties", 
-    parents=[configure_asset_parent, configure_server_parent, configure_power_parent]
+    parents=[update_asset_parent, update_server_parent, update_power_parent]
 )
 
 
 update_server_bmc_action.add_argument('--user', type=str, help="BMC-enabled server: IPMI admin user")
 update_server_bmc_action.add_argument('--password', type=str, help="BMC-enabled server: IPMI user password")
 update_server_bmc_action.add_argument('--port', type=int, help="IPMI interface port")
-update_server_bmc_action.add_argument('--vmport', type=int, help="IPMI serial VM inteface for channel 15 (the system interface)")
+update_server_bmc_action.add_argument(
+    '--vmport', 
+    type=int, 
+    help="IPMI serial VM inteface for channel 15 (the system interface)"
+)
 
 ## Static
 update_static_action = update_subp.add_parser(
     'static', 
     help="Update Static Asset properties", 
-    parents=[configure_asset_parent, configure_power_parent]
+    parents=[update_asset_parent, update_power_parent]
 )
 
 update_static_action.add_argument('--img-url', help="URL of the image displayed on the frontend")
@@ -376,7 +406,7 @@ update_actions.append(update_server_bmc_action)
 update_actions.append(update_static_action)
 
 ###################################
-## Assets' ower control subgroup ##
+## Assets' power control subgroup ##
 
 subparsers = power_group.add_subparsers()
 power_up_action = subparsers.add_parser('up', help="Power up a particular component/asset")
@@ -396,7 +426,7 @@ power_down_action.add_argument(
 
 status_group.set_defaults(func=lambda args: get_status(**args))
 
-# oid_group.set_defaults(func=lambda _: print('Not Implemented Yet'))
+conf_ups_action.set_defaults(func=lambda args: configure_battery(args['asset_key'], args))
 # snapshot_group.set_defaults(func=lambda _: print('Not Implemented Yet'))
 
 ## asset_group callbacks
@@ -454,15 +484,16 @@ power_down_action.set_defaults(
     func=lambda args: manage_state(args['asset_key'], lambda a: a.power_off() if args['hard'] else a.shut_down())
 )
 
-try:
-    options = argparser.parse_args()
-    # call callbacks
-    if hasattr(options, 'validate'):
-        options.validate(vars(options))
-
+# try:
+options = argparser.parse_args()
+# call callbacks
+if hasattr(options, 'validate'):
+    options.validate(vars(options))
+if hasattr(options, 'func'):
     options.func(vars(options))
-
-except AttributeError:
+else:
     argparser.print_help()
-except argparse.ArgumentTypeError as e:
-    print(e)
+# except AttributeError:
+#     argparser.print_help()
+# except argparse.ArgumentTypeError as e:
+#   print(e)

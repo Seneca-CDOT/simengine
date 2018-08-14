@@ -38,14 +38,16 @@ class StateListener(Component):
         # State Channels
         self.pubsub = self.redis_store.pubsub()
         self.pubsub.psubscribe(
-            RedisChannels.oid_update_channel, 
-            RedisChannels.state_update_channel
+            RedisChannels.oid_update_channel,  # snmp oid updates
+            RedisChannels.state_update_channel # power state changes
         )
 
         # Battery Channel
         self.bat_pubsub = self.redis_store.pubsub()
         self.bat_pubsub.psubscribe(
-            RedisChannels.battery_update_channel
+            RedisChannels.battery_update_channel, # battery level updates
+            RedisChannels.battery_conf_drain_channel, # update drain speed (factor)
+            RedisChannels.battery_conf_charge_channel # update charge speed (factor)
         )
 
         # assets will store all the devices/items including PDUs, switches etc.
@@ -157,6 +159,15 @@ class StateListener(Component):
             if message['channel'] == str.encode(RedisChannels.battery_update_channel):
                 asset_key, _ = data.split('-')
                 self._notify_client(int(asset_key), {'battery': self._assets[int(asset_key)].state.battery_level})
+            elif message['channel'] == str.encode(RedisChannels.battery_conf_charge_channel):
+                asset_key, _ = data.split('-')
+                _, speed = data.split('|')
+                self._assets[int(asset_key)].charge_speed_factor = float(speed)
+            elif message['channel'] == str.encode(RedisChannels.battery_conf_drain_channel):
+                asset_key, _ = data.split('-')
+                _, speed = data.split('|')
+                self._assets[int(asset_key)].drain_speed_factor = float(speed)
+
 
         except KeyError as error:
             print("Detected unregistered asset under key [{}]".format(error), file=sys.stderr)

@@ -296,6 +296,14 @@ class StateManager():
             asset['status'] = int(cls.get_store().get("{}-{}".format(asset['key'], asset['type'])))
             return asset
 
+    @classmethod
+    def get_state_manager_by_key(cls, key, supported_assets, notify=True):
+        graph_ref = GraphReference()
+        
+        with graph_ref.get_session() as session:  
+            asset_info = GraphReference.get_asset_and_components(session, key)
+            return supported_assets[asset_info['type']].StateManagerCls(asset_info, notify=notify)
+
 
 class UPSStateManager(StateManager):
     """Handles UPS state logic """
@@ -333,12 +341,12 @@ class UPSStateManager(StateManager):
 
     @property
     def wattage(self):
-        return (self.load + self.idle_ups_amp) * 120
+        return (self.load + self.idle_ups_amp) * self._asset_info['powerSource']
 
     @property
     def idle_ups_amp(self):
         """How much a UPS draws"""
-        return 0.2
+        return self._asset_info['powerConsumption'] / self._asset_info['powerSource']
 
     @property
     def min_restore_charge_level(self):
@@ -549,8 +557,17 @@ class UPSStateManager(StateManager):
     def _publish_battery(self):
         """Publish battery update"""
         StateManager.get_store().publish(RedisChannels.battery_update_channel, self.redis_key)
+    
+    def set_drain_speed_factor(self, factor):
+        """Publish battery update"""
+        rkey = "{}|{}".format(self.redis_key, factor)
+        StateManager.get_store().publish(RedisChannels.battery_conf_drain_channel, rkey)
 
-
+    
+    def set_charge_speed_factor(self, factor):
+        """Publish battery update"""
+        rkey = "{}|{}".format(self.redis_key, factor)
+        StateManager.get_store().publish(RedisChannels.battery_conf_charge_channel, rkey)
 
 class PDUStateManager(StateManager):
     """Handles state logic for PDU asset """

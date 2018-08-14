@@ -11,3 +11,8 @@ class RedisChannels():
     state_update_channel = 'state-upd'
     oid_update_channel = 'oid-upd'
     battery_update_channel = 'battery-upd'
+    battery_conf_drain_channel = 'battery-drain-upd'
+    battery_conf_charge_channel = 'battery-charge-upd'
+
+
+    

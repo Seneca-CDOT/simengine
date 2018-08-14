@@ -13,10 +13,9 @@ import subprocess
 import os
 import signal
 import tempfile
-import shutil
 import json
 import time
-from threading import Thread
+from threading import Thread, Event
 from collections import namedtuple
 import datetime as dt
 from distutils.dir_util import copy_tree
@@ -145,8 +144,9 @@ class Asset(Component):
         """Get factory containing registered assets"""
         return SUPPORTED_ASSETS
 
-
-
+    @classmethod
+    def get_state_manager_by_key(cls, key, notify=True):
+        return sm.StateManager.get_state_manager_by_key(key, cls.get_supported_assets(), notify)
 
 class Agent():
     """ Abstract Agent Class """
@@ -367,9 +367,11 @@ class UPS(Asset, SNMPSim):
 
         # Store known { wattage: time_remaining } key/value pairs (runtime graph)
         self._runtime_details = json.loads(asset_info['runtime'])
-        
+
         # Track upstream power availability
         self._parent_up = True
+        self._charge_speed_factor = 1
+        self._drain_speed_factor = 1
 
         # Threads responsible for battery charge/discharge
         self._battery_drain_t = None
@@ -412,12 +414,11 @@ class UPS(Asset, SNMPSim):
 
         battery_level = self._state.battery_level
         blackout = False
-       
+
         # drain power
         while battery_level > 0 and self._state.status and not parent_up():
-            battery_level = battery_level - self._calc_battery_discharge()
+            battery_level = battery_level - (self._calc_battery_discharge() * self._drain_speed_factor)
             seconds_on_battery = (dt.datetime.now() - self._start_time_battery).seconds
-
             self._state.update_battery(battery_level)
             self._state.update_time_left(self._cacl_time_left(self._state.wattage) * 60 * 100)
             self._state.update_time_on_battery(seconds_on_battery * 100)
@@ -443,7 +444,7 @@ class UPS(Asset, SNMPSim):
 
         # charge -> (only if the upstream power is available (the battery is not being drained))
         while battery_level != self._state.battery_max_level and parent_up():
-            battery_level = battery_level + self._charge_per_second
+            battery_level = battery_level + (self._charge_per_second * self._charge_speed_factor)
             self._state.update_battery(battery_level)
             self._state.update_time_left(self._cacl_time_left(self._state.wattage) * 60 * 100)
             if (not powered and power_up_on_charge) and (battery_level > self._state.min_restore_charge_level):
@@ -535,6 +536,26 @@ class UPS(Asset, SNMPSim):
             event.success = False
             return None
         
+    # def set_charge_speed(self, speed):
+    #     self._speed_factor = speed
+    
+    # TODO: SPEED PROP
+    
+    @property
+    def charge_speed_factor(self):
+        return self._charge_speed_factor
+
+    @charge_speed_factor.setter 
+    def charge_speed_factor(self, speed):
+        self._charge_speed_factor = speed
+
+    @property
+    def drain_speed_factor(self):
+        return self._drain_speed_factor
+
+    @drain_speed_factor.setter 
+    def drain_speed_factor(self, speed):
+        self._drain_speed_factor = speed
 
     def _update_load(self, load_change, op, msg=''):
         upd_result = super()._update_load(load_change, op, msg)
