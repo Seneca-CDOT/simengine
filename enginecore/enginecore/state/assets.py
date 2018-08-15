@@ -443,7 +443,7 @@ class UPS(Asset, SNMPSim):
         powered = False
 
         # charge -> (only if the upstream power is available (the battery is not being drained))
-        while battery_level != self._state.battery_max_level and parent_up():
+        while battery_level < self._state.battery_max_level and parent_up():
             battery_level = battery_level + (self._charge_per_second * self._charge_speed_factor)
             self._state.update_battery(battery_level)
             self._state.update_time_left(self._cacl_time_left(self._state.wattage) * 60 * 100)

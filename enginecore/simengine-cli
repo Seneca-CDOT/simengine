@@ -36,7 +36,7 @@ def status_table_format(assets, stdscr=False):
     """
     
     # format headers
-    headers = ["Asset Key", "Type", "Status", "Children", "Load (Amp)"]
+    headers = ["Asset Key", "Type", "Status", "Children", "Load"]
     row_format = "{:>10}" * (len(headers) + 1)
 
     headers = row_format.format("", *headers, end='')
@@ -343,7 +343,7 @@ update_asset_parent.add_argument('-n', '--name', help="Name displayed on the UI"
 # snmp group parent will contain snmp-specific args
 update_snmp_parent = argparse.ArgumentParser(add_help=False)
 update_snmp_parent.add_argument('--host', type=str, help="SNMP interface host")
-update_snmp_parent.add_argument('--snmp-preset', type=str, help="Vendor-specific asset configurations")
+# update_snmp_parent.add_argument('--snmp-preset', type=str, help="Vendor-specific asset configurations")
 
 # server group 
 update_server_parent = argparse.ArgumentParser(add_help=False)
@@ -380,6 +380,38 @@ update_ups_action = update_subp.add_parser(
     help="Update UPS properties", 
     parents=[update_asset_parent, update_snmp_parent]
 )
+
+update_ups_action.add_argument(
+    '--full-recharge-time', 
+    type=float, 
+    help="Update recharge time for UPS, time taken (hours) to recharge fully depleted battery",
+    dest="full_recharge_time"
+)
+
+update_ups_action.add_argument(
+    '--min-power-bat', 
+    type=int, 
+    help="Minimum battery level required before UPS output is powered on (where 1=0.1 percent)",
+    dest="min_power_on_battery_level",
+    choices=range(0, 1001),
+    metavar="[0-1001]"
+)
+
+update_ups_action.add_argument(
+    '--power-capacity', 
+    type=int, 
+    help="Output power capacity of the UPS",
+    dest="output_power_capacity",
+    choices=range(1, 5000),
+    metavar="[1-5000]"  
+)
+
+update_ups_action.add_argument(
+    '--runtime-graph',  
+    help="Sampled runtime graph for the UPS in .JSON key-value format { wattage1: minutes, wattage2: minutes } ",
+    dest="runtime"
+)
+
 
 ## Server
 update_server_action = update_subp.add_parser(

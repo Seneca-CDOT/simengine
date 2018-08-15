@@ -26,7 +26,7 @@ def configure_asset(key, attr):
 
     with graph_ref.get_session() as session:
         
-        existing = dict(filter(lambda k: attr[k[0]], attr.items()))
+        existing = dict(filter(lambda k: attr[k[0]] != None, attr.items()))
         # print(existing)
         # existing = filter(lambda k: "asset.{}={}".format(k, repr(attr[k])) if attr[k] else None, attr)
         set_statement = ','.join(map(lambda k: "asset.{}={}".format(to_camelcase(k), repr(existing[k])), existing))
@@ -578,6 +578,7 @@ def delete_asset(key):
         session.run("MATCH (a:Asset { key: $key }) \
         OPTIONAL MATCH (a)-[:HAS_COMPONENT]->(s) \
         OPTIONAL MATCH (a)-[:HAS_OID]->(oid) \
+        OPTIONAL MATCH (a)-[:HAS_BATTERY]->(b) \
         OPTIONAL MATCH (oid)-[:HAS_STATE_DETAILS]->(sd) \
-        DETACH DELETE a,s,oid,sd", key=key)
+        DETACH DELETE a,s,oid,sd,b", key=key)
 
