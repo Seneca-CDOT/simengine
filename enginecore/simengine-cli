@@ -71,19 +71,26 @@ def get_status(**kwargs):
             asset_info = GraphReference.get_asset_and_components(session, int(kwargs['asset_key']))
             asset_type = get_asset_type(asset_info['labels'])
             state_manager = Asset.get_supported_assets()[asset_type].StateManagerCls(asset_info)
-            print("{}-{} : {}".format(asset_info['key'], asset_type, state_manager.load))
+            
+            if kwargs['value_only']:
+                print(state_manager.load)
+            else:
+                print("{}-{} : {}".format(asset_info['key'], asset_type, state_manager.load))
             return
 
     elif kwargs['asset_key']:
         asset = StateManager.get_asset_status(int(kwargs['asset_key']))
-        print("{key}-{type} : {status}".format(**asset))
+        if kwargs['value_only']:
+            print(asset['status'])
+        else:
+            print("{key}-{type} : {status}".format(**asset))
         return
 
     ##### list states #####
     assets = StateManager.get_system_status()
 
     # json format
-    if kwargs['print_as'] == 'json': 
+    if kwargs['json']: 
         print(json.dumps(assets, indent=4))
 
     # monitor state with curses
@@ -149,10 +156,12 @@ power_group = subparsers.add_parser('power', help="Control power component of re
 
 ## -> Setup options for state queries
 status_group = subparsers.add_parser('status', help="Retrieve status of registered asset(s)")
-status_group.add_argument('-k', '--asset-key', type=int)
-status_group.add_argument('--print-as', help="Format options")
+status_group.add_argument('-k', '--asset-key', help="Get status of one asset (by key) ", type=int)
+status_group.add_argument('--json', help="Format as .json", action='store_true')
 status_group.add_argument('--monitor', help="Monitor status", action='store_true')
-status_group.add_argument('--load', help="Check load", action='store_true')
+status_group.add_argument('--load', help="Get load for the specified asset (key must be provided)", action='store_true')
+status_group.add_argument('--value-only', help="Return value only", action='store_true')
+
 
 status_group.add_argument('--watch-rate', nargs='?', 
                           help="Update state every n seconds, defaults to 1", default=1, type=int)
@@ -224,6 +233,7 @@ create_asset_parent.add_argument('-n', '--name', help="Name displayed on the UI"
 # snmp group parent will contain snmp-specific args
 create_snmp_parent = argparse.ArgumentParser(add_help=False)
 create_snmp_parent.add_argument('--host', type=str, default='localhost', help="SNMP interface host")
+create_snmp_parent.add_argument('--port', type=int, default=161, help="SNMP interface port")
 create_snmp_parent.add_argument('--snmp_preset', type=str, help="Vendor-specific asset configurations")
 
 # server group 
@@ -343,6 +353,7 @@ update_asset_parent.add_argument('-n', '--name', help="Name displayed on the UI"
 # snmp group parent will contain snmp-specific args
 update_snmp_parent = argparse.ArgumentParser(add_help=False)
 update_snmp_parent.add_argument('--host', type=str, help="SNMP interface host")
+update_snmp_parent.add_argument('--port', type=int, help="SNMP interface port")
 # update_snmp_parent.add_argument('--snmp-preset', type=str, help="Vendor-specific asset configurations")
 
 # server group 

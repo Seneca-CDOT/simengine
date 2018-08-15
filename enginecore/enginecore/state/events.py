@@ -1,10 +1,10 @@
 """ Events """
 from circuits import Event
 
-class AssetPowerDown(Event):
+class ButtonPowerDownPressed(Event):
     """ On Asset Did Power Down """
 
-class AssetPowerUp(Event):
+class ButtonPowerUpPressed(Event):
     """ On Asset Did Power Up """
 
 class ParentAssetPowerDown(Event):

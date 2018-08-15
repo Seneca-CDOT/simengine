@@ -29,8 +29,8 @@ class PowerEventManager:
     def map_asset_event(cls, value):
         '''Map redis asset values to events'''
         return {
-            "0": events.AssetPowerDown(),
-            "1": events.AssetPowerUp(),
+            "0": events.ButtonPowerDownPressed(),
+            "1": events.ButtonPowerUpPressed(),
         }[value]
 
     @classmethod

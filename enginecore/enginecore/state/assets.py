@@ -11,6 +11,8 @@ Example:
 """
 import subprocess
 import os
+import pwd
+import grp
 import signal
 import tempfile
 import json
@@ -243,7 +245,7 @@ class IPMIAgent(Agent):
 class SNMPAgent(Agent):
     """ SNMP simulator instance """
 
-    def __init__(self, key, public_community='public', private_community='private', lookup_oid='1.3.6', host=False):
+    def __init__(self, key, host, port, public_community='public', private_community='private', lookup_oid='1.3.6'):
 
         super(SNMPAgent, self).__init__()
         self._key_space_id = key
@@ -252,8 +254,12 @@ class SNMPAgent(Agent):
         self._snmp_rec_private_fname = private_community + '.snmprec'
 
         self._snmp_rec_dir = tempfile.mkdtemp()
-        self._host = '{}:102{}'.format(host, 3+SNMPAgent.agent_num) if host else "127.0.0.{}:1024".format(SNMPAgent.agent_num)
-
+        self._host = '{}:{}'.format(host, port)
+        
+        uid = pwd.getpwnam("nobody").pw_uid
+        gid = grp.getgrnam("nobody").gr_gid
+        
+        os.chown(self._snmp_rec_dir, uid, gid)
         snmp_rec_public_filepath = os.path.join(self._snmp_rec_dir, self._snmp_rec_public_fname)
         snmp_rec_private_filepath = os.path.join(self._snmp_rec_dir, self._snmp_rec_private_fname)
 
@@ -290,6 +296,7 @@ class SNMPAgent(Agent):
         cmd += " --variation-module-options=redis:host:127.0.0.1,port:6379,db:0,key-spaces-id:"+str(self._key_space_id)
         cmd += " --data-dir="+self._snmp_rec_dir
         cmd += " --transport-id-offset="+str(SNMPAgent.agent_num)
+        cmd += " --process-user=nobody --process-group=nobody"
         print(cmd)
         self._process = subprocess.Popen(
             cmd, shell=True, stderr=subprocess.DEVNULL, stdout=open(os.devnull, 'wb'), close_fds=True
@@ -300,20 +307,17 @@ class SNMPAgent(Agent):
 
 class SNMPSim():
     
-    def __init__(self, key, host=False):
-        self._snmp_agent = SNMPAgent(
-            key,
-            host=host
-        )
+    def __init__(self, key, host, port):
+        self._snmp_agent = SNMPAgent(key, host, port)
 
 
     ##### Create/kill SNMP agent when state changes
-    @handler("AssetPowerDown")
+    @handler("ButtonPowerDownPressed")
     def on_asset_did_power_off(self):
         self._snmp_agent.stop_agent()
 
 
-    @handler("AssetPowerUp", "ParentAssetPowerUp")
+    @handler("ButtonPowerUpPressed", "ParentAssetPowerUp")
     def on_asset_did_power_on(self):
         self._snmp_agent.start_agent()
 
@@ -328,7 +332,8 @@ class PDU(Asset, SNMPSim):
         SNMPSim.__init__(
             self, 
             key=asset_info['key'],
-            host=asset_info['host'] if 'host' in asset_info else False
+            host=asset_info['host'] if 'host' in asset_info else 'localhost',
+            port=asset_info['port'] if 'port' in asset_info else 161
         )
 
     ##### React to any events of the connected components #####
@@ -362,7 +367,8 @@ class UPS(Asset, SNMPSim):
         SNMPSim.__init__(
             self, 
             key=asset_info['key'],
-            host=asset_info['host'] if 'host' in asset_info else False
+            host=asset_info['host'] if 'host' in asset_info else 'localhost',
+            port=asset_info['port'] if 'port' in asset_info else 161
         )
 
         # Store known { wattage: time_remaining } key/value pairs (runtime graph)
@@ -511,7 +517,7 @@ class UPS(Asset, SNMPSim):
         return e_result   
     
 
-    @handler("AssetPowerUp")
+    @handler("ButtonPowerUpPressed")
     def on_ups_signal_up(self):
         if self._parent_up:
             self._launch_battery_charge()
@@ -698,11 +704,11 @@ class PSU(StaticAsset):
     def __init__(self, asset_info):
         super(PSU, self).__init__(asset_info)
 
-    @handler("AssetPowerDown")
+    @handler("ButtonPowerDownPressed")
     def on_asset_did_power_off(self):
         self._state.set_psu_status(0x08)
 
     
-    @handler("AssetPowerUp")
+    @handler("ButtonPowerUpPressed")
     def on_asset_did_power_on(self):
         self._state.set_psu_status(0x01)

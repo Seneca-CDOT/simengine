@@ -29,7 +29,7 @@ def configure_env(relative=False):
     os.environ['SIMENGINE_IPMI_TEMPL'] = os.environ.get('SIMENGINE_IPMI_TEMPL', ipmi_templ_path)
     os.environ['SIMENGINE_SNMP_SHA'] = os.environ.get(
         'SIMENGINE_SNMP_SHA',
-        str(os.popen('redis-cli script load "$(cat {})"'.format(lua_script_path)).read())
+        str(os.popen('/usr/local/bin/redis-cli script load "$(cat {})"'.format(lua_script_path)).read())
     )
 
 def run():

@@ -226,7 +226,8 @@ def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
             minPowerOnBatteryLevel: $minbat,\
             fullRechargeTime: $rechargehrs, \
             type: 'ups',\
-            runtime: $runtime\
+            runtime: $runtime,\
+            port: $port \
         })", 
         key=key, 
         name=name,
@@ -234,7 +235,8 @@ def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
         pc=data['outputPowerCapacity'],
         minbat=data['minPowerOnBatteryLevel'],
         rechargehrs=data['fullRechargeTime'],
-        runtime= json.dumps(data['modelRuntime'], sort_keys=True)
+        runtime=json.dumps(data['modelRuntime'], sort_keys=True),
+        port=attr['port']
         )
 
         set_properties(key, attr)
@@ -439,8 +441,14 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
             name: $name,\
             key: $key,\
             staticOidFile: $oid_file,\
-            type: 'pdu'\
-        })", key=key, name=name, oid_file=data['staticOidFile'])
+            type: 'pdu',\
+            port: $port\
+        })", 
+        key=key, 
+        name=name, 
+        oid_file=data['staticOidFile'],
+        port=attr['port']
+        )
         
         set_properties(key, attr)
         
