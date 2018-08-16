@@ -164,6 +164,10 @@ npm_start () {
 	echo ""
 }
 
+libvirt_install () {
+	dnf -y install libvirt qemu-kvm
+}
+
 update_fedora
 replace_firewalld
 install_utilities

@@ -8,7 +8,7 @@ License:   GPLv3+
 Source0:   %{name}-%{version}.tar.gz
 BuildArch: noarch
 
-Requires: simengine-core, simengine-neo4jdb, simengine-redis
+Requires: simengine-core, simengine-database
 
 %description
 Command line interface for SimEngine.
@@ -20,7 +20,7 @@ Command line interface for SimEngine.
 
 %install
 mkdir -p %{buildroot}%{_bindir}/
-cp -fp simengline-cli %{buildroot}%{_bindir}/
+cp -fp simengine-cli %{buildroot}%{_bindir}/
 
 %files
 %attr(644, root, root) %{_bindir}/simengine-cli

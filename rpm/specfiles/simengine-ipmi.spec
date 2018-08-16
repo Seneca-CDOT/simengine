@@ -8,7 +8,8 @@ License:   GPLv3+
 Source0:   %{name}-%{version}.tar.gz
 BuildArch: x86_64
 
-Requires: simengine-core, OpenIPMI, OpenIPMI-lanserv
+BuildRequires: OpenIPMI-devel, gcc
+Requires: simengine-database, simengine-core, simengine-cli, OpenIPMI, OpenIPMI-lanserv
 
 %description
 Compiles and installs the OpenIPMI plugin for use with SimEngine.
