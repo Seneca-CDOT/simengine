@@ -9,7 +9,7 @@ Source0:   %{name}-%{version}.tar.gz
 BuildArch: x86_64
 
 BuildRequires: OpenIPMI-devel, gcc
-Requires: simengine-database, simengine-core, simengine-cli, OpenIPMI, OpenIPMI-lanserv
+Requires: simengine-database, OpenIPMI, OpenIPMI-lanserv
 
 %description
 Compiles and installs the OpenIPMI plugin for use with SimEngine.
@@ -23,15 +23,15 @@ Compiles and installs the OpenIPMI plugin for use with SimEngine.
 gcc -shared -o %{_builddir}/%{name}-%{version}/haos_extend.so -fPIC %{_builddir}/%{name}-%{version}/ipmi_sim/haos_extend.c
 
 %install
-mkdir -p %{buildroot}%{_sharedstatedir}/simengine/
+mkdir -p %{buildroot}%{_datarootdir}/simengine/enginecore/
 mkdir -p %{buildroot}/usr/lib/simengine/
-cp -fRp ipmi_sim %{buildroot}%{_sharedstatedir}/simengine/
-cp -fRp ipmi_template %{buildroot}%{_sharedstatedir}/simengine/
+cp -fRp ipmi_sim %{buildroot}%{_datarootdir}/simengine/enginecore/
+cp -fRp ipmi_template %{buildroot}%{_datarootdir}/simengine/enginecore/
 cp -fp haos_extend.so %{buildroot}/usr/lib/simengine/
 
 %files
-%{_sharedstatedir}/simengine/ipmi_sim
-%{_sharedstatedir}/simengine/ipmi_template
+%{_datarootdir}/simengine/enginecore/ipmi_sim
+%{_datarootdir}/simengine/enginecore/ipmi_template
 /usr/lib/simengine/haos_extend.so
 
 

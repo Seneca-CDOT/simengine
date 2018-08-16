@@ -4,7 +4,7 @@ After=neo4j.service
 After=redis.service
 
 [Service]
-ExecStart=/var/lib/simengine-core/enginecore/app.py
+ExecStart=/usr/share/simengine/enginecore/app.py
 Restart=always
 TimeoutStartSec=15s
 RestartSec=15s
