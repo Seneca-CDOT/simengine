@@ -17,7 +17,7 @@ def to_camelcase(s):
     return re.sub(r'(?!^)_([a-zA-Z])', lambda m: m.group(1).upper(), s)
 
 def configure_asset(key, attr):
-
+    """Update existing properties"""
     if 'func' in attr and attr['func']:
         del attr['func']
 
@@ -33,6 +33,14 @@ def configure_asset(key, attr):
         query = "MATCH (asset:Asset {{ key: {key} }}) SET {set_stm}".format(key=key, set_stm=set_statement)
         
         session.run(query)
+
+def remove_link(source_key, dest_key):
+    """Remove existing power connection"""
+    with graph_ref.get_session() as session:
+        result = session.run("""
+        MATCH (src:Asset {key: $src_key})<-[power_link:POWERED_BY]-(dst:Asset {key: $dest_key})
+        DELETE power_link
+        """, src_key=source_key, dest_key=dest_key)
 
 
 def link_assets(source_key, dest_key):
@@ -57,7 +65,8 @@ def link_assets(source_key, dest_key):
         if record:
             print('The destination asset is already powered by an existing asset!')
             return
-
+        
+        # Create a link
         result = session.run("""
         MATCH (src:Asset {key: $source_key})
         WHERE NOT src:PDU and NOT src:UPS and NOT src:Server and NOT src:ServerWithBMC

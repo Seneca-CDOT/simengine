@@ -541,14 +541,10 @@ class UPS(Asset, SNMPSim):
         else:
             event.success = False
             return None
-        
-    # def set_charge_speed(self, speed):
-    #     self._speed_factor = speed
-    
-    # TODO: SPEED PROP
     
     @property
     def charge_speed_factor(self):
+        """Estimated charge/sec will be multiplied by this value"""
         return self._charge_speed_factor
 
     @charge_speed_factor.setter 
@@ -557,6 +553,7 @@ class UPS(Asset, SNMPSim):
 
     @property
     def drain_speed_factor(self):
+        """Estimated drain/sec will be multiplied by this value"""        
         return self._drain_speed_factor
 
     @drain_speed_factor.setter 

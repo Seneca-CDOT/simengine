@@ -129,6 +129,13 @@ def configure_battery(key, kwargs):
         state_manager = Asset.get_state_manager_by_key(key, notify=True)
         state_manager.set_charge_speed_factor(kwargs['charge_speed'])
     
+def handle_link(kwargs):
+    """Power connections"""
+    if kwargs['remove']:
+        sm.remove_link(kwargs['source_key'], kwargs['dest_key'])
+    else:
+        sm.link_assets(kwargs['source_key'], kwargs['dest_key'])
+            
 
 def validate_key(key):
     """Validate asset key"""
@@ -187,12 +194,12 @@ delete_asset_action.add_argument('-k', '--asset-key', type=int, required=True)
 drop_system_action = model_subp.add_parser('drop', help="Delete/drop all the system components")
 
 # link 2 assets together
-power_asset_action = model_subp.add_parser('power-link', help="Create a power link between 2 assets")
+power_asset_action = model_subp.add_parser('power-link', help="Create/Delete a power link between 2 assets")
 power_asset_action.add_argument(
     '-s', '--source-key', type=int, required=True, help="Key of an asset that POWERS dest. asset"
 )
 power_asset_action.add_argument('-d', '--dest-key', type=int, required=True, help="Key of an powered by the source-key")
-
+power_asset_action.add_argument('-r', '--remove', action='store_true', help="Delete power conneciton if exists")
 
 ##############################
 ## state configure subgroup ##
@@ -243,7 +250,7 @@ create_server_parent.add_argument('--domain-name', help="VM domain name")
 # power consuming assets group
 create_power_parent = argparse.ArgumentParser(add_help=False)
 create_power_parent.add_argument('--power-source', type=int, default=120)
-create_power_parent.add_argument('--power-consumption', type=int, help="Power consumption in Watts")
+create_power_parent.add_argument('--power-consumption', required=True, type=int, help="Power consumption in Watts")
 
 ## > Add type-specific args < ##
 
@@ -528,7 +535,7 @@ delete_asset_action.set_defaults(
 )
 
 power_asset_action.set_defaults(
-    func=lambda args: sm.link_assets(args['source_key'], args['dest_key'])
+    func=lambda args: handle_link(args)
 )
 
 drop_system_action.set_defaults(func=lambda args: sm.drop_model())
