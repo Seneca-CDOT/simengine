@@ -1,5 +1,5 @@
 [simengine]
 name=SimEngine Repository
-baseurl=http://206.47.241.15/repos/simengine
+baseurl=http://arcturus.cdot.systems/repos/simengine/27
 enabled=1
 gpgcheck=0
