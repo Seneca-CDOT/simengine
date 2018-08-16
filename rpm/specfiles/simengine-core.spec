@@ -8,33 +8,36 @@ License:   GPLv3+
 Source0:   %{name}-%{version}.tar.gz
 BuildArch: noarch
 
+BuildRequires: OpenIPMI-devel, gcc
 #Requires: simengine-database, python-pysnmp, python-circuits, python-snmpsim, python3-libvirt
-Requires: simengine-database, simengine-cli, simengine-ipmi, python3-libvirt
+Requires: simengine-database, python3-libvirt, OpenIPMI, OpenIPMI-lanserv
 
 %description
 Core files for SimEngine.
+
+%global debug_package %{nil}
 
 %prep
 %autosetup -c %{name}
 
 %build
+gcc -shared -o %{_builddir}/%{name}-%{version}/haos_extend.so -fPIC %{_builddir}/%{name}-%{version}/ipmi_sim/haos_extend.c
 
 %install
-mkdir -p %{buildroot}%{_datarootdir}/simengine/enginecore/script/
-mkdir -p %{buildroot}%{_prefix}/lib/systemd/system/
-cp -fRp data %{buildroot}%{_datarootdir}/simengine/
-cp -fRp enginecore %{buildroot}%{_datarootdir}/simengine/enginecore/
-cp -fp snmppub.lua %{buildroot}%{_datarootdir}/simengine/enginecore/script/
-cp -fp app.py %{buildroot}%{_datarootdir}/simengine/enginecore/
-cp -fp simengine-core.service %{buildroot}%{_prefix}/lib/systemd/system/
-exit 0
+mkdir -p %{buildroot}/usr/share/simengine/
+mkdir -p %{buildroot}/usr/lib/simengine/
+mkdir -p %{buildroot}/usr/lib/systemd/system/
+mkdir -p %{buildroot}/usr/bin/
+cp -fp haos_extend.so %{buildroot}/usr/lib/simengine/
+cp -fRp enginecore %{buildroot}/usr/share/simengine/
+cp -fp simengine-core.service %{buildroot}/usr/lib/systemd/system/
+ln -s enginecore/simengine-cli %{buildroot}/usr/bin/simengine-cli
 
 %files
-%{_datarootdir}/simengine/data
-%{_datarootdir}/simengine/enginecore/script/snmppub.lua
-%{_datarootdir}/simengine/enginecore/app.py
-%{_datarootdir}/simengine/enginecore/enginecore
-%attr(0644, root, root) %{_prefix}/lib/systemd/system/simengine-core.service
+/usr/lib/simengine/haos_extend.so
+/usr/share/simengine/enginecore
+/usr/lib/systemd/system/simengine-core.service
+/usr/bin/simengine-cli
 
 %post
 systemctl daemon-reload
