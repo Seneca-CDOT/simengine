@@ -13,6 +13,3 @@ class RedisChannels():
     battery_update_channel = 'battery-upd'
     battery_conf_drain_channel = 'battery-drain-upd'
     battery_conf_charge_channel = 'battery-charge-upd'
-
-
-    

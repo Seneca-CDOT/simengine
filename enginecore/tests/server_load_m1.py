@@ -40,7 +40,9 @@ class ServerLoadTest(unittest.TestCase):
             'psu_num': 2, 
             'psu_load': [0.5, 0.5], 
             'power_consumption': 480, # amp -> 4
-            'power_source': 120
+            'power_source': 120,
+            'psu_power_consumption': 24,
+            'psu_power_source': 120
         }
 
         attr = {}
@@ -49,7 +51,7 @@ class ServerLoadTest(unittest.TestCase):
         sm.create_outlet(1, attr)
         sm.create_outlet(2, attr)
 
-        sm.create_pdu(3, attr)
+        sm.create_pdu(3, { 'port': 1024})
         sm.create_server(4, server_attr, server_variation=sm.ServerVariations.ServerWithBMC)
         sm.create_static(5, {
             'power_consumption': 240,
@@ -85,7 +87,7 @@ class ServerLoadTest(unittest.TestCase):
             thread.start()
             server = BMCServerStateManager({
                 'key': 4, 
-                'name': 'an-a01n01', 
+                'domainName': 'an-a01n01', 
                 'powerConsumption': 480,
                 'powerSource': 120
                 }, 'serverwithbmc', notify=True)

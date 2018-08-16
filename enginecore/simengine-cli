@@ -240,7 +240,7 @@ create_asset_parent.add_argument('-n', '--name', help="Name displayed on the UI"
 # snmp group parent will contain snmp-specific args
 create_snmp_parent = argparse.ArgumentParser(add_help=False)
 create_snmp_parent.add_argument('--host', type=str, default='localhost', help="SNMP interface host")
-create_snmp_parent.add_argument('--port', type=int, default=161, help="SNMP interface port")
+create_snmp_parent.add_argument('--port', type=int, required=True, help="SNMP interface port")
 create_snmp_parent.add_argument('--snmp_preset', type=str, help="Vendor-specific asset configurations")
 
 # server group 
@@ -290,6 +290,31 @@ create_server_action = create_subp.add_parser(
     'server', 
     help="Create a server asset (VM)", 
     parents=[create_asset_parent, create_server_parent, create_power_parent]
+)
+
+create_server_action.add_argument('--psu-num', type=int, default=1, help="Number of PSUs installed in the server")
+create_server_action.add_argument(
+    '--psu-load', 
+    nargs='+',
+    type=float,
+    help="""PSU(s) load distribution (the downstream power is multiplied by the value, e.g. 
+    for 2 PSUs if '--psu-load 0.5 0.5', load is divivided equally) \n"""
+)
+
+create_server_action.add_argument(
+    '--psu-power-consumption', 
+    nargs='+',
+    type=int,
+    default=6,
+    help="""Power consumption of idle PSU \n"""
+)
+
+create_server_action.add_argument(
+    '--psu-power-source', 
+    nargs='+',
+    type=int,
+    default=120,
+    help="""PSU Voltage \n"""
 )
 
 ## SERVER-BMC
@@ -535,7 +560,7 @@ delete_asset_action.set_defaults(
 )
 
 power_asset_action.set_defaults(
-    func=lambda args: handle_link(args)
+    func=handle_link
 )
 
 drop_system_action.set_defaults(func=lambda args: sm.drop_model())

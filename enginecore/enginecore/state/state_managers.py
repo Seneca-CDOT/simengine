@@ -794,6 +794,9 @@ class BMCServerStateManager(ServerStateManager, IPMIComponent):
         super()._update_cpu_temp(0)
         return super().power_off()
 
+class SimplePSUStateManager(StateManager):
+    def __init__(self, asset_info, asset_type='psu', notify=False):
+        StateManager.__init__(self, asset_info, asset_type, notify)
 
 class PSUStateManager(StateManager, IPMIComponent):
 
@@ -814,7 +817,7 @@ class PSUStateManager(StateManager, IPMIComponent):
         super()._write_sensor_file(super()._get_psu_wattage_file(self._psu_number), wattage)
 
     def _update_fan_speed(self, value):
-        """Speed in In RPMs"""
+        """Speed In RPMs"""
         value = value if value >= 0 else 0    
         super()._write_sensor_file(super()._get_psu_fan_file(self._psu_number), value)
     

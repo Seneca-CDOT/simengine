@@ -246,16 +246,20 @@ class StateListener(Component):
 
             for parent_info in parent_assets:
                 parent = self._assets[parent_info['key']]
+                child = self._assets[child_key]
+
+                # load was already updated for ups parent
+                if child.state.asset_type == 'ups' and not child.state.status and not parent.state.status:
+                    return
 
                 parent_load_change = load_change * parent.state.draw_percentage
                 print("-- child [{}] load_upd as '{}', updating load for [{}], old load: {}"
                       .format(child_key, load_change, parent.key, parent.state.load))
-
+               
                 if increased:
                     event = PowerEventManager.map_load_increased_by(parent_load_change, child_key)
                 else: 
                     event = PowerEventManager.map_load_decreased_by(parent_load_change, child_key)
-
                 self.fire(event, parent)
     
     
@@ -332,6 +336,19 @@ class StateListener(Component):
                 if not second_parent_up:
                     event = PowerEventManager.map_parent_event(str(new_state))
                     self.fire(event, child_asset)
+
+                    # Special case for UPS
+                    if child_asset.state.asset_type == 'ups' and child_asset.state.battery_level:
+                        node_load = child_asset.state.load * updated_asset.state.draw_percentage
+
+                        # ups won't be powered off but the load has to change anyways
+                        if not new_state:
+                            load_upd = PowerEventManager.map_load_decreased_by(node_load, child_asset.key)
+                        else:
+                            load_upd = PowerEventManager.map_load_increased_by(node_load, child_asset.key)
+
+                        self.fire(load_upd, updated_asset)
+
 
                 # check upstream & branching power
                 # alternative power source is available, therefore the load needs to be re-directed

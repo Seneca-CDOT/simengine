@@ -29,6 +29,7 @@ class PduSnmpTest(unittest.TestCase):
         sm.drop_model()
         sm.create_outlet(1, attr)
 
+        attr['port'] = 1024
         sm.create_pdu(3, attr)
 
         sm.create_static(4, {

@@ -203,9 +203,13 @@ class IPMIAgent(Agent):
 
         # compile sensor definitions
         os.system("sdrcomp -o {} {}".format(sdr_main, sensor_def))
-
+        subprocess.call(['chmod', '-R', 'ugo+rwx', self._ipmi_dir])
         self.start_agent()
         IPMIAgent.agent_num += 1
+    
+    @property
+    def pid(self):
+        return self._process.pid
 
     def _substitute_template_file(self, filename, options):
         """Update file using python templating """
@@ -275,6 +279,10 @@ class SNMPAgent(Agent):
         SNMPAgent.agent_num += 1
 
 
+    @property
+    def pid(self):
+        return self._process.pid
+        
     def stop_agent(self):
         """ Logic for agent's termination """
         os.kill(self._process.pid, signal.SIGSTOP)
@@ -666,6 +674,7 @@ class ServerWithBMC(Server):
     
     def __init__(self, asset_info):
         asset_info['ipmi_dir'] = tempfile.mkdtemp()
+
         self._ipmi_agent = IPMIAgent(
             asset_info['key'], 
             asset_info['ipmi_dir'], 
@@ -699,13 +708,18 @@ class PSU(StaticAsset):
     StateManagerCls = sm.PSUStateManager
 
     def __init__(self, asset_info):
+        if asset_info['variation'] == 'server':
+            PSU.StateManagerCls = sm.SimplePSUStateManager
+        self._var = asset_info['variation'] 
         super(PSU, self).__init__(asset_info)
 
     @handler("ButtonPowerDownPressed")
     def on_asset_did_power_off(self):
-        self._state.set_psu_status(0x08)
+        if self._var != 'server':
+            self._state.set_psu_status(0x08)
 
     
     @handler("ButtonPowerUpPressed")
     def on_asset_did_power_on(self):
-        self._state.set_psu_status(0x01)
+        if self._var != 'server':
+            self._state.set_psu_status(0x01)

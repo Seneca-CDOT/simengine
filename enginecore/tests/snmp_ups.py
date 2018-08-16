@@ -29,7 +29,11 @@ class PduSnmpTest(unittest.TestCase):
         sm.drop_model()
         sm.create_outlet(1, attr)
 
-        sm.create_ups(3, attr)
+        sm.create_ups(3, {
+            'power_consumption': 240,
+            'power_source': 120,
+            'port': 1024
+        })
 
         sm.create_static(4, {
             'power_consumption': 240,

@@ -80,7 +80,7 @@ def link_assets(source_key, dest_key):
         if (not record) or (not 'link' in dict(record)):
             print('Invalid link configuration was provided')
 
-def _add_psu(key, psu_index, power_consumption, power_source, draw_percentage=1):
+def _add_psu(key, psu_index, power_consumption, power_source, variation, draw_percentage=1):
     with graph_ref.get_session() as session:
         session.run("\
         MATCH (asset:Asset {key: $pkey})\
@@ -90,7 +90,8 @@ def _add_psu(key, psu_index, power_consumption, power_source, draw_percentage=1)
             draw: $draw,\
             type: 'psu',\
             powerConsumption: $pc,\
-            powerSource: $ps\
+            powerSource: $ps,\
+            variation: $var \
         })\
         CREATE (asset)-[:HAS_COMPONENT]->(psu)\
         CREATE (asset)-[:POWERED_BY]->(psu)", 
@@ -99,7 +100,8 @@ def _add_psu(key, psu_index, power_consumption, power_source, draw_percentage=1)
         ps=power_source, 
         psuname='psu'+psu_index, 
         draw=draw_percentage, 
-        psukey=int("{}{}".format(key, psu_index))
+        psukey=int("{}{}".format(key, psu_index)),
+        var=variation.name.lower()
         )
     
 
@@ -170,6 +172,7 @@ def create_server(key, attr, server_variation=ServerVariations.Server):
                 str(i+1), 
                 attr['psu_power_consumption'], 
                 attr['psu_power_source'],
+                server_variation,
                 attr['psu_load'][i] if attr['psu_load'] else 1
             )
 
