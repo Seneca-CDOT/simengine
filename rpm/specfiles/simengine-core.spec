@@ -6,7 +6,6 @@ URL:       https://github.com/Seneca-CDOT/simengine
 License:   GPLv3+
 
 Source0:   %{name}-%{version}.tar.gz
-BuildArch: noarch
 
 BuildRequires: OpenIPMI-devel, gcc
 #Requires: simengine-database, python-pysnmp, python-circuits, python-snmpsim, python3-libvirt
