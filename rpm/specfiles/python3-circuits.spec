@@ -43,7 +43,6 @@ rm -rf %{pypi_name}.egg-info
 
 %install
 %py3_install
-#exit 0
 
 #%check
 #%{__python3} setup.py test
@@ -53,7 +52,7 @@ rm -rf %{pypi_name}.egg-info
 %doc README.rst
 %{_bindir}/circuits.bench
 %{_bindir}/circuits.web
-%{_bindir}/htpasswd
+%config%{_bindir}/htpasswd
 %{python3_sitelib}/%{pypi_name}
 %{python3_sitelib}/%{pypi_name}-%{version}-py?.?.egg-info
 

@@ -8,13 +8,15 @@ License:   GPLv3+
 Source0:   %{name}-%{version}.tar.gz
 
 BuildRequires: OpenIPMI-devel, gcc
-#Requires: simengine-database, python-pysnmp, python-circuits, python-snmpsim, python3-libvirt
-Requires: simengine-database, python3-libvirt, OpenIPMI, OpenIPMI-lanserv
+Requires: simengine-database, python3-libvirt, OpenIPMI, OpenIPMI-lanserv, python3-redis, python2-redis, python3-pysnmp, python3-neo4j-driver
 
 %description
 Core files for SimEngine.
 
 %global debug_package %{nil}
+
+%pre
+pip3 install circuits
 
 %prep
 %autosetup -c %{name}

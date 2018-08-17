@@ -57,7 +57,7 @@ exit 0
 
 %files -n python2-%{pypi_name}
 %license docs/source/license.rst LICENSE.txt
-%doc data/README.txt data/foreignformats/README.txt data/variation/README.txt data/variation/multiplex/README.txt data/public/README-v2c.txt data/public/1.3.6.1.2.1.100.1.2.0/README-v2c.txt data/public/1.3.6.1.2.1.100.1.2.0/README-v3.txt data/public/README-v3.txt data/public/1.3.6.1.6.1.1.0/README-v2c.txt data/public/1.3.6.1.6.1.1.0/README-v3.txt data/1.3.6.1.6.1.1.0/README-v2c.txt data/1.3.6.1.6.1.1.0/README-v3.txt README.md
+#%doc data/README.txt data/foreignformats/README.txt data/variation/README.txt data/variation/multiplex/README.txt data/public/README-v2c.txt data/public/1.3.6.1.2.1.100.1.2.0/README-v2c.txt data/public/1.3.6.1.2.1.100.1.2.0/README-v3.txt data/public/README-v3.txt data/public/1.3.6.1.6.1.1.0/README-v2c.txt data/public/1.3.6.1.6.1.1.0/README-v3.txt data/1.3.6.1.6.1.1.0/README-v2c.txt data/1.3.6.1.6.1.1.0/README-v3.txt README.md
 %{_bindir}/datafile.py
 %{_bindir}/mib2dev.py
 %{_bindir}/pcap2dev.py
@@ -65,6 +65,8 @@ exit 0
 %{_bindir}/snmpsimd.py
 %{python2_sitelib}/%{pypi_name}
 %{python2_sitelib}/%{pypi_name}-%{version}-py?.?.egg-info
+/usr/snmpsim/data
+/usr/snmpsim/variation
 
 %files -n python-%{pypi_name}-doc
 %doc html
