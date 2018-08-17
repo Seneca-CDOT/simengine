@@ -7,5 +7,5 @@ core () {
 }
 
 frontend () {
-
+	tar -czvf ~/rpmbuild/SOURCES/simengine-dashboard-1.tar.gz -C ~/Documents/Alteeve/SimEngine/Git\ Code/dashboard/frontend/public .
 }
