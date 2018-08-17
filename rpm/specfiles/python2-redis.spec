@@ -58,5 +58,5 @@ rm -rf %{pypi_name}.egg-info
 %{python2_sitelib}/%{pypi_name}-%{version}-py?.?.egg-info
 
 %changelog
-* Tue Jul 24 2018 Chris Johnson <christopher.johnson@senecacollege.ca> - 2.10.6-1
+* Fri Aug 17 2018 Chris Johnson <christopher.johnson@senecacollege.ca> - 2.10.6-1
 - Initial package.

@@ -68,5 +68,5 @@ rm -rf html/.{doctrees,buildinfo}
 %license docs/source/license.rst LICENSE.txt
 
 %changelog
-* Thu Aug 16 2018 Chris Johnson <christopher.johnson@senecacollege.ca> - 0.4.4-1
+* Fri Aug 17 2018 Chris Johnson <christopher.johnson@senecacollege.ca> - 0.4.4-1
 - Initial package.
