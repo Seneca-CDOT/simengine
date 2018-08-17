@@ -31,7 +31,7 @@ cp -fp haos_extend.so %{buildroot}/usr/lib/simengine/
 cp -fRp enginecore %{buildroot}/usr/share/simengine/
 cp -fRp data %{buildroot}/usr/share/simengine/
 cp -fp services/simengine-core.service %{buildroot}/usr/lib/systemd/system/
-ln -s enginecore/simengine-cli %{buildroot}/usr/bin/simengine-cli
+ln -s /usr/share/simengine/enginecore/simengine-cli %{buildroot}/usr/bin/simengine-cli
 exit 0
 
 %files
