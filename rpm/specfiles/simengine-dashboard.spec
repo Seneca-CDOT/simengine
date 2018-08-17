@@ -12,6 +12,8 @@ Requires: simengine-database, simengine-core, httpd
 %description
 Dashboard front-end website files for SimEngine.
 
+%global debug_package %{nil}
+
 %prep
 %autosetup -c %{name}
 
