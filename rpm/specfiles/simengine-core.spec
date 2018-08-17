@@ -29,6 +29,7 @@ mkdir -p %{buildroot}/usr/lib/systemd/system/
 mkdir -p %{buildroot}/usr/bin/
 cp -fp haos_extend.so %{buildroot}/usr/lib/simengine/
 cp -fRp enginecore %{buildroot}/usr/share/simengine/
+cp -fRp data %{buildroot}/usr/share/simengine/
 cp -fp services/simengine-core.service %{buildroot}/usr/lib/systemd/system/
 ln -s enginecore/simengine-cli %{buildroot}/usr/bin/simengine-cli
 exit 0
@@ -36,6 +37,7 @@ exit 0
 %files
 /usr/lib/simengine/haos_extend.so
 /usr/share/simengine/enginecore
+/usr/share/simengine/data
 /usr/lib/systemd/system/simengine-core.service
 /usr/bin/simengine-cli
 
