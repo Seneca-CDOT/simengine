@@ -169,20 +169,26 @@ Click on gear ⚙️ icon & choose ‘Save Layout’;
 # Management
 
 **UPS**
+
 UPSes’ SNMP interface can be reached at `192.168.124.3` & `192.168.124.4` 
 
 For example: 
+
 `snmpwalk -Cc -c public -v 1 192.168.124.3  .1.3.6.1.4.1.318.1.1.1.2.2`
+
 `snmpwalk -Cc -c public -v 1 192.168.124.4  .1.3.6.1.4.1.318.1.1.1.2.2`
 
 More documentation on UPS management can be found here: [link](https://simengine.readthedocs.io/en/latest/AssetsConfigurations/#ups);
 
 
 **PDU**
+
 PDUs SNMP interface is accessible at `192.168.124.5` & `192.168.124.6` 
 
 For example: 
+
 `snmpwalk -Cc -c public -v 1 192.168.124.5` 
+
 `snmpwalk -Cc -c public -v 1 192.168.124.6` 
 
 **Server-BMC**
@@ -190,16 +196,22 @@ For example:
 Servers that support BMC interface can be accessed from both host machine & the VMs:
 
 Running from host example:
+
 `ipmitool -H localhost -p 9001 -U ipmiusr -P test sdr list # server 7 (an-a01n01)`
+
 `ipmitool -H localhost -p 9101 -U ipmiusr -P test sdr list # server 8 (an-a01n02)` 
 
 VM:
+
 `sudo ipmitool sdr list`
 
 **Power Management**
 You can retrieve status of individual assets by issuing:
+
 `simengine-cli status -k1 # is out-1 up?` 
+
 And power them up/down:
+
 `simengine-cli power down -k1 # out-1 is down`
 
 More docs can be found here: [link](https://simengine.readthedocs.io/en/latest/PowerManagement/), see `simengine-cli status -h` and `simengine-cli power -h`
