@@ -21,6 +21,8 @@ physical devices, from SNMP Manager's point of view. Simulator builds and uses
 a database of physical devices' SNMP footprints to respond like their original
 counterparts do.
 
+%global debug_package %{nil}
+
 %package -n     python2-%{pypi_name}
 Summary:        %{summary}
 %{?python_provide:%python_provide python2-%{pypi_name}}
@@ -51,6 +53,7 @@ rm -rf html/.{doctrees,buildinfo}
 
 %install
 %py2_install
+exit 0
 
 %files -n python2-%{pypi_name}
 %license docs/source/license.rst LICENSE.txt

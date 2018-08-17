@@ -20,6 +20,8 @@ BuildRequires:  python3dist(setuptools-scm)
 Network: .. _Python Standard Library: .. _MIT License: .. _Create an Issue: ..
 _Mailing List: .. _Website: .. _PyPi: .. _Documentation: .. _Downloads:
 
+%global debug_package %{nil}
+
 %package -n     python3-%{pypi_name}
 Summary:        %{summary}
 %{?python_provide:%python_provide python3-%{pypi_name}}
@@ -41,9 +43,10 @@ rm -rf %{pypi_name}.egg-info
 
 %install
 %py3_install
+#exit 0
 
-%check
-%{__python3} setup.py test
+#%check
+#%{__python3} setup.py test
 
 %files -n python3-%{pypi_name}
 %license LICENSE

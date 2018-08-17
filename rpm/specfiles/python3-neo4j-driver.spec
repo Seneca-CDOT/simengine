@@ -21,6 +21,8 @@ block:: python from neo4j.v1 import GraphDatabase driver
 GraphDatabase.driver(":7687", auth("neo4j", "password")) def add_friends(tx,
 name, friend_name): tx.run("MERGE (a:Person...
 
+%global debug_package %{nil}
+
 %package -n     python3-%{pypi_name}
 Summary:        %{summary}
 %{?python_provide:%python_provide python3-%{pypi_name}}

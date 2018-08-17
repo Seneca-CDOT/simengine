@@ -48,8 +48,8 @@ rm -rf %{pypi_name}.egg-info
 %install
 %py2_install
 
-%check
-%{__python2} setup.py test
+#%check
+#%{__python2} setup.py test
 
 %files -n python2-%{pypi_name}
 %license LICENSE
