@@ -5,7 +5,7 @@ There're 6 supported asset types at the moment: Outlet, PDU, UPS, Server, Server
 
 *Note* that the main engine daemon will need to be reloaded before schema changes can take place (any `simengine model` commands require `simengine-core` restart).
 
-The first time you load the model in a web interface, the assets are going to be overlayed on top of each other. You will need to create your own layout by dragging the components around, clicking `Gear` icon located in the top bar and saving it by choosing `Save Layout` option.
+The first time you load the model in a web interface, the assets are going to be overlaid on top of each other. You will need to create your own layout by dragging the components around, clicking `Gear` icon located in the top bar and saving it by choosing `Save Layout` option.
 
 Note that the UI does not support system modelling tools at the moment.
 
