@@ -1,0 +1,4 @@
+enable simengine-core.service
+enable neo4j.service
+enable redis.service
+enable httpd.service
