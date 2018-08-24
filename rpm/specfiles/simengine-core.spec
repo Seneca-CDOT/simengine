@@ -8,7 +8,7 @@ License:   GPLv3+
 %global commit 1950343e75fcc5b647392e0b7925052d8a1b916f
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 
-Source0:  https://github.com/Seneca-CDOT/simengine/archive/%{commit}/simengine-%{shortcommit}.tar.gz  
+Source0:  https://github.com/Seneca-CDOT/simengine/archive/%{commit}/simengine-%{commit}.tar.gz  
 
 BuildRequires: OpenIPMI-devel, gcc
 Requires: simengine-database, python3-libvirt, OpenIPMI, OpenIPMI-lanserv, python3-redis, python2-redis, python3-pysnmp, python3-neo4j-driver
