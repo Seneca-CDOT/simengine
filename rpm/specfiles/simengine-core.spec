@@ -5,7 +5,10 @@ Summary:   SimEngine - Core
 URL:       https://github.com/Seneca-CDOT/simengine
 License:   GPLv3+
 
-Source0: https://github.com/Seneca-CDOT/simengine/archive/1950343e75fcc5b647392e0b7925052d8a1b916f/simengine.tar.gz
+%global commit 1950343e75fcc5b647392e0b7925052d8a1b916f
+%global shortcommit %(c=%{commit}; echo ${c:0:7})
+
+Source0:  https://github.com/Seneca-CDOT/simengine/archive/%{commit}/%{name}-%{shortcommit}.tar.gz  
 
 BuildRequires: OpenIPMI-devel, gcc
 Requires: simengine-database, python3-libvirt, OpenIPMI, OpenIPMI-lanserv, python3-redis, python2-redis, python3-pysnmp, python3-neo4j-driver
@@ -19,7 +22,7 @@ Core files for SimEngine.
 pip3 install circuits
 
 %prep
-%autosetup -c simengine-1950343e75fcc5b647392e0b7925052d8a1b916f
+%autosetup -n PROJECT-%{commit}
 
 %build
 gcc -shared -o %{_builddir}/%{name}-%{version}/haos_extend.so -fPIC %{_builddir}/%{name}-%{version}/enginecore/ipmi_sim/haos_extend.c
