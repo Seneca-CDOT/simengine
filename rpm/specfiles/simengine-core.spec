@@ -20,7 +20,7 @@ Core files for SimEngine.
 pip3 install circuits
 
 %prep
-%autosetup -c %{name}
+%autosetup -n %{name}
 
 %build
 gcc -shared -o %{_builddir}/%{name}-%{version}/haos_extend.so -fPIC %{_builddir}/%{name}-%{version}/enginecore/ipmi_sim/haos_extend.c
