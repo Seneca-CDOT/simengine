@@ -25,14 +25,14 @@ pip3 install circuits
 %autosetup -n simengine-%{commit}
 
 %build
-gcc -shared -o %{_builddir}/%{name}-%{version}/haos_extend.so -fPIC %{_builddir}/%{name}-%{version}/enginecore/ipmi_sim/haos_extend.c
+gcc -shared -o %{_builddir}/simengine-%{commit}/haos_extend.so -fPIC %{_builddir}/simengine-%{commit}/enginecore/ipmi_sim/haos_extend.c
 
 %install
 mkdir -p %{buildroot}%{_datadir}/simengine/
 mkdir -p %{buildroot}/usr/lib/simengine/
 mkdir -p %{buildroot}/usr/lib/systemd/system/
 mkdir -p %{buildroot}%{_bindir}/
-cp -fp %{name}-%{version}/haos_extend.so %{buildroot}/usr/lib/simengine/
+cp -fp haos_extend.so %{buildroot}/usr/lib/simengine/
 cp -fRp enginecore %{buildroot}%{_datadir}/simengine/
 cp -fRp data %{buildroot}%{_datadir}/simengine/
 cp -fp services/simengine-core.service %{buildroot}/usr/lib/systemd/system/
