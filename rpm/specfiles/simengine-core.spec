@@ -7,7 +7,7 @@ License:   GPLv3+
 
 %global gittag v0.1-beta
 
-Source0:  https://github.com/Seneca-CDOT/simengine/archive/simengine-%{gittag}.tar.gz  
+Source0: https://github.com/Seneca-CDOT/simengine/archive/{gittag}/simengine-0.1-beta.tar.gz  
 
 BuildRequires: OpenIPMI-devel, gcc
 Requires: simengine-database, python3-libvirt, OpenIPMI, OpenIPMI-lanserv, python3-redis, python2-redis, python3-pysnmp, python3-neo4j-driver
@@ -21,10 +21,10 @@ Core files for SimEngine.
 pip3 install circuits
 
 %prep
-%autosetup -n simengine-%{gittag}
+%autosetup -n simengine-0.1-beta
 
 %build
-gcc -shared -o %{_builddir}/simengine-%{gittag}/haos_extend.so -fPIC %{_builddir}/simengine-%{gittag}/enginecore/ipmi_sim/haos_extend.c
+gcc -shared -o %{_builddir}/simengine-0.1-beta/haos_extend.so -fPIC %{_builddir}/simengine-0.1-beta/enginecore/ipmi_sim/haos_extend.c
 
 %install
 mkdir -p %{buildroot}%{_datadir}/simengine/
