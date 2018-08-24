@@ -5,10 +5,9 @@ Summary:   SimEngine - Core
 URL:       https://github.com/Seneca-CDOT/simengine
 License:   GPLv3+
 
-%global commit 1950343e75fcc5b647392e0b7925052d8a1b916f
-%global shortcommit %(c=%{commit}; echo ${c:0:7})
+%global gittag v0.1-beta
 
-Source0:  https://github.com/Seneca-CDOT/simengine/archive/%{commit}/simengine-%{commit}.tar.gz  
+Source0:  https://github.com/Seneca-CDOT/simengine/archive/simengine-%{gittag}.tar.gz  
 
 BuildRequires: OpenIPMI-devel, gcc
 Requires: simengine-database, python3-libvirt, OpenIPMI, OpenIPMI-lanserv, python3-redis, python2-redis, python3-pysnmp, python3-neo4j-driver
@@ -22,10 +21,10 @@ Core files for SimEngine.
 pip3 install circuits
 
 %prep
-%autosetup -n simengine-%{commit}
+%autosetup -n simengine-%{gittag}
 
 %build
-gcc -shared -o %{_builddir}/simengine-%{commit}/haos_extend.so -fPIC %{_builddir}/simengine-%{commit}/enginecore/ipmi_sim/haos_extend.c
+gcc -shared -o %{_builddir}/simengine-%{gittag}/haos_extend.so -fPIC %{_builddir}/simengine-%{gittag}/enginecore/ipmi_sim/haos_extend.c
 
 %install
 mkdir -p %{buildroot}%{_datadir}/simengine/
@@ -53,7 +52,7 @@ systemctl enable simengine-core.service --now
 %changelog
 * Thu Aug 23 2018 Chris Johnson <chris.johnson@senecacollege.ca>
 - Converted paths to macros where applicable
-- Changed source to GitHub URL
+- Changed source to GitHub URL using gittag release version
 
 * Thu Aug 16 2018 Chris Johnson <chris.johnson@senecacollege.ca>
 - Updated dependencies
