@@ -32,7 +32,7 @@ mkdir -p %{buildroot}%{_datadir}/simengine/
 mkdir -p %{buildroot}/usr/lib/simengine/
 mkdir -p %{buildroot}/usr/lib/systemd/system/
 mkdir -p %{buildroot}%{_bindir}/
-cp -fp haos_extend.so %{buildroot}/usr/lib/simengine/
+cp -fp %{name}-%{version}/haos_extend.so %{buildroot}/usr/lib/simengine/
 cp -fRp enginecore %{buildroot}%{_datadir}/simengine/
 cp -fRp data %{buildroot}%{_datadir}/simengine/
 cp -fp services/simengine-core.service %{buildroot}/usr/lib/systemd/system/
