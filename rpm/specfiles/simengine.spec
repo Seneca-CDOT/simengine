@@ -1,11 +1,11 @@
 Name:      simengine
-Version:   1
+Version:   2
 Release:   2
 Summary:   SimEngine
 URL:       https://github.com/Seneca-CDOT/simengine
 License:   GPLv3+
 
-%global gittag 1
+%global gittag 2
 
 Source0: https://github.com/Seneca-CDOT/%{name}/archive/%{gittag}/%{name}-%{version}.tar.gz  
 
@@ -34,7 +34,7 @@ mkdir -p %{buildroot}/usr/lib/%{name}/
 mkdir -p %{buildroot}/usr/lib/systemd/%{name}/
 mkdir -p %{buildroot}%{_bindir}/
 mkdir -p %{buildroot}%{_var}/www/html/%{name}/
-cp -fRp dashboard/prebuild %{buildroot}%{_var}/www/html/%{name}/
+cp -fRp dashboard/prebuild/* %{buildroot}%{_var}/www/html/%{name}/
 cp -fp database/auth %{buildroot}%{_sharedstatedir}/neo4j/data/dbms/
 cp -fp haos_extend.so %{buildroot}/usr/lib/%{name}/
 cp -fRp enginecore %{buildroot}%{_datadir}/%{name}/
