@@ -50,6 +50,7 @@ exit 0
 %{_datadir}/%{name}/data
 /usr/lib/systemd/system/simengine-core.service
 %{_bindir}/simengine-cli
+%{_var}/www/html/%{name}/
 
 %post
 systemctl daemon-reload
