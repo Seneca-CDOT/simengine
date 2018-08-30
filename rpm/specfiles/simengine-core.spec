@@ -1,11 +1,13 @@
 Name:      simengine-core
 Version:   1
-Release:   1
+Release:   2
 Summary:   SimEngine - Core
 URL:       https://github.com/Seneca-CDOT/simengine
 License:   GPLv3+
 
-Source0:   %{name}-%{version}.tar.gz
+%global gittag 1
+
+Source0: https://github.com/Seneca-CDOT/simengine/archive/%{gittag}/simengine-%{version}.tar.gz  
 
 BuildRequires: OpenIPMI-devel, gcc
 Requires: simengine-database, python3-libvirt, OpenIPMI, OpenIPMI-lanserv, python3-redis, python2-redis, python3-pysnmp, python3-neo4j-driver
@@ -19,35 +21,39 @@ Core files for SimEngine.
 pip3 install circuits
 
 %prep
-%autosetup -c %{name}
+%autosetup -n simengine-%{version}
 
 %build
-gcc -shared -o %{_builddir}/%{name}-%{version}/haos_extend.so -fPIC %{_builddir}/%{name}-%{version}/enginecore/ipmi_sim/haos_extend.c
+gcc -shared -o %{_builddir}/simengine-%{version}/haos_extend.so -fPIC %{_builddir}/simengine-%{version}/enginecore/ipmi_sim/haos_extend.c
 
 %install
-mkdir -p %{buildroot}/usr/share/simengine/
+mkdir -p %{buildroot}%{_datadir}/simengine/
 mkdir -p %{buildroot}/usr/lib/simengine/
 mkdir -p %{buildroot}/usr/lib/systemd/system/
-mkdir -p %{buildroot}/usr/bin/
+mkdir -p %{buildroot}%{_bindir}/
 cp -fp haos_extend.so %{buildroot}/usr/lib/simengine/
-cp -fRp enginecore %{buildroot}/usr/share/simengine/
-cp -fRp data %{buildroot}/usr/share/simengine/
+cp -fRp enginecore %{buildroot}%{_datadir}/simengine/
+cp -fRp data %{buildroot}%{_datadir}/simengine/
 cp -fp services/simengine-core.service %{buildroot}/usr/lib/systemd/system/
-ln -s /usr/share/simengine/enginecore/simengine-cli %{buildroot}/usr/bin/simengine-cli
+ln -s /usr/share/simengine/enginecore/simengine-cli %{buildroot}%{_bindir}/simengine-cli
 exit 0
 
 %files
 /usr/lib/simengine/haos_extend.so
-/usr/share/simengine/enginecore
-/usr/share/simengine/data
+%{_datadir}/simengine/enginecore
+%{_datadir}/simengine/data
 /usr/lib/systemd/system/simengine-core.service
-/usr/bin/simengine-cli
+%{_bindir}/simengine-cli
 
 %post
 systemctl daemon-reload
 systemctl enable simengine-core.service --now
 
 %changelog
+* Thu Aug 23 2018 Chris Johnson <chris.johnson@senecacollege.ca>
+- Converted paths to macros where applicable
+- Changed source to GitHub URL using gittag release version
+
 * Thu Aug 16 2018 Chris Johnson <chris.johnson@senecacollege.ca>
 - Updated dependencies
 
