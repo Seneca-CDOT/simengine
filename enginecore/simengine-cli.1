@@ -1,0 +1,35 @@
+.TH SIMENGINE-CLI "1" "August 2018" "simengine-cli 2.0" "User Commands"
+.SH NAME
+simengine-cli \- manual page for simengine-cli 2.0
+.SH DESCRIPTION
+usage: simengine\-cli [\-h] [\-\-version] {power,status,model,configure\-state} ...
+.PP
+Software for interacting with the main daemon through the CLI. Simengine CLI provides a set of management tools for the engine core.
+.SH OPTIONS
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+show this help message and exit
+.TP
+\fB\-\-version\fR
+show program's version number and exit
+
+.SH COMMANDS
+.TP
+\fBpower\fR
+Control power component of registered asset(s); 
+.TP
+\fBstatus\fR
+Retrieve status of registered asset(s); 
+.TP
+\fBmodel\fR
+Manage system model: create new/update existing asset
+etc.; 
+.TP
+\fBconfigure\-state\fR
+Update runtime state of the assets; 
+
+.SH "SEE ALSO"
+Full documentation for the 
+.B simengine 
+project can be found here:
+https://simengine.readthedocs.io/en/latest/
