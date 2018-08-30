@@ -17,6 +17,7 @@ import signal
 import tempfile
 import json
 import time
+import sysconfig
 from threading import Thread
 from collections import namedtuple
 import datetime as dt
@@ -178,10 +179,12 @@ class IPMIAgent(Agent):
         sdr_main = os.path.join(*[self._ipmi_dir, 'emu_state', 'ipmi_sim', 'ipmisim1', 'sdr.20.main'])
         sensor_def = os.path.join(self._ipmi_dir, 'main.sdrs')
 
+        lib_path = os.path.join(sysconfig.get_config_var('LIBDIR'), "simengine", 'haos_extend.so')
+
         # Template options
         lan_conf_opt = {
             'asset_key': key, 
-            'extend_lib': '/usr/lib64/simengine/haos_extend.so',
+            'extend_lib': lib_path,
             'host': host,
             'port': port,
             'user': user,
@@ -234,14 +237,19 @@ class IPMIAgent(Agent):
         ipmisim_emu = os.path.join(self._ipmi_dir, 'ipmisim1.emu')
         state_dir = os.path.join(self._ipmi_dir, 'emu_state')
 
-        cmd = "ipmi_sim -c {} -f {} -s {} -n".format(lan_conf, ipmisim_emu, state_dir)
-        print(cmd)
+        cmd = ["ipmi_sim",
+               "-c", lan_conf,
+               "-f", ipmisim_emu,
+               "-s", state_dir,
+               "-n"]
+
+        print(' '.join(cmd))
+
         self._process = subprocess.Popen(
-            cmd, shell=True, stderr=subprocess.DEVNULL, stdout=open(os.devnull, 'wb'), close_fds=True
+            cmd, stderr=subprocess.DEVNULL, close_fds=True
         )
 
         print("Started ipmi_sim process under pid {}".format(self._process.pid))
-
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.stop_agent()
@@ -304,16 +312,20 @@ class SNMPAgent(Agent):
             return
 
         # start a new one
-        cmd = "snmpsimd.py --agent-udpv4-endpoint={}".format(self._host)
-        cmd += " --variation-module-options=redis:host:127.0.0.1,port:6379,db:0,key-spaces-id:"+str(self._key_space_id)
-        cmd += " --data-dir="+self._snmp_rec_dir
-        cmd += " --transport-id-offset="+str(SNMPAgent.agent_num)
-        cmd += " --process-user=nobody --process-group=nobody"
-        print(cmd)
-        self._process = subprocess.Popen(
-            cmd, shell=True, stderr=subprocess.DEVNULL, stdout=open(os.devnull, 'wb'), close_fds=True
-        )
+        cmd = ["snmpsimd.py", 
+               "--agent-udpv4-endpoint={}".format(self._host),
+               "--variation-module-options=redis:host:127.0.0.1,port:6379,db:0,key-spaces-id:"+str(self._key_space_id),
+               "--data-dir="+self._snmp_rec_dir,
+               "--transport-id-offset="+str(SNMPAgent.agent_num),
+               "--process-user=nobody",
+               "--process-group=nobody"
+              ]
 
+        print(' '.join(cmd))
+        self._process = subprocess.Popen(
+            cmd, stderr=subprocess.DEVNULL, close_fds=True
+        )
+    
         print("Started SNMPsim process under pid {}".format(self._process.pid))
 
 

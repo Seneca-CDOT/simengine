@@ -686,7 +686,7 @@ class ServerStateManager(StaticDeviceStateManager):
 
     def shut_down(self):
         if self._vm.isActive():
-            self._vm.shutdown()
+            self._vm.destroy()
             self.update_load(0)
         return super().shut_down()
 
