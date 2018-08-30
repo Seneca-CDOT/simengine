@@ -31,7 +31,7 @@ gcc -shared -o %{_builddir}/%{name}-%{version}/haos_extend.so -fPIC %{_builddir}
 mkdir -p %{buildroot}%{_sharedstatedir}/neo4j/data/dbms/
 mkdir -p %{buildroot}%{_datadir}/%{name}/
 mkdir -p %{buildroot}/usr/lib/%{name}/
-mkdir -p %{buildroot}/usr/lib/systemd/%{name}/
+mkdir -p %{buildroot}/usr/lib/systemd/system/
 mkdir -p %{buildroot}%{_bindir}/
 mkdir -p %{buildroot}%{_var}/www/html/%{name}/
 cp -fRp dashboard/prebuild/* %{buildroot}%{_var}/www/html/%{name}/
