@@ -9,6 +9,7 @@ The project exposes core assets’ functionalities through both GUI and UI thoug
 
 You can model your own set-up (see [System Modelling](./SystemModeling.md)) and automate/perform power-related tasks (see [Power Management](./PowerManagement.md)).
 
+See [Anvil Model](./AnvilModel.md) for a real-world high-availability system example;
 
 ![](./server.png)
 

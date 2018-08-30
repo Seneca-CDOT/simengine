@@ -6,38 +6,50 @@ URL:       https://github.com/Seneca-CDOT/simengine
 License:   GPLv3+
 
 Source0:   %{name}-%{version}.tar.gz
-BuildArch: noarch
 
-Requires: simengine-neo4jdb, simengine-redis
+BuildRequires: OpenIPMI-devel, gcc
+Requires: simengine-database, python3-libvirt, OpenIPMI, OpenIPMI-lanserv, python3-redis, python2-redis, python3-pysnmp, python3-neo4j-driver
 
 %description
 Core files for SimEngine.
+
+%global debug_package %{nil}
+
+%pre
+pip3 install circuits
 
 %prep
 %autosetup -c %{name}
 
 %build
+gcc -shared -o %{_builddir}/%{name}-%{version}/haos_extend.so -fPIC %{_builddir}/%{name}-%{version}/enginecore/ipmi_sim/haos_extend.c
 
 %install
-mkdir -p %{buildroot}%{_sharedstatedir}/%{name}/enginecore/script/
-mkdir -p %{buildroot}%{_libdir}/systemd/system/
-cp -fRp data %{buildroot}%{_sharedstatedir}/%{name}/
-cp -fRp enginecore %{buildroot}%{_sharedstatedir}/%{name}/enginecore/
-cp -fp snmppub.lua %{buildroot}%{_sharedstatedir}/%{name}/enginecore/script/
-cp -fp app.py %{buildroot}%{_sharedstatedir}/%{name}/enginecore/
-cp -fp simengine-core.service %{buildroot}%{_libdir}/systemd/system/
+mkdir -p %{buildroot}/usr/share/simengine/
+mkdir -p %{buildroot}/usr/lib/simengine/
+mkdir -p %{buildroot}/usr/lib/systemd/system/
+mkdir -p %{buildroot}/usr/bin/
+cp -fp haos_extend.so %{buildroot}/usr/lib/simengine/
+cp -fRp enginecore %{buildroot}/usr/share/simengine/
+cp -fRp data %{buildroot}/usr/share/simengine/
+cp -fp services/simengine-core.service %{buildroot}/usr/lib/systemd/system/
+ln -s /usr/share/simengine/enginecore/simengine-cli %{buildroot}/usr/bin/simengine-cli
 exit 0
 
 %files
-%{_sharedstatedir}/%{name}/data
-%{_sharedstatedir}/%{name}/enginecore/script/snmppub.lua
-%{_sharedstatedir}/%{name}/enginecore/app.py
-%{_sharedstatedir}/%{name}/enginecore/enginecore
-%attr(0644, root, root) %{_libdir}/systemd/system/simengine-core.service
+/usr/lib/simengine/haos_extend.so
+/usr/share/simengine/enginecore
+/usr/share/simengine/data
+/usr/lib/systemd/system/simengine-core.service
+/usr/bin/simengine-cli
 
 %post
+systemctl daemon-reload
 systemctl enable simengine-core.service --now
 
 %changelog
+* Thu Aug 16 2018 Chris Johnson <chris.johnson@senecacollege.ca>
+- Updated dependencies
+
 * Mon Jul 23 2018 Chris Johnson <chris.johnson@senecacollege.ca>
 - Initial alpha test file

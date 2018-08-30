@@ -5,6 +5,9 @@ After=redis.service
 
 [Service]
 ExecStart=/usr/share/simengine/enginecore/app.py
+Restart=always
+TimeoutStartSec=15s
+RestartSec=15s
 
 [Install]
 WantedBy=multi-user.target
