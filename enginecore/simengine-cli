@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 """ Command line interface for enginecore """
 # pylint: disable=C0103
 
@@ -158,6 +158,7 @@ argparser = argparse.ArgumentParser(
     description='Simengine CLI provides a set of management tools for the engine core'
 )
 subparsers = argparser.add_subparsers()
+argparser.add_argument('--version', action='version', version='%(prog)s 2.0')
 
 power_group = subparsers.add_parser('power', help="Control power component of registered asset(s)")
 
