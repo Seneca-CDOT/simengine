@@ -15,6 +15,7 @@ import pwd
 import grp
 import signal
 import tempfile
+import atexit
 import json
 import time
 import sysconfig
@@ -155,13 +156,26 @@ class Agent():
     """ Abstract Agent Class """
     agent_num = 1    
     
+    def __init__(self):
+        self._process = None
+
     def start_agent(self):
-        """ Logic for starting up the agent """
+        """Logic for starting up the agent """
         raise NotImplementedError
 
     def stop_agent(self):
-        """ Logic for agent's termination """
+        """Logic for agent's termination """
         raise NotImplementedError
+    
+    def register_process(self, process):
+        """Set process"""
+        self._process = process
+        atexit.register(self.cleanup)
+    
+    def cleanup(self):
+        """Ensure that the child processes are killed on exit"""
+        if not self._process.poll():
+            self._process.kill()
     
 
 class IPMIAgent(Agent):
@@ -169,7 +183,6 @@ class IPMIAgent(Agent):
     def __init__(self, key, ipmi_dir, num_psu, host='localhost', port=9001, vmport=9002, user='ipmiusr', password='test'):
         super(IPMIAgent, self).__init__()
         self._asset_key = key
-        self._process = None
         self._ipmi_dir = ipmi_dir
         copy_tree(os.environ.get('SIMENGINE_IPMI_TEMPL'), self._ipmi_dir)
 
@@ -209,10 +222,6 @@ class IPMIAgent(Agent):
         subprocess.call(['chmod', '-R', 'ugo+rwx', self._ipmi_dir])
         self.start_agent()
         IPMIAgent.agent_num += 1
-    
-    @property
-    def pid(self):
-        return self._process.pid
 
     def _substitute_template_file(self, filename, options):
         """Update file using python templating """
@@ -245,9 +254,9 @@ class IPMIAgent(Agent):
 
         print(' '.join(cmd))
 
-        self._process = subprocess.Popen(
+        self.register_process(subprocess.Popen(
             cmd, stderr=subprocess.DEVNULL, close_fds=True
-        )
+        ))
 
         print("Started ipmi_sim process under pid {}".format(self._process.pid))
 
@@ -261,7 +270,6 @@ class SNMPAgent(Agent):
 
         super(SNMPAgent, self).__init__()
         self._key_space_id = key
-        self._process = None
         self._snmp_rec_public_fname = public_community + '.snmprec'
         self._snmp_rec_private_fname = private_community + '.snmprec'
 
@@ -290,19 +298,9 @@ class SNMPAgent(Agent):
 
         SNMPAgent.agent_num += 1
 
-
-    @property
-    def pid(self):
-        return self._process.pid
-        
     def stop_agent(self):
         """ Logic for agent's termination """
         os.kill(self._process.pid, signal.SIGSTOP)
-
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        os.remove(os.path.join(self._snmp_rec_dir, self._snmp_rec_public_fname))
-
 
     def start_agent(self):
         """ Logic for starting up the agent """
@@ -322,9 +320,9 @@ class SNMPAgent(Agent):
               ]
 
         print(' '.join(cmd))
-        self._process = subprocess.Popen(
+        self.register_process(subprocess.Popen(
             cmd, stderr=subprocess.DEVNULL, close_fds=True
-        )
+        ))
     
         print("Started SNMPsim process under pid {}".format(self._process.pid))
 
