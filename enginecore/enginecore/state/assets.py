@@ -17,7 +17,7 @@ import signal
 import tempfile
 import json
 import time
-from threading import Thread, Event
+from threading import Thread
 from collections import namedtuple
 import datetime as dt
 from distutils.dir_util import copy_tree
@@ -257,7 +257,11 @@ class SNMPAgent(Agent):
         self._snmp_rec_public_fname = public_community + '.snmprec'
         self._snmp_rec_private_fname = private_community + '.snmprec'
 
-        self._snmp_rec_dir = tempfile.mkdtemp()
+        sys_temp = tempfile.gettempdir()
+        simengine_temp = os.path.join(sys_temp, 'simengine')
+        
+        self._snmp_rec_dir = os.path.join(simengine_temp, str(key))
+        os.makedirs(self._snmp_rec_dir)
         self._host = '{}:{}'.format(host, port)
         
         uid = pwd.getpwnam("nobody").pw_uid
@@ -673,8 +677,13 @@ class ServerWithBMC(Server):
     StateManagerCls = sm.BMCServerStateManager
     
     def __init__(self, asset_info):
-        asset_info['ipmi_dir'] = tempfile.mkdtemp()
 
+        sys_temp = tempfile.gettempdir()
+        simengine_temp = os.path.join(sys_temp, 'simengine')
+        
+        asset_info['ipmi_dir'] = os.path.join(simengine_temp, str(asset_info['key']))
+        os.makedirs(asset_info['ipmi_dir'])
+        
         self._ipmi_agent = IPMIAgent(
             asset_info['key'], 
             asset_info['ipmi_dir'], 
