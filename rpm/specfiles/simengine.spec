@@ -1,11 +1,11 @@
 Name:      simengine
-Version:   2
+Version:   3
 Release:   2
 Summary:   Hardware Simulation Engine
 URL:       https://github.com/Seneca-CDOT/simengine
 License:   GPLv3+
 
-%global gittag 2
+%global gittag 3
 
 Source0: https://github.com/Seneca-CDOT/%{name}/archive/%{gittag}/%{name}-%{version}.tar.gz  
 
