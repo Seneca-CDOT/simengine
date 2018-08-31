@@ -54,7 +54,10 @@ class Asset(Component):
         return self._state
     
     def power_up(self):
-        """ Power up this asset """
+        """Power up this asset 
+        Returns: 
+            PowerEventResult: tuple indicating asset key, type, old & new states
+        """
         old_state = self.state.status
         return PowerEventResult(
             asset_key=self._state.key, 
@@ -64,7 +67,10 @@ class Asset(Component):
         )
 
     def shut_down(self):
-        """ Shut down this asset """
+        """Shut down this asset 
+        Returns: 
+            PowerEventResult: tuple indicating asset key, type, old & new states
+        """
         old_state = self.state.status
         return PowerEventResult(
             asset_key=self._state.key, 
@@ -74,7 +80,10 @@ class Asset(Component):
         )
 
     def power_off(self):
-        """ Power down this asset """
+        """Power down this asset 
+        Returns: 
+            PowerEventResult: tuple indicating asset key, type, old & new states
+        """
         old_state = self.state.status
         return PowerEventResult(
             asset_key=self._state.key, 
@@ -83,12 +92,12 @@ class Asset(Component):
             new_state=self._state.power_off()
         )
 
-    def _update_load(self, load_change, op, msg=''):
+    def _update_load(self, load_change, arithmetic_op, msg=''):
         """React to load changes by updating asset load
         
         Args:
             load_change(float): how much AMPs need to be added/subtracted
-            op(callable): calculates new load (receives old load & measured load change)
+            arithmetic_op(callable): calculates new load (receives old load & measured load change)
             msg(str): message to be printed
         
         Returns:
@@ -96,7 +105,7 @@ class Asset(Component):
         """
         
         old_load = self._state.load
-        new_load = op(old_load, load_change)
+        new_load = arithmetic_op(old_load, load_change)
         
         if msg:
             print(msg.format(self._state.key, old_load, load_change, new_load))
@@ -112,36 +121,24 @@ class Asset(Component):
 
     @handler("ChildAssetPowerUp", "ChildAssetLoadIncreased")
     def on_load_increase(self, event, *args, **kwargs):
-        """Load is ramped up if child is powered up or child asset's load is increased"""
+        """Load is ramped up if child is powered up or child asset's load is increased
+        Returns: 
+            LoadEventResult: details on the asset state updates
+        """
+        
         increased_by = kwargs['child_load']
         msg = 'Asset : {} : orig load {}, increased by: {}, new load: {}'
         return self._update_load(increased_by, lambda old, change: old+change, msg)
 
     @handler("ChildAssetPowerDown", "ChildAssetLoadDecreased")
     def on_load_decrease(self, event, *args, **kwargs):
-        """Load is decreased if child is powered off or child asset's load is decreased"""
+        """Load is decreased if child is powered off or child asset's load is decreased
+        Returns: 
+            LoadEventResult: details on the asset state updates"""
+
         decreased_by = kwargs['child_load']
         msg = 'Asset : {} : orig load {}, decreased by: {}, new load: {}'
         return self._update_load(decreased_by, lambda old, change: old-change, msg)
-
-    ##### React to events associated with the asset #####
-    def on_asset_did_power_off(self):
-        """ Call when state of an asset is switched to 'off' """
-        raise NotImplementedError
-
-    def on_asset_did_power_on(self):
-        """ Call when state of an asset is switched to 'on' """
-        raise NotImplementedError
-
-
-    ##### React to any events of the connected components #####
-    def on_power_off_request_received(self):
-        """ Upstream loss of power """
-        raise NotImplementedError
-
-    def on_power_up_request_received(self):
-        """ Upstream power restored """        
-        raise NotImplementedError
 
     @classmethod
     def get_supported_assets(cls):
@@ -150,6 +147,12 @@ class Asset(Component):
 
     @classmethod
     def get_state_manager_by_key(cls, key, notify=True):
+        """Get a state manager specific to the asset type
+        Args:
+            key(int): asset key
+        Returns:
+            StateManager: instance of the StateManager sub-class
+        """
         return sm.StateManager.get_state_manager_by_key(key, cls.get_supported_assets(), notify)
 
 class Agent():

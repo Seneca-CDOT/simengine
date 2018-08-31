@@ -1,16 +1,15 @@
-""" Events """
+"""Contains list of asset events dispatched by the main listener """
 from circuits import Event
 
 class ButtonPowerDownPressed(Event):
-    """On Asset Did Power Down """
+    """On Asset Did Power Down (equivalent to power button press) """
 
 class ButtonPowerUpPressed(Event):
-    """On Asset Did Power Up """
+    """On Asset Did Power Up  (equivalent to power button press) """
 
 class ParentAssetPowerDown(Event):
     """On Parent Did Go Down """
     success = True
-    failure = True
     
 class ParentAssetPowerUp(Event):
     """On Parent Did Go Up """
@@ -33,14 +32,14 @@ class ChildAssetLoadDecreased(Event):
     success = True
 
 class SignalDown(Event):
-    """Asset Received power down request """
+    """Asset Received power down request/command """
     success = True
 
 class SignalUp(Event):
-    """Asset Received power Up request """
+    """Asset Received power Up request/command """
     success = True
 
 class SignalReboot(Event):
-    """Asset Received reboot request """
+    """Asset Received reboot request/command """
     success = True
     

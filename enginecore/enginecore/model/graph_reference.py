@@ -30,6 +30,7 @@ class GraphReference():
             session: database session
             asset_key(int): key of the *child asset
         Returns:
+            list: parent assets (powering child)
         """
         results = session.run(
             "MATCH (:Asset { key: $key })-[:POWERED_BY]->(asset:Asset) RETURN asset",
