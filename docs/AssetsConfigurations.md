@@ -48,7 +48,7 @@ runtime.json:
 
 Updating the model:
 
-`simengine-cli model update ups -k2 --runtime-graph "$(cat ./runtime.json)`
+`simengine-cli model update ups -k2 --runtime-graph "$(cat ./runtime.json)"`
 
 ### Power Capacity
 

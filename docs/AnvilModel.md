@@ -206,6 +206,8 @@ VM:
 `sudo ipmitool sdr list`
 
 **Power Management**
+
+
 You can retrieve status of individual assets by issuing:
 
 `simengine-cli status -k1 # is out-1 up?` 
@@ -216,9 +218,14 @@ And power them up/down:
 
 More docs can be found here: [link](https://simengine.readthedocs.io/en/latest/PowerManagement/), see `simengine-cli status -h` and `simengine-cli power -h`
 
+
 **Model Updates**
+
+
 You can update the existing model (for example, update UPS snmp ip address or server’s power consumption);
 
+
 **Note** that any model changes require `simengine-core` service restart;
+
 
 see `simengine-cli model update` for more information;
