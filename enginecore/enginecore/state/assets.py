@@ -134,7 +134,8 @@ class Asset(Component):
     def on_load_decrease(self, event, *args, **kwargs):
         """Load is decreased if child is powered off or child asset's load is decreased
         Returns: 
-            LoadEventResult: details on the asset state updates"""
+            LoadEventResult: details on the asset state updates
+        """
 
         decreased_by = kwargs['child_load']
         msg = 'Asset : {} : orig load {}, decreased by: {}, new load: {}'
@@ -156,25 +157,33 @@ class Asset(Component):
         return sm.StateManager.get_state_manager_by_key(key, cls.get_supported_assets(), notify)
 
 class Agent():
-    """ Abstract Agent Class """
+    """Abstract Agent Class """
     agent_num = 1    
     
+
     def __init__(self):
         self._process = None
+
 
     def start_agent(self):
         """Logic for starting up the agent """
         raise NotImplementedError
 
+
     def stop_agent(self):
         """Logic for agent's termination """
-        raise NotImplementedError
+        os.kill(self._process.pid, signal.SIGSTOP)
     
+
     def register_process(self, process):
-        """Set process"""
+        """Set process instance
+        Args:
+            process(Popen): process to be managed
+        """
         self._process = process
         atexit.register(self.cleanup)
     
+
     def cleanup(self):
         """Ensure that the child processes are killed on exit"""
         if not self._process.poll():
@@ -183,6 +192,7 @@ class Agent():
 
 class IPMIAgent(Agent):
     """IPMIsim instance """
+
     def __init__(self, key, ipmi_dir, num_psu, host='localhost', port=9001, vmport=9002, user='ipmiusr', password='test'):
         super(IPMIAgent, self).__init__()
         self._asset_key = key
@@ -207,6 +217,7 @@ class IPMIAgent(Agent):
             'password': password,
             'vmport': vmport
         }
+        
         ipmisim_emu_opt = {'ipmi_dir': self._ipmi_dir, 'includes': ''}
         main_sdr_opt = {'ipmi_dir': self._ipmi_dir, 'includes': ''}
 
@@ -226,6 +237,7 @@ class IPMIAgent(Agent):
         self.start_agent()
         IPMIAgent.agent_num += 1
 
+
     def _substitute_template_file(self, filename, options):
         """Update file using python templating """
         with open(filename, "r+") as filein:
@@ -233,9 +245,6 @@ class IPMIAgent(Agent):
             filein.seek(0)
             filein.write(template.substitute(options))
 
-    def stop_agent(self):
-        """ Logic for agent's termination """
-        os.kill(self._process.pid, signal.SIGSTOP)
 
     def start_agent(self):
         """ Logic for starting up the agent """
@@ -263,16 +272,20 @@ class IPMIAgent(Agent):
 
         print("Started ipmi_sim process under pid {}".format(self._process.pid))
 
+
     def __exit__(self, exc_type, exc_value, traceback):
         self.stop_agent()
 
+
 class SNMPAgent(Agent):
-    """ SNMP simulator instance """
+    """SNMP simulator instance """
 
     def __init__(self, key, host, port, public_community='public', private_community='private', lookup_oid='1.3.6'):
 
         super(SNMPAgent, self).__init__()
         self._key_space_id = key
+
+        # set up community strings
         self._snmp_rec_public_fname = public_community + '.snmprec'
         self._snmp_rec_private_fname = private_community + '.snmprec'
 
@@ -283,9 +296,11 @@ class SNMPAgent(Agent):
         os.makedirs(self._snmp_rec_dir)
         self._host = '{}:{}'.format(host, port)
         
+        # snmpsimd.py will be run by a user 'nobody'
         uid = pwd.getpwnam("nobody").pw_uid
         gid = grp.getgrnam("nobody").gr_gid
         
+        # change ownership
         os.chown(self._snmp_rec_dir, uid, gid)
         snmp_rec_public_filepath = os.path.join(self._snmp_rec_dir, self._snmp_rec_public_fname)
         snmp_rec_private_filepath = os.path.join(self._snmp_rec_dir, self._snmp_rec_private_fname)
@@ -301,12 +316,9 @@ class SNMPAgent(Agent):
 
         SNMPAgent.agent_num += 1
 
-    def stop_agent(self):
-        """ Logic for agent's termination """
-        os.kill(self._process.pid, signal.SIGSTOP)
 
     def start_agent(self):
-        """ Logic for starting up the agent """
+        """Logic for starting up the agent """
         # resume if process has been paused
         if self._process:
             os.kill(self._process.pid, signal.SIGCONT)
@@ -361,6 +373,7 @@ class PDU(Asset, SNMPSim):
             port=asset_info['port'] if 'port' in asset_info else 161
         )
 
+
     ##### React to any events of the connected components #####
     @handler("ParentAssetPowerDown")
     def on_power_off_request_received(self, event, *args, **kwargs):
@@ -371,6 +384,7 @@ class PDU(Asset, SNMPSim):
             event.success = False
 
         return e_result
+
 
     @handler("ParentAssetPowerUp")
     def on_power_up_request_received(self, event, *args, **kwargs):
@@ -421,11 +435,13 @@ class UPS(Asset, SNMPSim):
         """Approximate runtime estimation based on current battery level""" 
         return (self._calc_full_power_time_left(wattage)*self._state.battery_level)/self._state.battery_max_level
 
+
     def _calc_full_power_time_left(self, wattage):
         """Approximate runtime estimation for the fully-charged battery""" 
         close_wattage = min(self._runtime_details, key=lambda x: abs(int(x)-wattage))
         close_timeleft = self._runtime_details[close_wattage]
         return (close_timeleft * int(close_wattage)) / wattage # inverse proportion
+
 
     def _calc_battery_discharge(self):
         """Approximate battery discharge per second based on the runtime model & current wattage draw
@@ -485,6 +501,7 @@ class UPS(Asset, SNMPSim):
 
             time.sleep(1)
 
+
     def _launch_battery_drain(self):
         """Start a thread that will decrease battery level """
         self._start_time_battery = dt.datetime.now()
@@ -499,6 +516,7 @@ class UPS(Asset, SNMPSim):
         )
         self._battery_drain_t.daemon = True
         self._battery_drain_t.start()
+
 
     def _launch_battery_charge(self, power_up_on_charge=False):
         """Start a thread that will charge battery level """
@@ -590,6 +608,7 @@ class UPS(Asset, SNMPSim):
         self._state.update_time_left(self._cacl_time_left(self._state.wattage) * 60 * 100)
         return upd_result
 
+
 @register_asset
 class Outlet(Asset):
 
@@ -655,6 +674,7 @@ class Outlet(Asset):
             asset_type=self._state.asset_type
         )
 
+
 @register_asset
 class StaticAsset(Asset):
 
@@ -673,6 +693,7 @@ class StaticAsset(Asset):
     def on_power_up_request_received(self):
         return self.power_up()
 
+
 @register_asset
 class Server(StaticAsset):
     """Asset controlling a VM (without IPMI support) """
@@ -682,6 +703,7 @@ class Server(StaticAsset):
     def __init__(self, asset_info):
         super(Server, self).__init__(asset_info)
         self._state.power_up()
+    
     
 @register_asset
 class ServerWithBMC(Server):
@@ -710,7 +732,6 @@ class ServerWithBMC(Server):
 
         super(ServerWithBMC, self).__init__(asset_info)
         self._state.set_state_dir(asset_info['ipmi_dir'])
-
         
     
     @handler("ParentAssetPowerDown")
@@ -718,10 +739,12 @@ class ServerWithBMC(Server):
         self._ipmi_agent.stop_agent()
         return self.power_off()
 
+
     @handler("ParentAssetPowerUp")
     def on_power_up_request_received(self):
         self._ipmi_agent.start_agent() 
         return self.power_up()
+
 
 @register_asset
 class PSU(StaticAsset):
@@ -734,6 +757,7 @@ class PSU(StaticAsset):
             PSU.StateManagerCls = sm.SimplePSUStateManager
         self._var = asset_info['variation'] 
         super(PSU, self).__init__(asset_info)
+
 
     @handler("ButtonPowerDownPressed")
     def on_asset_did_power_off(self):
