@@ -13,7 +13,7 @@ import enginecore.model.system_modeler as sm
 
 from enginecore.state.state_managers import StateManager, PDUStateManager
 
-class PduSnmpTest(unittest.TestCase):
+class UpsSnmpTest(unittest.TestCase):
 
 
     """Test for the server load""" 
@@ -63,7 +63,7 @@ class PduSnmpTest(unittest.TestCase):
         for key, value in expected_kv.items():
             # check values
             r_key = key
-            r_value = PduSnmpTest.redis_store.get(r_key)
+            r_value = UpsSnmpTest.redis_store.get(r_key)
             self.assertEqual(float(value), float(r_value), msg="asset [{}] = {}, expected({})".format(key, r_value, value))
          
 
@@ -118,7 +118,7 @@ class PduSnmpTest(unittest.TestCase):
         # Check OIDs once load gets updated
         expected_state['1-outlet'] = 0
 
-        thread = Thread(target=wait_redis_update, args=(PduSnmpTest.redis_store, 'load-upd', expected_state, 2))
+        thread = Thread(target=wait_redis_update, args=(UpsSnmpTest.redis_store, 'load-upd', expected_state, 2))
         thread.start()
         sm_out_1.shut_down()
         
@@ -141,7 +141,7 @@ class PduSnmpTest(unittest.TestCase):
 
         print("-> Powering down child component")
         
-        thread = Thread(target=wait_redis_update, args=(PduSnmpTest.redis_store, 'load-upd', expected_state, 3))
+        thread = Thread(target=wait_redis_update, args=(UpsSnmpTest.redis_store, 'load-upd', expected_state, 3))
         thread.start()
         sm_out_31.shut_down()
         
@@ -167,7 +167,7 @@ class PduSnmpTest(unittest.TestCase):
         
         expected_state['1-outlet'] = 1
 
-        thread = Thread(target=wait_redis_update, args=(PduSnmpTest.redis_store, 'load-upd', expected_state, 2))
+        thread = Thread(target=wait_redis_update, args=(UpsSnmpTest.redis_store, 'load-upd', expected_state, 2))
         thread.start()
         sm_out_1.power_up()
         
@@ -189,7 +189,7 @@ class PduSnmpTest(unittest.TestCase):
 
 
     def tearDown(self):
-        pass #PduSnmpTest.app.stop()
+        pass #UpsSnmpTest.app.stop()
         
 if __name__ == '__main__':
     unittest.main()

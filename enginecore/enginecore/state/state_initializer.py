@@ -1,4 +1,4 @@
-""" Initialize redis state based on reference model """
+"""Initialize redis state based on reference model """
 import os
 import redis
 from enginecore.model.graph_reference import GraphReference

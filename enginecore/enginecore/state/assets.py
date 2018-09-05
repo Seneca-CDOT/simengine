@@ -9,6 +9,9 @@ Example:
     It can also wrap SNMPAgent if supported.
 
 """
+# **due to circuit callback signature
+# pylint: disable=W0613
+
 import subprocess
 import os
 import pwd
@@ -305,6 +308,7 @@ class SNMPAgent(Agent):
         snmp_rec_public_filepath = os.path.join(self._snmp_rec_dir, self._snmp_rec_public_fname)
         snmp_rec_private_filepath = os.path.join(self._snmp_rec_dir, self._snmp_rec_private_fname)
 
+        # get location of the lua script that will be executed by snmpsimd
         redis_script_sha = os.environ.get('SIMENGINE_SNMP_SHA')
         snmpsim_config = "{}|:redis|key-spaces-id={},evalsha={}\n".format(lookup_oid, key, redis_script_sha)
 
@@ -324,6 +328,8 @@ class SNMPAgent(Agent):
             os.kill(self._process.pid, signal.SIGCONT)
             return
 
+        log_file = os.path.join(self._snmp_rec_dir, "snmpsimd.log")
+        
         # start a new one
         cmd = ["snmpsimd.py", 
                "--agent-udpv4-endpoint={}".format(self._host),
@@ -331,7 +337,9 @@ class SNMPAgent(Agent):
                "--data-dir="+self._snmp_rec_dir,
                "--transport-id-offset="+str(SNMPAgent.agent_num),
                "--process-user=nobody",
-               "--process-group=nobody"
+               "--process-group=nobody",
+               # "--daemonize",
+               "--logging-method=file:"+log_file
               ]
 
         print(' '.join(cmd))
@@ -360,12 +368,18 @@ class SNMPSim():
 
 @register_asset
 class PDU(Asset, SNMPSim):
+    """Provides reactive logic for PDU & manages snmp simulator instance
+    Example:
+        powers down when upstream power becomes unavailable 
+        powers back up when upstream power is restored
+    """
 
     channel = "engine-pdu"
     StateManagerCls = sm.PDUStateManager
 
     def __init__(self, asset_info):
         Asset.__init__(self, PDU.StateManagerCls(asset_info))
+        # Run snmpsim instance
         SNMPSim.__init__(
             self, 
             key=asset_info['key'],
@@ -376,28 +390,37 @@ class PDU(Asset, SNMPSim):
 
     ##### React to any events of the connected components #####
     @handler("ParentAssetPowerDown")
-    def on_power_off_request_received(self, event, *args, **kwargs):
-        
+    def on_parent_asset_power_down(self, event, *args, **kwargs):
+        """Power off & stop snmp simulator instance when parent is down"""
+
         e_result = self.power_off()
         
         if e_result.new_state == e_result.old_state:
             event.success = False
+        else:
+            self._snmp_agent.stop_agent()
 
         return e_result
 
 
     @handler("ParentAssetPowerUp")
     def on_power_up_request_received(self, event, *args, **kwargs):
+        """Power up PDU when upstream power source is restored """
         e_result = self.power_up()
-
-        if e_result.new_state == e_result.old_state:
-            event.success = False
+        event.success = e_result.new_state != e_result.old_state
 
         return e_result
 
 
 @register_asset
 class UPS(Asset, SNMPSim):
+    """Provides reactive logic for UPS & manages snmp simulator instance
+
+    Example:
+        drains battery when upstream power becomes unavailable 
+        charges battery when upstream power is restored
+    """
+
     channel = "engine-ups"
     StateManagerCls = sm.UPSStateManager
 
@@ -450,22 +473,29 @@ class UPS(Asset, SNMPSim):
             float: discharge per second 
         """
         # return 100
-        # Get the wattage 
         wattage = self._state.wattage
         fp_estimated_timeleft = self._calc_full_power_time_left(wattage)
         return self._state.battery_max_level / (fp_estimated_timeleft*60)
 
 
     def _drain_battery(self, parent_up):
-        """When parent is not available -> drain battery """
+        """When parent is not available -> drain battery 
+        
+        Args:
+            parent_up(callable): indicates if the upstream power is available
+        """
 
         battery_level = self._state.battery_level
         blackout = False
 
-        # drain power
+        # keep draining battery while its level remains above 0, UPS is on and parent is down
         while battery_level > 0 and self._state.status and not parent_up():
+
+            # calculate new battery level
             battery_level = battery_level - (self._calc_battery_discharge() * self._drain_speed_factor)
             seconds_on_battery = (dt.datetime.now() - self._start_time_battery).seconds
+            
+            # update state details
             self._state.update_battery(battery_level)
             self._state.update_time_left(self._cacl_time_left(self._state.wattage) * 60 * 100)
             self._state.update_time_on_battery(seconds_on_battery * 100)
@@ -484,16 +514,28 @@ class UPS(Asset, SNMPSim):
 
 
     def _charge_battery(self, parent_up, power_up_on_charge=False):
-        """Charge battery when there's upstream power source & battery is not full"""
+        """Charge battery when there's upstream power source & battery is not full
+                
+        Args:
+            parent_up(callable): indicates if the upstream power is available
+            power_up_on_charge(boolean): indicates if the asset should be powered up when min charge level is achieved
+
+        """
 
         battery_level = self._state.battery_level
         powered = False
 
-        # charge -> (only if the upstream power is available (the battery is not being drained))
+        # keep charging battery while its level is less than max & parent is up
         while battery_level < self._state.battery_max_level and parent_up():
+
+            # calculate new battery level
             battery_level = battery_level + (self._charge_per_second * self._charge_speed_factor)
+
+            # update state details
             self._state.update_battery(battery_level)
             self._state.update_time_left(self._cacl_time_left(self._state.wattage) * 60 * 100)
+
+            # power up on min charge level
             if (not powered and power_up_on_charge) and (battery_level > self._state.min_restore_charge_level):
                 e_result = self.power_up()
                 powered = e_result.new_state
@@ -504,11 +546,14 @@ class UPS(Asset, SNMPSim):
 
     def _launch_battery_drain(self):
         """Start a thread that will decrease battery level """
+
         self._start_time_battery = dt.datetime.now()
 
+        # update state details
         self._state.update_ups_output_status(sm.UPSStateManager.OutputStatus.onBattery)
         self._state.update_transfer_reason(sm.UPSStateManager.InputLineFailCause.deepMomentarySag)
         
+        # launch a thread
         self._battery_drain_t = Thread(
             target=self._drain_battery, 
             args=(lambda: self._parent_up,), 
@@ -522,9 +567,11 @@ class UPS(Asset, SNMPSim):
         """Start a thread that will charge battery level """
         self._state.update_time_on_battery(0)
 
+        # update state details
         self._state.update_ups_output_status(sm.UPSStateManager.OutputStatus.onLine)
         self._state.update_transfer_reason(sm.UPSStateManager.InputLineFailCause.noTransfer)
 
+        # launch a thread
         self._battery_charge_t = Thread(
             target=self._charge_battery, 
             args=(lambda: self._parent_up, power_up_on_charge),
@@ -535,9 +582,10 @@ class UPS(Asset, SNMPSim):
 
 
     ##### React to any events of the connected components #####
-    @handler("ParentAssetPowerDown", "SignalDown")
-    def on_power_off_request_received(self, event, *args, **kwargs):
-        
+    @handler("ParentAssetPowerDown")
+    def on_parent_asset_power_down(self, event, *args, **kwargs):
+        """Upstream power was lost"""
+
         self._parent_up = False
 
         # If battery is still alive -> keep UPS up
@@ -549,16 +597,24 @@ class UPS(Asset, SNMPSim):
         # Battery is dead
         self._state.update_ups_output_status(sm.UPSStateManager.OutputStatus.off)
 
+        e_result = self.power_off()
+        event.success = e_result.new_state != e_result.old_state
+
+        return e_result   
+    
+    @handler("SignalDown")
+    def on_signal_down_received(self, event, *args, **kwargs):
+        """UPS can be powered down by snmp command"""
+        self._state.update_ups_output_status(sm.UPSStateManager.OutputStatus.off)
+
         if 'graceful' in kwargs and kwargs['graceful']:
             e_result = self.shut_down()
         else:
             e_result = self.power_off()
         
-        if e_result.new_state == e_result.old_state:
-            event.success = False
+        event.success = e_result.new_state != e_result.old_state
 
-        return e_result   
-    
+        return e_result  
 
     @handler("ButtonPowerUpPressed")
     def on_ups_signal_up(self):
@@ -577,8 +633,7 @@ class UPS(Asset, SNMPSim):
 
         if battery_level:
             e_result = self.power_up()
-            if e_result.new_state == e_result.old_state:
-                event.success = False
+            event.success = e_result.new_state != e_result.old_state
 
             return e_result
         else:
@@ -603,8 +658,9 @@ class UPS(Asset, SNMPSim):
     def drain_speed_factor(self, speed):
         self._drain_speed_factor = speed
 
-    def _update_load(self, load_change, op, msg=''):
-        upd_result = super()._update_load(load_change, op, msg)
+    def _update_load(self, load_change, arithmetic_op, msg=''):
+        upd_result = super()._update_load(load_change, arithmetic_op, msg)
+        # re-calculate time left based on updated load
         self._state.update_time_left(self._cacl_time_left(self._state.wattage) * 60 * 100)
         return upd_result
 
@@ -650,9 +706,7 @@ class Outlet(Asset):
             time.sleep(self._state.get_config_on_delay())
 
         e_result = self.power_up()
-
-        if e_result.new_state == e_result.old_state:
-            event.success = False
+        event.success = e_result.new_state != e_result.old_state
 
         return e_result
         
@@ -685,7 +739,7 @@ class StaticAsset(Asset):
         self._state.update_load(self._state.power_usage)
 
     @handler("ParentAssetPowerDown")
-    def on_power_off_request_received(self, event, *args, **kwargs): 
+    def on_parent_asset_power_down(self, event, *args, **kwargs): 
         return self.power_off()
 
 
@@ -735,7 +789,7 @@ class ServerWithBMC(Server):
         
     
     @handler("ParentAssetPowerDown")
-    def on_power_off_request_received(self, event, *args, **kwargs):
+    def on_parent_asset_power_down(self, event, *args, **kwargs):
         self._ipmi_agent.stop_agent()
         return self.power_off()
 

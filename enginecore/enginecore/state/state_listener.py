@@ -145,79 +145,6 @@ class StateListener(Component):
         # fire-up power events down the power stream
         self.fire(PowerEventManager.map_asset_event(asset_status), updated_asset)
         self._chain_power_update(PowerEventResult(asset_key=asset_key, new_state=asset_status))
-            
-    def monitor_battery(self):
-        """Monitor battery in a separate pub/sub stream"""
-        message = self.bat_pubsub.get_message()
-
-        # validate message
-        if ((not message) or ('data' not in message) or (not isinstance(message['data'], bytes))):
-            return
-        
-        data = message['data'].decode("utf-8")
-        try:
-            if message['channel'] == str.encode(RedisChannels.battery_update_channel):
-                asset_key, _ = data.split('-')
-                self._notify_client(int(asset_key), {'battery': self._assets[int(asset_key)].state.battery_level})
-            elif message['channel'] == str.encode(RedisChannels.battery_conf_charge_channel):
-                asset_key, _ = data.split('-')
-                _, speed = data.split('|')
-                self._assets[int(asset_key)].charge_speed_factor = float(speed)
-            elif message['channel'] == str.encode(RedisChannels.battery_conf_drain_channel):
-                asset_key, _ = data.split('-')
-                _, speed = data.split('|')
-                self._assets[int(asset_key)].drain_speed_factor = float(speed)
-
-
-        except KeyError as error:
-            print("Detected unregistered asset under key [{}]".format(error), file=sys.stderr)
-
-    def monitor(self):
-        """ listens to redis events """
-
-        print("...")
-        message = self.pubsub.get_message()
-
-        # validate message
-        if ((not message) or ('data' not in message) or (not isinstance(message['data'], bytes))):
-            return
-        
-        data = message['data'].decode("utf-8")
-
-        # interpret the published message 
-        # "state-upd" indicates that certain asset was powered on/off by the interface(s)
-        # "oid-upd" is published when SNMPsim updates an OID
-        try:
-            if message['channel'] == str.encode(RedisChannels.state_update_channel):
-                asset_key, asset_type = data.split('-')
-                if asset_type in Asset.get_supported_assets():
-                    self._handle_state_update(int(asset_key))
-
-            elif message['channel'] == str.encode(RedisChannels.oid_update_channel):
-                value = (self.redis_store.get(data)).decode()
-                asset_key, oid = data.split('-')
-                self._handle_oid_update(int(asset_key), oid, value)
-
-            elif message['channel'] == str.encode(RedisChannels.battery_update_channel):
-                asset_key, _ = data.split('-')
-                self._notify_client(int(asset_key), {'battery': self._assets[int(asset_key)].state.battery_level})
-
-        except KeyError as error:
-            print("Detected unregistered asset under key [{}]".format(error), file=sys.stderr)
-
-
-    def get_assets(self):
-        """Get running asset instances """
-        return self._assets
-
-
-    def started(self, *args):
-        """
-            Called on start
-        """
-        print('Listening to Redis events')
-        Timer(0.5, Event.create("monitor"), persist=True).register(self)
-        Timer(1, Event.create("monitor_battery"), persist=True).register(self)
 
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -249,7 +176,7 @@ class StateListener(Component):
                 child = self._assets[child_key]
 
                 # load was already updated for ups parent
-                if child.state.asset_type == 'ups' and not child.state.status and not parent.state.status:
+                if child.state.asset_type == 'ups' and not parent.state.status:
                     return
 
                 parent_load_change = load_change * parent.state.draw_percentage
@@ -387,10 +314,81 @@ class StateListener(Component):
             'data': data
         }), self._ws)
 
+
+    def monitor_battery(self):
+        """Monitor battery in a separate pub/sub stream"""
+        message = self.bat_pubsub.get_message()
+
+        # validate message
+        if ((not message) or ('data' not in message) or (not isinstance(message['data'], bytes))):
+            return
+        
+        data = message['data'].decode("utf-8")
+        try:
+            if message['channel'] == str.encode(RedisChannels.battery_update_channel):
+                asset_key, _ = data.split('-')
+                self._notify_client(int(asset_key), {'battery': self._assets[int(asset_key)].state.battery_level})
+            elif message['channel'] == str.encode(RedisChannels.battery_conf_charge_channel):
+                asset_key, _ = data.split('-')
+                _, speed = data.split('|')
+                self._assets[int(asset_key)].charge_speed_factor = float(speed)
+            elif message['channel'] == str.encode(RedisChannels.battery_conf_drain_channel):
+                asset_key, _ = data.split('-')
+                _, speed = data.split('|')
+                self._assets[int(asset_key)].drain_speed_factor = float(speed)
+
+
+        except KeyError as error:
+            print("Detected unregistered asset under key [{}]".format(error), file=sys.stderr)
+
+
+    def monitor_state(self):
+        """ listens to redis events """
+
+        print("...")
+        message = self.pubsub.get_message()
+
+        # validate message
+        if ((not message) or ('data' not in message) or (not isinstance(message['data'], bytes))):
+            return
+        
+        data = message['data'].decode("utf-8")
+
+        # interpret the published message 
+        # "state-upd" indicates that certain asset was powered on/off by the interface(s)
+        # "oid-upd" is published when SNMPsim updates an OID
+        try:
+            if message['channel'] == str.encode(RedisChannels.state_update_channel):
+                asset_key, asset_type = data.split('-')
+                if asset_type in Asset.get_supported_assets():
+                    self._handle_state_update(int(asset_key))
+
+            elif message['channel'] == str.encode(RedisChannels.oid_update_channel):
+                value = (self.redis_store.get(data)).decode()
+                asset_key, oid = data.split('-')
+                self._handle_oid_update(int(asset_key), oid, value)
+
+            elif message['channel'] == str.encode(RedisChannels.battery_update_channel):
+                asset_key, _ = data.split('-')
+                self._notify_client(int(asset_key), {'battery': self._assets[int(asset_key)].state.battery_level})
+
+        except KeyError as error:
+            print("Detected unregistered asset under key [{}]".format(error), file=sys.stderr)
+
+
+    def started(self, *args):
+        """
+            Called on start
+        """
+        print('Listening to Redis events')
+        Timer(0.5, Event.create("monitor_state"), persist=True).register(self)
+        Timer(1, Event.create("monitor_battery"), persist=True).register(self)
+
+
     # **Events are camel-case
     # pylint: disable=C0103,W0613
 
-    ############### Load Events - Callbacks 
+    ############### Load Events - Callbacks (called only on success)
 
     def _load_success(self, event_result, increased=True):
         """Handle load event changes by dispatching load update events up the power stream"""
@@ -401,20 +399,20 @@ class StateListener(Component):
 
     # Notify parent asset of any child events
     def ChildAssetPowerDown_success(self, evt, event_result):
-        """ When child is powered down -> get the new load value of child asset"""
+        """When child is powered down -> get the new load value of child asset"""
         self._load_success(event_result, increased=False)
         
     def ChildAssetPowerUp_success(self, evt, event_result):
-        """ When child is powered up -> get the new load value of child asset"""        
-        self._load_success(event_result)
+        """When child is powered up -> get the new load value of child asset"""       
+        self._load_success(event_result, increased=True)
 
     def ChildAssetLoadDecreased_success(self, evt, event_result):
-        """ When load decreases down the power stream """        
+        """When load decreases down the power stream """       
         self._load_success(event_result, increased=False)
 
     def ChildAssetLoadIncreased_success(self, evt, event_result):
-        """ When load increases down the power stream """        
-        self._load_success(event_result)
+        """When load increases down the power stream """        
+        self._load_success(event_result, increased=True)
 
 
     ############### Power Events - Callbacks 
@@ -426,23 +424,23 @@ class StateListener(Component):
     
      # Notify child asset of any parent events of interest
     def ParentAssetPowerDown_success(self, evt, event_result):
-        """ When assets parent successfully powered down """
+        """When assets parent successfully powered down """
         self._power_success(event_result)
 
     def ParentAssetPowerUp_success(self, evt, event_result):
-        """ When assets parent successfully powered up """
+        """When assets parent successfully powered up """
         self._power_success(event_result)
 
     def SignalDown_success(self, evt, event_result):
-        """ When asset is powered down """
+        """When asset is powered down """
         self._power_success(event_result)
 
     def SignalUp_success(self, evt, event_result):
-        """ When asset is powered up """
+        """When asset is powered up """
         self._power_success(event_result)
 
     def SignalReboot_success(self, evt, e_result):
-        """ Rebooted """
+        """Rebooted """
 
         # need to do power chain
         if not e_result.old_state and e_result.old_state != e_result.new_state:
