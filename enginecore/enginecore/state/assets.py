@@ -172,6 +172,12 @@ class Agent():
         raise NotImplementedError
 
 
+    @property
+    def pid(self):
+        """Get agent process id"""
+        return self._process.pid
+
+
     def stop_agent(self):
         """Logic for agent's termination """
         if not self._process.poll():
@@ -373,6 +379,8 @@ class PDU(Asset, SNMPSim):
             port=asset_info['port'] if 'port' in asset_info else 161
         )
 
+        self._state.agent = self.pid
+
 
     ##### React to any events of the connected components #####
     @handler("ParentAssetPowerDown")
@@ -418,6 +426,8 @@ class UPS(Asset, SNMPSim):
             host=asset_info['host'] if 'host' in asset_info else 'localhost',
             port=asset_info['port'] if 'port' in asset_info else 161
         )
+
+        self._state.agent = self.pid
 
         # Store known { wattage: time_remaining } key/value pairs (runtime graph)
         self._runtime_details = json.loads(asset_info['runtime'])
@@ -771,6 +781,8 @@ class ServerWithBMC(Server):
         )
 
         super(ServerWithBMC, self).__init__(asset_info)
+
+        self._state.agent = self.pid
         self._state.set_state_dir(asset_info['ipmi_dir'])
         
     

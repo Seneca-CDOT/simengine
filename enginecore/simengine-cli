@@ -16,8 +16,8 @@ from enginecore.state.utils import get_asset_type
 def manage_state(asset_key, mng_action):
     """ Perform action for a node/asset with a certain key
     Args:
-            asset_key (int): supplied asset identifier
-            mng_action (func): callable object (lambda/function etc) that identifies action
+        asset_key (int): supplied asset identifier
+        mng_action (func): callable object (lambda/function etc) that identifies action
     """
     state_manager = Asset.get_state_manager_by_key(asset_key, notify=True)
     mng_action(state_manager)
@@ -31,8 +31,8 @@ class bcolors:
 def status_table_format(assets, stdscr=False):
     """ Display status in a table format 
     Args:
-            assets (dict): list of assets supported by the system
-            stdscr (optional): default window return by initscr(), status_table_format uses print if omitted
+        assets (dict): list of assets supported by the system
+        stdscr (optional): default window return by initscr(), status_table_format uses print if omitted
     """
     
     # format headers
@@ -67,23 +67,33 @@ def get_status(**kwargs):
     
     #### one asset ####
     if kwargs['asset_key'] and kwargs['load']:
-        with GraphReference().get_session() as session:
-            asset_info = GraphReference.get_asset_and_components(session, int(kwargs['asset_key']))
-            asset_type = get_asset_type(asset_info['labels'])
-            state_manager = Asset.get_supported_assets()[asset_type].StateManagerCls(asset_info)
-            
-            if kwargs['value_only']:
-                print(state_manager.load)
-            else:
-                print("{}-{} : {}".format(asset_info['key'], asset_type, state_manager.load))
-            return
+    
+        state_manager = Asset.get_state_manager_by_key(kwargs['asset_key'])
 
-    elif kwargs['asset_key']:
-        asset = StateManager.get_asset_status(int(kwargs['asset_key']))
         if kwargs['value_only']:
-            print(asset['status'])
+            print(state_manager.load)
         else:
-            print("{key}-{type} : {status}".format(**asset))
+            print("{}-{} : {}".format(state_manager.key, state_manager.asset_type, state_manager.load))
+        return
+    elif kwargs['asset_key'] and kwargs['agent']:
+        state_manager = Asset.get_state_manager_by_key(kwargs['asset_key'])
+        agent_info = state_manager.agent
+        if agent_info:
+            msg = "running" if agent_info[1] else "not running"
+            if kwargs['value_only']:
+                print(int(agent_info[1]))
+            else:
+                print("{}-{} : pid[{}] is {}".format(state_manager.key, state_manager.asset_type, agent_info[0], msg))
+        else:
+            print("{}-{} is not running any agents!".format(state_manager.key, state_manager.asset_type))
+
+        return
+    elif kwargs['asset_key']:
+        state_manager = Asset.get_state_manager_by_key(kwargs['asset_key'])
+        if kwargs['value_only']:
+            print(state_manager.status)
+        else:
+            print("{}-{} : {}".format(state_manager.key, state_manager.asset_type, state_manager.status))
         return
 
     ##### list states #####
@@ -168,6 +178,12 @@ status_group.add_argument('-k', '--asset-key', help="Get status of one asset (by
 status_group.add_argument('--json', help="Format as .json", action='store_true')
 status_group.add_argument('--monitor', help="Monitor status", action='store_true')
 status_group.add_argument('--load', help="Get load for the specified asset (key must be provided)", action='store_true')
+status_group.add_argument(
+    '--agent', 
+    help="Get information about simulator agent (SNMP/IPMI, key must be provided)",
+    action='store_true'
+)
+
 status_group.add_argument('--value-only', help="Return value only", action='store_true')
 
 

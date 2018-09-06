@@ -73,6 +73,22 @@ class StateManager():
         """
         return int(StateManager.get_store().get(self.redis_key))
 
+    @property
+    def agent(self):
+        """Agent instance details (if supported)
+        
+        Returns:
+            tuple: process id and status of the process (if it's running)
+        """
+        pid = StateManager.get_store().get(self.redis_key + ":agent")
+        return (int(pid), os.path.exists("/proc/" + pid.decode("utf-8"))) if pid else None
+
+
+    @agent.setter
+    def agent(self, pid):
+        StateManager.get_store().set(self.redis_key + ":agent", pid)
+
+
     def shut_down(self):
         """Implements state logic for graceful power-off event, sleeps for the pre-configured time
             
@@ -278,23 +294,6 @@ class StateManager():
             assets = cls._get_assets_states(assets, flatten)
             return assets
 
-
-    @classmethod
-    def get_asset_status(cls, asset_key):
-        """Get state of an asset that has certain key 
-        
-        Args:
-            asset_ket(string): asset key
-        
-        Returns:
-            dict: asset detais
-        """
-
-        graph_ref = GraphReference()
-        with graph_ref.get_session() as session:
-            asset = GraphReference.get_asset_and_components(session, asset_key)
-            asset['status'] = int(cls.get_store().get("{}-{}".format(asset['key'], asset['type'])))
-            return asset
 
     @classmethod
     def get_state_manager_by_key(cls, key, supported_assets, notify=True):
