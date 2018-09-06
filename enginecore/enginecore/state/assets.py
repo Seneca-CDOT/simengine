@@ -5,8 +5,7 @@ Each asset class contains reactive logic associated with certain events.
 Example:
     a PDU asset will be instantiated if there's a node labeled as "PDU" in a graph db (:PDU),
     isntance of a PDU asset can react to upstream power loss or any other event defined 
-    as a handler.
-    It can also wrap SNMPAgent if supported.
+    as a handler. It can also wrap SNMPAgent if supported.
 
 """
 # **due to circuit callback signature
@@ -175,7 +174,8 @@ class Agent():
 
     def stop_agent(self):
         """Logic for agent's termination """
-        os.kill(self._process.pid, signal.SIGSTOP)
+        if not self._process.poll():
+            self._process.kill()
     
 
     def register_process(self, process):
@@ -184,13 +184,7 @@ class Agent():
             process(Popen): process to be managed
         """
         self._process = process
-        atexit.register(self.cleanup)
-    
-
-    def cleanup(self):
-        """Ensure that the child processes are killed on exit"""
-        if not self._process.poll():
-            self._process.kill()
+        atexit.register(self.stop_agent)
     
 
 class IPMIAgent(Agent):
@@ -251,10 +245,6 @@ class IPMIAgent(Agent):
 
     def start_agent(self):
         """ Logic for starting up the agent """
-        # resume if process has been paused
-        if self._process:
-            os.kill(self._process.pid, signal.SIGCONT)
-            return
 
         # start a new one
         lan_conf = os.path.join(self._ipmi_dir, 'lan.conf')
@@ -323,10 +313,6 @@ class SNMPAgent(Agent):
 
     def start_agent(self):
         """Logic for starting up the agent """
-        # resume if process has been paused
-        if self._process:
-            os.kill(self._process.pid, signal.SIGCONT)
-            return
 
         log_file = os.path.join(self._snmp_rec_dir, "snmpsimd.log")
         
