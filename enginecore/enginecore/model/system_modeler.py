@@ -13,11 +13,75 @@ from enginecore.model.graph_reference import GraphReference
 
 graph_ref = GraphReference()
 
-def to_camelcase(s):
+def _get_props_stm(attr, supported_attr=[]):
+    """Format dict attributes as neo4j props"""
+
+    existing = dict(
+        filter(lambda k: attr[k[0]] != None and (not supported_attr or k[0] in supported_attr), attr.items())
+    )
+    return ','.join(map(lambda k: "{}: {}".format(_to_camelcase(k), repr(existing[k])), existing))
+
+
+def _get_set_stm(attr, node_name="asset", supported_attr=[]):
+    """Format dict as neo4j set statement"""
+
+    existing = dict(
+        filter(lambda k: attr[k[0]] != None and (not supported_attr or k[0] in supported_attr), attr.items())
+    )
+    return ','.join(map(lambda k: "{}.{}={}".format(node_name, _to_camelcase(k), repr(existing[k])), existing))
+
+
+def _add_psu(key, psu_index, attr):
+    """Add a PSU to an existing server
+    
+    Args:
+        key(int): server key psu will belong to
+        psu_index(int): psu number
+        attr(dict): psu attributes such as power_source, power_consumption, variation & draw
+    """
+
+    with graph_ref.get_session() as session:
+
+        query = []
+        # find the server
+        query.append("MATCH (asset:Asset {{ key: {} }})".format(key))
+
+        # create a PSU
+        attr['key'] = int("{}{}".format(key, psu_index))
+        attr['name'] = 'psu' + str(psu_index)
+        attr['type'] = 'psu'
+        
+        props_stm = _get_props_stm(attr)
+        query.append("CREATE (psu:Asset:PSU:Component {{ {} }})".format(props_stm))
+
+        # set relationships
+        query.append("CREATE (asset)-[:HAS_COMPONENT]->(psu)") 
+        query.append("CREATE (asset)-[:POWERED_BY]->(psu)") 
+
+        session.run("\n".join(query))
+
+
+def _to_camelcase(s):
     return re.sub(r'(?!^)_([a-zA-Z])', lambda m: m.group(1).upper(), s)
 
+
+def _generate_id(size=12, chars=string.ascii_uppercase + string.digits):
+    """ Ref: https://stackoverflow.com/a/23728630"""
+    return ''.join(secrets.choice(chars) for _ in range(size))
+
+
+def _generate_mac():
+    return ''.join(random.choice('0123456789abcdef') for _ in range(12))
+
+    
 def configure_asset(key, attr):
-    """Update existing properties"""
+    """Update existing properties
+    
+    Args:
+        key(int): key of the asset to be configured
+        attr(dict): asset props' updates
+    """
+
     if 'func' in attr and attr['func']:
         del attr['func']
 
@@ -25,17 +89,21 @@ def configure_asset(key, attr):
         del attr['asset_key']
 
     with graph_ref.get_session() as session:
-        
-        existing = dict(filter(lambda k: attr[k[0]] != None, attr.items()))
-        # print(existing)
-        # existing = filter(lambda k: "asset.{}={}".format(k, repr(attr[k])) if attr[k] else None, attr)
-        set_statement = ','.join(map(lambda k: "asset.{}={}".format(to_camelcase(k), repr(existing[k])), existing))
+
+        set_statement = _get_set_stm(attr)
         query = "MATCH (asset:Asset {{ key: {key} }}) SET {set_stm}".format(key=key, set_stm=set_statement)
         
         session.run(query)
 
+
 def remove_link(source_key, dest_key):
-    """Remove existing power connection"""
+    """Remove existing power connection
+    
+    Args:
+        source_key(int): key of the parent asset
+        dest_key(int): key of the asset powered by source_key
+    """
+
     with graph_ref.get_session() as session:
         result = session.run("""
         MATCH (src:Asset {key: $src_key})<-[power_link:POWERED_BY]-(dst:Asset {key: $dest_key})
@@ -44,7 +112,13 @@ def remove_link(source_key, dest_key):
 
 
 def link_assets(source_key, dest_key):
-    """Power a component by another component """
+    """Power a component by another component 
+
+    Args:
+        source_key(int): key of the parent asset
+        dest_key(int): key of the asset to be powered by the parent
+    """
+
     with graph_ref.get_session() as session:
 
         # Validate that the asset does not power already existing device
@@ -80,37 +154,17 @@ def link_assets(source_key, dest_key):
         if (not record) or (not 'link' in dict(record)):
             print('Invalid link configuration was provided')
 
-def _add_psu(key, psu_index, power_consumption, power_source, variation, draw_percentage=1):
-    with graph_ref.get_session() as session:
-        session.run("\
-        MATCH (asset:Asset {key: $pkey})\
-        CREATE (psu:Asset:PSU:Component { \
-            name: $psuname,\
-            key: $psukey,\
-            draw: $draw,\
-            type: 'psu',\
-            powerConsumption: $pc,\
-            powerSource: $ps,\
-            variation: $var \
-        })\
-        CREATE (asset)-[:HAS_COMPONENT]->(psu)\
-        CREATE (asset)-[:POWERED_BY]->(psu)", 
-        pkey=key, 
-        pc=power_consumption,
-        ps=power_source, 
-        psuname='psu'+psu_index, 
-        draw=draw_percentage, 
-        psukey=int("{}{}".format(key, psu_index)),
-        var=variation.name.lower()
-        )
-    
 
 def create_outlet(key, attr):
     """Add outlet to the model """
+
     with graph_ref.get_session() as session:
-        session.run("\
-        CREATE (:Asset:Outlet { name: $name,  key: $key, type: 'outlet' })", key=key, name="out-{}".format(key))
-        set_properties(key, attr)
+        attr['name'] = attr['name'] if 'name' in attr and attr['name'] else "out-{}".format(key)
+        attr['type'] = 'outlet'
+        attr['key'] = key
+
+        props_stm = _get_props_stm(attr, supported_attr=["name", "type", "key", "off_delay", "on_delay"])
+        session.run("CREATE (:Asset:Outlet {{ {} }})".format(props_stm))
 
 
 class ServerVariations(Enum):
@@ -135,6 +189,7 @@ def create_server(key, attr, server_variation=ServerVariations.Server):
     if not attr['domain_name']:
         raise KeyError('Must provide VM name (domain name)')
 
+    # Validate server domain name
     try:
         conn = libvirt.open("qemu:///system")
         conn.lookupByName(attr['domain_name'])
@@ -146,35 +201,36 @@ def create_server(key, attr, server_variation=ServerVariations.Server):
 
     with graph_ref.get_session() as session:
         
-        session.run("\
-        CREATE (server:Asset { name: $name, domainName: $name, key: $key, type: $stype }) SET server :"+server_variation.name, 
-                    key=key, name=attr['domain_name'], stype=server_variation.name.lower())
+        query = [] # cypher query
 
-        if server_variation == ServerVariations.ServerWithBMC:
-            bmc_attr = {**IPMI_LAN_DEFAULTS, **attr}
-            session.run("""
-                MATCH (a:Asset {key: $key})
-                SET a.user=$user, a.password=$password, a.host=$host, a.port=$port, a.vmport=$vmport
-                """, 
-                key=key, 
-                user=bmc_attr['user'],
-                password=bmc_attr['password'],
-                host=bmc_attr['host'],
-                port=bmc_attr['port'],
-                vmport=bmc_attr['vmport']              
-            )
+        attr['name'] = attr['name'] if 'name' in attr and attr['name'] else attr['domain_name']
+        attr['type'] = server_variation.name.lower()
+        attr['key'] = key
 
+        s_attr = ["name", "domain_name", "type", "key", "off_delay", "on_delay", "power_consumption", "power_source"]
+        props_stm = _get_props_stm(attr, supported_attr=s_attr)
         
-        set_properties(key, attr)
+        # create a server
+        query.append("CREATE (server:Asset  {{ {} }}) SET server :{}".format(props_stm, server_variation.name))
+
+        # set BMC-server specific attributes if type is bmc
+        if server_variation == ServerVariations.ServerWithBMC:
+            bmc_attr = {**IPMI_LAN_DEFAULTS, **attr} # merge
+
+            set_stm = _get_set_stm(bmc_attr, node_name="server", supported_attr=IPMI_LAN_DEFAULTS.keys())
+            query.append("SET {}".format(set_stm))
+        
+        session.run("\n".join(query))
+
+        # add PSUs to the model
         for i in range(attr['psu_num']):
-            _add_psu(
-                key, 
-                str(i+1), 
-                attr['psu_power_consumption'], 
-                attr['psu_power_source'],
-                server_variation,
-                attr['psu_load'][i] if attr['psu_load'] else 1
-            )
+            psu_attr = {
+                "power_consumption": attr['psu_power_consumption'], 
+                "power_source": attr['psu_power_source'],
+                "variation": server_variation.name.lower(),
+                "draw": attr['psu_load'][i] if attr['psu_load'] else 1
+            }
+            _add_psu(key, psu_index=i+1, attr=psu_attr)
 
     
 def set_properties(key, attr):
@@ -209,14 +265,6 @@ def set_properties(key, attr):
             MATCH (asset:Asset {key: $pkey})\
             SET asset.imgUrl=$img_url", pkey=key, img_url=attr['img_url'])
 
-
-def id_generator(size=12, chars=string.ascii_uppercase + string.digits):
-    """ Ref: https://stackoverflow.com/a/23728630"""
-    return ''.join(secrets.choice(chars) for _ in range(size))
-
-
-def mac_generator():
-    return ''.join(random.choice('0123456789abcdef') for _ in range(12))
 
 
 def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'presets/apc_ups.json')):
@@ -267,10 +315,10 @@ def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
 
         for k, v in data["OIDs"].items():
             if k == 'SerialNumber':
-                v['defaultValue'] = id_generator()
+                v['defaultValue'] = _generate_id()
 
             if k == 'MAC':
-                v['defaultValue'] = mac_generator()
+                v['defaultValue'] = _generate_mac()
 
             if k == "BasicBatteryStatus":
                 oid_desc = dict((y,x) for x,y in v["oidDesc"].items())
@@ -467,10 +515,10 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
         # Add PDU OIDS to the model
         for k, v in data["OIDs"].items():
             if k == 'SerialNumber':
-                v['defaultValue'] = id_generator()
+                v['defaultValue'] = _generate_id()
 
             if k == 'MAC':
-                v['defaultValue'] = mac_generator()
+                v['defaultValue'] = _generate_mac()
 
             session.run("\
             MATCH (pdu:PDU {key: $pkey})\
@@ -595,10 +643,10 @@ def drop_model():
 def delete_asset(key):
     """ Delete by key """
     with graph_ref.get_session() as session:
-        session.run("MATCH (a:Asset { key: $key }) \
-        OPTIONAL MATCH (a)-[:HAS_COMPONENT]->(s) \
-        OPTIONAL MATCH (a)-[:HAS_OID]->(oid) \
-        OPTIONAL MATCH (a)-[:HAS_BATTERY]->(b) \
-        OPTIONAL MATCH (oid)-[:HAS_STATE_DETAILS]->(sd) \
-        DETACH DELETE a,s,oid,sd,b", key=key)
+        session.run("""MATCH (a:Asset { key: $key })
+        OPTIONAL MATCH (a)-[:HAS_COMPONENT]->(s)
+        OPTIONAL MATCH (a)-[:HAS_OID]->(oid)
+        OPTIONAL MATCH (a)-[:HAS_BATTERY]->(b)
+        OPTIONAL MATCH (oid)-[:HAS_STATE_DETAILS]->(sd)
+        DETACH DELETE a,s,oid,sd,b""", key=key)
 

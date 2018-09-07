@@ -250,8 +250,8 @@ create_asset_parent = argparse.ArgumentParser(add_help=False)
 create_asset_parent.add_argument(
     '-k', '--asset-key', type=int, required=True, help="Unique asset key (must be <= 9999)"
 )
-create_asset_parent.add_argument('--on-delay', type=int, help="Power on delay in ms", default=-1)
-create_asset_parent.add_argument('--off-delay', type=int, help="Power on delay in ms", default=-1)
+create_asset_parent.add_argument('--on-delay', type=int, help="Power on delay in ms", default=0)
+create_asset_parent.add_argument('--off-delay', type=int, help="Power on delay in ms", default=0)
 create_asset_parent.add_argument('-n', '--name', help="Name displayed on the UI")
 
 # snmp group parent will contain snmp-specific args
