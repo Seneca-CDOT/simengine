@@ -15,7 +15,6 @@ import subprocess
 import os
 import pwd
 import grp
-import signal
 import tempfile
 import atexit
 import json

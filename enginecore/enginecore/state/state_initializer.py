@@ -10,7 +10,7 @@ def initialize(force_snmp_init=False):
     graph_ref = GraphReference()
     redis_store = redis.StrictRedis(host='localhost', port=6379)
 
-    results = graph_ref.get_session().run(
+    results = graph_ref.get_session().run( # TODO: context manager
         """
         MATCH (asset:Asset) OPTIONAL MATCH (asset:Asset)-[:HAS_OID]->(oid)
         return asset, collect(oid) as oids
