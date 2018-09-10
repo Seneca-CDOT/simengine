@@ -530,7 +530,7 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
         # Outlet-specific OIDs
         for k, v in data["outletOIDs"].items():
             
-            # For outlet state, outlet asset will need to be created
+            # For outlet state, Outlet asset will need to be created
             if k == "OutletState":
                 if 'oidDesc' in v:
                     oid_desc = dict((y,x) for x,y in v["oidDesc"].items())
@@ -561,7 +561,7 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
                         props_stm = _get_props_stm({'OID': oid, 'OIDName': k, 'dataType': v['dataType'], 'defaultValue': v['defaultValue']})
                         query.append("CREATE ({oid_node_name}:OID {{ {props_stm} }})".format(oid_node_name=oid_node_name, props_stm=props_stm))
 
-                        # set the relationships
+                        # set the relationships (outlet powerd by state oid etc..)
                         query.append("CREATE (out{})-[:POWERED_BY]->({})".format(out_key, oid_node_name))
                         query.append("CREATE ({})-[:HAS_STATE_DETAILS]->(oidDesc)".format(oid_node_name))
                         query.append("CREATE (pdu)-[:HAS_OID]->({})".format(oid_node_name))
@@ -582,13 +582,9 @@ def create_static(key, attr):
         raise KeyError('Static asset requires power_consumption')
         
     with graph_ref.get_session() as session:
-        session.run("\
-        CREATE (:Asset:StaticAsset { \
-        name: $name, \
-        type: 'staticasset', \
-        key: $key})", 
-        name=attr['name'], key=key)
-        set_properties(key, attr)
+        s_attr = ["name", "img_url", "type", "key", "off_delay", "on_delay", "power_consumption", "power_source"]
+        props_stm = _get_props_stm({**attr, **{'type': 'staticasset', 'key': key}}, supported_attr=s_attr)
+        session.run("CREATE (:Asset:StaticAsset {{ {} }})".format(props_stm))
 
 
 def drop_model():
