@@ -5,7 +5,7 @@ from neo4j.v1 import GraphDatabase, basic_auth
 from enginecore.state.utils import format_as_redis_key
 
 class GraphReference():
-
+    """Graph DB wrapper """
     def __init__(self):
         self._driver = GraphDatabase.driver(
             'bolt://localhost', 
@@ -117,7 +117,8 @@ class GraphReference():
             asset_key(int): key of the asset OID belongs to
             oid_name(str): OID name
         Returns:
-            tuple: str as SNMP OID that belongs to the asset, followed by an int as datatype, followed by optional state details; 
+            tuple: str as SNMP OID that belongs to the asset, 
+                   followed by an int as datatype, followed by optional state details; 
                    returns None if there's no such OID
         """
 
@@ -135,10 +136,12 @@ class GraphReference():
         details = record.get('oid') if record else None
 
         oid_info = details['OID'] if details else None
-        vendor_specs = {v:k for k, v in dict(record['oid_details']).items()} if (record and record['oid_details']) else None
+
+        # get vendor specific information
+        v_specs = {v:k for k, v in dict(record['oid_details']).items()} if (record and record['oid_details']) else None
         oid_data_type = details['dataType'] if oid_info else None
 
-        return oid_info, oid_data_type, vendor_specs
+        return oid_info, oid_data_type, v_specs
 
     @classmethod
     def get_component_oid_by_name(cls, session, component_key, oid_name):
@@ -154,10 +157,10 @@ class GraphReference():
 
         result = session.run(
             """
-            MATCH (component:Component { key: $key})<-[:HAS_COMPONENT]-(p:Asset)-[:HAS_OID]->(oid:OID {OIDName: $oid_name})
+            MATCH (component:Component { key: $key})<-[:HAS_COMPONENT]-(p:Asset)-[:HAS_OID]->(oid:OID {OIDName: $name})
             RETURN oid, p.key as parent_key
             """,
-            oid_name=oid_name, key=component_key
+            name=oid_name, key=component_key
         )
         record = result.single()
 
@@ -233,8 +236,8 @@ class GraphReference():
                 )
 
                 asset['parent'] = []
-                for r in presults:
-                    asset['parent'].append(dict(r['parent']))
+                for presult in presults:
+                    asset['parent'].append(dict(presult['parent']))
 
             ## Set asset children 
             # format asset children as list of child_key: { child_info }

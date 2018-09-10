@@ -31,6 +31,11 @@ def _get_set_stm(attr, node_name="asset", supported_attr=[]):
     return ','.join(map(lambda k: "{}.{}={}".format(node_name, _to_camelcase(k), repr(existing[k])), existing))
 
 
+def _get_oid_desc_stm(oid_desc, oid_name):
+    """Format dict attributes as neo4j props"""
+    return 'OIDName: "{}",'.format(oid_name) + ','.join(map(lambda k: '{}: "{}"'.format(oid_desc[k], k), oid_desc))
+
+
 def _add_psu(key, psu_index, attr):
     """Add a PSU to an existing server
     
@@ -277,45 +282,27 @@ def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
     preset_file = attr['snmp_preset'] if 'snmp_preset' in attr and attr['snmp_preset'] else preset_file
 
     with open(preset_file) as f, graph_ref.get_session() as session:
+        
+        query = []
         data = json.load(f)
 
-        name = attr['name'] if 'name' in attr and attr['name'] else data['assetName']
-        
-        session.run("\
-        CREATE (:Asset:UPS:SNMPSim { \
-            name: $name,\
-            key: $key,\
-            staticOidFile: $oid_file,\
-            outputPowerCapacity: $pc,\
-            minPowerOnBatteryLevel: $minbat,\
-            fullRechargeTime: $rechargehrs, \
-            type: 'ups',\
-            runtime: $runtime,\
-            port: $port \
-        })", 
-        key=key, 
-        name=name,
-        oid_file=data['staticOidFile'],
-        pc=data['outputPowerCapacity'],
-        minbat=data['minPowerOnBatteryLevel'],
-        rechargehrs=data['fullRechargeTime'],
-        runtime=json.dumps(data['modelRuntime'], sort_keys=True),
-        port=attr['port']
-        )
+        attr['name'] = attr['name'] if 'name' in attr and attr['name'] else data['assetName']
+        attr['runtime'] = json.dumps(data['modelRuntime'], sort_keys=True)
 
-        set_properties(key, attr)
+        s_attr = ["name", "type", "key", "off_delay", "on_delay", "staticOidFile", "port", "host",
+                  "outputPowerCapacity", "minPowerOnBatteryLevel", "fullRechargeTime", "runtime"]
+
+        props_stm = _get_props_stm({**attr, **data, **{'key': key, 'type': 'ups'}}, supported_attr=s_attr)
+
+        # create UPS asset
+        query.append("CREATE (ups:Asset:UPS:SNMPSim {{ {} }})".format(props_stm))
         
-        # add batteries
-        session.run("\
-        MATCH (ups:UPS {key: $key})\
-        CREATE (bat:UPSBattery:Battery { \
-            name: $name,\
-            type: 'battery'\
-        })\
-        CREATE (ups)-[:HAS_BATTERY]->(bat)\
-        CREATE (ups)-[:POWERED_BY]->(bat)\
-        ",key=key, name='bat1'
-        )
+        # add batteries (only one for now)
+        query.append("CREATE (bat:UPSBattery:Battery { name: 'bat1', type: 'battery' })")
+        query.append("CREATE (ups)-[:HAS_BATTERY]->(bat)")
+        query.append("CREATE (ups)-[:POWERED_BY]->(bat)")
+
+        session.run("\n".join(query))
 
         for k, v in data["OIDs"].items():
             if k == 'SerialNumber':
@@ -488,15 +475,6 @@ def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
             key=key,
             outname='out'+str(i+1),
             outkey=int("{}{}".format(key,str(i+1))))
-
-
-def _get_oid_desc_stm(oid_desc, oid_name):
-    """Format dict attributes as neo4j props"""
-
-    # existing = dict(
-    #     filter(lambda k: attr[k[0]] != None and (not supported_attr or k[0] in supported_attr), oid_desc.items())
-    # )
-    return 'OIDName: "{}",'.format(oid_name) + ','.join(map(lambda k: '{}: "{}"'.format(oid_desc[k], k), oid_desc))
 
 
 def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'presets/apc_pdu.json')):
