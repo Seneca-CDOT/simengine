@@ -124,7 +124,7 @@ class GraphReference():
 
         results = session.run( 
             """
-            MATCH (:Asset { key: $key })-[:HAS_OID]->(oid {name: $oid_name}) 
+            MATCH (:Asset { key: $key })-[:HAS_OID]->(oid {OIDName: $oid_name}) 
             OPTIONAL MATCH (oid)-[:HAS_STATE_DETAILS]->(oid_details)
             RETURN oid, oid_details
             """,
@@ -154,7 +154,7 @@ class GraphReference():
 
         result = session.run(
             """
-            MATCH (component:Component { key: $key})<-[:HAS_COMPONENT]-(p:Asset)-[:HAS_OID]->(oid:OID {name: $oid_name})
+            MATCH (component:Component { key: $key})<-[:HAS_COMPONENT]-(p:Asset)-[:HAS_OID]->(oid:OID {OIDName: $oid_name})
             RETURN oid, p.key as parent_key
             """,
             oid_name=oid_name, key=component_key

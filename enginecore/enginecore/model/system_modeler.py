@@ -526,12 +526,11 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
             props_stm = _get_props_stm({**v, **{'OIDName': k}}, supported_attr=["OID", "OIDName", "defaultValue", "dataType"])
             query.append("CREATE (:OID {{ {props_stm} }})<-[:HAS_OID]-(pdu)".format(oid_name=k, props_stm=props_stm))
 
-        print("\n".join(query))
-        session.run("\n".join(query))
 
         # Outlet-specific OIDs
         for k, v in data["outletOIDs"].items():
             
+            # For outlet state, outlet asset will need to be created
             if k == "OutletState":
                 if 'oidDesc' in v:
                     oid_desc = dict((y,x) for x,y in v["oidDesc"].items())
@@ -539,108 +538,42 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
                     desc_stm = _get_oid_desc_stm(oid_desc, oid_name="{}-{}".format(k,key))
                     query.append("CREATE (oidDesc:OIDDesc {{ {} }})<-[:HAS_OID]-(pdu)".format(desc_stm))
 
-                    # query = "\
-                    # CREATE (OutletStateDetails:OIDDesc {{\
-                    #     OIDName: $name, \
-                    #     {}: \"switchOn\",\
-                    #     {}: \"switchOff\", \
-                    #     {}: \"immediateReboot\",\
-                    #     {}: \"delayedOn\",\
-                    #     {}: \"delayedOff\"\
-                    # }})\
-                    # ".format(
-                    #     oid_desc["switchOn"], 
-                    #     oid_desc["switchOff"], 
-                    #     oid_desc["immediateReboot"],
-                    #     oid_desc["delayedOn"],
-                    #     oid_desc["delayedOff"]
-                    # )
-                    # print(query)
-
-                    # session.run(query, name="{}-{}".format(k,key))
-
                 for j in range(outlet_count):
                     
                     out_key =  int("{}{}".format(key,str(j+1)))
                     props_stm = _get_props_stm({'key': out_key, 'name': 'out'+str(j+1), 'type': 'outlet'})
 
                     # create outlet per OID
-                    query.append("CREATE (out{}:Asset:Outlet:Component {{ {} }}".format(out_key, props_stm))
+                    query.append("CREATE (out{}:Asset:Outlet:Component {{ {} }})".format(out_key, props_stm))
 
                     # set outlet relationships
                     query.append("CREATE (out{})-[:POWERED_BY]->(pdu)".format(out_key))
                     query.append("CREATE (pdu)-[:HAS_COMPONENT]->(out{})".format(out_key))
 
-                    # session.run("\
-                    #     MATCH (pdu:PDU {key: $pkey})\
-                    #     CREATE (out1:Asset:Outlet:Component { \
-                    #         name: $outname,\
-                    #         key: $outkey,\
-                    #         type: 'outlet'\
-                    #     })\
-                    #     CREATE (out1)-[:POWERED_BY]->(pdu)\
-                    #     CREATE (pdu)-[:HAS_COMPONENT]->(out1)\
-                    #     ", 
-                    #     pkey=key, 
-                    #     outname='out'+str(j+1),
-                    #     outkey=int("{}{}".format(key,str(j+1))))
 
-                
-                for j in range(outlet_count):
-                    for oid in v['OID']:
+                    # create OID associated with outlet & pdu
+                    for oid_n, oid in enumerate(v['OID']):
 
                         out_key =  int("{}{}".format(key,str(j+1)))
                         oid = oid + "." + str(j+1)
-
+                        oid_node_name = "{oid_name}{outlet_num}{oid_num}".format(oid_name=k, outlet_num=j, oid_num=oid_n)
                         
-                        query.append("CREATE (oid:OID {{ {} }})")
+                        props_stm = _get_props_stm({'OID': oid, 'OIDName': k, 'dataType': v['dataType'], 'defaultValue': v['defaultValue']})
+                        query.append("CREATE ({oid_node_name}:OID {{ {props_stm} }})".format(oid_node_name=oid_node_name, props_stm=props_stm))
 
-                        query.append("CREATE (out{})-[:POWERED_BY]->(oid)".format(out_key))
-                        query.append("CREATE (oid)-[:HAS_STATE_DETAILS]->(oidDesc)")
-                        query.append("CREATE (pdu)-[:HAS_OID]->(oid)")
-
-                        session.run("\
-                        MATCH (pdu:PDU {key: $pkey})\
-                        MATCH (oidDesc:OIDDesc {OIDName: $oid_desc})\
-                        MATCH (out1:Asset:Outlet:Component { key: $outkey })\
-                        CREATE (oid:OID { \
-                            OID: $oid,\
-                            OIDName: $name,\
-                            name: $name, \
-                            defaultValue: $dv,\
-                            dataType: $dt \
-                        })\
-                        CREATE (out1)-[:POWERED_BY]->(oid)\
-                        CREATE (oid)-[:HAS_STATE_DETAILS]->(oidDesc)\
-                        CREATE (pdu)-[:HAS_OID]->(oid)\
-                        ", 
-                        pkey=key, 
-                        oid=oid, 
-                        name=k,
-                        dv=v['defaultValue'], 
-                        dt=v['dataType'],
-                        outname='out'+str(j+1),
-                        oid_desc="{}-{}".format(k,key),
-                        outkey=int("{}{}".format(key,str(j+1))))
+                        # set the relationships
+                        query.append("CREATE (out{})-[:POWERED_BY]->({})".format(out_key, oid_node_name))
+                        query.append("CREATE ({})-[:HAS_STATE_DETAILS]->(oidDesc)".format(oid_node_name))
+                        query.append("CREATE (pdu)-[:HAS_OID]->({})".format(oid_node_name))
             else:
                 oid = v['OID']
+   
+                props_stm = _get_props_stm({'OID': oid, 'OIDName': k, 'dataType': v['dataType'], 'defaultValue': v['defaultValue']})
+                query.append("CREATE ({}:OID {{ {} }})".format(k, props_stm))
+                query.append("CREATE (pdu)-[:HAS_OID]->({})".format(k))
                 
-                session.run("\
-                    MATCH (pdu:PDU {key: $pkey})\
-                    CREATE (oid:OID { \
-                        OID: $oid,\
-                        OIDName: $name,\
-                        name: $name, \
-                        defaultValue: $dv,\
-                        dataType: $dt \
-                    })\
-                    CREATE (pdu)-[:HAS_OID]->(oid)\
-                    ", 
-                    pkey=key, 
-                    oid=oid, 
-                    name=k,
-                    dv=v['defaultValue'], 
-                    dt=v['dataType'])
+        # print("\n".join(query))
+        session.run("\n".join(query))
 
 
 def create_static(key, attr):
