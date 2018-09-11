@@ -4,11 +4,12 @@ This module provides high-level control over system model.
 import json
 import os
 import secrets
-import libvirt
 import string
 import random
 import re
 from enum import Enum
+
+import libvirt
 from enginecore.model.graph_reference import GraphReference
 
 graph_ref = GraphReference()
@@ -31,9 +32,9 @@ def _get_set_stm(attr, node_name="asset", supported_attr=[]):
     return ','.join(map(lambda k: "{}.{}={}".format(node_name, _to_camelcase(k), repr(existing[k])), existing))
 
 
-def _get_oid_desc_stm(oid_desc, oid_name):
+def _get_oid_desc_stm(oid_desc):
     """Format dict attributes as neo4j props"""
-    return 'OIDName: "{}",'.format(oid_name) + ','.join(map(lambda k: '{}: "{}"'.format(oid_desc[k], k), oid_desc))
+    return ','.join(map(lambda k: '{}: "{}"'.format(oid_desc[k], k), oid_desc))
 
 
 def _add_psu(key, psu_index, attr):
@@ -67,15 +68,17 @@ def _add_psu(key, psu_index, attr):
 
 
 def _to_camelcase(s):
+    """Convert snakecase to camelcase """    
     return re.sub(r'(?!^)_([a-zA-Z])', lambda m: m.group(1).upper(), s)
 
 
 def _generate_id(size=12, chars=string.ascii_uppercase + string.digits):
-    """ Ref: https://stackoverflow.com/a/23728630"""
+    """Ref: https://stackoverflow.com/a/23728630"""
     return ''.join(secrets.choice(chars) for _ in range(size))
 
 
 def _generate_mac():
+    """Generate a MAC address """
     return ''.join(random.choice('0123456789abcdef') for _ in range(12))
 
     
@@ -302,7 +305,7 @@ def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
         query.append("CREATE (ups)-[:HAS_BATTERY]->(bat)")
         query.append("CREATE (ups)-[:POWERED_BY]->(bat)")
 
-        session.run("\n".join(query))
+        supported_oids = ["InputLineFailCause", "BasicBatteryStatus", "BasicOutputStatus"]
 
         for k, v in data["OIDs"].items():
             if k == 'SerialNumber':
@@ -311,170 +314,207 @@ def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
             if k == 'MAC':
                 v['defaultValue'] = _generate_mac()
 
-            if k == "BasicBatteryStatus":
-                oid_desc = dict((y,x) for x,y in v["oidDesc"].items())
-                query = "\
-                CREATE (:OIDDesc {{\
-                    OIDName: $name, \
-                    {}: \"batteryNormal\", \
-                    {}: \"batteryLow\"\
-                }})".format(oid_desc["batteryNormal"], oid_desc["batteryLow"])
+            if k in supported_oids:
+                oid_desc = dict((y, x) for x, y in v["oidDesc"].items())
+                
+                desc_stm = _get_oid_desc_stm(oid_desc)
+                query.append("CREATE ({}Desc:OIDDesc {{ {} }})".format(k, desc_stm))
+                
+                props = {**v, **{'OIDName': k}}
+                props_stm = _get_props_stm(props, ["OID", "dataType", "defaultValue", "OIDName"])
 
-                session.run(query, name="{}-{}".format(k,key))
+                # create OID
+                query.append("CREATE ({}:OID {{ {} }})".format(k, props_stm))
+                query.append("CREATE (pdu)-[:HAS_OID]->({})".format(k))
+                query.append("CREATE ({})-[:HAS_STATE_DETAILS]->({}Desc)".format(k, k))
 
-                session.run("\
-                    MATCH (ups:UPS {key: $key})\
-                    MATCH (oidDesc:OIDDesc {OIDName: $oid_desc})\
-                    CREATE (oid:OID { \
-                        OID: $oid,\
-                        OIDName: $name,\
-                        name: $name, \
-                        defaultValue: $dv,\
-                        dataType: $dt \
-                    })\
-                    CREATE (oid)-[:HAS_STATE_DETAILS]->(oidDesc)\
-                    CREATE (ups)-[:HAS_OID]->(oid)\
-                    ", 
-                    key=key, 
-                    oid=v['OID'], 
-                    name=k,
-                    dv=v['defaultValue'], 
-                    dt=v['dataType'],
-                    oid_desc="{}-{}".format(k,key))
+                # query = "\
+                # CREATE (:OIDDesc {{\
+                #     OIDName: $name, \
+                #     {}: \"batteryNormal\", \
+                #     {}: \"batteryLow\"\
+                # }})".format(oid_desc["batteryNormal"], oid_desc["batteryLow"])
 
-            elif k == "BasicOutputStatus":
-                oid_desc = dict((y,x) for x,y in v["oidDesc"].items())
-                query = "\
-                CREATE (:OIDDesc {{\
-                    OIDName: $name, \
-                    {}: \"onLine\", \
-                    {}: \"onBattery\", \
-                    {}: \"off\"\
-                }})".format(
-                    oid_desc["onLine"], 
-                    oid_desc["onBattery"],
-                    oid_desc["off"]
-                )
+                # session.run(query, name="{}-{}".format(k,key))
 
-                session.run(query, name="{}-{}".format(k,key))
+                # session.run("\
+                #     MATCH (ups:UPS {key: $key})\
+                #     MATCH (oidDesc:OIDDesc {OIDName: $oid_desc})\
+                #     CREATE (oid:OID { \
+                #         OID: $oid,\
+                #         OIDName: $name,\
+                #         name: $name, \
+                #         defaultValue: $dv,\
+                #         dataType: $dt \
+                #     })\
+                #     CREATE (oid)-[:HAS_STATE_DETAILS]->(oidDesc)\
+                #     CREATE (ups)-[:HAS_OID]->(oid)\
+                #     ", 
+                #     key=key, 
+                #     oid=v['OID'], 
+                #     name=k,
+                #     dv=v['defaultValue'], 
+                #     dt=v['dataType'],
+                #     oid_desc="{}-{}".format(k,key))
 
-                session.run("\
-                    MATCH (ups:UPS {key: $key})\
-                    MATCH (oidDesc:OIDDesc {OIDName: $oid_desc})\
-                    CREATE (oid:OID { \
-                        OID: $oid,\
-                        OIDName: $name,\
-                        name: $name, \
-                        defaultValue: $dv,\
-                        dataType: $dt \
-                    })\
-                    CREATE (oid)-[:HAS_STATE_DETAILS]->(oidDesc)\
-                    CREATE (ups)-[:HAS_OID]->(oid)\
-                    ", 
-                    key=key, 
-                    oid=v['OID'], 
-                    name=k,
-                    dv=v['defaultValue'], 
-                    dt=v['dataType'],
-                    oid_desc="{}-{}".format(k,key))
+            # elif k == "BasicOutputStatus":
+            #     oid_desc = dict((y,x) for x,y in v["oidDesc"].items())
+            #     query = "\
+            #     CREATE (:OIDDesc {{\
+            #         OIDName: $name, \
+            #         {}: \"onLine\", \
+            #         {}: \"onBattery\", \
+            #         {}: \"off\"\
+            #     }})".format(
+            #         oid_desc["onLine"], 
+            #         oid_desc["onBattery"],
+            #         oid_desc["off"]
+            #     )
 
-            elif k == "InputLineFailCause":
-                oid_desc = dict((y,x) for x,y in v["oidDesc"].items())
-                query = "\
-                CREATE (:OIDDesc {{\
-                    OIDName: $name, \
-                    {}: \"noTransfer\", \
-                    {}: \"blackout\", \
-                    {}: \"deepMomentarySag\"\
-                }})".format(
-                    oid_desc["noTransfer"], 
-                    oid_desc["blackout"],
-                    oid_desc["deepMomentarySag"]
-                )
+            #     session.run(query, name="{}-{}".format(k,key))
 
-                session.run(query, name="{}-{}".format(k,key))
+            #     session.run("\
+            #         MATCH (ups:UPS {key: $key})\
+            #         MATCH (oidDesc:OIDDesc {OIDName: $oid_desc})\
+            #         CREATE (oid:OID { \
+            #             OID: $oid,\
+            #             OIDName: $name,\
+            #             name: $name, \
+            #             defaultValue: $dv,\
+            #             dataType: $dt \
+            #         })\
+            #         CREATE (oid)-[:HAS_STATE_DETAILS]->(oidDesc)\
+            #         CREATE (ups)-[:HAS_OID]->(oid)\
+            #         ", 
+            #         key=key, 
+            #         oid=v['OID'], 
+            #         name=k,
+            #         dv=v['defaultValue'], 
+            #         dt=v['dataType'],
+            #         oid_desc="{}-{}".format(k,key))
 
-                session.run("\
-                    MATCH (ups:UPS {key: $key})\
-                    MATCH (oidDesc:OIDDesc {OIDName: $oid_desc})\
-                    CREATE (oid:OID { \
-                        OID: $oid,\
-                        OIDName: $name,\
-                        name: $name, \
-                        defaultValue: $dv,\
-                        dataType: $dt \
-                    })\
-                    CREATE (oid)-[:HAS_STATE_DETAILS]->(oidDesc)\
-                    CREATE (ups)-[:HAS_OID]->(oid)\
-                    ", 
-                    key=key, 
-                    oid=v['OID'], 
-                    name=k,
-                    dv=v['defaultValue'], 
-                    dt=v['dataType'],
-                    oid_desc="{}-{}".format(k,key))
+            # elif k == "InputLineFailCause":
+            #     oid_desc = dict((y,x) for x,y in v["oidDesc"].items())
+            #     query = "\
+            #     CREATE (:OIDDesc {{\
+            #         OIDName: $name, \
+            #         {}: \"noTransfer\", \
+            #         {}: \"blackout\", \
+            #         {}: \"deepMomentarySag\"\
+            #     }})".format(
+            #         oid_desc["noTransfer"], 
+            #         oid_desc["blackout"],
+            #         oid_desc["deepMomentarySag"]
+            #     )
+
+            #     session.run(query, name="{}-{}".format(k,key))
+
+            #     session.run("\
+            #         MATCH (ups:UPS {key: $key})\
+            #         MATCH (oidDesc:OIDDesc {OIDName: $oid_desc})\
+            #         CREATE (oid:OID { \
+            #             OID: $oid,\
+            #             OIDName: $name,\
+            #             name: $name, \
+            #             defaultValue: $dv,\
+            #             dataType: $dt \
+            #         })\
+            #         CREATE (oid)-[:HAS_STATE_DETAILS]->(oidDesc)\
+            #         CREATE (ups)-[:HAS_OID]->(oid)\
+            #         ", 
+            #         key=key, 
+            #         oid=v['OID'], 
+            #         name=k,
+            #         dv=v['defaultValue'], 
+            #         dt=v['dataType'],
+            #         oid_desc="{}-{}".format(k,key))
 
             elif k == "PowerOff":
-                oid = v['OID']
-                if 'oidDesc' in v:
-                    oid_desc = dict((y,x) for x,y in v["oidDesc"].items())
-                    query = "\
-                    CREATE (PowerOffDetails:OIDDesc {{\
-                        OIDName: $name, \
-                        {}: \"switchOff\", \
-                        {}: \"switchOffGraceful\"\
-                    }})".format(oid_desc["switchOff"], oid_desc["switchOffGraceful"])
 
-                    session.run(query, name="{}-{}".format(k,key))
+                oid_desc = dict((y, x) for x, y in v["oidDesc"].items())
+                
+                desc_stm = _get_oid_desc_stm(oid_desc)
+                query.append("CREATE (oidDescPower:OIDDesc {{ {} }})".format(desc_stm))
+                
+                props = {**v, **{'OIDName': k}}
+                props_stm = _get_props_stm(props, ["OID", "dataType", "defaultValue", "OIDName"])
 
-                    session.run("\
-                    MATCH (ups:UPS {key: $key})\
-                    MATCH (oidDesc:OIDDesc {OIDName: $oid_desc})\
-                    CREATE (oid:OID { \
-                        OID: $oid,\
-                        OIDName: $name,\
-                        name: $name, \
-                        defaultValue: $dv,\
-                        dataType: $dt \
-                    })\
-                    CREATE (oid)-[:HAS_STATE_DETAILS]->(oidDesc)\
-                    CREATE (ups)-[:POWERED_BY]->(oid)\
-                    CREATE (ups)-[:HAS_OID]->(oid)\
-                    ", 
-                    key=key, 
-                    oid=oid, 
-                    name=k,
-                    dv=v['defaultValue'], 
-                    dt=v['dataType'],
-                    oid_desc="{}-{}".format(k,key))
+                query.append("CREATE ({oid_node_name}:OID {{ {props_stm} }})".format(oid_node_name=k, props_stm=props_stm))
+
+                query.append("CREATE ({})-[:HAS_STATE_DETAILS]->(oidDescPower)".format(k))
+                query.append("CREATE (ups)-[:POWERED_BY]->({})".format(k))
+                query.append("CREATE (ups)-[:HAS_OID]->({})".format(k))
+                # oid_desc = dict((y,x) for x,y in v["oidDesc"].items())
+                # query = "\
+                # CREATE (PowerOffDetails:OIDDesc {{\
+                #     OIDName: $name, \
+                #     {}: \"switchOff\", \
+                #     {}: \"switchOffGraceful\"\
+                # }})".format(oid_desc["switchOff"], oid_desc["switchOffGraceful"])
+
+                # session.run(query, name="{}-{}".format(k,key))
+
+                # session.run("\
+                # MATCH (ups:UPS {key: $key})\
+                # MATCH (oidDesc:OIDDesc {OIDName: $oid_desc})\
+                # CREATE (oid:OID { \
+                #     OID: $oid,\
+                #     OIDName: $name,\
+                #     name: $name, \
+                #     defaultValue: $dv,\
+                #     dataType: $dt \
+                # })\
+                # CREATE (oid)-[:HAS_STATE_DETAILS]->(oidDesc)\
+                # CREATE (ups)-[:POWERED_BY]->(oid)\
+                # CREATE (ups)-[:HAS_OID]->(oid)\
+                # ", 
+                # key=key, 
+                # oid=oid, 
+                # name=k,
+                # dv=v['defaultValue'], 
+                # dt=v['dataType'],
+                # oid_desc="{}-{}".format(k,key))
             else:
-                session.run("\
-                MATCH (ups:UPS {key: $key})\
-                CREATE (oid:OID { \
-                    OID: $oid,\
-                    OIDName: $name,\
-                    name: $name, \
-                    defaultValue: $dv,\
-                    dataType: $dt \
-                })<-[:HAS_OID]-(ups)", key=key, oid=v['OID'], name=k, dv=v['defaultValue'], dt=v['dataType'])
+                props = {**v, **{'OIDName': k}}
+                props_stm = _get_props_stm(props, ["OID", "dataType", "defaultValue", "OIDName"])
+
+                query.append("CREATE ({}:OID {{ {} }})".format(k, props_stm))
+                query.append("CREATE (ups)-[:HAS_OID]->({})".format(k))
+
+                # session.run("\
+                # MATCH (ups:UPS {key: $key})\
+                # CREATE (oid:OID { \
+                #     OID: $oid,\
+                #     OIDName: $name,\
+                #     name: $name, \
+                #     defaultValue: $dv,\
+                #     dataType: $dt \
+                # })<-[:HAS_OID]-(ups)", key=key, oid=v['OID'], name=k, dv=v['defaultValue'], dt=v['dataType'])
 
         # Set output outlets
         for i in range(data["numOutlets"]):
-            oid = v['OID'] + "." + str(i+1)
 
-            session.run("\
-            MATCH (ups:UPS {key: $key})\
-            CREATE (out1:Asset:Outlet:Component { \
-                name: $outname,\
-                key: $outkey,\
-                type: 'outlet'\
-            })\
-            CREATE (out1)-[:POWERED_BY]->(ups)\
-            CREATE (ups)-[:HAS_COMPONENT]->(out1)\
-            ", 
-            key=key,
-            outname='out'+str(i+1),
-            outkey=int("{}{}".format(key,str(i+1))))
+            props = {'name': 'out'+str(i+1), 'type': 'outlet', 'key': int("{}{}".format(key,str(i+1)))}
+            props_stm = _get_props_stm(props)
+            query.append("CREATE (out{}:Asset:Outlet:Component {{ {} }})".format(i, props_stm))
+            query.append("CREATE (ups)-[:HAS_COMPONENT]->(out{})".format(i))
+            query.append("CREATE (out{})-[:POWERED_BY]->(ups)".format(i))
+            # session.run("\
+            # MATCH (ups:UPS {key: $key})\
+            # CREATE (out1:Asset:Outlet:Component { \
+            #     name: $outname,\
+            #     key: $outkey,\
+            #     type: 'outlet'\
+            # })\
+            # CREATE (out1)-[:POWERED_BY]->(ups)\
+            # CREATE (ups)-[:HAS_COMPONENT]->(out1)\
+            # ", 
+            # key=key,
+            # outname='out'+str(i+1),
+            # outkey=int("{}{}".format(key,str(i+1))))
+
+
+        session.run("\n".join(query))
 
 
 def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'presets/apc_pdu.json')):
@@ -502,7 +542,7 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
                 v['defaultValue'] = _generate_mac()
 
             props_stm = _get_props_stm({**v, **{'OIDName': k}}, supported_attr=["OID", "OIDName", "defaultValue", "dataType"])
-            query.append("CREATE (:OID {{ {props_stm} }})<-[:HAS_OID]-(pdu)".format(oid_name=k, props_stm=props_stm))
+            query.append("CREATE (:OID {{ {props_stm} }})<-[:HAS_OID]-(pdu)".format(props_stm=props_stm))
 
 
         # Outlet-specific OIDs
@@ -510,15 +550,15 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
             
             # For outlet state, Outlet asset will need to be created
             if k == "OutletState":
-                if 'oidDesc' in v:
-                    oid_desc = dict((y,x) for x,y in v["oidDesc"].items())
-                    
-                    desc_stm = _get_oid_desc_stm(oid_desc, oid_name="{}-{}".format(k,key))
-                    query.append("CREATE (oidDesc:OIDDesc {{ {} }})<-[:HAS_OID]-(pdu)".format(desc_stm))
+                
+                oid_desc = dict((y, x) for x, y in v["oidDesc"].items())
+                
+                desc_stm = _get_oid_desc_stm(oid_desc)
+                query.append("CREATE (oidDesc:OIDDesc {{ {} }})".format(desc_stm))
 
                 for j in range(outlet_count):
                     
-                    out_key =  int("{}{}".format(key,str(j+1)))
+                    out_key = int("{}{}".format(key, str(j+1)))
                     props_stm = _get_props_stm({'key': out_key, 'name': 'out'+str(j+1), 'type': 'outlet'})
 
                     # create outlet per OID
@@ -532,7 +572,7 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
                     # create OID associated with outlet & pdu
                     for oid_n, oid in enumerate(v['OID']):
 
-                        out_key =  int("{}{}".format(key,str(j+1)))
+                        out_key = int("{}{}".format(key, str(j+1)))
                         oid = oid + "." + str(j+1)
                         oid_node_name = "{oid_name}{outlet_num}{oid_num}".format(oid_name=k, outlet_num=j, oid_num=oid_n)
                         
