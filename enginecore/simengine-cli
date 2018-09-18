@@ -7,10 +7,8 @@ import json
 import time
 import curses
 from enginecore.state.assets import Asset
-from enginecore.model.graph_reference import GraphReference
 import enginecore.model.system_modeler as sm
 from enginecore.state.state_managers import StateManager
-from enginecore.state.utils import get_asset_type
 
 
 def manage_state(asset_key, mng_action):
@@ -48,10 +46,16 @@ def status_table_format(assets, stdscr=False):
     for i, asset_key in enumerate(assets):
         asset = assets[asset_key]
         children = str(asset['children'] if 'children' in asset else "none")
-        row = row_format.format(str(i), *[str(asset_key), asset['type'], str(asset['status']), children, "{0:.2f}".format(asset['load'])], end='')
+        row = row_format.format(
+            str(i), 
+            *[str(asset_key), asset['type'], str(asset['status']), children, "{0:.2f}".format(asset['load'])], 
+            end=''
+        )
 
         if stdscr:
-            stdscr.addstr(i+1, 0, row, curses.color_pair(bcolors.ERROR if int(asset['status']) == 0 else bcolors.OKGREEN))
+            stdscr.addstr(
+                i+1, 0, row, curses.color_pair(bcolors.ERROR if int(asset['status']) == 0 else bcolors.OKGREEN)
+            )
         else:
             print(row)
 
@@ -132,10 +136,10 @@ def get_status(**kwargs):
 
 def configure_battery(key, kwargs):
     """Udpate runtime battery status"""
-    if kwargs['drain_speed'] != None:
+    if kwargs['drain_speed'] is not None:
         state_manager = Asset.get_state_manager_by_key(key, notify=True)
         state_manager.set_drain_speed_factor(kwargs['drain_speed'])
-    if kwargs['charge_speed'] != None:
+    if kwargs['charge_speed'] is not None:
         state_manager = Asset.get_state_manager_by_key(key, notify=True)
         state_manager.set_charge_speed_factor(kwargs['charge_speed'])
     
@@ -202,6 +206,8 @@ status_group.add_argument('--watch-rate', nargs='?',
 asset_group = subparsers.add_parser('model', help="Manage system model: create new/update existing asset etc.")
 model_subp = asset_group.add_subparsers()
 create_asset_group = model_subp.add_parser('create', help="Create new asset")
+
+reload_asset_action = model_subp.add_parser('reload', help="Reload the system topology (notify daemon of model changes)")
 
 # detach & delete an asset by key
 delete_asset_action = model_subp.add_parser('delete', help="Remove individual asset by key")
@@ -571,6 +577,10 @@ create_static_action.set_defaults(
 
 for action in update_actions:
     action.set_defaults(func=lambda args: sm.configure_asset(args['asset_key'], args))
+
+reload_asset_action.set_defaults(
+    func=lambda args: StateManager.reload_model() 
+)
 
 delete_asset_action.set_defaults(
     func=lambda args: sm.delete_asset(args['asset_key'])

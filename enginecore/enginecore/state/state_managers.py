@@ -296,7 +296,15 @@ class StateManager():
 
 
     @classmethod
+    def reload_model(cls):
+        """Request daemon reloading"""
+        StateManager.get_store().publish(RedisChannels.model_update_channel, 'reload')
+
+
+    @classmethod
     def get_state_manager_by_key(cls, key, supported_assets, notify=True):
+        """Infer asset manager from key"""
+
         graph_ref = GraphReference()
         
         with graph_ref.get_session() as session:  

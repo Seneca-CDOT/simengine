@@ -33,8 +33,6 @@ class ServerLoadTest(unittest.TestCase):
     def setUpClass(cls):
         cls.redis_store = redis.StrictRedis(host='localhost', port=6379)
 
-    def setUp(self):
-
         server_attr = {
             'domain_name': 'an-a01n01', 
             'psu_num': 2, 
@@ -63,6 +61,9 @@ class ServerLoadTest(unittest.TestCase):
         sm.link_assets(31, 41)
         sm.link_assets(33, 5)
         sm.link_assets(2, 42)
+
+        StateManager.reload_model()
+        time.sleep(3)
 
 
     def check_redis_values(self, expected_kv):

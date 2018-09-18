@@ -21,9 +21,6 @@ class UpsSnmpTest(unittest.TestCase):
     def setUpClass(cls):
         cls.redis_store = redis.StrictRedis(host='localhost', port=6379)
 
-    def setUp(self):
-
-
         attr = {}
 
         sm.drop_model()
@@ -58,6 +55,8 @@ class UpsSnmpTest(unittest.TestCase):
         sm.link_assets(33, 5)
         sm.link_assets(35, 6)
 
+        StateManager.reload_model()
+        time.sleep(3)
 
     def check_redis_values(self, expected_kv):
         for key, value in expected_kv.items():

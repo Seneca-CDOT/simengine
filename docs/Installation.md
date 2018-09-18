@@ -20,6 +20,7 @@ Simengine uses OpenIPMI lanserv simulator for its BMC emulations and libvirt for
 ```
 dnf install libvirt OpenIPMI OpenIPMI-lanserv OpenIPMI-libs OpenIPMI-devel python3-libvirt -y
 dnf install gcc redis -y
+dnf install ipmitool -y #for testing
 ```
 
 ## Neo4J
@@ -61,6 +62,29 @@ Install `snmpsimd` (python2 version):
 Change location to `dashboard/fronend`
 
 Run `npm install` and then `npm start`
+
+## MIBs
+
+Vendor-specific mibs may need to be installed for the testing purposes.
+
+`dnf install net-snmp net-snmp-utils`
+
+Add mib definitions:
+
+`mkdir /usr/share/snmp/mibs/apc`
+
+`cp data/ups/powernet426.mib /usr/share/snmp/mibs/apc/ # copy from simengine project`
+
+Create configuration file:
+
+`vi /etc/snmp/snmp.conf`
+
+Paste `mibdirs` reference:
+
+```
+mibdirs /usr/share/snmp/mibs:/usr/share/snmp/mibs/apc
+mibs ALL
+```
 
 ## Running
 

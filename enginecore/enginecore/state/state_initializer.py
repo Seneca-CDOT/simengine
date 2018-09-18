@@ -1,8 +1,28 @@
 """Initialize redis state based on reference model """
 import os
+import tempfile
+import shutil
+
 import redis
+
 from enginecore.model.graph_reference import GraphReference
 from enginecore.state.utils import format_as_redis_key, get_asset_type
+
+
+def clear_temp():
+    """All app data is stored in /tmp/simengine (which is cleared on restart)"""
+    sys_temp = tempfile.gettempdir()
+    simengine_temp = os.path.join(sys_temp, 'simengine')
+    if os.path.exists(simengine_temp):
+        for the_file in os.listdir(simengine_temp):
+            file_path = os.path.join(simengine_temp, the_file)    
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path): 
+                shutil.rmtree(file_path)
+    else:
+        os.makedirs(simengine_temp)
+
 
 def initialize(force_snmp_init=False):
     """ Initialize redis state using topology defined in the graph db """

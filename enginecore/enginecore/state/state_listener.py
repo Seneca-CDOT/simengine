@@ -19,6 +19,7 @@ from enginecore.state.event_map import PowerEventManager
 from enginecore.state.web_socket import WebSocket
 from enginecore.state.redis_channels import RedisChannels
 from enginecore.model.graph_reference import GraphReference
+from enginecore.state.state_initializer import initialize, clear_temp
 
 class NotifyClient(Event):
     """Notify websocket clients of any data updates"""
@@ -27,36 +28,26 @@ class StateListener(Component):
     """Top-level component that instantiates assets & maps redis events to circuit events"""
 
 
-    def __init__(self, debug=False):
+    def __init__(self, debug=False, force_snmp_init=False):
         super(StateListener, self).__init__()
 
         ### Set-up WebSocket & Redis listener ###
 
-        # subscribe to redis key events
-        self.redis_store = redis.StrictRedis(host='localhost', port=6379)
+        # Use redis pub/sub communication
+        self._redis_store = redis.StrictRedis(host='localhost', port=6379)
 
-        # State Channels
-        self.pubsub = self.redis_store.pubsub()
-        self.pubsub.psubscribe(
-            RedisChannels.oid_update_channel,  # snmp oid updates
-            RedisChannels.state_update_channel # power state changes
-        )
-
-        # Battery Channel
-        self.bat_pubsub = self.redis_store.pubsub()
-        self.bat_pubsub.psubscribe(
-            RedisChannels.battery_update_channel, # battery level updates
-            RedisChannels.battery_conf_drain_channel, # update drain speed (factor)
-            RedisChannels.battery_conf_charge_channel # update charge speed (factor)
-        )
+        self._bat_pubsub = self._redis_store.pubsub()
+        self._state_pubsub = self._redis_store.pubsub()
 
         # assets will store all the devices/items including PDUs, switches etc.
         self._assets = {}
+
+        # init graph db instance
         self._graph_ref = GraphReference()
-        self._graph_db = self._graph_ref.get_session()
         
-        # set up a web socket
-        self._server = Server(("0.0.0.0", 8000)).register(self)     
+        # set up a web socket server
+        self._server = Server(("0.0.0.0", 8000)).register(self)  
+
         # Worker(process=False).register(self)
         Static().register(self._server)
         Logger().register(self._server)
@@ -65,10 +56,39 @@ class StateListener(Component):
             Debugger(events=False).register(self)
 
         self._ws = WebSocket().register(self._server)
-    
         WebSocketsDispatcher("/simengine").register(self._server)
 
         ### Register Assets ###
+        self._subscribe_to_channels()
+        self._reload_model(force_snmp_init)
+       
+
+    def _subscribe_to_channels(self):
+        """Subscribe to redis channels"""
+        
+        # State Channels
+        self._state_pubsub.psubscribe(
+            RedisChannels.oid_update_channel,  # snmp oid updates
+            RedisChannels.state_update_channel, # power state changes
+            RedisChannels.model_update_channel  # model changes
+        )
+
+        # Battery Channel
+        self._bat_pubsub.psubscribe(
+            RedisChannels.battery_update_channel, # battery level updates
+            RedisChannels.battery_conf_drain_channel, # update drain speed (factor)
+            RedisChannels.battery_conf_charge_channel # update charge speed (factor)
+        )
+
+
+    def _reload_model(self, force_snmp_init=True):
+        """Re-create system topology (instantiate assets based on graph ref)"""
+
+        self._assets = {}
+
+        # init state
+        clear_temp()
+        initialize(force_snmp_init) 
 
         # instantiate assets based on graph records
         leaf_nodes = []
@@ -145,10 +165,6 @@ class StateListener(Component):
         # fire-up power events down the power stream
         self.fire(PowerEventManager.map_asset_event(asset_status), updated_asset)
         self._chain_power_update(PowerEventResult(asset_key=asset_key, new_state=asset_status))
-
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        self._graph_db.close()
 
 
     def _chain_load_update(self, event_result, increased=True):
@@ -317,7 +333,7 @@ class StateListener(Component):
 
     def monitor_battery(self):
         """Monitor battery in a separate pub/sub stream"""
-        message = self.bat_pubsub.get_message()
+        message = self._bat_pubsub.get_message()
 
         # validate message
         if ((not message) or ('data' not in message) or (not isinstance(message['data'], bytes))):
@@ -346,7 +362,7 @@ class StateListener(Component):
         """ listens to redis events """
 
         print("...")
-        message = self.pubsub.get_message()
+        message = self._state_pubsub.get_message()
 
         # validate message
         if ((not message) or ('data' not in message) or (not isinstance(message['data'], bytes))):
@@ -364,13 +380,21 @@ class StateListener(Component):
                     self._handle_state_update(int(asset_key))
 
             elif message['channel'] == str.encode(RedisChannels.oid_update_channel):
-                value = (self.redis_store.get(data)).decode()
+                value = (self._redis_store.get(data)).decode()
                 asset_key, oid = data.split('-')
                 self._handle_oid_update(int(asset_key), oid, value)
 
             elif message['channel'] == str.encode(RedisChannels.battery_update_channel):
                 asset_key, _ = data.split('-')
                 self._notify_client(int(asset_key), {'battery': self._assets[int(asset_key)].state.battery_level})
+
+            elif message['channel'] == str.encode(RedisChannels.model_update_channel):
+                print('RELOAD REQUESTED')
+                self._state_pubsub.unsubscribe()
+                self._bat_pubsub.unsubscribe()
+
+                self._reload_model()
+                self._subscribe_to_channels()
 
         except KeyError as error:
             print("Detected unregistered asset under key [{}]".format(error), file=sys.stderr)
