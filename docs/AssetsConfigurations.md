@@ -3,6 +3,11 @@
 
 ## UPS
 
+### Agents 
+
+You can check if ipmi/snmp simulators are up & running by issuing status command:
+
+`simengine-cli status --asset-key={key} --agent`
 
 
 ### SNMP Configurations

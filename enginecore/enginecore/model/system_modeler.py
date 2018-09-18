@@ -14,20 +14,20 @@ from enginecore.model.graph_reference import GraphReference
 
 GRAPH_REF = GraphReference()
 
-def _get_props_stm(attr, supported_attr=[]):
+def _get_props_stm(attr, supported_attr=None):
     """Format dict attributes as neo4j props"""
 
     existing = dict(
-        filter(lambda k: attr[k[0]] != None and (not supported_attr or k[0] in supported_attr), attr.items())
+        filter(lambda k: attr[k[0]] is not None and (not supported_attr or k[0] in supported_attr), attr.items())
     )
     return ','.join(map(lambda k: "{}: {}".format(_to_camelcase(k), repr(existing[k])), existing))
 
 
-def _get_set_stm(attr, node_name="asset", supported_attr=[]):
+def _get_set_stm(attr, node_name="asset", supported_attr=None):
     """Format dict as neo4j set statement"""
 
     existing = dict(
-        filter(lambda k: attr[k[0]] != None and (not supported_attr or k[0] in supported_attr), attr.items())
+        filter(lambda k: attr[k[0]] is not None and (not supported_attr or k[0] in supported_attr), attr.items())
     )
     return ','.join(map(lambda k: "{}.{}={}".format(node_name, _to_camelcase(k), repr(existing[k])), existing))
 
@@ -325,24 +325,24 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
         query.append("CREATE (pdu:Asset:PDU:SNMPSim {{ {} }})".format(props_stm))
         
         # Add PDU OIDS to the model
-        for k, v in data["OIDs"].items():
-            if k == 'SerialNumber':
-                v['defaultValue'] = _generate_id()
-            if k == 'MAC':
-                v['defaultValue'] = _generate_mac()
+        for oid_key, oid_props in data["OIDs"].items():
+            if oid_key == 'SerialNumber':
+                oid_props['defaultValue'] = _generate_id()
+            if oid_key == 'MAC':
+                oid_props['defaultValue'] = _generate_mac()
 
             s_attr = ["OID", "OIDName", "defaultValue", "dataType"]
-            props_stm = _get_props_stm({**v, **{'OIDName': k}}, supported_attr=s_attr)
+            props_stm = _get_props_stm({**oid_props, **{'OIDName': oid_key}}, supported_attr=s_attr)
             query.append("CREATE (:OID {{ {props_stm} }})<-[:HAS_OID]-(pdu)".format(props_stm=props_stm))
 
 
         # Outlet-specific OIDs
-        for k, v in data["outletOIDs"].items():
+        for oid_key, oid_props in data["outletOIDs"].items():
             
             # For outlet state, Outlet asset will need to be created
-            if k == "OutletState":
+            if oid_key == "OutletState":
                 
-                oid_desc = dict((y, x) for x, y in v["oidDesc"].items())
+                oid_desc = dict((y, x) for x, y in oid_props["oidDesc"].items())
                 
                 desc_stm = _get_oid_desc_stm(oid_desc)
                 query.append("CREATE (oidDesc:OIDDesc {{ {} }})".format(desc_stm))
@@ -361,19 +361,23 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
 
 
                     # create OID associated with outlet & pdu
-                    for oid_n, oid in enumerate(v['OID']):
+                    for oid_n, oid in enumerate(oid_props['OID']):
 
                         out_key = int("{}{}".format(key, str(j+1)))
                         oid = oid + "." + str(j+1)
                         oid_node_name = "{oid_name}{outlet_num}{oid_num}".format(
-                            oid_name=k, 
+                            oid_name=oid_key, 
                             outlet_num=j, 
                             oid_num=oid_n
                         )
                         
                         props_stm = _get_props_stm({
-                            'OID': oid, 'OIDName': k, 'dataType': v['dataType'], 'defaultValue': v['defaultValue']
+                            'OID': oid, 
+                            'OIDName': oid_key, 
+                            'dataType': oid_props['dataType'], 
+                            'defaultValue': oid_props['defaultValue']
                         })
+
                         query.append("CREATE ({oid_node_name}:OID {{ {props_stm} }})".format(
                             oid_node_name=oid_node_name, 
                             props_stm=props_stm))
@@ -383,13 +387,17 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
                         query.append("CREATE ({})-[:HAS_STATE_DETAILS]->(oidDesc)".format(oid_node_name))
                         query.append("CREATE (pdu)-[:HAS_OID]->({})".format(oid_node_name))
             else:
-                oid = v['OID']
-   
-                props_stm = _get_props_stm(
-                    {'OID': oid, 'OIDName': k, 'dataType': v['dataType'], 'defaultValue': v['defaultValue']}
-                )
-                query.append("CREATE ({}:OID {{ {} }})".format(k, props_stm))
-                query.append("CREATE (pdu)-[:HAS_OID]->({})".format(k))
+                oid = oid_props['OID']
+                
+                props_stm = _get_props_stm({
+                    'OID': oid, 
+                    'OIDName': oid_key, 
+                    'dataType': oid_props['dataType'], 
+                    'defaultValue': oid_props['defaultValue']
+                })
+                
+                query.append("CREATE ({}:OID {{ {} }})".format(oid_key, props_stm))
+                query.append("CREATE (pdu)-[:HAS_OID]->({})".format(oid_key))
                 
         # print("\n".join(query))
         session.run("\n".join(query))
