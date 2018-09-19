@@ -1,0 +1,40 @@
+{
+    "caseFan": {
+        "addressSpace": "0x6f",
+        "sensorDefinitions": [
+            {
+            "thresholds": {
+                "lnr": 0, 
+                "lcr": 200, 
+                "lnc": 300, 
+                "unc": 1000,
+                "ucr": 1200, 
+                "unr": 1500
+            },
+            "defaultValue": 689.600,
+            "name": "FANN $n"
+            },
+            {
+            "thresholds": {
+                "lcr": 200, 
+                "lnc": 300, 
+                "unc": 1000,
+                "ucr": 1200
+            },
+            "defaultValue": 689.600,
+            "name": "FANN $n"
+            },
+            {
+                "thresholds": {
+                    "lcr": 200, 
+                    "lnc": 300, 
+                    "unc": 1000,
+                    "ucr": 1200
+                },
+                "defaultValue": 689.600,
+                "name": "FANN $n",
+                "address": "0x79"
+            }
+        ]
+    }
+}

@@ -193,6 +193,57 @@ IPMI_LAN_DEFAULTS = {
 }
     
 
+def _add_sensors(asset_key, preset_file=os.path.join(os.path.dirname(__file__), 'presets/sensors.json')):
+    """Add sensors based on a preset file"""
+
+    with open(preset_file) as preset_handler, GRAPH_REF.get_session() as session:        
+        query = []
+
+        query.append("MATCH (server:Asset {{ key: {} }})".format(asset_key))
+        data = json.load(preset_handler)
+        
+        for sensor_type, sensor_specs in data.items():
+
+            address_space_exists = 'addressSpace' in sensor_specs and sensor_specs['addressSpace']
+
+            if address_space_exists:
+                address_space = repr(sensor_specs['addressSpace'])
+                query.append(
+                    "CREATE (aSpace{}:AddressSpace {{ address: {} }})".format(
+                        sensor_specs['addressSpace'], 
+                        address_space
+                    )
+                )
+
+            for idx, sensor in enumerate(sensor_specs['sensorDefinitions']):
+                
+                sensor_node = "{}{}".format(sensor_type, idx)
+
+                if 'address' in sensor and sensor['address']:
+                    addr = {'address': hex(int(sensor['address'], 16))}
+                elif address_space_exists:
+                    addr = {'index': idx}
+                else:
+                    raise KeyError("Missing address for a seonsor {}".format(sensor_type))
+
+                s_attr = ["defaultValue", "name", "lnr", "lcr", "lnc", "unc", "ucr", "unr", "address", "index"]
+                
+                props = {**sensor['thresholds'], **sensor, **addr}
+                props_stm = _get_props_stm(props, supported_attr=s_attr)
+
+                query.append("CREATE (sensor{}:Sensor:{} {{ {} }})".format(sensor_node, sensor_type, props_stm))
+
+                if not ('address' in sensor) or not sensor['address']:
+                    query.append("CREATE (sensor{})-[:HAS_ADDRESS_SPACE]->(aSpace{})".format(
+                        sensor_node,
+                        sensor_specs['addressSpace']
+                    ))
+
+                query.append("CREATE (server)-[:HAS_SENSOR]->(sensor{})".format(sensor_node))
+
+        print("\n".join(query))
+        session.run("\n".join(query))
+
 def create_server(key, attr, server_variation=ServerVariations.Server):
     """Create a simulated server """
 
@@ -231,8 +282,11 @@ def create_server(key, attr, server_variation=ServerVariations.Server):
 
             set_stm = _get_set_stm(bmc_attr, node_name="server", supported_attr=IPMI_LAN_DEFAULTS.keys())
             query.append("SET {}".format(set_stm))
-        
+
         session.run("\n".join(query))
+
+        if server_variation == ServerVariations.ServerWithBMC:
+            _add_sensors(key)
 
         # add PSUs to the model
         for i in range(attr['psu_num']):
@@ -417,7 +471,8 @@ def create_static(key, attr):
 def drop_model():
     """ Drop system model """
     with GRAPH_REF.get_session() as session:
-        session.run("MATCH (a) WHERE a:Asset OR a:OID OR a:OIDDesc OR a:Battery OR a:StageLayout DETACH DELETE a")
+        labels = ["Asset", "OID", "OIDDesc", "Battery", "StageLayout", "Sensor", "AddressSpace"]
+        session.run("MATCH (a) WHERE {} DETACH DELETE a".format(" OR ".join(map("a:{}".format, labels))))
     
 
 def delete_asset(key):
