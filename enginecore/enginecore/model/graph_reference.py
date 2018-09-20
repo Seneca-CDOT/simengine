@@ -22,6 +22,7 @@ class GraphReference():
         """ Get a database session """
         return self._driver.session()
 
+
     @classmethod
     def get_parent_assets(cls, session, asset_key):
         """Get information about parent assets
@@ -39,6 +40,7 @@ class GraphReference():
 
         assets = list(map(lambda x: dict(x['asset']), list(results)))
         return assets
+
 
     @classmethod
     def get_parent_keys(cls, session, asset_key):
@@ -79,6 +81,7 @@ class GraphReference():
                 
         return asset_keys, oid_keys
 
+
     @classmethod
     def get_asset_oid_info(cls, session, asset_key, oid):
         """Get oid info & (state) details that belong to a particular asset
@@ -108,6 +111,7 @@ class GraphReference():
             }
         
         return keys_oid_powers, oid_specs
+
 
     @classmethod
     def get_asset_oid_by_name(cls, session, asset_key, oid_name):
@@ -143,6 +147,7 @@ class GraphReference():
 
         return oid_info, oid_data_type, v_specs
 
+
     @classmethod
     def get_component_oid_by_name(cls, session, component_key, oid_name):
         """Get OID that is associated with a particular component (by human-readable name)
@@ -168,6 +173,7 @@ class GraphReference():
         parent_key = record.get('parent_key')
         
         return oid_info['OID'], int(parent_key) if (oid_info and 'OID' in oid_info) else None
+
 
     @classmethod
     def get_assets_and_children(cls, session):
@@ -197,6 +203,7 @@ class GraphReference():
 
         return assets
             
+
     @classmethod
     def get_assets_and_connections(cls, session, flatten=True):
         """Get assets, their components (e.g. PDU outlets) and parent asset(s) that powers them
@@ -320,23 +327,6 @@ class GraphReference():
         asset['children'] = children
         return asset
 
-    @classmethod
-    def get_asset_labels(cls, session, asset_key):        
-        """Retrieve asset labels 
-
-        Args:
-            session: database session
-            asset_key(int): query by key
-        Returns:
-            list: list of asset labels
-        """
-
-        results = session.run(
-            "MATCH (a:Asset { key: $key }) RETURN labels(a) as labels LIMIT 1",
-            key=int(asset_key)
-        )
-
-        return results.single()['labels']
 
     @classmethod
     def save_layout(cls, session, layout, stage=None):
@@ -359,6 +349,7 @@ class GraphReference():
                 scale=stage['scale'], x=stage['x'], y=stage['y']
             )
     
+
     @classmethod
     def get_stage_layout(cls, session):
         """Get Stage layout configurations
@@ -375,3 +366,27 @@ class GraphReference():
         stage_layout = results.single()
 
         return dict(stage_layout.get('stageLayout')) if stage_layout else None
+
+
+    @classmethod
+    def get_asset_sensors(cls, session, asset_key):
+        results = session.run(
+            """
+            MATCH (a:Asset { key: $key })-[:HAS_SENSOR]->(sensor:Sensor)
+            OPTIONAL MATCH (sensor)-[:HAS_ADDRESS_SPACE]->(addr)
+            RETURN sensor, addr
+            """, key=int(asset_key)
+        )
+
+        sensors = []
+
+        for record in results:
+            sensor = dict(record['sensor'])
+
+            sensors.append({ 
+                'specs': sensor, 
+                'address_space': dict(record['addr']) if 'index' in sensor else None
+            })
+
+        return sensors
+            

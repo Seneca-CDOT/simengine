@@ -41,13 +41,13 @@ class Asset(Component):
     def __init__(self, state):
         super(Asset, self).__init__()
         self._state = state
-        self._state.reset_boot_time()
-        self._state.update_load(0)
+        self.state.reset_boot_time()
+        self.state.update_load(0)
 
     @property
     def key(self):
         """ Get ID assigned to the asset """
-        return self._state.key
+        return self.state.key
 
     @property
     def state(self):
@@ -61,10 +61,10 @@ class Asset(Component):
         """
         old_state = self.state.status
         return PowerEventResult(
-            asset_key=self._state.key, 
-            asset_type=self._state.asset_type, 
+            asset_key=self.state.key, 
+            asset_type=self.state.asset_type, 
             old_state=old_state,
-            new_state=self._state.power_up()
+            new_state=self.state.power_up()
         )
 
     def shut_down(self):
@@ -74,10 +74,10 @@ class Asset(Component):
         """
         old_state = self.state.status
         return PowerEventResult(
-            asset_key=self._state.key, 
-            asset_type=self._state.asset_type, 
+            asset_key=self.state.key, 
+            asset_type=self.state.asset_type, 
             old_state=old_state,
-            new_state=self._state.shut_down()
+            new_state=self.state.shut_down()
         )
 
     def power_off(self):
@@ -87,10 +87,10 @@ class Asset(Component):
         """
         old_state = self.state.status
         return PowerEventResult(
-            asset_key=self._state.key, 
-            asset_type=self._state.asset_type, 
+            asset_key=self.state.key, 
+            asset_type=self.state.asset_type, 
             old_state=old_state,
-            new_state=self._state.power_off()
+            new_state=self.state.power_off()
         )
 
     def _update_load(self, load_change, arithmetic_op, msg=''):
@@ -105,11 +105,11 @@ class Asset(Component):
             LoadEventResult: Event result containing old & new load values as well as value subtracted/added
         """
         
-        old_load = self._state.load
+        old_load = self.state.load
         new_load = arithmetic_op(old_load, load_change)
         
         if msg:
-            print(msg.format(self._state.key, old_load, load_change, new_load))
+            print(msg.format(self.state.key, old_load, load_change, new_load))
         
         self.state.update_load(new_load)
 
@@ -117,7 +117,7 @@ class Asset(Component):
             load_change=load_change,
             old_load=old_load,
             new_load=new_load,
-            asset_key=self._state.key
+            asset_key=self.state.key
         )
 
     @handler("ChildAssetPowerUp", "ChildAssetLoadIncreased")
@@ -195,10 +195,13 @@ class Agent():
 class IPMIAgent(Agent):
     """IPMIsim instance """
 
-    def __init__(self, key, ipmi_dir, num_psu, host='localhost', port=9001, vmport=9002, user='ipmiusr', password='test'):
+    def __init__(self, key, ipmi_dir, ipmi_config, sensors):
         super(IPMIAgent, self).__init__()
         self._asset_key = key
         self._ipmi_dir = ipmi_dir
+
+        print(sensors)
+        
         copy_tree(os.environ.get('SIMENGINE_IPMI_TEMPL'), self._ipmi_dir)
 
         # sensor, emu & lan configuration file paths
@@ -213,18 +216,18 @@ class IPMIAgent(Agent):
         lan_conf_opt = {
             'asset_key': key, 
             'extend_lib': lib_path,
-            'host': host,
-            'port': port,
-            'user': user,
-            'password': password,
-            'vmport': vmport
+            'host': ipmi_config['host'],
+            'port': ipmi_config['port'],
+            'user': ipmi_config['user'],
+            'password': ipmi_config['password'],
+            'vmport':  ipmi_config['vmport']
         }
         
         ipmisim_emu_opt = {'ipmi_dir': self._ipmi_dir, 'includes': ''}
         main_sdr_opt = {'ipmi_dir': self._ipmi_dir, 'includes': ''}
 
         # Set server-specific includes
-        if num_psu == 2:
+        if ipmi_config['num_components'] == 2:
             ipmisim_emu_opt['includes'] = 'include "{}"'.format(os.path.join(self._ipmi_dir, 'ipmisim1_psu.emu'))
             main_sdr_opt['includes'] = 'include "{}"'.format(os.path.join(self._ipmi_dir, 'main_dual_psu.sdrs'))
 
@@ -378,7 +381,7 @@ class PDU(Asset, SNMPSim):
             port=asset_info['port'] if 'port' in asset_info else 161
         )
 
-        self._state.agent = self.pid
+        self.state.agent = self.pid
 
 
     ##### React to any events of the connected components #####
@@ -426,7 +429,7 @@ class UPS(Asset, SNMPSim):
             port=asset_info['port'] if 'port' in asset_info else 161
         )
 
-        self._state.agent = self.pid
+        self.state.agent = self.pid
 
         # Store known { wattage: time_remaining } key/value pairs (runtime graph)
         self._runtime_details = json.loads(asset_info['runtime'])
@@ -443,15 +446,15 @@ class UPS(Asset, SNMPSim):
         self._start_time_battery = None
 
         # set battery level to max
-        self._state.update_battery(self._state.battery_max_level)
+        self.state.update_battery(self.state.battery_max_level)
         
         # get charge per second using full recharge time (hrs)
-        self._charge_per_second = self._state.battery_max_level / (self._state.full_recharge_time*60*60)
+        self._charge_per_second = self.state.battery_max_level / (self.state.full_recharge_time*60*60)
 
 
     def _cacl_time_left(self, wattage):
         """Approximate runtime estimation based on current battery level""" 
-        return (self._calc_full_power_time_left(wattage)*self._state.battery_level)/self._state.battery_max_level
+        return (self._calc_full_power_time_left(wattage)*self.state.battery_level)/self.state.battery_max_level
 
 
     def _calc_full_power_time_left(self, wattage):
@@ -468,9 +471,9 @@ class UPS(Asset, SNMPSim):
             float: discharge per second 
         """
         # return 100
-        wattage = self._state.wattage
+        wattage = self.state.wattage
         fp_estimated_timeleft = self._calc_full_power_time_left(wattage)
-        return self._state.battery_max_level / (fp_estimated_timeleft*60)
+        return self.state.battery_max_level / (fp_estimated_timeleft*60)
 
 
     def _drain_battery(self, parent_up):
@@ -480,32 +483,32 @@ class UPS(Asset, SNMPSim):
             parent_up(callable): indicates if the upstream power is available
         """
 
-        battery_level = self._state.battery_level
+        battery_level = self.state.battery_level
         blackout = False
 
         # keep draining battery while its level remains above 0, UPS is on and parent is down
-        while battery_level > 0 and self._state.status and not parent_up():
+        while battery_level > 0 and self.state.status and not parent_up():
 
             # calculate new battery level
             battery_level = battery_level - (self._calc_battery_discharge() * self._drain_speed_factor)
             seconds_on_battery = (dt.datetime.now() - self._start_time_battery).seconds
             
             # update state details
-            self._state.update_battery(battery_level)
-            self._state.update_time_left(self._cacl_time_left(self._state.wattage) * 60 * 100)
-            self._state.update_time_on_battery(seconds_on_battery * 100)
+            self.state.update_battery(battery_level)
+            self.state.update_time_left(self._cacl_time_left(self.state.wattage) * 60 * 100)
+            self.state.update_time_on_battery(seconds_on_battery * 100)
             
             if seconds_on_battery > 5 and not blackout:
                 blackout = True
-                self._state.update_transfer_reason(sm.UPSStateManager.InputLineFailCause.blackout)
+                self.state.update_transfer_reason(sm.UPSStateManager.InputLineFailCause.blackout)
             
             time.sleep(1)
         
         # kill the thing if still breathing
-        if self._state.status and not parent_up():
+        if self.state.status and not parent_up():
             self._snmp_agent.stop_agent()
-            self._state.power_off()
-            self._state.publish_power()
+            self.state.power_off()
+            self.state.publish_power()
 
 
     def _charge_battery(self, parent_up, power_up_on_charge=False):
@@ -517,24 +520,24 @@ class UPS(Asset, SNMPSim):
 
         """
 
-        battery_level = self._state.battery_level
+        battery_level = self.state.battery_level
         powered = False
 
         # keep charging battery while its level is less than max & parent is up
-        while battery_level < self._state.battery_max_level and parent_up():
+        while battery_level < self.state.battery_max_level and parent_up():
 
             # calculate new battery level
             battery_level = battery_level + (self._charge_per_second * self._charge_speed_factor)
 
             # update state details
-            self._state.update_battery(battery_level)
-            self._state.update_time_left(self._cacl_time_left(self._state.wattage) * 60 * 100)
+            self.state.update_battery(battery_level)
+            self.state.update_time_left(self._cacl_time_left(self.state.wattage) * 60 * 100)
 
             # power up on min charge level
-            if (not powered and power_up_on_charge) and (battery_level > self._state.min_restore_charge_level):
+            if (not powered and power_up_on_charge) and (battery_level > self.state.min_restore_charge_level):
                 e_result = self.power_up()
                 powered = e_result.new_state
-                self._state.publish_power()
+                self.state.publish_power()
 
             time.sleep(1)
 
@@ -545,8 +548,8 @@ class UPS(Asset, SNMPSim):
         self._start_time_battery = dt.datetime.now()
 
         # update state details
-        self._state.update_ups_output_status(sm.UPSStateManager.OutputStatus.onBattery)
-        self._state.update_transfer_reason(sm.UPSStateManager.InputLineFailCause.deepMomentarySag)
+        self.state.update_ups_output_status(sm.UPSStateManager.OutputStatus.onBattery)
+        self.state.update_transfer_reason(sm.UPSStateManager.InputLineFailCause.deepMomentarySag)
         
         # launch a thread
         self._battery_drain_t = Thread(
@@ -560,11 +563,11 @@ class UPS(Asset, SNMPSim):
 
     def _launch_battery_charge(self, power_up_on_charge=False):
         """Start a thread that will charge battery level """
-        self._state.update_time_on_battery(0)
+        self.state.update_time_on_battery(0)
 
         # update state details
-        self._state.update_ups_output_status(sm.UPSStateManager.OutputStatus.onLine)
-        self._state.update_transfer_reason(sm.UPSStateManager.InputLineFailCause.noTransfer)
+        self.state.update_ups_output_status(sm.UPSStateManager.OutputStatus.onLine)
+        self.state.update_transfer_reason(sm.UPSStateManager.InputLineFailCause.noTransfer)
 
         # launch a thread
         self._battery_charge_t = Thread(
@@ -584,13 +587,13 @@ class UPS(Asset, SNMPSim):
         self._parent_up = False
 
         # If battery is still alive -> keep UPS up
-        if self._state.battery_level:
+        if self.state.battery_level:
             self._launch_battery_drain()
             event.success = False
             return
 
         # Battery is dead
-        self._state.update_ups_output_status(sm.UPSStateManager.OutputStatus.off)
+        self.state.update_ups_output_status(sm.UPSStateManager.OutputStatus.off)
 
         e_result = self.power_off()
         event.success = e_result.new_state != e_result.old_state
@@ -600,7 +603,7 @@ class UPS(Asset, SNMPSim):
     @handler("SignalDown")
     def on_signal_down_received(self, event, *args, **kwargs):
         """UPS can be powered down by snmp command"""
-        self._state.update_ups_output_status(sm.UPSStateManager.OutputStatus.off)
+        self.state.update_ups_output_status(sm.UPSStateManager.OutputStatus.off)
 
         if 'graceful' in kwargs and kwargs['graceful']:
             e_result = self.shut_down()
@@ -623,7 +626,7 @@ class UPS(Asset, SNMPSim):
     def on_power_up_request_received(self, event, *args, **kwargs):
         
         self._parent_up = True
-        battery_level = self._state.battery_level
+        battery_level = self.state.battery_level
         self._launch_battery_charge(power_up_on_charge=(not battery_level))
 
         if battery_level:
@@ -656,7 +659,7 @@ class UPS(Asset, SNMPSim):
     def _update_load(self, load_change, arithmetic_op, msg=''):
         upd_result = super()._update_load(load_change, arithmetic_op, msg)
         # re-calculate time left based on updated load
-        self._state.update_time_left(self._cacl_time_left(self._state.wattage) * 60 * 100)
+        self.state.update_time_left(self._cacl_time_left(self.state.wattage) * 60 * 100)
         return upd_result
 
 
@@ -677,19 +680,19 @@ class Outlet(Asset):
     def on_signal_down_received(self, event, *args, **kwargs):
         """Outlet may have multiple OIDs associated with the state 
         (if if one is updated, other ones should be updated as well)"""
-        self._state.set_parent_oid_states(sm.OutletStateManager.OutletState.switchOff)
+        self.state.set_parent_oid_states(sm.OutletStateManager.OutletState.switchOff)
 
     @handler("SignalUp", priority=1)
     def on_signal_up_received(self, event, *args, **kwargs):
         """Outlet may have multiple OIDs associated with the state"""     
-        self._state.set_parent_oid_states(sm.OutletStateManager.OutletState.switchOn)
+        self.state.set_parent_oid_states(sm.OutletStateManager.OutletState.switchOn)
             
 
     @handler("ParentAssetPowerDown", "SignalDown")
     def on_power_off_request_received(self, event, *args, **kwargs):
         """ React to events with power down """
         if 'delayed' in kwargs and kwargs['delayed']:
-            time.sleep(self._state.get_config_off_delay())
+            time.sleep(self.state.get_config_off_delay())
 
         return self.power_off()
 
@@ -698,7 +701,7 @@ class Outlet(Asset):
         """ React to events with power up """
 
         if 'delayed' in kwargs and kwargs['delayed']:
-            time.sleep(self._state.get_config_on_delay())
+            time.sleep(self.state.get_config_on_delay())
 
         e_result = self.power_up()
         event.success = e_result.new_state != e_result.old_state
@@ -719,8 +722,8 @@ class Outlet(Asset):
         return PowerEventResult(
             old_state=old_state,
             new_state=e_result_up.new_state,
-            asset_key=self._state.key,
-            asset_type=self._state.asset_type
+            asset_key=self.state.key,
+            asset_type=self.state.asset_type
         )
 
 
@@ -731,7 +734,7 @@ class StaticAsset(Asset):
     StateManagerCls = sm.StaticDeviceStateManager
     def __init__(self, asset_info):
         super(StaticAsset, self).__init__(self.StateManagerCls(asset_info))
-        self._state.update_load(self._state.power_usage)
+        self.state.update_load(self.state.power_usage)
 
     @handler("ParentAssetPowerDown")
     def on_parent_asset_power_down(self, event, *args, **kwargs): 
@@ -751,7 +754,7 @@ class Server(StaticAsset):
 
     def __init__(self, asset_info):
         super(Server, self).__init__(asset_info)
-        self._state.power_up()
+        self.state.power_up()
     
     
 @register_asset
@@ -762,27 +765,14 @@ class ServerWithBMC(Server):
     
     def __init__(self, asset_info):
 
-        sys_temp = tempfile.gettempdir()
-        simengine_temp = os.path.join(sys_temp, 'simengine')
-        
-        asset_info['ipmi_dir'] = os.path.join(simengine_temp, str(asset_info['key']))
-        os.makedirs(asset_info['ipmi_dir'])
-        
-        self._ipmi_agent = IPMIAgent(
-            asset_info['key'], 
-            asset_info['ipmi_dir'], 
-            num_psu=asset_info['num_components'],
-            host=asset_info['host'],
-            user=asset_info['user'],
-            password=asset_info['password'],
-            port=asset_info['port'],
-            vmport=asset_info['vmport']
-        )
+        # create state directory
+        ipmi_dir = os.path.join(sm.StateManager.get_temp_workplace_dir(), str(asset_info['key']))
+        sensors = self.StateManagerCls.get_sensor_definitions(asset_info['key'])
+        os.makedirs(ipmi_dir)
 
+        self._ipmi_agent = IPMIAgent(asset_info['key'], ipmi_dir, ipmi_config=asset_info, sensors=sensors)
         super(ServerWithBMC, self).__init__(asset_info)
-
-        self._state.agent = self.pid
-        self._state.set_state_dir(asset_info['ipmi_dir'])
+       
         
     
     @handler("ParentAssetPowerDown")
@@ -813,10 +803,10 @@ class PSU(StaticAsset):
     @handler("ButtonPowerDownPressed")
     def on_asset_did_power_off(self):
         if self._var != 'server':
-            self._state.set_psu_status(0x08)
+            self.state.set_psu_status(0x08)
 
     
     @handler("ButtonPowerUpPressed")
     def on_asset_did_power_on(self):
         if self._var != 'server':
-            self._state.set_psu_status(0x01)
+            self.state.set_psu_status(0x01)

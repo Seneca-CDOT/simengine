@@ -8,6 +8,8 @@ Example:
 
 import time
 import os
+import tempfile
+
 import redis
 from enum import Enum
 import libvirt
@@ -234,6 +236,12 @@ class StateManager():
 
         return assets_up and oids_on
     
+
+    @classmethod
+    def get_temp_workplace_dir(cls):
+        sys_temp = tempfile.gettempdir()
+        simengine_temp = os.path.join(sys_temp, 'simengine')
+        return simengine_temp
     
     @classmethod 
     def get_store(cls):
@@ -725,15 +733,9 @@ class IPMIComponent():
         self._sensor_dir = 'sensor_dir'
 
 
-    def set_state_dir(self, state_dir):
-        """Set temp state dir for an IPMI component"""
-        StateManager.get_store().set(str(self._server_key)+ ":state_dir", state_dir)
-
-
     def get_state_dir(self):
         """Get temp IPMI state dir"""
-        state_dir = StateManager.get_store().get(str(self._server_key)+ ":state_dir")
-        return state_dir.decode("utf-8") if state_dir else False
+        return os.path.join(StateManager.get_temp_workplace_dir(), str(self._server_key))
 
 
     def _read_sensor_file(self, sensor_file):
@@ -777,15 +779,13 @@ class IPMIComponent():
         """Set cpu temp value"""
         self._write_sensor_file(self._get_cpu_temp_file(), value)
 
+
 class BMCServerStateManager(ServerStateManager, IPMIComponent):
     """Manage Server with BMC """
-
 
     def __init__(self, asset_info, asset_type='serverwithbmc', notify=False):
         ServerStateManager.__init__(self, asset_info, asset_type, notify)
         IPMIComponent.__init__(self, asset_info['key'])
-        if 'ipmi_dir' in asset_info:
-            super().set_state_dir(asset_info['ipmi_dir'])
 
     def power_up(self):
         powered = super().power_up()
@@ -793,20 +793,29 @@ class BMCServerStateManager(ServerStateManager, IPMIComponent):
             super()._update_cpu_temp(32)
         return powered
 
+
     def shut_down(self):
         super()._update_cpu_temp(0)
         return super().shut_down()
+
 
     def power_off(self):
         super()._update_cpu_temp(0)
         return super().power_off()
 
+    @classmethod
+    def get_sensor_definitions(cls, asset_key):
+        graph_ref = GraphReference()
+        with graph_ref.get_session() as session:
+            return GraphReference.get_asset_sensors(session, asset_key)
+
+
 class SimplePSUStateManager(StateManager):
     def __init__(self, asset_info, asset_type='psu', notify=False):
         StateManager.__init__(self, asset_info, asset_type, notify)
 
-class PSUStateManager(StateManager, IPMIComponent):
 
+class PSUStateManager(StateManager, IPMIComponent):
 
     def __init__(self, asset_info, asset_type='psu', notify=False):
         StateManager.__init__(self, asset_info, asset_type, notify)

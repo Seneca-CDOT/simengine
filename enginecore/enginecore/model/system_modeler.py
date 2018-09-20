@@ -241,7 +241,7 @@ def _add_sensors(asset_key, preset_file=os.path.join(os.path.dirname(__file__), 
 
                 query.append("CREATE (server)-[:HAS_SENSOR]->(sensor{})".format(sensor_node))
 
-        print("\n".join(query))
+        # print("\n".join(query))
         session.run("\n".join(query))
 
 def create_server(key, attr, server_variation=ServerVariations.Server):
@@ -286,7 +286,13 @@ def create_server(key, attr, server_variation=ServerVariations.Server):
         session.run("\n".join(query))
 
         if server_variation == ServerVariations.ServerWithBMC:
-            _add_sensors(key)
+            
+            if 'sensor_def' in attr and attr['sensor_def']:
+                sensor_file = attr['sensor_def']
+            else:
+                sensor_file = os.path.join(os.path.dirname(__file__), 'presets/sensors.json')
+           
+            _add_sensors(key, sensor_file)
 
         # add PSUs to the model
         for i in range(attr['psu_num']):
