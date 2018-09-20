@@ -12,7 +12,7 @@
                 "unr": 1500
             },
             "defaultValue": 689.600,
-            "name": "FANN ${index}"
+            "name": "FANN {index}"
             },
             {
             "thresholds": {
@@ -22,7 +22,7 @@
                 "ucr": 1200
             },
             "defaultValue": 689.600,
-            "name": "FANN ${index}"
+            "name": "FANN {index}"
             },
             {
                 "thresholds": {
@@ -32,7 +32,7 @@
                     "ucr": 1200
                 },
                 "defaultValue": 689.600,
-                "name": "FANN ",
+                "name": "FAN custom",
                 "address": "0x79"
             }
         ]

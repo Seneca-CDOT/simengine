@@ -253,9 +253,9 @@ class IPMIAgent(Agent):
 
             main_sdr_opt[s_specs['type']] += 'define ID_STR "{}" \n'.format(i)
             main_sdr_opt[s_specs['type']] += 'define ADDR "{}" \n'.format(s_idx)
-            # main_sdr_opt[s_specs['type']] += 'define NAME "{}" \n'.format(s_specs['name'].format(
-
-            # ))
+            main_sdr_opt[s_specs['type']] += 'define NAME "{}" \n'.format(s_specs['name'].format(
+                index=str(s_specs['index']) if 'index' in s_specs else ''
+            ))
 
             main_sdr_opt[s_specs['type']] += 'include "{}/fan.sdrs" \n'.format(self._ipmi_dir)
 
