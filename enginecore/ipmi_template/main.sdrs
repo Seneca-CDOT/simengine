@@ -160,14 +160,7 @@ sdr type 1
 	id_string		"CPU Temp"
 endsdr
 
-define FAN "1"
-include "${ipmi_dir}/fan.sdrs"
-define FAN "2"
-include "${ipmi_dir}/fan.sdrs"
-define FAN "3"
-include "${ipmi_dir}/fan.sdrs"
-define FAN "4"
-include "${ipmi_dir}/fan.sdrs"
+${caseFan}
 
 define IPMI_DIR "${ipmi_dir}"
 ${includes}

@@ -803,6 +803,7 @@ class BMCServerStateManager(ServerStateManager, IPMIComponent):
         super()._update_cpu_temp(0)
         return super().power_off()
 
+
     @classmethod
     def get_sensor_definitions(cls, asset_key):
         graph_ref = GraphReference()

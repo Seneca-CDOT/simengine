@@ -200,7 +200,6 @@ class IPMIAgent(Agent):
         self._asset_key = key
         self._ipmi_dir = ipmi_dir
 
-        print(sensors)
         
         copy_tree(os.environ.get('SIMENGINE_IPMI_TEMPL'), self._ipmi_dir)
 
@@ -209,9 +208,11 @@ class IPMIAgent(Agent):
         ipmisim_emu = os.path.join(self._ipmi_dir, 'ipmisim1.emu')
         sdr_main = os.path.join(*[self._ipmi_dir, 'emu_state', 'ipmi_sim', 'ipmisim1', 'sdr.20.main'])
         sensor_def = os.path.join(self._ipmi_dir, 'main.sdrs')
+        sensor_dir = os.path.join(self._ipmi_dir, 'sensor_dir')
+
 
         lib_path = os.path.join(sysconfig.get_config_var('LIBDIR'), "simengine", 'haos_extend.so')
-
+        
         # Template options
         lan_conf_opt = {
             'asset_key': key, 
@@ -222,9 +223,45 @@ class IPMIAgent(Agent):
             'password': ipmi_config['password'],
             'vmport':  ipmi_config['vmport']
         }
+
+        ipmisim_emu_opt = {
+            'ipmi_dir': self._ipmi_dir, 
+            'caseFan': ''
+        }
         
-        ipmisim_emu_opt = {'ipmi_dir': self._ipmi_dir, 'includes': ''}
-        main_sdr_opt = {'ipmi_dir': self._ipmi_dir, 'includes': ''}
+        main_sdr_opt = {
+            'ipmi_dir': self._ipmi_dir, 
+            'includes': '',
+            'caseFan': ''
+        }
+
+        # initialize sensors
+        for i, sensor in enumerate(sensors):
+            print(sensor)
+
+            s_specs = sensor['specs']
+            
+            if 'index' in s_specs:
+                s_idx = hex(int(sensor['address_space']['address'], 16) + s_specs['index']) 
+            else:
+                s_idx = s_specs['address']
+
+            sensor_file = "{}_{}".format(s_specs['type'], s_idx)
+
+            with open(os.path.join(sensor_dir, sensor_file), "w+") as filein:
+                filein.write(str(s_specs['defaultValue'] if 'defaultValue' in s_specs else 0))
+
+            main_sdr_opt[s_specs['type']] += 'define ID_STR "{}" \n'.format(i)
+            main_sdr_opt[s_specs['type']] += 'define ADDR "{}" \n'.format(s_idx)
+            # main_sdr_opt[s_specs['type']] += 'define NAME "{}" \n'.format(s_specs['name'].format(
+
+            # ))
+
+            main_sdr_opt[s_specs['type']] += 'include "{}/fan.sdrs" \n'.format(self._ipmi_dir)
+
+            ipmisim_emu_opt[s_specs['type']] += 'sensor_add 0x20  0   {}   4     1 \n'.format(s_idx)
+        
+        print(main_sdr_opt)
 
         # Set server-specific includes
         if ipmi_config['num_components'] == 2:
