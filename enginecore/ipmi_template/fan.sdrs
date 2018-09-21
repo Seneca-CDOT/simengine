@@ -45,5 +45,5 @@ sdr type 1
 	sensor_minimum		0
 	lnc_fthresh		1500
 	lc_fthresh		1000
-	id_string		$NAME
+	id_string		$C_NAME
 endsdr

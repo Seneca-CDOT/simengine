@@ -11,6 +11,13 @@ Example:
 # **due to circuit callback signature
 # pylint: disable=W0613
 
+from __future__ import print_function
+import sys
+
+# Global constants:
+
+# Maximum number of character (from the input) to output per line.
+MAX_CHARS_PER_LINE = 16
 import subprocess
 import os
 import pwd
@@ -250,12 +257,64 @@ class IPMIAgent(Agent):
 
             with open(os.path.join(sensor_dir, sensor_file), "w+") as filein:
                 filein.write(str(s_specs['defaultValue'] if 'defaultValue' in s_specs else 0))
+            
+
+            index = str(s_specs['index'])if 'index' in s_specs else ''
+
+            main_sdr_opt[s_specs['type']] += 'define IDX "{}" \n'.format(index)
+            main_sdr_opt[s_specs['type']] += 'define NAME "{}" \n'.format(s_specs["name"]) 
 
             main_sdr_opt[s_specs['type']] += 'define ID_STR "{}" \n'.format(i)
             main_sdr_opt[s_specs['type']] += 'define ADDR "{}" \n'.format(s_idx)
-            main_sdr_opt[s_specs['type']] += 'define NAME "{}" \n'.format(s_specs['name'].format(
-                index=str(s_specs['index']) if 'index' in s_specs else ''
-            ))
+
+            # add_quote = (n) => if c==' ' for c in n and c==' '
+            c_name = s_specs['format'].format(name=s_specs["name"], index='$IDX')
+            name_idx = c_name.index(s_specs["name"])
+
+
+            if len(s_specs["name"]) == len(c_name):
+                c_name += '"'
+
+            c_name = c_name[:name_idx] + '"' + c_name[name_idx:]
+
+            # print("----------------------------")
+            # print(len(c_name))
+            # print(len(s_specs["name"]))
+            # print("----------------------------")
+
+
+            for n in range(len(s_specs["name"])+1, len(c_name)):
+                char_idx = n+1
+                print(">" + c_name[n] + "<")
+                if c_name[n] == "$":
+                    c_name = c_name[:n] + '"' + c_name[n:]
+                    break
+
+            print(c_name)
+            main_sdr_opt[s_specs['type']] += 'define C_NAME {} \n'.format(c_name)
+
+
+            '''
+            s_specs['name'].format(
+                    index=(str(s_specs['index'])if 'index' in s_specs else '')
+                )
+            '''
+            if 'index' in s_specs:
+                print("=+=+=+=+=+=+=+=+=+=+=+=")
+                a = s_specs['name'].format(index="1")
+                b = sensors[2]['specs']['name']
+                print([ord(c) for c in a], a, sep=" | ")
+                print([ord(c) for c in b], b, sep=" | ")
+                print("*********************************")
+                with open('/tmp/a_dumb', "w+") as filein:
+                    filein.write(a)
+
+                with open('/tmp/b_dumb', "w+") as filein:
+                    filein.write(b)
+
+                print(repr(a.encode('utf-8')))
+                print("*")
+                print(repr(b.encode('utf-8')))
 
             main_sdr_opt[s_specs['type']] += 'include "{}/fan.sdrs" \n'.format(self._ipmi_dir)
 
@@ -282,7 +341,7 @@ class IPMIAgent(Agent):
 
     def _substitute_template_file(self, filename, options):
         """Update file using python templating """
-        with open(filename, "r+") as filein:
+        with open(filename, "r+", encoding="utf-8") as filein:
             template = Template(filein.read())
             filein.seek(0)
             filein.write(template.substitute(options))

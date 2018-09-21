@@ -3,26 +3,17 @@
         "addressSpace": "0x6f",
         "sensorDefinitions": [
             {
-            "thresholds": {
-                "lnr": 0, 
-                "lcr": 200, 
-                "lnc": 300, 
-                "unc": 1000,
-                "ucr": 1200, 
-                "unr": 1500
-            },
-            "defaultValue": 689.600,
-            "name": "FANN {index}"
-            },
-            {
-            "thresholds": {
-                "lcr": 200, 
-                "lnc": 300, 
-                "unc": 1000,
-                "ucr": 1200
-            },
-            "defaultValue": 689.600,
-            "name": "FANN {index}"
+                "thresholds": {
+                    "lnr": 0, 
+                    "lcr": 200, 
+                    "lnc": 300, 
+                    "unc": 1000,
+                    "ucr": 1200, 
+                    "unr": 1500
+                },
+                "defaultValue": 689.600,
+                "name": "FANN",
+                "format": "{name}{index}"
             },
             {
                 "thresholds": {
@@ -32,7 +23,19 @@
                     "ucr": 1200
                 },
                 "defaultValue": 689.600,
-                "name": "FAN custom",
+                "name": "FANN",
+                "format": "{name}{index}"
+            },
+            {
+                "thresholds": {
+                    "lcr": 200, 
+                    "lnc": 300, 
+                    "unc": 1000,
+                    "ucr": 1200
+                },
+                "defaultValue": 689.600,
+                "name": "FANN",
+                "format": "{name}",
                 "address": "0x79"
             }
         ]
