@@ -3,8 +3,6 @@
 
 import argparse
 import os
-import shutil
-import tempfile
 
 from enginecore.state.state_listener import StateListener
 

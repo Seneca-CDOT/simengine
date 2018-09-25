@@ -20,8 +20,15 @@ sdr type 1
 	sensor_event_msg_ctrl	per_state
 	sensor_type		Fan
 	event_reading_type_code	1
-	return_lnc		true
-	return_lc		true
+	
+	return_lnc		$R_LNC
+	return_lc		$R_LCR
+	return_lnr		$R_LNR
+	return_unc		$R_UNC
+	return_uc		$R_UCR
+	return_unr		$R_UNR
+
+
 	deassert_lncgl		true
 	assert_lncgl		true
 	deassert_lcgl		true
@@ -33,17 +40,25 @@ sdr type 1
 	base_unit		RPM
 	modifier_unit_code	unspecified
 	linearization		linear
-	m			392
+
+	m			1
 	tolerance		0
 	b			0
 	accuracy		1
 	accuracy_exp		0
 	sensor_direction	input
-	r_exp			-1
+	r_exp			1
 	b_exp			0
 	sensor_maximum		255
 	sensor_minimum		0
-	lnc_fthresh		1500
-	lc_fthresh		1000
+
+
+	lnc_fthresh		$LNC
+	lc_fthresh		$LCR
+	lnr_fthresh		$LNR
+	unc_fthresh		$UNC
+	uc_fthresh		$UCR
+	unr_fthresh		$UNR
+
 	id_string		$C_NAME
 endsdr

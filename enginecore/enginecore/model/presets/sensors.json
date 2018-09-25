@@ -11,8 +11,8 @@
                     "ucr": 1200, 
                     "unr": 1500
                 },
-                "defaultValue": 689.600,
-                "name": "FANN",
+                "defaultValue": 1200,
+                "name": "Frnt_FAN",
                 "format": "{name}{index}"
             },
             {
@@ -22,8 +22,8 @@
                     "unc": 1000,
                     "ucr": 1200
                 },
-                "defaultValue": 689.600,
-                "name": "FANN",
+                "defaultValue": 400,
+                "name": "Frnt_FAN",
                 "format": "{name}{index}"
             },
             {
@@ -33,8 +33,8 @@
                     "unc": 1000,
                     "ucr": 1200
                 },
-                "defaultValue": 689.600,
-                "name": "FANN",
+                "defaultValue": 1000,
+                "name": "Frnt_FAN",
                 "format": "{name}",
                 "address": "0x79"
             }

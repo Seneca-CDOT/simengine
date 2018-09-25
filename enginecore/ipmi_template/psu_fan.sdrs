@@ -33,6 +33,7 @@ sdr type 1
 	base_unit		RPM
 	modifier_unit_code	unspecified
 	linearization		linear
+
 	m			392
 	tolerance		0
 	b			0
@@ -43,6 +44,7 @@ sdr type 1
 	b_exp			0
 	sensor_maximum		255
 	sensor_minimum		0
+	
 	lnc_fthresh		1500
 	lc_fthresh		1000
 	id_string		"fan PSU"$PSU_NUM

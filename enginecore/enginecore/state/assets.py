@@ -11,13 +11,6 @@ Example:
 # **due to circuit callback signature
 # pylint: disable=W0613
 
-from __future__ import print_function
-import sys
-
-# Global constants:
-
-# Maximum number of character (from the input) to output per line.
-MAX_CHARS_PER_LINE = 16
 import subprocess
 import os
 import pwd
@@ -256,10 +249,10 @@ class IPMIAgent(Agent):
             sensor_file = "{}_{}".format(s_specs['type'], s_idx)
 
             with open(os.path.join(sensor_dir, sensor_file), "w+") as filein:
-                filein.write(str(s_specs['defaultValue'] if 'defaultValue' in s_specs else 0))
+                filein.write(str(int(s_specs['defaultValue']*0.1) if 'defaultValue' in s_specs else 0))
             
 
-            index = str(s_specs['index'])if 'index' in s_specs else ''
+            index = str(s_specs['index']+1)if 'index' in s_specs else ''
 
             main_sdr_opt[s_specs['type']] += 'define IDX "{}" \n'.format(index)
             main_sdr_opt[s_specs['type']] += 'define NAME "{}" \n'.format(s_specs["name"]) 
@@ -267,7 +260,21 @@ class IPMIAgent(Agent):
             main_sdr_opt[s_specs['type']] += 'define ID_STR "{}" \n'.format(i)
             main_sdr_opt[s_specs['type']] += 'define ADDR "{}" \n'.format(s_idx)
 
-            # add_quote = (n) => if c==' ' for c in n and c==' '
+            main_sdr_opt[s_specs['type']] += 'define LNR "{}"  \n'.format(s_specs['lnr'] if 'lnr' in s_specs else 0)
+            main_sdr_opt[s_specs['type']] += 'define LCR "{}"  \n'.format(s_specs['lcr'] if 'lcr' in s_specs else 0)
+            main_sdr_opt[s_specs['type']] += 'define LNC "{}"  \n'.format(s_specs['lnc'] if 'lnc' in s_specs else 0)
+            main_sdr_opt[s_specs['type']] += 'define UNC "{}"  \n'.format(s_specs['unc'] if 'unc' in s_specs else 0)
+            main_sdr_opt[s_specs['type']] += 'define UCR "{}"  \n'.format(s_specs['ucr'] if 'ucr' in s_specs else 0)
+            main_sdr_opt[s_specs['type']] += 'define UNR "{}"  \n'.format(s_specs['unr'] if 'unr' in s_specs else 0)
+            
+            # Specify if sensor values should be returned:
+            main_sdr_opt[s_specs['type']] += 'define R_LNR "{}"  \n'.format('lnr' in s_specs)
+            main_sdr_opt[s_specs['type']] += 'define R_LCR "{}"  \n'.format('lcr' in s_specs)
+            main_sdr_opt[s_specs['type']] += 'define R_LNC "{}"  \n'.format('lnc' in s_specs)
+            main_sdr_opt[s_specs['type']] += 'define R_UNC "{}"  \n'.format('unc' in s_specs)
+            main_sdr_opt[s_specs['type']] += 'define R_UCR "{}"  \n'.format('ucr' in s_specs)
+            main_sdr_opt[s_specs['type']] += 'define R_UNR "{}"  \n'.format('unr' in s_specs)
+  
             c_name = s_specs['format'].format(name=s_specs["name"], index='$IDX')
             name_idx = c_name.index(s_specs["name"])
 
@@ -277,48 +284,19 @@ class IPMIAgent(Agent):
 
             c_name = c_name[:name_idx] + '"' + c_name[name_idx:]
 
-            # print("----------------------------")
-            # print(len(c_name))
-            # print(len(s_specs["name"]))
-            # print("----------------------------")
-
-
-            for n in range(len(s_specs["name"])+1, len(c_name)):
-                char_idx = n+1
-                print(">" + c_name[n] + "<")
-                if c_name[n] == "$":
-                    c_name = c_name[:n] + '"' + c_name[n:]
+            for char_num in range(len(s_specs["name"])+1, len(c_name)):
+                if c_name[char_num] == "$":
+                    c_name = c_name[:char_num] + '"' + c_name[char_num:]
                     break
 
-            print(c_name)
+ 
             main_sdr_opt[s_specs['type']] += 'define C_NAME {} \n'.format(c_name)
 
+            main_sdr_opt[s_specs['type']] += 'include "{}/{}.sdrs" \n'.format(self._ipmi_dir, s_specs['type'])
 
-            '''
-            s_specs['name'].format(
-                    index=(str(s_specs['index'])if 'index' in s_specs else '')
-                )
-            '''
-            if 'index' in s_specs:
-                print("=+=+=+=+=+=+=+=+=+=+=+=")
-                a = s_specs['name'].format(index="1")
-                b = sensors[2]['specs']['name']
-                print([ord(c) for c in a], a, sep=" | ")
-                print([ord(c) for c in b], b, sep=" | ")
-                print("*********************************")
-                with open('/tmp/a_dumb', "w+") as filein:
-                    filein.write(a)
-
-                with open('/tmp/b_dumb', "w+") as filein:
-                    filein.write(b)
-
-                print(repr(a.encode('utf-8')))
-                print("*")
-                print(repr(b.encode('utf-8')))
-
-            main_sdr_opt[s_specs['type']] += 'include "{}/fan.sdrs" \n'.format(self._ipmi_dir)
-
-            ipmisim_emu_opt[s_specs['type']] += 'sensor_add 0x20  0   {}   4     1 \n'.format(s_idx)
+            #  0x20  0   0x74    3     1 
+            ipmisim_emu_opt[s_specs['type']] += 'sensor_add 0x20  0   {}   3     1 poll 2000 '.format(s_idx)
+            ipmisim_emu_opt[s_specs['type']] += 'file $TEMP_IPMI_DIR"/sensor_dir/{}" \n'.format(sensor_file)
         
         print(main_sdr_opt)
 
