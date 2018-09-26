@@ -12,8 +12,7 @@
                     "unr": 1500
                 },
                 "defaultValue": 1200,
-                "name": "Frnt_FAN",
-                "format": "{name}{index}"
+                "name": "Frnt_FAN{index}"
             },
             {
                 "thresholds": {
@@ -23,8 +22,7 @@
                     "ucr": 1200
                 },
                 "defaultValue": 400,
-                "name": "Frnt_FAN",
-                "format": "{name}{index}"
+                "name": "Frnt_FAN{index}"
             },
             {
                 "thresholds": {
@@ -35,9 +33,69 @@
                 },
                 "defaultValue": 1000,
                 "name": "Frnt_FAN",
-                "format": "{name}",
                 "address": "0x79"
             }
         ]
+    },
+    "psuStatus": {
+        "addressSpace": "0x8",
+        "eventReadingType": "0x6f",
+        "sensorDefinitions": [
+            {
+                "thresholds": {},
+                "defaultValue": 0,
+                "name": "PSU{index} status"
+            },
+            {
+                "thresholds": {},
+                "defaultValue": 0,
+                "name": "PSU{index} status"
+            }
+        ] 
+    },
+    "psuCurrent": {
+        "addressSpace": "0xa",
+        "sensorDefinitions": [
+            {
+                "thresholds": {},
+                "defaultValue": 0,
+                "name": "PSU{index} current"
+            },
+            {
+                "thresholds": {},
+                "defaultValue": 0,
+                "name": "PSU{index} current"
+            }
+        ] 
+    },
+    "psuVoltage": {
+        "addressSpace": "0xc",
+        "sensorDefinitions": [
+            {
+                "thresholds": {},
+                "defaultValue": 0,
+                "name": "PSU{index} voltage"
+            },
+            {
+                "thresholds": {},
+                "defaultValue": 0,
+                "name": "PSU{index} voltage"
+            }
+        ] 
+    },
+    "psuPower": {
+        "addressSpace": "0xE",
+        "sensorDefinitions": [
+            {
+                "thresholds": {},
+                "defaultValue": 0,
+                "name": "PSU{index} power"
+            },
+            {
+                "thresholds": {},
+                "defaultValue": 0,
+                "name": "PSU{index} power"
+            }
+        ] 
     }
 }

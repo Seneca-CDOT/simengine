@@ -161,6 +161,10 @@ sdr type 1
 endsdr
 
 ${caseFan}
+${psuStatus}
+${psuCurrent}
+${psuPower}
+${psuVoltage}
 
 define IPMI_DIR "${ipmi_dir}"
-${includes}
+# ${includes}

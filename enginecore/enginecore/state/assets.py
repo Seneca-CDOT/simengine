@@ -195,6 +195,14 @@ class Agent():
 class IPMIAgent(Agent):
     """IPMIsim instance """
 
+    supported_sensors = {
+        'caseFan': '',
+        'psuStatus': '',
+        'psuVoltage': '',
+        'psuPower': '',
+        'psuCurrent': ''
+    }
+
     def __init__(self, key, ipmi_dir, ipmi_config, sensors):
         super(IPMIAgent, self).__init__()
         self._asset_key = key
@@ -225,14 +233,18 @@ class IPMIAgent(Agent):
         }
 
         ipmisim_emu_opt = {
-            'ipmi_dir': self._ipmi_dir, 
-            'caseFan': ''
+            **{
+                'ipmi_dir': self._ipmi_dir, 
+            },
+            **IPMIAgent.supported_sensors
         }
         
         main_sdr_opt = {
-            'ipmi_dir': self._ipmi_dir, 
-            'includes': '',
-            'caseFan': ''
+            **{
+                'ipmi_dir': self._ipmi_dir, 
+                'includes': '',
+            },
+            **IPMIAgent.supported_sensors
         }
 
         # initialize sensors
@@ -255,7 +267,6 @@ class IPMIAgent(Agent):
             index = str(s_specs['index']+1)if 'index' in s_specs else ''
 
             main_sdr_opt[s_specs['type']] += 'define IDX "{}" \n'.format(index)
-            main_sdr_opt[s_specs['type']] += 'define NAME "{}" \n'.format(s_specs["name"]) 
 
             main_sdr_opt[s_specs['type']] += 'define ID_STR "{}" \n'.format(i)
             main_sdr_opt[s_specs['type']] += 'define ADDR "{}" \n'.format(s_idx)
@@ -274,28 +285,41 @@ class IPMIAgent(Agent):
             main_sdr_opt[s_specs['type']] += 'define R_UNC "{}"  \n'.format('unc' in s_specs)
             main_sdr_opt[s_specs['type']] += 'define R_UCR "{}"  \n'.format('ucr' in s_specs)
             main_sdr_opt[s_specs['type']] += 'define R_UNR "{}"  \n'.format('unr' in s_specs)
-  
-            c_name = s_specs['format'].format(name=s_specs["name"], index='$IDX')
-            name_idx = c_name.index(s_specs["name"])
+            
+            import re
 
+            s_name = s_specs['name'].format(index='"$IDX"')
+             
+            s_name = s_name
+            print(s_name)
+            # name_idx = s_name.index(s_specs["name"])
 
-            if len(s_specs["name"]) == len(c_name):
-                c_name += '"'
+            # if len(s_specs["name"]) == len(s_name):
+            #     s_name += '"'
 
-            c_name = c_name[:name_idx] + '"' + c_name[name_idx:]
+            # s_name = s_name[:name_idx] + '"' + s_name[name_idx:]
+            
+            '''
 
-            for char_num in range(len(s_specs["name"])+1, len(c_name)):
-                if c_name[char_num] == "$":
-                    c_name = c_name[:char_num] + '"' + c_name[char_num:]
-                    break
+            '''
+
+            # for char_num in range(len(s_name)):
+            #     if s_name[char_num] != ' ':
+            #         s_name = s_name[:char_num] + '"' + s_name[char_num:]
+
+            #     if s_name[char_num] == "$":
+            #         s_name = s_name[:char_num] + '"' + s_name[char_num:]
+            #         break
 
  
-            main_sdr_opt[s_specs['type']] += 'define C_NAME {} \n'.format(c_name)
+            main_sdr_opt[s_specs['type']] += 'define C_NAME "{}" \n'.format(s_name)
 
             main_sdr_opt[s_specs['type']] += 'include "{}/{}.sdrs" \n'.format(self._ipmi_dir, s_specs['type'])
 
             #  0x20  0   0x74    3     1 
-            ipmisim_emu_opt[s_specs['type']] += 'sensor_add 0x20  0   {}   3     1 poll 2000 '.format(s_idx)
+            e_type = s_specs['eventReadingType'] if 'eventReadingType' in s_specs else 1
+
+            ipmisim_emu_opt[s_specs['type']] += 'sensor_add 0x20  0   {}   3     {} poll 2000 '.format(s_idx, e_type)
             ipmisim_emu_opt[s_specs['type']] += 'file $TEMP_IPMI_DIR"/sensor_dir/{}" \n'.format(sensor_file)
         
         print(main_sdr_opt)
