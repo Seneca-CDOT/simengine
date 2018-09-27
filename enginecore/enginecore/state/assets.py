@@ -289,9 +289,7 @@ class IPMIAgent(Agent):
             import re
 
             s_name = s_specs['name'].format(index='"$IDX"')
-             
-            s_name = s_name
-            print(s_name)
+            
             # name_idx = s_name.index(s_specs["name"])
 
             # if len(s_specs["name"]) == len(s_name):
@@ -858,6 +856,8 @@ class Server(StaticAsset):
 @register_asset
 class ServerWithBMC(Server):
     """Asset controlling a VM with BMC/IPMI support """
+
+
     channel = "engine-bmc"
     StateManagerCls = sm.BMCServerStateManager
     
@@ -888,6 +888,8 @@ class ServerWithBMC(Server):
 @register_asset
 class PSU(StaticAsset):
     """PSU """
+
+    
     channel = "engine-psu"
     StateManagerCls = sm.PSUStateManager
 

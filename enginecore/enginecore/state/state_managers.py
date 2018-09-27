@@ -720,6 +720,7 @@ class ServerStateManager(StaticDeviceStateManager):
             self.update_load(self.power_usage)
         return powered
 
+
 class IPMIComponent():
     """ 
     PSU:
@@ -785,7 +786,7 @@ class BMCServerStateManager(ServerStateManager, IPMIComponent):
 
     def __init__(self, asset_info, asset_type='serverwithbmc', notify=False):
         ServerStateManager.__init__(self, asset_info, asset_type, notify)
-        IPMIComponent.__init__(self, asset_info['key'])
+        IPMIComponent.__init__(self, asset_info['key'], BMCServerStateManager.get_sensor_definitions(asset_info['key']))
 
     def power_up(self):
         powered = super().power_up()
@@ -806,6 +807,7 @@ class BMCServerStateManager(ServerStateManager, IPMIComponent):
 
     @classmethod
     def get_sensor_definitions(cls, asset_key):
+        """Get sensor definitions """
         graph_ref = GraphReference()
         with graph_ref.get_session() as session:
             return GraphReference.get_asset_sensors(session, asset_key)
@@ -818,20 +820,24 @@ class SimplePSUStateManager(StateManager):
 
 class PSUStateManager(StateManager, IPMIComponent):
 
+
     def __init__(self, asset_info, asset_type='psu', notify=False):
         StateManager.__init__(self, asset_info, asset_type, notify)
         IPMIComponent.__init__(self, int(repr(asset_info['key'])[:-1]))
         self._psu_number = int(repr(asset_info['key'])[-1])
+
 
     def _update_current(self, load):
         """Update current inside state file """
         load = load if load >= 0 else 0
         super()._write_sensor_file(super()._get_psu_current_file(self._psu_number), load)
     
+
     def _update_waltage(self, wattage):
         """Update wattage inside state file """        
         wattage = wattage if wattage >= 0 else 0    
         super()._write_sensor_file(super()._get_psu_wattage_file(self._psu_number), wattage)
+
 
     def _update_fan_speed(self, value):
         """Speed In RPMs"""
