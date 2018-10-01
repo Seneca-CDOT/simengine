@@ -207,7 +207,10 @@ asset_group = subparsers.add_parser('model', help="Manage system model: create n
 model_subp = asset_group.add_subparsers()
 create_asset_group = model_subp.add_parser('create', help="Create new asset")
 
-reload_asset_action = model_subp.add_parser('reload', help="Reload the system topology (notify daemon of model changes)")
+reload_asset_action = model_subp.add_parser(
+    'reload', 
+    help="Reload the system topology (notify daemon of model changes)"
+)
 
 # detach & delete an asset by key
 delete_asset_action = model_subp.add_parser('delete', help="Remove individual asset by key")
@@ -536,6 +539,8 @@ power_down_action.add_argument(
     action='store_true'
 )
 
+power_outage_action = subparsers.add_parser('outage', help="Simulate complete power loss")
+power_restore_action = subparsers.add_parser('restore', help="Restore mains power after outage")
 
 ############ Callbacks for actions
 
@@ -590,6 +595,15 @@ delete_asset_action.set_defaults(
 power_asset_action.set_defaults(
     func=handle_link
 )
+
+power_outage_action.set_defaults(
+    func=lambda _: StateManager.power_outage()
+)
+
+power_restore_action.set_defaults(
+    func=lambda _: StateManager.power_restore()
+)
+
 
 drop_system_action.set_defaults(func=lambda args: sm.drop_model())
 

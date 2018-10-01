@@ -239,6 +239,7 @@ class StateManager():
 
     @classmethod
     def get_temp_workplace_dir(cls):
+        """Get location of the temp directory"""
         sys_temp = tempfile.gettempdir()
         simengine_temp = os.path.join(sys_temp, 'simengine')
         return simengine_temp
@@ -308,7 +309,20 @@ class StateManager():
         """Request daemon reloading"""
         StateManager.get_store().publish(RedisChannels.model_update_channel, 'reload')
 
+    
+    @classmethod
+    def power_outage(cls):
+        """Simulate complete power outage/restoration"""
+        StateManager.get_store().set('mains-source', '0')
+        StateManager.get_store().publish(RedisChannels.mains_update_channel, '0')
 
+    
+    @classmethod
+    def power_restore(cls):
+        """Simulate complete power restoration"""
+        StateManager.get_store().set('mains-source', '1')
+        StateManager.get_store().publish(RedisChannels.mains_update_channel, '1')
+    
     @classmethod
     def get_state_manager_by_key(cls, key, supported_assets, notify=True):
         """Infer asset manager from key"""
@@ -721,6 +735,33 @@ class ServerStateManager(StaticDeviceStateManager):
         return powered
 
 
+
+class SensorRepository():
+
+    def __init__(self, server_key):
+        self._server_key = server_key
+        self._sensor_dir = os.path.join(
+            StateManager.get_temp_workplace_dir(),
+            server_key,
+            'sensor_dir'
+        )
+
+
+    @property
+    def sensor_dir(self):
+        """Get temp IPMI state dir"""
+        return self._sensor_dir
+
+
+    @property
+    def sensor(self):
+        pass
+
+
+    def _get_sensor_file(self, addr):
+        return os.path.join(self.sensor_dir, 'caseFan{}'.format(addr))
+
+
 class IPMIComponent():
     """ 
     PSU:
@@ -786,7 +827,7 @@ class BMCServerStateManager(ServerStateManager, IPMIComponent):
 
     def __init__(self, asset_info, asset_type='serverwithbmc', notify=False):
         ServerStateManager.__init__(self, asset_info, asset_type, notify)
-        IPMIComponent.__init__(self, asset_info['key'], BMCServerStateManager.get_sensor_definitions(asset_info['key']))
+        IPMIComponent.__init__(self, asset_info['key'])
 
     def power_up(self):
         powered = super().power_up()

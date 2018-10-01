@@ -56,7 +56,6 @@ export default class Server extends React.Component {
   render() {
 
     let psus = [];
-    // const inputSocket = <Socket x={-70} socketName={"input socket"} selectable={false} draggable={false}/>;
 
     let x=50;
     const serverName = this.props.asset.name ? this.props.asset.name:'ups';

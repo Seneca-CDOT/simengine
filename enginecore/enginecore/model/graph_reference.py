@@ -389,4 +389,16 @@ class GraphReference():
             })
 
         return sensors
+
+    
+    @classmethod
+    def get_mains_powered_outlets(cls, session):
+        
+        results = session.run(
+            """
+            MATCH (outlet:Outlet) WHERE NOT (outlet)-[:POWERED_BY]->(:Asset) RETURN outlet.key as key
+            """
+        )
+        # print(results['key'])
+        return list(map(lambda x: x.get('key'), results))
             

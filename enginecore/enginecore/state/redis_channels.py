@@ -5,10 +5,13 @@ class RedisChannels():
     
     - load is fired every time asset's load is updated
     - state is only fired when notification is enabled on asset's state manager
+    - mains update is fired when wall power becomes unavailable
     - oid udpate is fired every time SET command is issued agains an oid (done by SNMPsim, see 'scripts/snmppub.lua')
+    - model update is fired upon asset topology changes
     """
     load_update_channel = 'load-upd'
     state_update_channel = 'state-upd'
+    mains_update_channel = 'mains-upd'
     oid_update_channel = 'oid-upd'
     model_update_channel = 'model-upd'
 

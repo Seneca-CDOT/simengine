@@ -70,6 +70,7 @@ class StateListener(Component):
         self._state_pubsub.psubscribe(
             RedisChannels.oid_update_channel,  # snmp oid updates
             RedisChannels.state_update_channel, # power state changes
+            RedisChannels.mains_update_channel, # wall power updates
             RedisChannels.model_update_channel  # model changes
         )
 
@@ -378,6 +379,20 @@ class StateListener(Component):
                 asset_key, asset_type = data.split('-')
                 if asset_type in Asset.get_supported_assets():
                     self._handle_state_update(int(asset_key))
+            
+            elif message['channel'] == str.encode(RedisChannels.mains_update_channel):
+                print(message)
+                with self._graph_ref.get_session() as session:
+                    mains_out_keys = GraphReference.get_mains_powered_outlets(session)
+                    mains_out = {out_key: self._assets[out_key] for out_key in mains_out_keys}
+                    print(mains_out)
+                    for _, outlet in mains_out.items():
+                        if data == "0":
+                            outlet.state.shut_down() 
+                        else:
+                            outlet.state.power_up()
+
+                        outlet.state.publish_power()
 
             elif message['channel'] == str.encode(RedisChannels.oid_update_channel):
                 value = (self._redis_store.get(data)).decode()
@@ -389,7 +404,6 @@ class StateListener(Component):
                 self._notify_client(int(asset_key), {'battery': self._assets[int(asset_key)].state.battery_level})
 
             elif message['channel'] == str.encode(RedisChannels.model_update_channel):
-                print('RELOAD REQUESTED')
                 self._state_pubsub.unsubscribe()
                 self._bat_pubsub.unsubscribe()
 
