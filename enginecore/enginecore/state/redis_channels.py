@@ -9,13 +9,20 @@ class RedisChannels():
     - oid udpate is fired every time SET command is issued agains an oid (done by SNMPsim, see 'scripts/snmppub.lua')
     - model update is fired upon asset topology changes
     """
+
+    # power
     load_update_channel = 'load-upd'
     state_update_channel = 'state-upd'
     mains_update_channel = 'mains-upd'
-    oid_update_channel = 'oid-upd'
-    model_update_channel = 'model-upd'
 
     # battery states
     battery_update_channel = 'battery-upd'
     battery_conf_drain_channel = 'battery-drain-upd'
     battery_conf_charge_channel = 'battery-charge-upd'
+
+    # thermal channels
+    ambient_update = 'ambient-upd'
+
+    # misc
+    oid_update_channel = 'oid-upd' 
+    model_update_channel = 'model-upd'

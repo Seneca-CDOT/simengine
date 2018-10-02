@@ -15,6 +15,7 @@ from circuits.web import Logger, Server, Static
 from circuits.web.dispatchers import WebSocketsDispatcher
 
 from enginecore.state.assets import Asset, PowerEventResult, LoadEventResult
+from enginecore.state.state_managers import StateManager
 from enginecore.state.event_map import PowerEventManager
 from enginecore.state.web_socket import WebSocket
 from enginecore.state.redis_channels import RedisChannels
@@ -38,9 +39,11 @@ class StateListener(Component):
 
         self._bat_pubsub = self._redis_store.pubsub()
         self._state_pubsub = self._redis_store.pubsub()
+        self._thermal_pubsub = self._redis_store.pubsub()
 
         # assets will store all the devices/items including PDUs, switches etc.
         self._assets = {}
+        StateManager.set_ambient(21)
 
         # init graph db instance
         self._graph_ref = GraphReference()
@@ -79,6 +82,11 @@ class StateListener(Component):
             RedisChannels.battery_update_channel, # battery level updates
             RedisChannels.battery_conf_drain_channel, # update drain speed (factor)
             RedisChannels.battery_conf_charge_channel # update charge speed (factor)
+        )
+
+        # Thermal Channels
+        self._thermal_pubsub.psubscribe(
+            RedisChannels.ambient_update # on ambient changes
         )
 
 
@@ -414,6 +422,22 @@ class StateListener(Component):
             print("Detected unregistered asset under key [{}]".format(error), file=sys.stderr)
 
 
+    def monitor_thermal(self):
+        message = self._thermal_pubsub.get_message()
+
+        # validate message
+        if ((not message) or ('data' not in message) or (not isinstance(message['data'], bytes))):
+            return
+        
+        data = message['data'].decode("utf-8")
+        try:
+            if message['channel'] == str.encode(RedisChannels.ambient_update):
+                print(data)
+
+        except KeyError as error:
+            print("Detected unregistered asset under key [{}]".format(error), file=sys.stderr)
+
+
     def started(self, *args):
         """
             Called on start
@@ -421,6 +445,7 @@ class StateListener(Component):
         print('Listening to Redis events')
         Timer(0.5, Event.create("monitor_state"), persist=True).register(self)
         Timer(1, Event.create("monitor_battery"), persist=True).register(self)
+        Timer(2, Event.create("monitor_thermal"), persist=True).register(self)
 
 
     # **Events are camel-case

@@ -9,9 +9,9 @@ Example:
 import time
 import os
 import tempfile
+from enum import Enum
 
 import redis
-from enum import Enum
 import libvirt
 import pysnmp.proto.rfc1902 as snmp_data_types
 from enginecore.model.graph_reference import GraphReference
@@ -316,13 +316,27 @@ class StateManager():
         StateManager.get_store().set('mains-source', '0')
         StateManager.get_store().publish(RedisChannels.mains_update_channel, '0')
 
-    
+
     @classmethod
     def power_restore(cls):
         """Simulate complete power restoration"""
         StateManager.get_store().set('mains-source', '1')
         StateManager.get_store().publish(RedisChannels.mains_update_channel, '1')
     
+
+    @classmethod
+    def get_ambient(cls):
+        """Retrieve current ambient value"""
+        return float(StateManager.get_store().get('ambient').decode())
+
+
+    @classmethod
+    def set_ambient(cls, value):
+        """Update ambient value"""
+        StateManager.get_store().set('ambient', str(value))
+        StateManager.get_store().publish(RedisChannels.ambient_update, str(value))  
+    
+
     @classmethod
     def get_state_manager_by_key(cls, key, supported_assets, notify=True):
         """Infer asset manager from key"""

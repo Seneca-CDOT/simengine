@@ -195,6 +195,31 @@ status_group.add_argument('--watch-rate', nargs='?',
                           help="Update state every n seconds, defaults to 1", default=1, type=int)
 
 
+## -> Setup options for thermal group
+thermal_group = subparsers.add_parser('temperature', help="Manage temperature/thermal settings of the system")
+ambient_subp = thermal_group.add_subparsers()
+
+th_ambient_group = ambient_subp.add_parser(
+    'ambient', 
+    help="Configure/Retrieve ambient state (room temperature settings)"
+)
+th_ambient_subp = th_ambient_group.add_subparsers()
+
+th_set_ambient_action = th_ambient_subp.add_parser(
+    'set', 
+    help="Update ambient thermal settings", 
+)
+
+th_get_ambient_action = th_ambient_subp.add_parser(
+    'get', 
+    help="Query current thermal configurations", 
+)
+
+th_set_ambient_action.add_argument(
+    '-d', '--degrees', type=float, help="Update ambient temperature (in Celsius) ", required=True
+)
+
+
 ## -> Setup options for oid queries
 # oid_group = subparsers.add_parser('oid', help="Manage OIDs")
 
@@ -596,6 +621,11 @@ power_asset_action.set_defaults(
     func=handle_link
 )
 
+drop_system_action.set_defaults(func=lambda args: sm.drop_model())
+
+
+## power_group callbacks
+
 power_outage_action.set_defaults(
     func=lambda _: StateManager.power_outage()
 )
@@ -604,10 +634,6 @@ power_restore_action.set_defaults(
     func=lambda _: StateManager.power_restore()
 )
 
-
-drop_system_action.set_defaults(func=lambda args: sm.drop_model())
-
-## power_group callbacks
 power_up_action.set_defaults(
     func=lambda args: manage_state(args['asset_key'], lambda a: a.power_up())
 )
@@ -616,6 +642,16 @@ power_down_action.set_defaults(
     hard=False,
     func=lambda args: manage_state(args['asset_key'], lambda a: a.power_off() if args['hard'] else a.shut_down())
 )
+
+## Thermal group callbacks
+th_get_ambient_action.set_defaults(
+    func=lambda _: print(StateManager.get_ambient())
+)
+
+th_set_ambient_action.set_defaults(
+    func=lambda args: StateManager.set_ambient(args['degrees'])
+)
+
 
 try:
     options = argparser.parse_args()
