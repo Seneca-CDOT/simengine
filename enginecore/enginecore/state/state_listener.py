@@ -17,7 +17,7 @@ from circuits.web.dispatchers import WebSocketsDispatcher
 from enginecore.state.assets import Asset, PowerEventResult, LoadEventResult
 from enginecore.state.state_managers import StateManager
 from enginecore.state.event_map import PowerEventManager
-from enginecore.state.web_socket import WebSocket
+from enginecore.state.web_socket import WebSocket, ClientRequests
 from enginecore.state.redis_channels import RedisChannels
 from enginecore.model.graph_reference import GraphReference
 from enginecore.state.state_initializer import initialize, clear_temp
@@ -43,7 +43,10 @@ class StateListener(Component):
 
         # assets will store all the devices/items including PDUs, switches etc.
         self._assets = {}
+
+        # set default state
         StateManager.set_ambient(21)
+        StateManager.power_restore()
 
         # init graph db instance
         self._graph_ref = GraphReference()
@@ -131,7 +134,10 @@ class StateListener(Component):
             )
 
             # update websocket
-            self._notify_client(asset_key, {'load': new_load})
+            self._notify_client(ClientRequests.asset, {
+                'key': asset_key, 
+                'load': new_load
+            })
 
 
     def _handle_oid_update(self, asset_key, oid, value):
@@ -169,7 +175,10 @@ class StateListener(Component):
         asset_status = str(updated_asset.state.status)
 
         # write to a web socket
-        self._notify_client(asset_key, {'status':  int(asset_status)})
+        self._notify_client(ClientRequests.asset, {
+            'key': asset_key, 
+            'status':  int(asset_status)
+        })
 
         # fire-up power events down the power stream
         self.fire(PowerEventManager.map_asset_event(asset_status), updated_asset)
@@ -326,16 +335,16 @@ class StateListener(Component):
                     self.fire(event, updated_asset)
 
 
-    def _notify_client(self, asset_key, data):
+    def _notify_client(self, client_request, data):
         """Notify the WebSocket client(s) of any changes in asset states 
 
         Args:
-            asset_key(int): key of the updated asset
+            client_request(ClientRequests): type of data passed to the ws client
             data(dict): updated key/values (e.g. status, load)
         """
 
         self.fire(NotifyClient({
-            'key': int(asset_key),
+            'request': client_request.name,
             'data': data
         }), self._ws)
 
@@ -352,7 +361,11 @@ class StateListener(Component):
         try:
             if message['channel'] == str.encode(RedisChannels.battery_update_channel):
                 asset_key, _ = data.split('-')
-                self._notify_client(int(asset_key), {'battery': self._assets[int(asset_key)].state.battery_level})
+                self._notify_client(ClientRequests.asset, {
+                    'key': int(asset_key),
+                    'battery': self._assets[int(asset_key)].state.battery_level
+                })
+                
             elif message['channel'] == str.encode(RedisChannels.battery_conf_charge_channel):
                 asset_key, _ = data.split('-')
                 _, speed = data.split('|')
@@ -389,11 +402,11 @@ class StateListener(Component):
                     self._handle_state_update(int(asset_key))
             
             elif message['channel'] == str.encode(RedisChannels.mains_update_channel):
-                print(message)
+        
                 with self._graph_ref.get_session() as session:
                     mains_out_keys = GraphReference.get_mains_powered_outlets(session)
                     mains_out = {out_key: self._assets[out_key] for out_key in mains_out_keys}
-                    print(mains_out)
+             
                     for _, outlet in mains_out.items():
                         if data == "0":
                             outlet.state.shut_down() 
@@ -407,10 +420,6 @@ class StateListener(Component):
                 asset_key, oid = data.split('-')
                 self._handle_oid_update(int(asset_key), oid, value)
 
-            elif message['channel'] == str.encode(RedisChannels.battery_update_channel):
-                asset_key, _ = data.split('-')
-                self._notify_client(int(asset_key), {'battery': self._assets[int(asset_key)].state.battery_level})
-
             elif message['channel'] == str.encode(RedisChannels.model_update_channel):
                 self._state_pubsub.unsubscribe()
                 self._bat_pubsub.unsubscribe()
@@ -423,6 +432,8 @@ class StateListener(Component):
 
 
     def monitor_thermal(self):
+        """Monitor thermal updates in a separate pub/sub channel"""
+
         message = self._thermal_pubsub.get_message()
 
         # validate message
@@ -458,7 +469,7 @@ class StateListener(Component):
         self._chain_load_update(event_result, increased)
         if event_result.load_change:
             ckey = int(event_result.asset_key)
-            self._notify_client(ckey, {'load': self._assets[ckey].state.load})
+            self._notify_client(ClientRequests.asset, {'key': ckey, 'load': self._assets[ckey].state.load})
 
     # Notify parent asset of any child events
     def ChildAssetPowerDown_success(self, evt, event_result):
@@ -482,7 +493,10 @@ class StateListener(Component):
 
     def _power_success(self, event_result):
         """Handle power event success by dispatching power events down the power stream"""
-        self._notify_client(event_result.asset_key, {'status': int(event_result.new_state)})
+        self._notify_client(ClientRequests.asset, {
+            'key': event_result.asset_key, 
+            'status': int(event_result.new_state)
+        })
         self._chain_power_update(event_result)
     
      # Notify child asset of any parent events of interest
@@ -509,7 +523,10 @@ class StateListener(Component):
         if not e_result.old_state and e_result.old_state != e_result.new_state:
             self._chain_power_update(e_result)
 
-        self._notify_client(e_result.asset_key, {'status': e_result.new_state})
+        self._notify_client(ClientRequests.asset, {
+            'key': e_result.asset_key, 
+            'status': e_result.new_state
+        })
 
 if __name__ == '__main__':
     StateListener().run()

@@ -19,6 +19,7 @@ import TopNav from './TopNav';
 
 // few helpers
 import { onWheelScroll, onWheelDown } from './canvasEvents';
+import simengineSocketClient from './socketClient';
 
 const drawerWidth = 240;
 
@@ -46,102 +47,65 @@ const drawerWidth = 240;
   }
 
   connectToSocket() {
-    if ("WebSocket" in window)
-    {
-       // console.log("WebSocket is supported by your Browser!");
-       // Let us open a web socket
-       let new_uri = '';
-       let loc = window.location;
-       if (loc.protocol === "https:") {
-          new_uri = "wss:";
-       } else {
-          new_uri = "ws:";
-       }
-       new_uri += "//" + loc.hostname + ':8000/simengine';
-       this.ws = new WebSocket(new_uri);
-       this.ws.onopen = (() =>
-       {
-          // Web Socket is connected, send data using send()
-          // this.ws.send("Hello server");
-          // alert("Message is sent...");
-          this.setState({ socketOffline: false });
-       });
-       this.ws.onmessage = ((evt) =>
-       {
-          const data = JSON.parse(evt.data);
-          // Update state of the existing asset
-          if(data && 'key' in data) {
+    if (!("WebSocket" in window)) {
+      alert("WebSocket is NOT supported by your Browser!");
+      return;
+    }
+      
+    this.ws = new simengineSocketClient({
 
-            let assets = {...this.state.assets};
-            const isComponent = !this.state.assets[data.key];
+      /** 1st time connection -> initialize system topology */
+      onTopologyReceived: (data) => {
+        let connections = {};
+        const { assets } = data;
 
-            if (isComponent) {
-              const parent_id = this._get_parent_key(data.key);
-              let asset_details = {...assets[parent_id].children[data.key]};
-              assets[parent_id].children[data.key] = {...asset_details, ...data.data};
-            } else {
-              let asset_details = {...assets[data.key]};
-              assets[data.key] = {...asset_details, ...data.data};
+        Object.keys(assets).map((key) => {
+
+          // set up connections (wirings) between assets if there's a parent
+          if (assets[key]['parent']) {
+            for (const parent of assets[key]['parent']) {
+              const isComponent = !assets[parent.key];
+              
+              // get parent x, y values (parent can be a component (e.g. pdu outlet))
+              const { x, y } = isComponent
+                                ? assets[this._get_parent_key(parent.key)].children[parent.key] 
+                                : assets[parent.key];
+
+              connections[parent.key] = { sourceX: x, sourceY: y, destX: assets[key].x, destY: assets[key].y, destKey: key };
             }
-
-            this.setState({ assets });
-
-          } else if (data && 'assets' in data) { // initial query
-            let connections = {};
-            const assetDetails = data['assets'];
-
-            Object.keys(assetDetails).map((k) => {
-              let x1 = assetDetails[k].x?assetDetails[k].x:40;
-              let y1 = assetDetails[k].y?assetDetails[k].y:0;
-              let x1_pad = 0;
-              if (assetDetails[k]['parent']) {
-                for (const p of assetDetails[k]['parent']) {
-                  const isComponent = !assetDetails[p.key];
-
-                  let x = 0;
-                  let y = 0;
-                  if (isComponent) {
-                    const parent_key = this._get_parent_key(p.key);
-                    x = assetDetails[parent_key].children[p.key].x;
-                    y = assetDetails[parent_key].children[p.key].y;
-                  } else {
-                    x = assetDetails[p.key].x?assetDetails[p.key].x:50;
-                    y = assetDetails[p.key].y?assetDetails[p.key].y:50;
-                  }
-
-                  connections[p.key] = {x, y, x1: x1+x1_pad, y1, ckey: k };
-                  x1_pad+=250;
-                }
-              }
-            });
-
-            this.setState({
-              assets: assetDetails,
-              connections
-            });
           }
+        })
 
-          if (data && data['stageLayout']) {
-            let stage = this.refs.stage.getStage();
-            stage.position({ x: data['stageLayout'].x, y: data['stageLayout'].y });
-            stage.scale({ x: data['stageLayout'].scale, y: data['stageLayout'].scale });
-          }
+        this.setState({ assets, connections });
+      },
 
+      /** asset updates (power, load, battery etc... )  */
+      onAssetReceived: (data) => {
+        let assets = {...this.state.assets};
+        const isComponent = !this.state.assets[data.key];
 
-       }).bind(this);
-       this.ws.onclose =  (() =>
-       {
-          // websocket is closed. try to reconnect every 5 seconds
-          // alert("Connection is closed...");
-          this.setState({ socketOffline: true });
-          setTimeout(() => {this.connectToSocket();}, 5000);
-       }).bind(this);
-    }
-    else
-    {
-       // The browser doesn't support WebSocket
-       alert("WebSocket NOT supported by your Browser!");
-    }
+        if (isComponent) {
+          const parentId = this._get_parent_key(data.key);
+          let assetDetails = {...assets[parentId].children[data.key]};
+          assets[parentId].children[data.key] = {...assetDetails, ...data};
+        } else {
+          assets[data.key] = {...assets[data.key], ...data};
+        }
+
+        this.setState({ assets });
+      }
+    });
+
+    // when websocket is connected
+    this.ws.onOpen(() => {
+      this.setState({ socketOffline: false });
+    });
+
+    // websocket is closed. try to reconnect every 5 seconds
+    this.ws.onClose(() => {
+        this.setState({ socketOffline: true });
+        setTimeout(() => {this.connectToSocket();}, 5000);
+    });
   }
 
   _get_parent_key(key) {
@@ -164,11 +128,11 @@ const drawerWidth = 240;
 
     if(asset['parent']) {
       for (const p of asset['parent']) {
-        newConn[p.key] = {...connections[p.key], x1:x,  y1:y};
+        newConn[p.key] = {...connections[p.key], destX:x, destY:y};
         x+=250;
       }
     } else if (key in connections) {
-      newConn[key] = { ...connections[key], x:x,  y:y };
+      newConn[key] = { ...connections[key], sourceX:x,  sourceY:y };
     }
 
     return newConn;
@@ -229,7 +193,7 @@ const drawerWidth = 240;
   changeStatus(assetKey, assetInfo) {
     let data = {...assetInfo};
     data.status = !data.status;
-    this.ws.send(JSON.stringify({request: 'power', key: assetKey, data }));
+    this.ws.sendData({ request: 'power', key: assetKey, data });
   }
 
   /** Save assets' coordinates in db  */
@@ -251,12 +215,12 @@ const drawerWidth = 240;
     Object.keys(assets).map((a) => ( data['assets'][a]= {x: assets[a].x, y: assets[a].y} ));
     Object.keys(connections).map((a) => {
       if (!assets[a]) {
-        data['assets'][a]= { x: connections[a].x, y: connections[a].y };
+        data['assets'][a]= { x: connections[a].sourceX, y: connections[a].sourceY };
       }
     });
 
-    if (this.ws.readyState == this.ws.OPEN) {
-      this.ws.send(JSON.stringify({request: 'layout', data }));
+    if (this.ws.socketOnline()) {
+      this.ws.sendData({request: 'layout', data });
       this.setState({ changesSaved: true });
     }
   }
@@ -380,7 +344,7 @@ const drawerWidth = 240;
 
         let socketXpad = socketX1pad;
         const asset = this._get_asset_by_key(key);
-        const child_type = this.state.assets[connections[key].ckey].type;
+        const child_type = this.state.assets[connections[key].destKey].type;
 
         if (child_type == 'staticasset') {
           socketXpad = -35;
@@ -393,11 +357,16 @@ const drawerWidth = 240;
 
         wireDrawing.push(
           <Line
-            points={[connections[key].x+socketX1pad, connections[key].y+socketY1pad, connections[key].x1-socketXpad , connections[key].y1+socketYpad]}
-            stroke={asset.status  === 1?"green":"grey"}
+            points={[
+              connections[key].sourceX+socketX1pad, 
+              connections[key].sourceY+socketY1pad, 
+              connections[key].destX-socketXpad , 
+              connections[key].destY+socketYpad
+            ]}
+            stroke={asset.status  === 1? "green": "grey"}
             strokeWidth={5}
             zIndex={300}
-            key={`${key}${connections[key].ckey}`}
+            key={`${key}${connections[key].destKey}`}
           />
         );
       }
@@ -431,7 +400,7 @@ const drawerWidth = 240;
               </Layer>
             </Stage>
 
-            {/* LeftMost Card -> Display Element Details */}
+            {/* RightMost Card -> Display Element Details */}
             {(this.state.selectedAssetKey) ?
               <AssetDetails
                 assetInfo={selectedAsset}

@@ -286,6 +286,10 @@ create_asset_parent.add_argument(
 )
 create_asset_parent.add_argument('--on-delay', type=int, help="Power on delay in ms", default=0)
 create_asset_parent.add_argument('--off-delay', type=int, help="Power on delay in ms", default=0)
+
+create_asset_parent.add_argument('-x', type=int, help="x - asset position on the dashboard", default=0)
+create_asset_parent.add_argument('-y', type=int, help="y - asset position on the dashboard", default=0)
+
 create_asset_parent.add_argument('-n', '--name', help="Name displayed on the UI")
 
 # snmp group parent will contain snmp-specific args
@@ -431,6 +435,10 @@ update_asset_parent.add_argument(
 )
 update_asset_parent.add_argument('--on-delay', type=int, help="Power on delay in ms")
 update_asset_parent.add_argument('--off-delay', type=int, help="Power on delay in ms")
+
+update_asset_parent.add_argument('-x', type=int, help="x - asset position on the dashboard", default=0)
+update_asset_parent.add_argument('-y', type=int, help="y - asset position on the dashboard", default=0)
+
 update_asset_parent.add_argument('-n', '--name', help="Name displayed on the UI")
 
 # snmp group parent will contain snmp-specific args

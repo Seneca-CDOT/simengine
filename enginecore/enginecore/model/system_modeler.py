@@ -14,8 +14,13 @@ from enginecore.model.graph_reference import GraphReference
 
 GRAPH_REF = GraphReference()
 
+# attributes shared by all the assets
+CREATE_SHARED_ATTR = ["x", "y", "name", "type", "key", "off_delay", "on_delay"]
+# Labels used by the app
+SIMENGINE_NODE_LABELS = ["Asset", "OID", "OIDDesc", "Battery", "StageLayout", "Sensor", "AddressSpace"]
+
 def _get_props_stm(attr, supported_attr=None):
-    """Format dict attributes as neo4j props"""
+    """Format dict attributes as neo4j props ( attr: attrValue )"""
 
     existing = dict(
         filter(lambda k: attr[k[0]] is not None and (not supported_attr or k[0] in supported_attr), attr.items())
@@ -24,7 +29,7 @@ def _get_props_stm(attr, supported_attr=None):
 
 
 def _get_set_stm(attr, node_name="asset", supported_attr=None):
-    """Format dict as neo4j set statement"""
+    """Format dict as neo4j set statement ( nodeName.nodeProp=nodeValue ) """
 
     existing = dict(
         filter(lambda k: attr[k[0]] is not None and (not supported_attr or k[0] in supported_attr), attr.items())
@@ -33,7 +38,7 @@ def _get_set_stm(attr, node_name="asset", supported_attr=None):
 
 
 def _get_oid_desc_stm(oid_desc):
-    """Format dict attributes as neo4j props"""
+    """Format oid descriptions (int->value mappings) for neo4j """
     return ','.join(map(lambda k: '{}: "{}"'.format(oid_desc[k], k), oid_desc))
 
 
@@ -174,7 +179,7 @@ def create_outlet(key, attr):
     with GRAPH_REF.get_session() as session:
         attr['name'] = attr['name'] if 'name' in attr and attr['name'] else "out-{}".format(key)
 
-        s_attr = ["name", "type", "key", "off_delay", "on_delay"]
+        s_attr = CREATE_SHARED_ATTR
         props_stm = _get_props_stm({**attr, **{'type': 'outlet', 'key': key}}, supported_attr=s_attr)
         session.run("CREATE (:Asset:Outlet {{ {} }})".format(props_stm))
 
@@ -227,7 +232,9 @@ def _add_sensors(asset_key, preset_file=os.path.join(os.path.dirname(__file__), 
                     raise KeyError("Missing address for a seonsor {}".format(sensor_type))
 
                 s_attr = [
-                    "defaultValue", "name", "lnr", "lcr", "lnc", "unc", "ucr", "unr", "address", "index", "type", "eventReadingType"
+                    "name", "defaultValue", 
+                    "lnr", "lcr", "lnc", "unc", "ucr", "unr", 
+                    "address", "index", "type", "eventReadingType"
                 ]
                 
                 props = {**sensor['thresholds'], **sensor, **addr, **{'type': sensor_type}}
@@ -272,7 +279,7 @@ def create_server(key, attr, server_variation=ServerVariations.Server):
         attr['type'] = server_variation.name.lower()
         attr['key'] = key
 
-        s_attr = ["name", "domain_name", "type", "key", "off_delay", "on_delay", "power_consumption", "power_source"]
+        s_attr = ["domain_name", "power_consumption", "power_source"] + CREATE_SHARED_ATTR
         props_stm = _get_props_stm(attr, supported_attr=s_attr)
         
         # create a server
@@ -320,9 +327,8 @@ def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
         attr['name'] = attr['name'] if 'name' in attr and attr['name'] else data['assetName']
         attr['runtime'] = json.dumps(data['modelRuntime'], sort_keys=True)
 
-        s_attr = ["name", "type", "key", "off_delay", "on_delay", "staticOidFile", "port", "host",
-                  "outputPowerCapacity", "minPowerOnBatteryLevel", "fullRechargeTime", "runtime",
-                  "power_source", "power_consumption"]
+        s_attr = ["staticOidFile", "port", "host", "outputPowerCapacity", "minPowerOnBatteryLevel", 
+                  "fullRechargeTime", "runtime", "power_source", "power_consumption"] + CREATE_SHARED_ATTR
 
         props_stm = _get_props_stm({**attr, **data, **{'key': key, 'type': 'ups'}}, supported_attr=s_attr)
 
@@ -380,7 +386,8 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
         outlet_count = data['OIDs']['OutletCount']['defaultValue']
         
         attr['name'] = attr['name'] if 'name' in attr and attr['name'] else data['assetName']
-        s_attr = ["name", "type", "key", "off_delay", "on_delay", "staticOidFile", "port", "host"]
+        s_attr = ["staticOidFile", "port", "host"] + CREATE_SHARED_ATTR
+
         props_stm = _get_props_stm({**attr, **data, **{'key': key, 'type': 'pdu'}}, supported_attr=s_attr)
 
         # create PDU asset
@@ -471,7 +478,7 @@ def create_static(key, attr):
         raise KeyError('Static asset requires power_consumption')
         
     with GRAPH_REF.get_session() as session:
-        s_attr = ["name", "img_url", "type", "key", "off_delay", "on_delay", "power_consumption", "power_source"]
+        s_attr = ["img_url", "power_consumption", "power_source"] + CREATE_SHARED_ATTR
         props_stm = _get_props_stm({**attr, **{'type': 'staticasset', 'key': key}}, supported_attr=s_attr)
         session.run("CREATE (:Asset:StaticAsset {{ {} }})".format(props_stm))
 
@@ -479,8 +486,7 @@ def create_static(key, attr):
 def drop_model():
     """ Drop system model """
     with GRAPH_REF.get_session() as session:
-        labels = ["Asset", "OID", "OIDDesc", "Battery", "StageLayout", "Sensor", "AddressSpace"]
-        session.run("MATCH (a) WHERE {} DETACH DELETE a".format(" OR ".join(map("a:{}".format, labels))))
+        session.run("MATCH (a) WHERE {} DETACH DELETE a".format(" OR ".join(map("a:{}".format, SIMENGINE_NODE_LABELS))))
     
 
 def delete_asset(key):
