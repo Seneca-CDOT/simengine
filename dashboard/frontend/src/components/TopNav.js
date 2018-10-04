@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 
 // Material imports
 import { withStyles } from '@material-ui/core/styles';
-import { Settings, AcUnit, PowerSettingsNew, ArrowDownward } from "@material-ui/icons";
+import { Settings, AcUnit, PowerSettingsNew, ArrowDownward, ArrowUpward } from "@material-ui/icons";
 // import s from "@material-ui/icons/ArrowUpward";
 import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
@@ -13,8 +13,8 @@ import Typography from '@material-ui/core/Typography';
 import Grid from '@material-ui/core/Grid';
 import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
-import ListItemText from '@material-ui/core/ListItemText';
-import { Divider, Drawer, FormControlLabel, Switch } from '@material-ui/core';
+import ListItemText from '@material-ui/core/ListItemText'; 
+import { Divider, Drawer, FormControlLabel, Switch, Fade } from '@material-ui/core';
 
 
 class TopNav extends React.Component {
@@ -23,9 +23,44 @@ class TopNav extends React.Component {
     super(props);
 
     this.state = {
-      drawerAnchor: null
+      drawerAnchor: null,
+      ambientRising: false,
+      lastTempChange: new Date(),
+      flash: false,
     };
+
+    this.flashArrow = null;
   }
+  
+  componentWillReceiveProps(newProps) {
+
+    clearInterval(this.flashArrow);
+
+    // flash arrow icon on temp changes
+    this.flashArrow = setInterval(() => {
+      this.setState(() => ({flash: true}));
+      setTimeout(() => {
+        this.setState(() => ({flash: false}));
+      }, 2000);
+    }, 2400);
+
+
+    // stop flashing arrow after a while (max is 1 minute)
+    const elapsedSinceLastTemp = new Date() - this.state.lastTempChange;
+    const maxFlashingTime =  60*1000;
+
+    setTimeout(() => {
+      clearInterval(this.flashArrow);
+      this.setState({ flash: false, ambientRising: false });
+
+    }, (elapsedSinceLastTemp > maxFlashingTime?maxFlashingTime:elapsedSinceLastTemp));
+
+    this.setState({ 
+      ambientRising: newProps.ambientRising,
+      lastTempChange: new Date(),
+    });
+  }
+
 
   handleMenu = event => {
     this.setState({ drawerAnchor: event.currentTarget });
@@ -34,6 +69,7 @@ class TopNav extends React.Component {
   handleDrawerClose = () => {
     this.setState({ drawerAnchor: null });
   };
+
 
   render() {
 
@@ -86,8 +122,8 @@ class TopNav extends React.Component {
               <FormControlLabel
                 control={
                   <Switch 
-                    checked={false} 
-                   
+                    checked={this.props.mainsStatus} 
+
                     classes={{
                       switchBase: classes.colorSwitchBase,
                       checked: classes.colorChecked,
@@ -99,7 +135,10 @@ class TopNav extends React.Component {
                 label={
                   <Typography variant="title" style={{color: 'white'}}>
                     <PowerSettingsNew style={styles.inlineIcon} />
-                      The Mains: <span  style={styles.heating}> offline</span>
+                      The Mains: 
+                      <span  style={this.props.mainsStatus?styles.online:styles.heating}> 
+                        {" "}{this.props.mainsStatus?"online":"offline"}
+                      </span>
                   </Typography>
                 }
               />
@@ -109,7 +148,14 @@ class TopNav extends React.Component {
               
                 <AcUnit style={styles.inlineIcon}/>
              
-                <span style={styles.cooling}>21° <ArrowDownward style={styles.inlineIcon}/></span> 
+                <span style={(this.state.ambientRising||this.props.ambient>27)?styles.heating:styles.cooling}>{this.props.ambient}°
+                  <Fade in={this.state.flash}>
+                    {this.state.ambientRising
+                      ? <ArrowUpward style={styles.inlineIcon}/>
+                      : <ArrowDownward style={styles.inlineIcon}/>
+                    }
+                  </Fade>
+                </span> 
               </Typography>
             </Grid>
           </Grid>
@@ -168,16 +214,18 @@ const styles = {
     padding: '0.7em',
   },
   tempGauge: {
-    borderColor:"white", 
-    borderRightStyle: 'solid',
+    borderColor:"white",
     borderLeftStyle: 'solid',
   }
 };
 
 TopNav.propTypes = {
   classes: PropTypes.object, // styling
-  saveLayout: PropTypes.func.isRequired // drawer Save Layout callback
+  saveLayout: PropTypes.func.isRequired, // drawer Save Layout callback
+  ambient: PropTypes.number.isRequired, // room temp
+  ambientRising: PropTypes.bool.isRequired, // is room temp going up?
+  mainsStatus: PropTypes.bool.isRequired, // mains power source status
 };
 
 
-export default  withStyles(styles)(TopNav);
+export default withStyles(styles)(TopNav);

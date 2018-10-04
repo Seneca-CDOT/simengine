@@ -2,7 +2,7 @@
 
 class simengineSocketClient {
 
-  constructor ({onTopologyReceived, onAmbientReceived, onAssetReceived}) {
+  constructor ({onTopologyReceived, onAmbientReceived, onAssetReceived, onMainsReceived}) {
 
     // set up endpoint URL
     let new_uri = '';
@@ -22,7 +22,7 @@ class simengineSocketClient {
     {
       const data = JSON.parse(evt.data);
       
-      console.log("Server sent data: ")
+      console.log("Server sent data: ");
       console.log(data);
 
       if (data.request === 'topology') {
@@ -31,6 +31,8 @@ class simengineSocketClient {
         onAmbientReceived(data.data);
       } else if (data.request === 'asset') {
         onAssetReceived(data.data);
+      } else if (data.request === 'mains') {
+        onMainsReceived(data.data);
       }
     });
   }

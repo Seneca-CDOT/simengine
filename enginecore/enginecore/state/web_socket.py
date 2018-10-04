@@ -15,6 +15,7 @@ class ClientRequests(Enum):
     asset = 1
     ambient = 2
     topology = 3
+    mains = 4
 
 
 class WebSocket(Component):
@@ -47,6 +48,21 @@ class WebSocket(Component):
                     'stageLayout': stage_layout 
                 }
             }))) 
+
+        self.fire(write(sock, json.dumps({ 
+            'request': ClientRequests.ambient.name, 
+            'data': {
+                'ambient': StateManager.get_ambient(), 
+                'rising': False 
+            }
+        })))
+
+        self.fire(write(sock, json.dumps({ 
+            'request': ClientRequests.mains.name, 
+            'data': {
+                'mains': StateManager.mains_status()
+            }
+        })))
 
 
     def read(self, _, data):

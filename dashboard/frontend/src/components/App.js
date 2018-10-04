@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 
 // Material
 import { withStyles } from '@material-ui/core/styles';
-import Snackbar from '@material-ui/core/Snackbar';
+import Snackbar from '@material-ui/core/Snackbar'; 
 
 // Local Components - Layout
 import Pdu from './Assets/PDU/Pdu';
@@ -32,10 +32,14 @@ const drawerWidth = 240;
       assets: null,
       selectedAssetKey: 0,
       connections:{},
+      ambient: 0,
+      ambientRising: false,
+      mainsStatus: 0,
       socketOffline: true,
       changesSaved: false,
     };
 
+    // establish client-server connection
     this.connectToSocket();
   }
 
@@ -47,6 +51,7 @@ const drawerWidth = 240;
   }
 
   connectToSocket() {
+
     if (!("WebSocket" in window)) {
       alert("WebSocket is NOT supported by your Browser!");
       return;
@@ -93,6 +98,16 @@ const drawerWidth = 240;
         }
 
         this.setState({ assets });
+      },
+
+      /** ambient updates */
+      onAmbientReceived: (data) => {
+        this.setState({ ambient: data.ambient, ambientRising: data.rising });
+      },
+
+      /** main power update */
+      onMainsReceived: (data) => {
+        this.setState({ mainsStatus: data.mains });
       }
     });
 
@@ -381,6 +396,9 @@ const drawerWidth = 240;
           {/* Top-Navigation component */}
           <TopNav
             saveLayout={this.saveLayout.bind(this)}
+            ambient={this.state.ambient}
+            ambientRising={this.state.ambientRising}
+            mainsStatus={this.state.mainsStatus}
             classes={classes}
           />
 

@@ -139,6 +139,8 @@ class StateListener(Component):
                 'load': new_load
             })
 
+        self._handle_ambient_update(StateManager.get_ambient(), rising=False)
+
 
     def _handle_oid_update(self, asset_key, oid, value):
         """React to OID update in redis store 
@@ -164,6 +166,8 @@ class StateListener(Component):
         print('oid changed:')
         print(">" + oid + ": " + oid_value)
         
+    def _handle_ambient_update(self, data, rising):
+        self._notify_client(ClientRequests.ambient, {'ambient': data, 'rising': rising}) 
     
     def _handle_state_update(self, asset_key):
         """React to asset state updates in redis store 
@@ -406,9 +410,14 @@ class StateListener(Component):
                 with self._graph_ref.get_session() as session:
                     mains_out_keys = GraphReference.get_mains_powered_outlets(session)
                     mains_out = {out_key: self._assets[out_key] for out_key in mains_out_keys}
-             
+                    
+                    new_state = int(data)
+
+                    self._notify_client(ClientRequests.mains, { 'mains': new_state})     
+
+
                     for _, outlet in mains_out.items():
-                        if data == "0":
+                        if new_state == 0:
                             outlet.state.shut_down() 
                         else:
                             outlet.state.power_up()
@@ -443,7 +452,8 @@ class StateListener(Component):
         data = message['data'].decode("utf-8")
         try:
             if message['channel'] == str.encode(RedisChannels.ambient_update):
-                print(data)
+                old_temp, new_temp = map(float, data.split('-'))
+                self._handle_ambient_update(float(new_temp), rising=(float(new_temp) > float(old_temp))) 
 
         except KeyError as error:
             print("Detected unregistered asset under key [{}]".format(error), file=sys.stderr)

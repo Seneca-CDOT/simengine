@@ -323,6 +323,9 @@ class StateManager():
         StateManager.get_store().set('mains-source', '1')
         StateManager.get_store().publish(RedisChannels.mains_update_channel, '1')
     
+    @classmethod
+    def mains_status(cls):
+        return int(StateManager.get_store().get('mains-source').decode())
 
     @classmethod
     def get_ambient(cls):
@@ -333,8 +336,9 @@ class StateManager():
     @classmethod
     def set_ambient(cls, value):
         """Update ambient value"""
+        old_temp = cls.get_ambient()
         StateManager.get_store().set('ambient', str(value))
-        StateManager.get_store().publish(RedisChannels.ambient_update, str(value))  
+        StateManager.get_store().publish(RedisChannels.ambient_update, '{}-{}'.format(old_temp, value))  
     
 
     @classmethod
