@@ -86,6 +86,11 @@ class WebSocket(Component):
                     state_manager.shut_down()
             elif data['request'] == 'layout':
                 GraphReference.save_layout(session, data['data']['assets'], stage=data['data']['stage'])
+            elif data['request'] == 'mains':
+                if data['mains'] == 0:
+                    StateManager.power_outage()
+                else:
+                    StateManager.power_restore()
 
 
     def disconnect(self, sock):

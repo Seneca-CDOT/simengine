@@ -412,9 +412,7 @@ class StateListener(Component):
                     mains_out = {out_key: self._assets[out_key] for out_key in mains_out_keys}
                     
                     new_state = int(data)
-
-                    self._notify_client(ClientRequests.mains, { 'mains': new_state})     
-
+                    self._notify_client(ClientRequests.mains, {'mains': new_state})     
 
                     for _, outlet in mains_out.items():
                         if new_state == 0:

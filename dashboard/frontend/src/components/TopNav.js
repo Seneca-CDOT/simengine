@@ -34,6 +34,8 @@ class TopNav extends React.Component {
   
   componentWillReceiveProps(newProps) {
 
+    if (newProps.ambient == this.props.ambient) { return; }
+
     clearInterval(this.flashArrow);
 
     // flash arrow icon on temp changes
@@ -123,7 +125,7 @@ class TopNav extends React.Component {
                 control={
                   <Switch 
                     checked={this.props.mainsStatus} 
-
+                    onChange={()=>this.props.togglePower(!this.props.mainsStatus)}
                     classes={{
                       switchBase: classes.colorSwitchBase,
                       checked: classes.colorChecked,
@@ -225,6 +227,7 @@ TopNav.propTypes = {
   ambient: PropTypes.number.isRequired, // room temp
   ambientRising: PropTypes.bool.isRequired, // is room temp going up?
   mainsStatus: PropTypes.bool.isRequired, // mains power source status
+  togglePower: PropTypes.func.isRequired,
 };
 
 

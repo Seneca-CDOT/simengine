@@ -228,13 +228,18 @@ class StateManager():
         Returns:
             bool: True if parents are available
         """
-        asset_keys, oid_keys = GraphReference.get_parent_keys(self._graph_ref.get_session(), self._asset_key)
         
+        not_affected_by_mains = True
+        asset_keys, oid_keys = GraphReference.get_parent_keys(self._graph_ref.get_session(), self._asset_key)
+
+        if not asset_keys and not StateManager.mains_status():
+            not_affected_by_mains = False
+
         assets_up = self._check_parents(asset_keys, lambda rvalue, _: rvalue == b'0')
         oid_clause = lambda rvalue, rkey: rvalue.split(b'|')[1].decode() == oid_keys[rkey]['switchOff']
         oids_on = self._check_parents(oid_keys.keys(), oid_clause)
 
-        return assets_up and oids_on
+        return assets_up and oids_on and not_affected_by_mains
     
 
     @classmethod
@@ -323,9 +328,12 @@ class StateManager():
         StateManager.get_store().set('mains-source', '1')
         StateManager.get_store().publish(RedisChannels.mains_update_channel, '1')
     
+
     @classmethod
     def mains_status(cls):
+        """Get wall power status"""
         return int(StateManager.get_store().get('mains-source').decode())
+
 
     @classmethod
     def get_ambient(cls):

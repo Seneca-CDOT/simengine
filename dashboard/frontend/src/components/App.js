@@ -34,7 +34,7 @@ const drawerWidth = 240;
       connections:{},
       ambient: 0,
       ambientRising: false,
-      mainsStatus: 0,
+      mainsStatus: 1,
       socketOffline: true,
       changesSaved: false,
     };
@@ -399,6 +399,7 @@ const drawerWidth = 240;
             ambient={this.state.ambient}
             ambientRising={this.state.ambientRising}
             mainsStatus={this.state.mainsStatus}
+            togglePower={(status) => this.ws.sendData({ request: 'mains', mains: status })}
             classes={classes}
           />
 
