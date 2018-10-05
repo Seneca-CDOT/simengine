@@ -14,7 +14,7 @@ import redis
 from circuits.web import Logger, Server, Static
 from circuits.web.dispatchers import WebSocketsDispatcher
 
-from enginecore.state.assets import Asset, PowerEventResult, LoadEventResult
+from enginecore.state.assets import Asset, SystemEnvironment, PowerEventResult, LoadEventResult
 from enginecore.state.state_managers import StateManager
 from enginecore.state.event_map import PowerEventManager
 from enginecore.state.web_socket import WebSocket, ClientRequests
@@ -43,6 +43,7 @@ class StateListener(Component):
 
         # assets will store all the devices/items including PDUs, switches etc.
         self._assets = {}
+        self._sys_environ = SystemEnvironment().register(self)
 
         # set default state
         StateManager.set_ambient(21)
@@ -166,9 +167,11 @@ class StateListener(Component):
         print('oid changed:')
         print(">" + oid + ": " + oid_value)
         
+
     def _handle_ambient_update(self, data, rising):
         self._notify_client(ClientRequests.ambient, {'ambient': data, 'rising': rising}) 
     
+
     def _handle_state_update(self, asset_key):
         """React to asset state updates in redis store 
         Args:
@@ -412,7 +415,9 @@ class StateListener(Component):
                     mains_out = {out_key: self._assets[out_key] for out_key in mains_out_keys}
                     
                     new_state = int(data)
+
                     self._notify_client(ClientRequests.mains, {'mains': new_state})     
+                    self.fire(PowerEventManager.map_mains_event(data), self._sys_environ)
 
                     for _, outlet in mains_out.items():
                         if new_state == 0:

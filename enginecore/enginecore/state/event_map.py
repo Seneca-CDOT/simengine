@@ -1,5 +1,5 @@
 """ Maps redis events to circuit events """
-import enginecore.state.events as events
+from enginecore.state import events
 
 
 class PowerEventManager:
@@ -58,3 +58,11 @@ class PowerEventManager:
     def map_load_decreased_by(cls, new_load, child_key):
         """Child asset load dropped"""        
         return events.ChildAssetLoadDecreased(child_load=new_load, child_key=child_key)
+
+    @classmethod
+    def map_mains_event(cls, value):
+        '''Map parent redis updates to events'''
+        return {
+            "0": events.PowerOutage(),
+            "1": events.PowerRestored() 
+        }[value]

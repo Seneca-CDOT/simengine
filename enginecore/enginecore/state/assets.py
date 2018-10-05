@@ -35,8 +35,92 @@ PowerEventResult.__new__.__defaults__ = (None,) * len(PowerEventResult._fields)
 LoadEventResult = namedtuple("LoadEventResult", "load_change old_load new_load asset_key asset_type")
 LoadEventResult.__new__.__defaults__ = (None,) * len(PowerEventResult._fields)
 
+
+class SystemEnvironment(Component):
+    """Represents hardware's environment (Room/ServerRack)"""
+    
+    def __init__(self):
+        super(SystemEnvironment, self).__init__()
+
+        # threads to track
+        self._temp_warming_t = None
+        self._temp_cooling_t = None
+
+        # Set defaults 
+        self._outage_temp_increase = 2
+        self._outage_temp_rate = 10# 60 * 6 # every 6 minutes 
+        self._outage_temp_max = 34
+
+        self._ac_on_temp_decrease = 1
+        self._ac_on_temp_rate = 10 # 60 * 6 # every 6 minutes 
+        self._ac_on_temp_min = 21
+
+
+    def _increase_temp(self):
+        
+        room_temp = sm.StateManager.get_ambient()
+
+        # keep charging temp
+        while room_temp < self._outage_temp_max and not sm.StateManager.mains_status():
+
+            time.sleep(self._outage_temp_rate)
+
+            # calculate new temp
+            room_temp = sm.StateManager.get_ambient() + self._outage_temp_increase
+            print(room_temp)
+            # update state details
+            sm.StateManager.set_ambient(room_temp)
+            
+
+    def _decrease_temp(self):
+        room_temp = sm.StateManager.get_ambient()
+
+        # keep charging temp
+        while room_temp >= self._ac_on_temp_min and sm.StateManager.mains_status():
+
+            time.sleep(self._ac_on_temp_rate)
+
+            # calculate new temp
+            room_temp = sm.StateManager.get_ambient() - self._ac_on_temp_decrease
+            print(room_temp)
+
+            # update state details
+            sm.StateManager.set_ambient(room_temp)
+            
+
+    def _launch_temp_warming(self):
+        
+        self._temp_warming_t = Thread(
+            target=self._increase_temp,
+            name="temp_warming"
+        )
+        self._temp_warming_t.daemon = True
+        self._temp_warming_t.start()
+
+    def _launch_temp_cooling(self):
+
+        self._temp_cooling_t = Thread(
+            target=self._decrease_temp,
+            name="temp_cooling"
+        )
+        self._temp_cooling_t.daemon = True
+        self._temp_cooling_t.start()
+
+
+    @handler("PowerOutage")
+    def on_power_outage(self):
+        """Handle power outage"""
+        self._launch_temp_warming()
+
+
+    @handler("PowerRestored")
+    def on_power_restored(self):
+        """Handle power restoration"""
+        self._launch_temp_cooling()
+        
+
 class Asset(Component):
-    """ Abstract Asset Class """
+    """Abstract Asset Class """
 
     def __init__(self, state):
         super(Asset, self).__init__()

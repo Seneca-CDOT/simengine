@@ -195,7 +195,8 @@ status_group.add_argument('--watch-rate', nargs='?',
                           help="Update state every n seconds, defaults to 1", default=1, type=int)
 
 
-## -> Setup options for thermal group
+## -> Setup options for thermal/temperature group
+
 thermal_group = subparsers.add_parser('temperature', help="Manage temperature/thermal settings of the system")
 ambient_subp = thermal_group.add_subparsers()
 
@@ -216,7 +217,28 @@ th_get_ambient_action = th_ambient_subp.add_parser(
 )
 
 th_set_ambient_action.add_argument(
-    '-d', '--degrees', type=float, help="Update ambient temperature (in Celsius) ", required=True
+    '-d', '--degrees', 
+    type=float, 
+    help="Update ambient temperature (in Celsius); \
+         if time period and event are specified, this value will be added to the previous room temp;", 
+    required=True
+)
+
+th_set_ambient_action.add_argument(
+    '-e', '--event',
+    help="Increase/Descrease temperature on Down/Up mains event", 
+    choices=['Up', 'Down']
+)
+
+th_set_ambient_action.add_argument(
+    '-s', '--stop-at',
+    help="Increase/Descrease temperature until this temperature value is reached", 
+    type=float
+)
+
+th_set_ambient_action.add_argument(
+    '-r', '--rate',
+    help="Update temperature value very 'n' seconds"
 )
 
 

@@ -52,6 +52,6 @@ class PowerOutage(Event):
     """On Power Outage"""
     pass
 
-class OnPowerRestored(Event):
+class PowerRestored(Event):
     """On power (mains source) restored"""
     pass
