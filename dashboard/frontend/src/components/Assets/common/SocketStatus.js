@@ -2,11 +2,13 @@ import React from 'react';
 import { Rect } from 'react-konva';
 import PropTypes from 'prop-types';
 
+import colors from '../../../styles/colors';
+
 /**
  * LED of a socket
  */
 function SocketStatus({ powered, socketOn, x, y }) {
-    const color = powered?(socketOn?"green": "red"):"grey";
+    const color = powered?(socketOn?"green": colors.red):"grey";
     return (
       <Rect
         x={x}

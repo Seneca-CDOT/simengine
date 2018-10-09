@@ -1,23 +1,31 @@
 @font-face {
-  font-family: 'DSEG7Modern';
-  font-style: normal;
-  font-weight: 400;
-  src: local('DSEG7Modern'), local('DSEG7Modern'),
-       url('../fonts/DSEG7Modern-Regular.woff2') format('woff2'), /* Super Modern Browsers */
-       url('../fonts/DSEG7Modern-Regular.woff') format('woff'), /* Modern Browsers */
-       url('../fonts/DSEG7Modern-Regular.ttf') format('truetype'), /* Safari, Android, iOS */
+    font-family: 'DSEG7Modern';
+    font-style: normal;
+    font-weight: 400;
+    src: local('DSEG7Modern'), local('DSEG7Modern'),
+        url('../fonts/DSEG7Modern-Regular.woff2') format('woff2'), /* Super Modern Browsers */
+        url('../fonts/DSEG7Modern-Regular.woff') format('woff'), /* Modern Browsers */
+        url('../fonts/DSEG7Modern-Regular.ttf') format('truetype'), /* Safari, Android, iOS */
 }
 
 @font-face {
-  font-family: 'DSEG14Modern';
-  font-style: normal;
-  font-weight: 400;
-  src: local('DSEG14Modern'), local('DSEG14Modern'),
-       url('../fonts/DSEG14Modern-Regular.woff2') format('woff2'), /* Super Modern Browsers */
-       url('../fonts/DSEG14Modern-Regular.woff') format('woff'), /* Modern Browsers */
-       url('../fonts/DSEG14Modern-Regular.ttf') format('truetype'), /* Safari, Android, iOS */
+    font-family: 'DSEG14Modern';
+    font-style: normal;
+    font-weight: 400;
+    src: local('DSEG14Modern'), local('DSEG14Modern'),
+        url('../fonts/DSEG14Modern-Regular.woff2') format('woff2'), /* Super Modern Browsers */
+        url('../fonts/DSEG14Modern-Regular.woff') format('woff'), /* Modern Browsers */
+        url('../fonts/DSEG14Modern-Regular.ttf') format('truetype'), /* Safari, Android, iOS */
 }
 
+
+@font-face {
+    font-family: 'NotoSans';
+    font-style: normal;
+    font-weight: 400;
+    src: local('NotoSans'), local('NotoSans'),
+         url('../fonts/NotoSans-Regular.ttf') format('truetype'), /* Safari, Android, iOS */
+}
 
 body {
     background-color: $charcoal;

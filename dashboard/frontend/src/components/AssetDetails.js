@@ -42,22 +42,22 @@ function AssetDetails(props) {
           <Typography variant="headline" component="h2">
             Asset: {assetKey}-{assetInfo.type}
           </Typography>
-          <Typography component="p">
+          <Typography variant="subheading" component="h5">
             Status: {assetInfo.status === 1?<span style={{color: 'green'}}>on</span>:<span style={{color: 'red'}}>off</span>}
           </Typography>
-          <Typography component="p">
+          <Typography variant="subheading" component="h5">
             Name: {assetInfo.name}
           </Typography>
 
 
-          <Typography component="p">
+          <Typography variant="subheading" component="h5">
             Current Load: {assetInfo.load ? assetInfo.load.toFixed(2): 0}
           </Typography>
           <Divider />
             {/* Turn off/on the component */}
             <FormControlLabel
               control={<Switch checked={assetInfo.status === 1} aria-label="LoginSwitch" onChange={()=>changeStatus(assetKey, assetInfo)}/>}
-              label={"Toggle Status"}
+              label={<Typography variant="subheading" component="h5">Toggle Status</Typography>}
             />
           <Divider/>
           {/* Display any nested elements */}

@@ -56,51 +56,49 @@ class SystemEnvironment(Component):
         self._ac_on_temp_min = 21
 
 
-    def _increase_temp(self):
+    def _keep_changing_temp(self, thermal_cond, sleep_duration, calc_temp_op):
+        """Change room temperature until limit is reached or AC state changes
+        
+        Args:
+            thermal_cond(callable): update room temp while the condition remains true
+            sleep_duration(callable): update every 'n' seconds
+            calc_temp_op(callable): calculate new temperature
+        """
         
         room_temp = sm.StateManager.get_ambient()
 
-        # keep charging temp
-        while room_temp < self._outage_temp_max and not sm.StateManager.mains_status():
-
-            time.sleep(self._outage_temp_rate)
-
-            # calculate new temp
-            room_temp = sm.StateManager.get_ambient() + self._outage_temp_increase
-            print(room_temp)
-            # update state details
+        while thermal_cond(room_temp):
+            time.sleep(sleep_duration())
+            room_temp = calc_temp_op()
             sm.StateManager.set_ambient(room_temp)
-            
 
-    def _decrease_temp(self):
-        room_temp = sm.StateManager.get_ambient()
-
-        # keep charging temp
-        while room_temp >= self._ac_on_temp_min and sm.StateManager.mains_status():
-
-            time.sleep(self._ac_on_temp_rate)
-
-            # calculate new temp
-            room_temp = sm.StateManager.get_ambient() - self._ac_on_temp_decrease
-            print(room_temp)
-
-            # update state details
-            sm.StateManager.set_ambient(room_temp)
-            
 
     def _launch_temp_warming(self):
-        
+        """Start the process of raising ambient"""
+
         self._temp_warming_t = Thread(
-            target=self._increase_temp,
+            target=self._keep_changing_temp,
+            args=(
+                lambda room_temp: room_temp < self._outage_temp_max and not sm.StateManager.mains_status(), # until
+                lambda: self._outage_temp_rate, # temp increase per second
+                lambda: sm.StateManager.get_ambient() + self._outage_temp_increase # update temp
+            ), 
             name="temp_warming"
         )
         self._temp_warming_t.daemon = True
         self._temp_warming_t.start()
 
+
     def _launch_temp_cooling(self):
+        """Start the process of cooling room temperature"""
 
         self._temp_cooling_t = Thread(
-            target=self._decrease_temp,
+            target=self._keep_changing_temp,
+            args=(
+                lambda room_temp: room_temp >= self._ac_on_temp_min and sm.StateManager.mains_status(), # until
+                lambda: self._ac_on_temp_rate, # temp increase per second
+                lambda: sm.StateManager.get_ambient() - self._ac_on_temp_decrease # update temp
+            ), 
             name="temp_cooling"
         )
         self._temp_cooling_t.daemon = True

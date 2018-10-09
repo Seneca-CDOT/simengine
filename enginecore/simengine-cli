@@ -232,7 +232,7 @@ th_set_ambient_action.add_argument(
 
 th_set_ambient_action.add_argument(
     '-s', '--stop-at',
-    help="Increase/Descrease temperature until this temperature value is reached", 
+    help="Increase/Descrease room temperature until this value is reached", 
     type=float
 )
 

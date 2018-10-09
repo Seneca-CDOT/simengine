@@ -21,6 +21,9 @@ import TopNav from './TopNav';
 import { onWheelScroll, onWheelDown } from './canvasEvents';
 import simengineSocketClient from './socketClient';
 
+import colors from '../styles/colors';
+
+
 const drawerWidth = 240;
 
  class App extends Component {
@@ -378,7 +381,7 @@ const drawerWidth = 240;
               connections[key].destX-socketXpad , 
               connections[key].destY+socketYpad
             ]}
-            stroke={asset.status  === 1? "green": "grey"}
+            stroke={asset.status  === 1? colors.green: "grey"}
             strokeWidth={5}
             zIndex={300}
             key={`${key}${connections[key].destKey}`}

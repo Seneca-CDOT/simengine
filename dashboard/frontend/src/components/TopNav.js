@@ -16,6 +16,7 @@ import ListItem from '@material-ui/core/ListItem';
 import ListItemText from '@material-ui/core/ListItemText'; 
 import { Divider, Drawer, FormControlLabel, Switch, Fade } from '@material-ui/core';
 
+import colors from '../styles/colors';
 
 class TopNav extends React.Component {
 
@@ -63,7 +64,6 @@ class TopNav extends React.Component {
     });
   }
 
-
   handleMenu = event => {
     this.setState({ drawerAnchor: event.currentTarget });
   };
@@ -71,7 +71,6 @@ class TopNav extends React.Component {
   handleDrawerClose = () => {
     this.setState({ drawerAnchor: null });
   };
-
 
   render() {
 
@@ -170,11 +169,6 @@ class TopNav extends React.Component {
   }
 }
 
-const colors = {
-  on: '#27ae60',
-  off: '#e74c3c',
-  cooling: '#3498db',
-}
 
 const styles = {
   root: {
@@ -189,24 +183,24 @@ const styles = {
     flexGrow: 1,
   },
   colorSwitchBase: {
-    color: colors.off,
+    color: colors.red,
     '&$colorChecked': {
-      color: colors.on,
+      color: colors.green,
       '& + $colorBar': {
-        backgroundColor: colors.on,
+        backgroundColor: colors.green,
       },
     },
   },
   colorBar: {},
   colorChecked: {},
   cooling: {
-    color: colors.cooling
+    color: colors.blue
   },
   heating: {
-    color: colors.off
+    color: colors.red
   },
   online: {
-    color: colors.on
+    color: colors.green
   },
   rightMenuContainer: {
     display: 'flex',
