@@ -21,7 +21,8 @@ class RedisChannels():
     battery_conf_charge_channel = 'battery-charge-upd'
 
     # thermal channels
-    ambient_update = 'ambient-upd'
+    ambient_update_channel = 'ambient-upd'
+    ambient_config_channel = 'ambient-cfg-upd'
 
     # misc
     oid_update_channel = 'oid-upd' 

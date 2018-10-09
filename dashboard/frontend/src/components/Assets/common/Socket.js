@@ -16,7 +16,7 @@ export default class Socket extends React.Component {
       this.state = {
         image: null,
         color: 'grey',
-        x: props.x?props.x:40,
+        x: props.x?props.x:40, // TODO: change to default
         y: props.y?props.y:0,
         bgImage: null,
       };
@@ -51,9 +51,18 @@ export default class Socket extends React.Component {
       };
     }
 
-    componentWillReceiveProps(newProps) {
-      this.setState({ x: newProps.x, y: newProps.y });
-    }
+    // componentWillReceiveProps(newProps) {
+    //   //this.setState({ x: newProps.x, y: newProps.y });
+    //   // console.log("xxxxxxxxxxxxxxxxxxx")
+    //   // console.log({ x: newProps.x, y: newProps.y })
+    //   // console.log({ x: this.state.x, y:  this.state.y })
+    //   // if (newProps.x != this.state.x || newProps.y != this.state.y) {
+    //   //   const coord = { x: newProps.x, y: newProps.y };
+    //   //   this.setState(coord);
+    //   //   this.props.onPosChange(this.props.assetId, coord);
+    //   // }
+
+    // }
 
      /** Notify Parent of Selection */
     handleClick = () => {
@@ -64,8 +73,10 @@ export default class Socket extends React.Component {
 
     updateSocketPos = (s) => {
       this.refs.socket.setZIndex(100);
-      this.setState({ x: s.target.attrs.x, y : s.target.attrs.y });
-      this.props.onPosChange(this.props.assetId, s);
+      const coord = { x: s.target.attrs.x, y : s.target.attrs.y };
+      this.setState(coord);
+      console.log("CHANGIN")
+      this.props.onPosChange(this.props.assetId, coord);
     }
 
     render() {

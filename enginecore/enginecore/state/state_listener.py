@@ -90,7 +90,7 @@ class StateListener(Component):
 
         # Thermal Channels
         self._thermal_pubsub.psubscribe(
-            RedisChannels.ambient_update # on ambient changes
+            RedisChannels.ambient_update_channel # on ambient changes
         )
 
 
@@ -454,7 +454,7 @@ class StateListener(Component):
         
         data = message['data'].decode("utf-8")
         try:
-            if message['channel'] == str.encode(RedisChannels.ambient_update):
+            if message['channel'] == str.encode(RedisChannels.ambient_update_channel):
                 old_temp, new_temp = map(float, data.split('-'))
                 self._handle_ambient_update(float(new_temp), rising=(float(new_temp) > float(old_temp))) 
 

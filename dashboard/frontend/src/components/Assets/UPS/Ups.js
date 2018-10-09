@@ -62,8 +62,9 @@ export default class Ups extends React.Component {
   }
 
   updateUpsPos = (s) => {
-    this.setState({ x: s.target.attrs.x, y : s.target.attrs.y });
-    this.props.onPosChange(this.props.assetId, s);
+    const coord = { x: s.target.attrs.x, y : s.target.attrs.y };
+    this.setState(coord);
+    this.props.onPosChange(this.props.assetId, coord);
   }
 
   render() {

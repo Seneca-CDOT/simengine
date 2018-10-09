@@ -47,8 +47,9 @@ export default class Pdu extends React.Component {
   }
 
   updatePduPos = (s) => {
-    this.setState({ x: s.target.attrs.x, y : s.target.attrs.y });
-    this.props.onPosChange(this.props.assetId, s);
+    const coord = { x: s.target.attrs.x, y : s.target.attrs.y };
+    this.setState(coord);
+    this.props.onPosChange(this.props.assetId, coord);
   }
 
   render() {
@@ -69,6 +70,7 @@ export default class Pdu extends React.Component {
       sockets.push(
         <Socket
           x={x}
+          y={0}
           key={ckey}
           onElementSelection={() => { this.selectSocket(ckey); }}
           selectable={true}

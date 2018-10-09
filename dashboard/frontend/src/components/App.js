@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { Component } from 'react';
 import { Stage, Layer, Line } from 'react-konva';
 import gridBackground from '../images/grid.png';
@@ -59,7 +60,8 @@ const drawerWidth = 240;
       alert("WebSocket is NOT supported by your Browser!");
       return;
     }
-      
+    
+    // Establish connection with the simengine web socket
     this.ws = new simengineSocketClient({
 
       /** 1st time connection -> initialize system topology */
@@ -82,7 +84,7 @@ const drawerWidth = 240;
               connections[parent.key] = { sourceX: x, sourceY: y, destX: assets[key].x, destY: assets[key].y, destKey: key };
             }
           }
-        })
+        });
 
         this.setState({ assets, connections });
       },
@@ -157,44 +159,64 @@ const drawerWidth = 240;
   }
 
   /** Update connections between assets (wires) */
-  onPosChange(key, e) {
+  onPosChange(key, coord) {
 
+    console.log(key)
+    console.log(coord)
+    
     const asset = this._get_asset_by_key(key);
     const connections = this.state.connections;
-    let newConn = this._update_wiring(asset, key, e.target.x(), e.target.y());
 
-    let childConn = {};
-
-    let assets = {...this.state.assets};
-    let asset_details = {...assets[key]};
-    assets[key] = {...asset_details, ...{x: e.target.x(), y: e.target.y()}};
-
-    if (asset.children && asset.type == 'pdu') {
-
-      let x=100;
-      for (const ckey of Object.keys(asset.children)) {
-        const c = this._update_wiring(this._get_asset_by_key(ckey), ckey, e.target.x()+x, e.target.y());
-        Object.assign(childConn, c);
-        x += 90;
-      }
-    } else if (asset.children && asset.type == 'ups') {
-
-      let x = 250;
-      let y = 150;
-      let outletIndex = 0;
-      for (const ckey of Object.keys(asset.children)) {
-        const c = this._update_wiring(this._get_asset_by_key(ckey), ckey, e.target.x()+x, e.target.y() + y);
-        Object.assign(childConn, c);
-        x += 100;
-        outletIndex++;
-        if (outletIndex == 4) {
-          y += 100;
-          x = 250;
-        }
-      }
+    if (key in connections) {
+      connections[key].sourceX = coord.x;
+      connections[key].sourceY = coord.y;
     }
 
-    this.setState({ assets, connections: {...connections, ...newConn, ...childConn }});
+    console.log("=================")
+
+    let assets = {...this.state.assets};
+
+    let asset_details = {...assets[key]};
+    assets[key] = {...asset_details, ...{x: coord.x, y: coord.y}}
+    
+    this.setState({ assets, connections: {...connections }});
+
+    // const asset = this._get_asset_by_key(key);
+    // const connections = this.state.connections;
+    // let newConn = this._update_wiring(asset, key, e.target.x(), e.target.y());
+
+    // let childConn = {};
+
+    // let assets = {...this.state.assets};
+    // let asset_details = {...assets[key]};
+    // assets[key] = {...asset_details, ...{x: e.target.x(), y: e.target.y()}};
+
+    // if (asset.children && asset.type == 'pdu') {
+
+    //   let x=100;
+    //   for (const ckey of Object.keys(asset.children)) {
+    //     const c = this._update_wiring(this._get_asset_by_key(ckey), ckey, e.target.x()+x, e.target.y());
+    //     Object.assign(childConn, c);
+    //     x += 90;
+    //   }
+    // } else if (asset.children && asset.type == 'ups') {
+
+    //   let x = 250;
+    //   let y = 150;
+    //   let outletIndex = 0;
+    //   for (const ckey of Object.keys(asset.children)) {
+    //     const c = this._update_wiring(this._get_asset_by_key(ckey), ckey, e.target.x()+x, e.target.y() + y);
+    //     Object.assign(childConn, c);
+    //     x += 100;
+    //     outletIndex++;
+    //     if (outletIndex == 4) {
+    //       y += 100;
+    //       x = 250;
+    //     }
+    //   }
+    // }
+
+    // this.setState({ assets, connections: {...connections, ...newConn, ...childConn }});
   }
 
   /** Handle Asset Selection */
