@@ -78,11 +78,11 @@ class SystemEnvironment(Component):
 
         self._temp_warming_t = Thread(
             target=self._keep_changing_temp,
-            args=(
-                lambda room_temp: room_temp < self._outage_temp_max and not sm.StateManager.mains_status(), # until
-                lambda: self._outage_temp_rate, # temp increase per second
-                lambda: sm.StateManager.get_ambient() + self._outage_temp_increase # update temp
-            ), 
+            kwargs={
+                'thermal_cond': lambda r_temp: r_temp < self._outage_temp_max and not sm.StateManager.mains_status(), 
+                'sleep_duration': lambda: self._outage_temp_rate, # temp increase per num of seconds
+                'calc_temp_op': lambda: sm.StateManager.get_ambient() + self._ac_on_temp_decrease # temp increase 
+            },
             name="temp_warming"
         )
         self._temp_warming_t.daemon = True
@@ -94,11 +94,11 @@ class SystemEnvironment(Component):
 
         self._temp_cooling_t = Thread(
             target=self._keep_changing_temp,
-            args=(
-                lambda room_temp: room_temp >= self._ac_on_temp_min and sm.StateManager.mains_status(), # until
-                lambda: self._ac_on_temp_rate, # temp increase per second
-                lambda: sm.StateManager.get_ambient() - self._ac_on_temp_decrease # update temp
-            ), 
+            kwargs={
+                'thermal_cond': lambda r_temp: r_temp >= self._ac_on_temp_min and sm.StateManager.mains_status(), 
+                'sleep_duration': lambda: self._ac_on_temp_rate, # temp change per num of seconds
+                'calc_temp_op': lambda: sm.StateManager.get_ambient() - self._ac_on_temp_decrease # temp change 
+            }, 
             name="temp_cooling"
         )
         self._temp_cooling_t.daemon = True

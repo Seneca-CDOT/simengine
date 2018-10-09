@@ -45,7 +45,7 @@ def status_table_format(assets, stdscr=False):
 
     for i, asset_key in enumerate(assets):
         asset = assets[asset_key]
-        children = str(asset['children'] if 'children' in asset else "none")
+        children = str("{}...{}".format(asset['children'][0], asset['children'][-1]) if 'children' in asset else "none")
         row = row_format.format(
             str(i), 
             *[str(asset_key), asset['type'], str(asset['status']), children, "{0:.2f}".format(asset['load'])], 
