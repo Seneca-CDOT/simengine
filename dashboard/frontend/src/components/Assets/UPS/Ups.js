@@ -22,7 +22,9 @@ export default class Ups extends React.Component {
       ups_monitor: null,
       c14: null
     };
+
     this.selectSocket = this.selectSocket.bind(this);
+    this.inputSocketPos = {x: 254, y: 5};
   }
 
   componentDidMount() {
@@ -61,8 +63,45 @@ export default class Ups extends React.Component {
     this.props.onElementSelection(ckey, this.props.asset.children[ckey]);
   }
 
+  getOutputCoordinates = () => {
+
+    let chidCoord = {};
+    let x = 250 + this.state.c14.width*0.5;
+    let y = 150 + this.state.c14.height*0.5;
+    
+    Object.keys(this.props.asset.children).forEach((key, i) => {
+      chidCoord[key] = {x, y};
+      x += 100;
+
+      if (i == 4) {
+        y += 100;
+        x = 250;
+      }
+    });
+
+    // for (const ckey of Object.keys(asset.children)) {
+    //   x += 100;
+
+
+    //   outletIndex++;
+    //   if (outletIndex == 4) {
+    //     y += 100;
+    //     x = 250;
+    //   }
+    // }
+    // Object.keys(childKeys).map((e, i) => (chidCoord[childKeys[i]]={x: 100+(i*90), y:0}));
+    return chidCoord;
+  }
+
   updateUpsPos = (s) => {
-    const coord = { x: s.target.attrs.x, y : s.target.attrs.y };
+    const coord = { 
+      x: s.target.attrs.x, 
+      y: s.target.attrs.y,
+      inputCenterX: this.inputSocketPos.x + this.state.c14.width*0.5,
+      inputCenterY: this.inputSocketPos.y + this.state.c14.height*0.5,
+      outputConnections: this.getOutputCoordinates(),
+    };
+
     this.setState(coord);
     this.props.onPosChange(this.props.assetId, coord);
   }
@@ -70,9 +109,9 @@ export default class Ups extends React.Component {
   render() {
 
     let sockets = [];
-    // const inputSocket = <Socket x={-70} socketName={"input socket"} selectable={false} draggable={false}/>;
-    const inputSocket = <Image image={this.state.c14} x={254} y={5}/>;
-    //let x=50;
+    const inputSocket = <Image image={this.state.c14} x={this.inputSocketPos.x} y={this.inputSocketPos.y}/>;
+    
+
     const upsName = this.props.asset.name ? this.props.asset.name:'ups';
     let chargeBar = "|||||||||||||||||||||||||||||||||||";
     chargeBar = this.props.asset.battery === 1000 ? chargeBar: chargeBar.substring(chargeBar.length * (1-this.props.asset.battery * 0.001));
@@ -81,7 +120,7 @@ export default class Ups extends React.Component {
     let y=10;
     let x=5;
     let socketIndex = 0;
-    // Initialize outlets that are part of the PDU
+    // Initialize outlets that are part of the device
     for (const ckey of Object.keys(asset.children)) {
 
       asset.children[ckey].name = `[${ckey}]`;

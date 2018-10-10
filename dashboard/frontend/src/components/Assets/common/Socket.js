@@ -4,7 +4,7 @@ import { Text, Image, Group } from 'react-konva';
 import socket from '../../../images/socket.svg';
 import SocketStatus from './SocketStatus';
 import PropTypes from 'prop-types';
-
+/* eslint-disable */
 
 /**
  * Outlet Graphics
@@ -51,11 +51,27 @@ export default class Socket extends React.Component {
       };
     }
 
-    // componentWillReceiveProps(newProps) {
-    //   //this.setState({ x: newProps.x, y: newProps.y });
+    // componentWillUpdate(newProps) {
     //   // console.log("xxxxxxxxxxxxxxxxxxx")
+    //   // console.log(this.props.assetId)
     //   // console.log({ x: newProps.x, y: newProps.y })
-    //   // console.log({ x: this.state.x, y:  this.state.y })
+    //   // console.log({ x: this.props.x, y:  this.props.y }) 
+    //   if (newProps.x != this.props.x || newProps.y != this.props.y) {
+    //     const coord = { x: newProps.x, y: newProps.y };
+    //     this.props.onPosChange(this.props.assetId, coord);
+    //   }
+
+    // }
+
+    // componentWillReceiveProps(newProps) {
+      
+    //   //this.setState({ x: newProps.x, y: newProps.y });
+    //   console.log("xxxxxxxxxxxxxxxxxxx")
+    //   console.log(this.props.assetId)
+    //   console.log({ x: newProps.x, y: newProps.y })
+    //   console.log({ x: this.state.x, y:  this.state.y })
+    //   const coord = { x: newProps.x, y: newProps.y };
+    //   // this.props.onPosChange(this.props.assetId, coord);
     //   // if (newProps.x != this.state.x || newProps.y != this.state.y) {
     //   //   const coord = { x: newProps.x, y: newProps.y };
     //   //   this.setState(coord);
@@ -73,9 +89,15 @@ export default class Socket extends React.Component {
 
     updateSocketPos = (s) => {
       this.refs.socket.setZIndex(100);
-      const coord = { x: s.target.attrs.x, y : s.target.attrs.y };
+      
+      const coord = { 
+        x: s.target.attrs.x, 
+        y: s.target.attrs.y,
+        inputCenterX: this.state.image.width * 0.5,
+        inputCenterY: this.state.image.height * 0.5,
+      };
+
       this.setState(coord);
-      console.log("CHANGIN")
       this.props.onPosChange(this.props.assetId, coord);
     }
 

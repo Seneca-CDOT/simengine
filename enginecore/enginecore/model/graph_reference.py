@@ -337,11 +337,12 @@ class GraphReference():
             layout(list): list of new x & y positions in the format 'asset_key: { x: new_x, y: new_y }'
             stage(dict): stage properties including x, y and scale
         """
+        print(layout)
         for k in layout:
             if layout[k]:
                 session.run(
-                    "MATCH (a:Asset { key: $key }) SET a.x=$x, a.y=$y",
-                    key=int(k), x=layout[k]['x'], y=layout[k]['y']
+                    "MATCH (a:Asset { key: $key }) SET a.x=$x, a.y=$y, a.x_conn=$x_c, a.y_conn=$y_c",
+                    key=int(k), x=layout[k]['x'], y=layout[k]['y'], x_c=layout[k]['x_conn'], y_c=layout[k]['y_conn']
                 )
         if stage:
             session.run(

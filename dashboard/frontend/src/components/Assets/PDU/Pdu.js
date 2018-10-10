@@ -18,14 +18,13 @@ export default class Pdu extends React.Component {
       c14: null
     };
     this.selectSocket = this.selectSocket.bind(this);
+    this.inputSocketPos = {x: -70, y: 0};
   }
 
   componentDidMount() {
     const image = new window.Image();
     image.src = c14;
     image.onload = () => {
-      // setState will redraw layer
-      // because "image" property is changed
       this.setState({ c14: image });
     };
   }
@@ -46,8 +45,23 @@ export default class Pdu extends React.Component {
     this.props.onElementSelection(ckey, this.props.asset.children[ckey]);
   }
 
+  getOutputCoordinates = () => {
+    const childKeys = Object.keys(this.props.asset.children);
+    const chidCoord = {};
+    Object.keys(childKeys).map((e, i) => (chidCoord[childKeys[i]]={x: 100+(i*90) + this.state.c14.width*0.5, y: this.state.c14.height*0.5}));
+    return chidCoord;
+  }
+
+
   updatePduPos = (s) => {
-    const coord = { x: s.target.attrs.x, y : s.target.attrs.y };
+    const coord = { 
+      x: s.target.attrs.x, 
+      y: s.target.attrs.y,
+      inputCenterX: this.inputSocketPos.x + this.state.c14.width*0.5,
+      inputCenterY: this.inputSocketPos.y + this.state.c14.height*0.5,
+      outputConnections: this.getOutputCoordinates(),
+    };
+
     this.setState(coord);
     this.props.onPosChange(this.props.assetId, coord);
   }
@@ -55,7 +69,7 @@ export default class Pdu extends React.Component {
   render() {
 
     let sockets = [];
-    const inputSocket = <Image image={this.state.c14} x={-70}/>;
+    const inputSocket = <Image image={this.state.c14} x={this.inputSocketPos.x} y={this.inputSocketPos.y}/>;
 
     let x=100;
     const pduName = this.props.asset.name ? this.props.asset.name:'pdu';
