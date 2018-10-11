@@ -73,7 +73,7 @@ UPS also supports minimum battery level required (before UPS can power up its ou
 
 ### Vendor Pre-Set
 
-The simengine defaults its SNMP interface settings to APC hardware (outlined here [ups](https://github.com/Seneca-CDOT/simengine/blob/master/enginecore/enginecore/model/presets/apc_ups.json)). Custom vendor presets can be passed to the `simengine-cli` system modelling tool with the `--snmp_preset=/path/to/my_specs.json` option. 
+The simengine defaults its SNMP interface settings to APC hardware (outlined here [ups](https://github.com/Seneca-CDOT/simengine/blob/master/enginecore/enginecore/model/presets/apc_ups.json)). Custom vendor presets can be passed to the `simengine-cli` system modelling tool with the `--snmp-preset=/path/to/my_specs.json` option. 
 
 You can find APC examples of .json config files in simengine repo:
 
@@ -81,7 +81,7 @@ You can find APC examples of .json config files in simengine repo:
 - [pdu](https://github.com/Seneca-CDOT/simengine/blob/master/enginecore/enginecore/model/presets/apc_pdu.json)
 
 
-**General Configurations (snmp_preset)**
+**General Configurations (snmp-preset file description)**
 
 
 | **JSON property**      | **Description**                                                                                                                                                                                                                                 |

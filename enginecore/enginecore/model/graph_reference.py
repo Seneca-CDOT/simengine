@@ -337,7 +337,6 @@ class GraphReference():
             layout(list): list of new x & y positions in the format 'asset_key: { x: new_x, y: new_y }'
             stage(dict): stage properties including x, y and scale
         """
-        print(layout)
         for k in layout:
             if layout[k]:
                 session.run(
@@ -371,6 +370,11 @@ class GraphReference():
 
     @classmethod
     def get_asset_sensors(cls, session, asset_key):
+        """Get sensors that belong to a particular asset
+
+        Returns:
+            list: of sensor dictionaries
+        """
         results = session.run(
             """
             MATCH (a:Asset { key: $key })-[:HAS_SENSOR]->(sensor:Sensor)
@@ -394,7 +398,11 @@ class GraphReference():
     
     @classmethod
     def get_mains_powered_outlets(cls, session):
-        
+        """Wall-powered outlets
+
+        Returns:
+            list: of outlet keys powered by the mains
+        """
         results = session.run(
             """
             MATCH (outlet:Outlet) WHERE NOT (outlet)-[:POWERED_BY]->(:Asset) RETURN outlet.key as key

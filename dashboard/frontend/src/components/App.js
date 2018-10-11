@@ -170,8 +170,7 @@ const drawerWidth = 240;
 
     const asset = this._get_asset_by_key(key);
     const connections = this.state.connections;
-    console.log(coord)
-
+    
     let newConn = this._update_wiring(asset, key, coord.x + coord.inputCenterX, coord.y + coord.inputCenterY);
     let childConn = {};
 
@@ -186,28 +185,8 @@ const drawerWidth = 240;
         );
 
         Object.assign(childConn, c);
-
-        console.log("C->>")
-        console.log(childConn)
       }
     } 
-    else if (asset.children && asset.type == 'ups') {
-
-      let x = 250;
-      let y = 150;
-      let outletIndex = 0;
-      for (const ckey of Object.keys(asset.children)) {
-        console.log(this._get_asset_by_key(ckey))
-        const c = this._update_wiring(this._get_asset_by_key(ckey), ckey, coord.x + x, coord.y + y);
-        Object.assign(childConn, c);
-        x += 100;
-        outletIndex++;
-        if (outletIndex == 4) {
-          y += 100;
-          x = 250;
-        }
-      }
-    }
 
     this.setState({ assets, connections: {...connections, ...newConn, ...childConn }});
   }
@@ -243,10 +222,15 @@ const drawerWidth = 240;
 
     data['stage'] = stageLayout;
     data['assets'] = {};
+    console.log(data['assets'])
 
     // add asset layout info
     Object.keys(assets).map((a) => ( data['assets'][a]={ x: assets[a].x, y: assets[a].y }));
     Object.keys(connections).map((a) => {
+
+      if (!(a in data['assets'])) {
+        data['assets'][a] = {}
+      }
       data['assets'][a].x_conn = connections[a].sourceX 
       data['assets'][a].y_conn = connections[a].sourceY
       
@@ -373,25 +357,7 @@ const drawerWidth = 240;
 
       // draw wires
       for (const key of Object.keys(connections)) {
-        const socketX1pad = 0; //34; // X1, Y1 are for parents
-        const socketY1pad = 0;
-        let socketYpad = 0;
-
-        let socketXpad = socketX1pad;
         const asset = this._get_asset_by_key(key);
-        // const child_type = this.state.assets[connections[key].destKey].type;
-
-        // if (child_type == 'staticasset') {
-        //   socketXpad = -35;
-        // } else if (child_type == 'server' || child_type === 'serverwithbmc') {
-        //   socketXpad = -220;
-        // } else if (child_type == 'ups') {
-        //   socketXpad = -300;
-        //   socketYpad = 45;
-        // }
-        // console.log("==================POINTS==============")
-        // console.log(connections[key])
-        // console.log(asset)
 
         wireDrawing.push(
           <Line

@@ -48,29 +48,106 @@ class SystemEnvironment(Component):
 
         # Set defaults 
         self._outage_temp_increase = 2
-        self._outage_temp_rate = 10# 60 * 6 # every 6 minutes 
+        self._outage_temp_rate = 60 * 6 # every 6 minutes 
         self._outage_temp_max = 34
 
         self._ac_on_temp_decrease = 1
-        self._ac_on_temp_rate = 10 # 60 * 6 # every 6 minutes 
+        self._ac_on_temp_rate = 60 * 6 # every 6 minutes 
         self._ac_on_temp_min = 21
 
 
-    def _keep_changing_temp(self, thermal_cond, sleep_duration, calc_temp_op):
+    @property
+    def outage_temp_increase(self):
+        """Temperature increase per rate (upon outage)"""
+        return self._outage_temp_increase
+    
+    
+    @outage_temp_increase.setter
+    def outage_temp_increase(self, value):
+        self._outage_temp_increase = value
+
+
+    @property
+    def outage_temp_rate(self):
+        """Rate in seconds (upon outage)"""
+        return self._outage_temp_rate
+
+
+    @outage_temp_rate.setter
+    def outage_temp_rate(self, value):
+        if value <= 0:
+            raise ValueError  
+        
+        self._outage_temp_rate = value
+
+
+    @property
+    def outage_temp_max(self):
+        """Maxium room temperature that can be reached (outage)"""
+        return self._outage_temp_max
+    
+
+    @outage_temp_max.setter
+    def outage_temp_max(self, value):
+        self._outage_temp_max = value
+
+
+    @property
+    def ac_on_temp_decrease(self):
+        """Temperature drop value per N num of seconds (when AC is on)"""
+        return self._ac_on_temp_decrease
+    
+    
+    @ac_on_temp_decrease.setter
+    def ac_on_temp_decrease(self, value):
+        self._ac_on_temp_decrease = value
+    
+
+    @property
+    def ac_on_temp_rate(self):
+        """Rate in seconds (when AC is on)"""
+        return self._ac_on_temp_rate
+
+
+    @ac_on_temp_rate.setter
+    def ac_on_temp_rate(self, value):
+        if value <= 0:
+            raise ValueError  
+        
+        self._ac_on_temp_rate = value
+
+
+    @property
+    def ac_on_temp_min(self):
+        """Miminum room temperature value that can be reached with AC cooling"""
+        return self._ac_on_temp_min
+    
+
+    @ac_on_temp_min.setter
+    def ac_on_temp_min(self, value):
+        self._ac_on_temp_min = value
+
+
+    def _keep_changing_temp(self, thermal_cond, update_cond, sleep_duration, calc_temp_op):
         """Change room temperature until limit is reached or AC state changes
         
         Args:
             thermal_cond(callable): update room temp while the condition remains true
+            update_cond(callable): 
             sleep_duration(callable): update every 'n' seconds
             calc_temp_op(callable): calculate new temperature
         """
         
         room_temp = sm.StateManager.get_ambient()
 
-        while thermal_cond(room_temp):
+        while thermal_cond():
+            
             time.sleep(sleep_duration())
             room_temp = calc_temp_op()
-            sm.StateManager.set_ambient(room_temp)
+            
+            if update_cond(room_temp):   
+                print(room_temp)
+                sm.StateManager.set_ambient(room_temp)
 
 
     def _launch_temp_warming(self):
@@ -79,7 +156,8 @@ class SystemEnvironment(Component):
         self._temp_warming_t = Thread(
             target=self._keep_changing_temp,
             kwargs={
-                'thermal_cond': lambda r_temp: r_temp < self._outage_temp_max and not sm.StateManager.mains_status(), 
+                'thermal_cond': lambda: not sm.StateManager.mains_status(), 
+                'update_cond':  lambda r_temp: r_temp <= self._outage_temp_max,
                 'sleep_duration': lambda: self._outage_temp_rate, # temp increase per num of seconds
                 'calc_temp_op': lambda: sm.StateManager.get_ambient() + self._ac_on_temp_decrease # temp increase 
             },
@@ -95,7 +173,8 @@ class SystemEnvironment(Component):
         self._temp_cooling_t = Thread(
             target=self._keep_changing_temp,
             kwargs={
-                'thermal_cond': lambda r_temp: r_temp >= self._ac_on_temp_min and sm.StateManager.mains_status(), 
+                'thermal_cond': sm.StateManager.mains_status,
+                'update_cond': lambda r_temp: r_temp >= self._ac_on_temp_min,
                 'sleep_duration': lambda: self._ac_on_temp_rate, # temp change per num of seconds
                 'calc_temp_op': lambda: sm.StateManager.get_ambient() - self._ac_on_temp_decrease # temp change 
             }, 
@@ -107,13 +186,13 @@ class SystemEnvironment(Component):
 
     @handler("PowerOutage")
     def on_power_outage(self):
-        """Handle power outage"""
+        """Handle power outage - start warming up the room"""
         self._launch_temp_warming()
 
 
     @handler("PowerRestored")
     def on_power_restored(self):
-        """Handle power restoration"""
+        """Handle power restoration - start cooling down the room"""
         self._launch_temp_cooling()
         
 
