@@ -7,6 +7,7 @@ handled by individual assets.
 
 """
 import sys
+import json
 
 from circuits import Component, Event, Timer, Worker, Debugger, task
 import redis
@@ -90,7 +91,8 @@ class StateListener(Component):
 
         # Thermal Channels
         self._thermal_pubsub.psubscribe(
-            RedisChannels.ambient_update_channel # on ambient changes
+            RedisChannels.ambient_update_channel, # on ambient changes
+            RedisChannels.ambient_conf_channel # ambient settings updated
         )
 
 
@@ -236,7 +238,7 @@ class StateListener(Component):
         
         Args:
             event_result(PowerEventResult): contains data about power state update event such as key of 
-                                           the affected asset, its old state, new new
+                                           the affected asset, its old state & new state
         Example:
             when a node is powered down, the assets it powers should be powered down as well
         """
@@ -263,7 +265,7 @@ class StateListener(Component):
                     else:
                         online_parents.append(parent.key)
 
-                # for each parent that is either online of it's load is not zero
+                # for each parent that is either online or it's load is not zero
                 # update the load value
                 for parent_key in online_parents:
 
@@ -281,7 +283,7 @@ class StateListener(Component):
                     updated_asset.state.update_load(0)
 
 
-            # Check assets down the power stream
+            # Check assets down the power stream (assets powered by the updated asset)
             for child in children:
                 child_asset = self._assets[child['key']]
                 second_parent_up = False
@@ -320,7 +322,7 @@ class StateListener(Component):
 
                 # check upstream & branching power
                 # alternative power source is available, therefore the load needs to be re-directed
-                if second_parent_up:
+                else:
                     print('Found an asset that has alternative parent[{}], child[{}]'
                           .format(second_parent_asset.key, child_asset.key))
 
@@ -365,19 +367,21 @@ class StateListener(Component):
             return
         
         data = message['data'].decode("utf-8")
+        channel = message['channel'].decode()
+
         try:
-            if message['channel'] == str.encode(RedisChannels.battery_update_channel):
+            if channel == RedisChannels.battery_update_channel:
                 asset_key, _ = data.split('-')
                 self._notify_client(ClientRequests.asset, {
                     'key': int(asset_key),
                     'battery': self._assets[int(asset_key)].state.battery_level
                 })
                 
-            elif message['channel'] == str.encode(RedisChannels.battery_conf_charge_channel):
+            elif channel == RedisChannels.battery_conf_charge_channel:
                 asset_key, _ = data.split('-')
                 _, speed = data.split('|')
                 self._assets[int(asset_key)].charge_speed_factor = float(speed)
-            elif message['channel'] == str.encode(RedisChannels.battery_conf_drain_channel):
+            elif channel == RedisChannels.battery_conf_drain_channel:
                 asset_key, _ = data.split('-')
                 _, speed = data.split('|')
                 self._assets[int(asset_key)].drain_speed_factor = float(speed)
@@ -402,13 +406,15 @@ class StateListener(Component):
         # interpret the published message 
         # "state-upd" indicates that certain asset was powered on/off by the interface(s)
         # "oid-upd" is published when SNMPsim updates an OID
+        channel = message['channel'].decode()
+
         try:
-            if message['channel'] == str.encode(RedisChannels.state_update_channel):
+            if channel == RedisChannels.state_update_channel:
                 asset_key, asset_type = data.split('-')
                 if asset_type in Asset.get_supported_assets():
                     self._handle_state_update(int(asset_key))
             
-            elif message['channel'] == str.encode(RedisChannels.mains_update_channel):
+            elif channel == RedisChannels.mains_update_channel:
         
                 with self._graph_ref.get_session() as session:
                     mains_out_keys = GraphReference.get_mains_powered_outlets(session)
@@ -427,12 +433,12 @@ class StateListener(Component):
 
                         outlet.state.publish_power()
 
-            elif message['channel'] == str.encode(RedisChannels.oid_update_channel):
+            elif channel == RedisChannels.oid_update_channel:
                 value = (self._redis_store.get(data)).decode()
                 asset_key, oid = data.split('-')
                 self._handle_oid_update(int(asset_key), oid, value)
 
-            elif message['channel'] == str.encode(RedisChannels.model_update_channel):
+            elif channel == RedisChannels.model_update_channel:
                 self._state_pubsub.unsubscribe()
                 self._bat_pubsub.unsubscribe()
 
@@ -453,10 +459,25 @@ class StateListener(Component):
             return
         
         data = message['data'].decode("utf-8")
+        channel = message['channel'].decode()
+
         try:
-            if message['channel'] == str.encode(RedisChannels.ambient_update_channel):
+            if channel == RedisChannels.ambient_update_channel:
                 old_temp, new_temp = map(float, data.split('-'))
                 self._handle_ambient_update(float(new_temp), rising=(float(new_temp) > float(old_temp))) 
+
+            elif channel == RedisChannels.ambient_conf_channel:
+                ambient_conf = json.loads(data)
+                print(ambient_conf)
+                if ambient_conf['event'] == 'up':
+                    self._sys_environ.ac_on_temp_decrease = ambient_conf['degrees']
+                    self._sys_environ.ac_on_temp_rate = int(ambient_conf['rate'])
+                    self._sys_environ.ac_on_temp_min = ambient_conf['stop_at']
+                elif ambient_conf['event'] == 'down':
+                    self._sys_environ.outage_temp_increase = ambient_conf['degrees']
+                    self._sys_environ.outage_temp_rate = int(ambient_conf['rate'])
+                    self._sys_environ.outage_temp_max = ambient_conf['stop_at']
+
 
         except KeyError as error:
             print("Detected unregistered asset under key [{}]".format(error), file=sys.stderr)

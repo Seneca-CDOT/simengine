@@ -151,6 +151,20 @@ def handle_link(kwargs):
         sm.link_assets(kwargs['source_key'], kwargs['dest_key'])
             
 
+def handle_ambient(kwargs):
+    
+    del kwargs['func']
+     
+    if kwargs['event'] and kwargs['stop_at'] and kwargs['rate']:
+        StateManager.set_ambient_properties(kwargs)
+    elif kwargs['event'] or kwargs['stop_at'] or kwargs['rate']:
+        raise argparse.ArgumentTypeError("Event, stop-at and rate must be supplied")
+    else:
+        StateManager.set_ambient(kwargs['degrees'])
+
+
+############# Validations
+
 def validate_key(key):
     """Validate asset key"""
     if key > 9999:
@@ -197,7 +211,7 @@ status_group.add_argument('--watch-rate', nargs='?',
 
 ## -> Setup options for thermal/temperature group
 
-thermal_group = subparsers.add_parser('temperature', help="Manage temperature/thermal settings of the system")
+thermal_group = subparsers.add_parser('thermal', help="Manage temperature/thermal settings of the system")
 ambient_subp = thermal_group.add_subparsers()
 
 th_ambient_group = ambient_subp.add_parser(
@@ -226,8 +240,8 @@ th_set_ambient_action.add_argument(
 
 th_set_ambient_action.add_argument(
     '-e', '--event',
-    help="Increase/Descrease temperature on Down/Up mains event", 
-    choices=['Up', 'Down']
+    help="Increase/Descrease temperature on down/up mains event", 
+    choices=['up', 'down']
 )
 
 th_set_ambient_action.add_argument(
@@ -318,7 +332,7 @@ create_asset_parent.add_argument('-n', '--name', help="Name displayed on the UI"
 create_snmp_parent = argparse.ArgumentParser(add_help=False)
 create_snmp_parent.add_argument('--host', type=str, default='localhost', help="SNMP interface host")
 create_snmp_parent.add_argument('--port', type=int, required=True, help="SNMP interface port")
-create_snmp_parent.add_argument('--snmp_preset', type=str, help="Vendor-specific asset configurations")
+create_snmp_parent.add_argument('--snmp-preset', type=str, help="Vendor-specific asset configurations")
 
 # server group 
 create_server_parent = argparse.ArgumentParser(add_help=False)
@@ -679,7 +693,7 @@ th_get_ambient_action.set_defaults(
 )
 
 th_set_ambient_action.set_defaults(
-    func=lambda args: StateManager.set_ambient(args['degrees'])
+    func=handle_ambient
 )
 
 

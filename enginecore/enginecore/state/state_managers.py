@@ -9,6 +9,7 @@ Example:
 import time
 import os
 import tempfile
+import json
 from enum import Enum
 
 import redis
@@ -345,9 +346,13 @@ class StateManager():
     def set_ambient(cls, value):
         """Update ambient value"""
         old_temp = cls.get_ambient()
-        StateManager.get_store().set('ambient', str(value)) 
+        StateManager.get_store().set('ambient', str(value))
         StateManager.get_store().publish(RedisChannels.ambient_update_channel, '{}-{}'.format(old_temp, value))  
     
+    @classmethod
+    def set_ambient_properties(cls, props):
+        """Update runtime thermal properties of the room temperature"""
+        StateManager.get_store().publish(RedisChannels.ambient_conf_channel, json.dumps(props))  
 
     @classmethod
     def get_state_manager_by_key(cls, key, supported_assets, notify=True):
