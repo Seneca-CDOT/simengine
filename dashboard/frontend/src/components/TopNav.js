@@ -14,9 +14,12 @@ import Grid from '@material-ui/core/Grid';
 import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
 import ListItemText from '@material-ui/core/ListItemText'; 
-import { Divider, Drawer, FormControlLabel, Switch, Fade } from '@material-ui/core';
+import { Divider, Drawer, Fade } from '@material-ui/core';
 
+// local imports
 import colors from '../styles/colors';
+import PowerSwitch from './common/PowerSwitch';
+
 
 class TopNav extends React.Component {
 
@@ -120,19 +123,9 @@ class TopNav extends React.Component {
           <div>
           <Grid container>
             <Grid item >
-              <FormControlLabel
-                control={
-                  <Switch 
-                    checked={this.props.mainsStatus} 
-                    onChange={()=>this.props.togglePower(!this.props.mainsStatus)}
-                    classes={{
-                      switchBase: classes.colorSwitchBase,
-                      checked: classes.colorChecked,
-                      bar: classes.colorBar,
-                    }}
-                    aria-label="PowerSwitch"
-                  />
-                }
+              <PowerSwitch 
+                checked={this.props.mainsStatus}
+                onChange={()=>this.props.togglePower(!this.props.mainsStatus)}
                 label={
                   <Typography variant="title" style={{color: 'white'}}>
                     <PowerSettingsNew style={styles.inlineIcon} />
@@ -146,9 +139,7 @@ class TopNav extends React.Component {
             </Grid> 
             <Grid item style={{...styles.menuOptions, ...styles.tempGauge}}>
               <Typography variant="title" color="inherit" >
-              
                 <AcUnit style={styles.inlineIcon}/>
-             
                 <span style={(this.state.ambientRising||this.props.ambient>27)?styles.heating:styles.cooling}>{this.props.ambient}°
                   <Fade in={this.state.flash}>
                     {this.state.ambientRising
@@ -182,17 +173,6 @@ const styles = {
   grow: {
     flexGrow: 1,
   },
-  colorSwitchBase: {
-    color: colors.red,
-    '&$colorChecked': {
-      color: colors.green,
-      '& + $colorBar': {
-        backgroundColor: colors.green,
-      },
-    },
-  },
-  colorBar: {},
-  colorChecked: {},
   cooling: {
     color: colors.blue
   },

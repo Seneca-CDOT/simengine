@@ -78,18 +78,7 @@ export default class Ups extends React.Component {
         x = 250;
       }
     });
-
-    // for (const ckey of Object.keys(asset.children)) {
-    //   x += 100;
-
-
-    //   outletIndex++;
-    //   if (outletIndex == 4) {
-    //     y += 100;
-    //     x = 250;
-    //   }
-    // }
-    // Object.keys(childKeys).map((e, i) => (chidCoord[childKeys[i]]={x: 100+(i*90), y:0}));
+    
     return chidCoord;
   }
 
@@ -110,7 +99,6 @@ export default class Ups extends React.Component {
 
     let sockets = [];
     const inputSocket = <Image image={this.state.c14} x={this.inputSocketPos.x} y={this.inputSocketPos.y}/>;
-    
 
     const upsName = this.props.asset.name ? this.props.asset.name:'ups';
     let chargeBar = "|||||||||||||||||||||||||||||||||||";
