@@ -66,3 +66,9 @@ class PowerEventManager:
             "0": events.PowerOutage(),
             "1": events.PowerRestored() 
         }[value]
+
+    @classmethod
+    def map_ambient_event(cls, old_value, new_value):
+        '''Ambient changes'''
+        return events.AmbientDecreased() if old_value > new_value else events.AmbientIncreased()
+        

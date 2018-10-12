@@ -687,6 +687,9 @@ class UPS(Asset, SNMPSim):
         # get charge per second using full recharge time (hrs)
         self._charge_per_second = self.state.battery_max_level / (self.state.full_recharge_time*60*60)
 
+        # set temp on start
+        self._state.update_temperature(7)
+
 
     def _cacl_time_left(self, wattage):
         """Approximate runtime estimation based on current battery level""" 
@@ -874,6 +877,16 @@ class UPS(Asset, SNMPSim):
             event.success = False
             return None
     
+
+    @handler("AmbientDecreased", "AmbientIncreased")
+    def on_ambient_updated(self):
+        self._state.update_temperature(7)
+
+    # @handler("AmbientIncreased")
+    # def on_ambient_increased(self):
+    #     self._state.update_temperature(7)
+
+
     @property
     def charge_speed_factor(self):
         """Estimated charge/sec will be multiplied by this value"""

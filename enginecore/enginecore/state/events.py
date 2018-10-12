@@ -45,9 +45,6 @@ class SignalReboot(Event):
     """Asset Received reboot request/command """
     success = True
 
-
-# Thermal Events -------
-
 class PowerOutage(Event):
     """On Power Outage"""
     pass
@@ -55,3 +52,14 @@ class PowerOutage(Event):
 class PowerRestored(Event):
     """On power (mains source) restored"""
     pass
+
+# Thermal Events -------
+
+class AmbientIncreased(Event):
+    """Ambient went up"""
+    pass
+
+class AmbientDecreased(Event):
+    """Ambient temperature dropped"""
+    pass
+

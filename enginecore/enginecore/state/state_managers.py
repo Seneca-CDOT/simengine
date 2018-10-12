@@ -424,6 +424,9 @@ class UPSStateManager(StateManager):
         """UPS rated capacity"""
         return self._asset_info['outputPowerCapacity']
 
+    def update_temperature(self, temp):
+        self._update_battery_temp_oid(temp + StateManager.get_ambient())
+
     def update_battery(self, charge_level):
         """Updates battery level, checks for the charge level being in valid range, sets battery-related OIDs
         and publishes changes;
@@ -550,6 +553,13 @@ class UPSStateManager(StateManager):
             if oid_hp:
                 self._update_oid_value(oid_hp, dt_hp, snmp_data_types.Gauge32(value_hp))
             
+    def _update_battery_temp_oid(self, temp):
+        with self._graph_ref.get_session() as db_s:
+            oid_hp, oid_dt, _ = GraphReference.get_asset_oid_by_name(
+                db_s, int(self._asset_key), 'HighPrecBatteryTemperature'
+            )
+
+            self._update_oid_value(oid_hp, oid_dt, snmp_data_types.Gauge32(temp*10))
 
     def _update_battery_oids(self, charge_level, old_level):
         """Update OIDs associated with UPS Battery

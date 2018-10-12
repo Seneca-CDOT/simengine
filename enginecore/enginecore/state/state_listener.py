@@ -464,7 +464,10 @@ class StateListener(Component):
         try:
             if channel == RedisChannels.ambient_update_channel:
                 old_temp, new_temp = map(float, data.split('-'))
-                self._handle_ambient_update(float(new_temp), rising=(float(new_temp) > float(old_temp))) 
+                self._handle_ambient_update(float(new_temp), rising=(float(new_temp) > float(old_temp)))
+                print("AMBIENT")
+                for a_key in self._assets:
+                    self.fire(PowerEventManager.map_ambient_event(old_temp, new_temp), self._assets[a_key]) 
 
             elif channel == RedisChannels.ambient_conf_channel:
                 ambient_conf = json.loads(data)
