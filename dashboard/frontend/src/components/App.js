@@ -150,21 +150,16 @@ const drawerWidth = 240;
   }
 
   _update_wiring(asset, key, coord) {
+    
     let newConn = {};
     const connections = this.state.connections;
 
     if(asset['parent']) {
       asset['parent'].forEach((p, idx) => {
-        console.log(coord)
-        newConn[p] = {...connections[p.key], destX:coord[idx].x, destY:coord[idx].y};
+        newConn[p.key] = {...connections[p.key], destX:coord[idx].x, destY:coord[idx].y };
       });
-      for (const p of asset['parent']) {
-
-        // x+=250;
-      }
     } else if (key in connections) {
-      console.log(coord[0])
-      newConn[key] = { ...connections[key], sourceX:coord[0].x,  sourceY:coord[0].x };
+      newConn[key] = { ...connections[key], sourceX:coord[0].x, sourceY:coord[0].y };
     }
 
     return newConn;
@@ -176,12 +171,7 @@ const drawerWidth = 240;
     const asset = this._get_asset_by_key(key);
 
     const connections = this.state.connections;
-    console.log(coord)
     let newConn = this._update_wiring(asset, key, coord.inputConnections);
-
-    // for (const ckey of Object.keys(coord.inputConnections)) {
-    //   let newConn = this._update_wiring(asset, key, coord.x + coord.inputCenterX, coord.y + coord.inputCenterY);
-    // }
 
     let childConn = {};
 

@@ -95,8 +95,8 @@ export default class Socket extends React.Component {
         y: s.target.attrs.y,
         inputConnections: [
           {
-            x: this.state.image.width * 0.5,
-            y:  this.state.image.height * 0.5,
+            x: s.target.attrs.x + this.state.image.width * 0.5,
+            y: s.target.attrs.y + this.state.image.height * 0.5,
           }
         ],
       };

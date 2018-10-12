@@ -54,15 +54,15 @@ export default class Server extends React.Component {
       y : s.target.attrs.y,
       inputConnections: [
         {
-          x: 0,
-          y: 0,
+          x: s.target.attrs.x + 50 + 190,
+          y: s.target.attrs.y + 60,
         },
         {
-          x: 0,
-          y: 0,
+          x: s.target.attrs.x + 290 + 190,
+          y: s.target.attrs.y + 60,
         }
       ],
-      outputConnections: this.getOutputCoordinates(),
+      outputConnections: []
     };
 
     this.setState(coord);

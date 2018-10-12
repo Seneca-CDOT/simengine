@@ -88,8 +88,8 @@ export default class Ups extends React.Component {
       y: s.target.attrs.y,
       inputConnections: [
         {
-          x: this.inputSocketPos.x + this.state.c14.width*0.5,
-          y: this.inputSocketPos.y + this.state.c14.height*0.5,
+          x: s.target.attrs.x + this.inputSocketPos.x + this.state.c14.width*0.5,
+          y: s.target.attrs.y + this.inputSocketPos.y + this.state.c14.height*0.5,
         }
       ],
       outputConnections: this.getOutputCoordinates(),
