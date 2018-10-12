@@ -6,7 +6,7 @@ import PropTypes from 'prop-types';
 
 // Material
 import { withStyles } from '@material-ui/core/styles';
-import Snackbar from '@material-ui/core/Snackbar'; 
+import Snackbar from '@material-ui/core/Snackbar';
 
 // Local Components - Layout
 import Pdu from './Assets/PDU/Pdu';
@@ -60,7 +60,7 @@ const drawerWidth = 240;
       alert("WebSocket is NOT supported by your Browser!");
       return;
     }
-    
+
     // Establish connection with the simengine web socket
     this.ws = new simengineSocketClient({
 
@@ -75,18 +75,18 @@ const drawerWidth = 240;
           if (assets[key]['parent']) {
             for (const parent of assets[key]['parent']) {
               const isComponent = !assets[parent.key];
-              
+
               // get parent x, y values (parent can be a component (e.g. pdu outlet))
               const { x_conn, y_conn } = isComponent
-                                ? assets[this._get_parent_key(parent.key)].children[parent.key] 
+                                ? assets[this._get_parent_key(parent.key)].children[parent.key]
                                 : assets[parent.key];
 
-              connections[parent.key] = { 
-                sourceX: x_conn?x_conn:0, 
-                sourceY: y_conn?y_conn:0, 
-                destX: assets[key].x_conn?assets[key].x_conn:0, 
-                destY: assets[key].y_conn?assets[key].y_conn:0, 
-                destKey: key 
+              connections[parent.key] = {
+                sourceX: x_conn?x_conn:0,
+                sourceY: y_conn?y_conn:0,
+                destX: assets[key].x_conn?assets[key].x_conn:0,
+                destY: assets[key].y_conn?assets[key].y_conn:0,
+                destKey: key
               };
             }
           }
@@ -149,17 +149,22 @@ const drawerWidth = 240;
     }
   }
 
-  _update_wiring(asset, key, x, y) {
+  _update_wiring(asset, key, coord) {
     let newConn = {};
     const connections = this.state.connections;
 
     if(asset['parent']) {
+      asset['parent'].forEach((p, idx) => {
+        console.log(coord)
+        newConn[p] = {...connections[p.key], destX:coord[idx].x, destY:coord[idx].y};
+      });
       for (const p of asset['parent']) {
-        newConn[p.key] = {...connections[p.key], destX:x, destY:y};
+
         // x+=250;
       }
     } else if (key in connections) {
-      newConn[key] = { ...connections[key], sourceX:x,  sourceY:y };
+      console.log(coord[0])
+      newConn[key] = { ...connections[key], sourceX:coord[0].x,  sourceY:coord[0].x };
     }
 
     return newConn;
@@ -169,9 +174,15 @@ const drawerWidth = 240;
   onPosChange(key, coord) {
 
     const asset = this._get_asset_by_key(key);
+
     const connections = this.state.connections;
-    
-    let newConn = this._update_wiring(asset, key, coord.x + coord.inputCenterX, coord.y + coord.inputCenterY);
+    console.log(coord)
+    let newConn = this._update_wiring(asset, key, coord.inputConnections);
+
+    // for (const ckey of Object.keys(coord.inputConnections)) {
+    //   let newConn = this._update_wiring(asset, key, coord.x + coord.inputCenterX, coord.y + coord.inputCenterY);
+    // }
+
     let childConn = {};
 
     let assets = {...this.state.assets};
@@ -181,12 +192,12 @@ const drawerWidth = 240;
     if (asset.children) {
       for (const ckey of Object.keys(coord.outputConnections)) {
         const c = this._update_wiring(
-          this._get_asset_by_key(ckey), ckey, coord.x + coord.outputConnections[ckey].x, coord.y + coord.outputConnections[ckey].y
+          this._get_asset_by_key(ckey), ckey, [{x: coord.x + coord.outputConnections[ckey].x, y: coord.y + coord.outputConnections[ckey].y}]
         );
 
         Object.assign(childConn, c);
       }
-    } 
+    }
 
     this.setState({ assets, connections: {...connections, ...newConn, ...childConn }});
   }
@@ -212,7 +223,7 @@ const drawerWidth = 240;
   saveLayout() {
     let data = {};
     const { assets, connections } = this.state;
-    console.log(connections)
+
     const stage = this.refs.stage.getStage();
     const stageLayout = {
       scale: stage.scaleX(),
@@ -222,21 +233,28 @@ const drawerWidth = 240;
 
     data['stage'] = stageLayout;
     data['assets'] = {};
-    console.log(data['assets'])
+
+    Object.keys(assets).forEach((assetId) => {
+      if (assets[assetId]['children']) {
+         Object.keys(assets[assetId]['children']).forEach((childId) => {
+           if (childId in connections) {
+              const child = assets[assetId]['children'][childId];
+              data['assets'][childId] = {x:0 ,y:0}
+           }
+         });
+      }
+    });
 
     // add asset layout info
     Object.keys(assets).map((a) => ( data['assets'][a]={ x: assets[a].x, y: assets[a].y }));
     Object.keys(connections).map((a) => {
 
-      if (!(a in data['assets'])) {
-        data['assets'][a] = {}
-      }
-      data['assets'][a].x_conn = connections[a].sourceX 
+      data['assets'][a].x_conn = connections[a].sourceX
       data['assets'][a].y_conn = connections[a].sourceY
-      
-      data['assets'][connections[a].destKey].x_conn = connections[a].destX 
+
+      data['assets'][connections[a].destKey].x_conn = connections[a].destX
       data['assets'][connections[a].destKey].y_conn = connections[a].destY
-    
+
     });
 
     if (this.ws.socketOnline()) {
@@ -362,9 +380,9 @@ const drawerWidth = 240;
         wireDrawing.push(
           <Line
             points={[
-              connections[key].sourceX, 
-              connections[key].sourceY, 
-              connections[key].destX, 
+              connections[key].sourceX,
+              connections[key].sourceY,
+              connections[key].destX,
               connections[key].destY
             ]}
             stroke={asset.status===1?colors.green:"grey"}

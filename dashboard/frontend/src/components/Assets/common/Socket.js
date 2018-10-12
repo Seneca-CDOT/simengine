@@ -55,7 +55,7 @@ export default class Socket extends React.Component {
     //   // console.log("xxxxxxxxxxxxxxxxxxx")
     //   // console.log(this.props.assetId)
     //   // console.log({ x: newProps.x, y: newProps.y })
-    //   // console.log({ x: this.props.x, y:  this.props.y }) 
+    //   // console.log({ x: this.props.x, y:  this.props.y })
     //   if (newProps.x != this.props.x || newProps.y != this.props.y) {
     //     const coord = { x: newProps.x, y: newProps.y };
     //     this.props.onPosChange(this.props.assetId, coord);
@@ -64,7 +64,7 @@ export default class Socket extends React.Component {
     // }
 
     // componentWillReceiveProps(newProps) {
-      
+
     //   //this.setState({ x: newProps.x, y: newProps.y });
     //   console.log("xxxxxxxxxxxxxxxxxxx")
     //   console.log(this.props.assetId)
@@ -89,12 +89,16 @@ export default class Socket extends React.Component {
 
     updateSocketPos = (s) => {
       this.refs.socket.setZIndex(100);
-      
-      const coord = { 
-        x: s.target.attrs.x, 
+
+      const coord = {
+        x: s.target.attrs.x,
         y: s.target.attrs.y,
-        inputCenterX: this.state.image.width * 0.5,
-        inputCenterY: this.state.image.height * 0.5,
+        inputConnections: [
+          {
+            x: this.state.image.width * 0.5,
+            y:  this.state.image.height * 0.5,
+          }
+        ],
       };
 
       this.setState(coord);

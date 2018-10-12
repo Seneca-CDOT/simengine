@@ -68,7 +68,7 @@ export default class Ups extends React.Component {
     let chidCoord = {};
     let x = 250 + this.state.c14.width*0.5;
     let y = 150 + this.state.c14.height*0.5;
-    
+
     Object.keys(this.props.asset.children).forEach((key, i) => {
       chidCoord[key] = {x, y};
       x += 100;
@@ -78,16 +78,20 @@ export default class Ups extends React.Component {
         x = 250;
       }
     });
-    
+
     return chidCoord;
   }
 
   updateUpsPos = (s) => {
-    const coord = { 
-      x: s.target.attrs.x, 
+    const coord = {
+      x: s.target.attrs.x,
       y: s.target.attrs.y,
-      inputCenterX: this.inputSocketPos.x + this.state.c14.width*0.5,
-      inputCenterY: this.inputSocketPos.y + this.state.c14.height*0.5,
+      inputConnections: [
+        {
+          x: this.inputSocketPos.x + this.state.c14.width*0.5,
+          y: this.inputSocketPos.y + this.state.c14.height*0.5,
+        }
+      ],
       outputConnections: this.getOutputCoordinates(),
     };
 

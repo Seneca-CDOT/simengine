@@ -418,8 +418,8 @@ class StateListener(Component):
         
                 with self._graph_ref.get_session() as session:
                     mains_out_keys = GraphReference.get_mains_powered_outlets(session)
-                    mains_out = {out_key: self._assets[out_key] for out_key in mains_out_keys}
-                    
+                    mains_out = {out_key: self._assets[out_key] for out_key in mains_out_keys if out_key}
+          
                     new_state = int(data)
 
                     self._notify_client(ClientRequests.mains, {'mains': new_state})     
@@ -474,6 +474,7 @@ class StateListener(Component):
                     self._sys_environ.ac_on_temp_rate = int(ambient_conf['rate'])
                     self._sys_environ.ac_on_temp_min = ambient_conf['stop_at']
                 elif ambient_conf['event'] == 'down':
+                    print('down')
                     self._sys_environ.outage_temp_increase = ambient_conf['degrees']
                     self._sys_environ.outage_temp_rate = int(ambient_conf['rate'])
                     self._sys_environ.outage_temp_max = ambient_conf['stop_at']

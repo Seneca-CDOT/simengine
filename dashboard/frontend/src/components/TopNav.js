@@ -13,7 +13,7 @@ import Typography from '@material-ui/core/Typography';
 import Grid from '@material-ui/core/Grid';
 import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
-import ListItemText from '@material-ui/core/ListItemText'; 
+import ListItemText from '@material-ui/core/ListItemText';
 import { Divider, Drawer, Fade } from '@material-ui/core';
 
 // local imports
@@ -35,10 +35,11 @@ class TopNav extends React.Component {
 
     this.flashArrow = null;
   }
-  
+
   componentWillReceiveProps(newProps) {
 
     if (newProps.ambient == this.props.ambient) { return; }
+    const elapsedSinceLastTemp = new Date() - this.state.lastTempChange;
 
     clearInterval(this.flashArrow);
 
@@ -47,12 +48,11 @@ class TopNav extends React.Component {
       this.setState(() => ({flash: true}));
       setTimeout(() => {
         this.setState(() => ({flash: false}));
-      }, 2000);
-    }, 2400);
+      }, elapsedSinceLastTemp*0.5*0.8);
+    }, elapsedSinceLastTemp*0.5);
 
 
     // stop flashing arrow after a while (max is 1 minute)
-    const elapsedSinceLastTemp = new Date() - this.state.lastTempChange;
     const maxFlashingTime =  60*1000;
 
     setTimeout(() => {
@@ -61,7 +61,7 @@ class TopNav extends React.Component {
 
     }, (elapsedSinceLastTemp > maxFlashingTime?maxFlashingTime:elapsedSinceLastTemp));
 
-    this.setState({ 
+    this.setState({
       ambientRising: newProps.ambientRising,
       lastTempChange: new Date(),
     });
@@ -123,31 +123,31 @@ class TopNav extends React.Component {
           <div>
           <Grid container>
             <Grid item >
-              <PowerSwitch 
+              <PowerSwitch
                 checked={this.props.mainsStatus}
                 onChange={()=>this.props.togglePower(!this.props.mainsStatus)}
                 label={
                   <Typography variant="title" style={{color: 'white'}}>
                     <PowerSettingsNew style={styles.inlineIcon} />
-                      The Mains: 
-                      <span  style={this.props.mainsStatus?styles.online:styles.heating}> 
+                      The Mains:
+                      <span  style={this.props.mainsStatus?styles.online:styles.heating}>
                         {" "}{this.props.mainsStatus?"online":"offline"}
                       </span>
                   </Typography>
                 }
               />
-            </Grid> 
+            </Grid>
             <Grid item style={{...styles.menuOptions, ...styles.tempGauge}}>
               <Typography variant="title" color="inherit" >
                 <AcUnit style={styles.inlineIcon}/>
-                <span style={(this.state.ambientRising||this.props.ambient>27)?styles.heating:styles.cooling}>{this.props.ambient}°
+                <span style={(this.props.ambient>27)?styles.heating:styles.cooling}>{this.props.ambient}°
                   <Fade in={this.state.flash}>
                     {this.state.ambientRising
                       ? <ArrowUpward style={styles.inlineIcon}/>
                       : <ArrowDownward style={styles.inlineIcon}/>
                     }
                   </Fade>
-                </span> 
+                </span>
               </Typography>
             </Grid>
           </Grid>

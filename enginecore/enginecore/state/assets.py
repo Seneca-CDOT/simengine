@@ -139,12 +139,13 @@ class SystemEnvironment(Component):
         """
         
         room_temp = sm.StateManager.get_ambient()
-
+        print("s",room_temp)
+        
         while thermal_cond():
-            
+            print(sleep_duration())
             time.sleep(sleep_duration())
             room_temp = calc_temp_op()
-            
+            print("w",room_temp)
             if update_cond(room_temp):   
                 print(room_temp)
                 sm.StateManager.set_ambient(room_temp)
@@ -187,6 +188,7 @@ class SystemEnvironment(Component):
     @handler("PowerOutage")
     def on_power_outage(self):
         """Handle power outage - start warming up the room"""
+        print('launch')
         self._launch_temp_warming()
 
 

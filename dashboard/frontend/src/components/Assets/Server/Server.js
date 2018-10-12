@@ -49,7 +49,22 @@ export default class Server extends React.Component {
   }
 
   updateServerPos = (s) => {
-    const coord = { x: s.target.attrs.x, y : s.target.attrs.y };
+    const coord = {
+      x: s.target.attrs.x,
+      y : s.target.attrs.y,
+      inputConnections: [
+        {
+          x: 0,
+          y: 0,
+        },
+        {
+          x: 0,
+          y: 0,
+        }
+      ],
+      outputConnections: this.getOutputCoordinates(),
+    };
+
     this.setState(coord);
     this.props.onPosChange(this.props.assetId, coord);
   }

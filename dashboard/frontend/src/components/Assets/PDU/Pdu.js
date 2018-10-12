@@ -54,11 +54,15 @@ export default class Pdu extends React.Component {
 
 
   updatePduPos = (s) => {
-    const coord = { 
-      x: s.target.attrs.x, 
+    const coord = {
+      x: s.target.attrs.x,
       y: s.target.attrs.y,
-      inputCenterX: this.inputSocketPos.x + this.state.c14.width*0.5,
-      inputCenterY: this.inputSocketPos.y + this.state.c14.height*0.5,
+      inputConnections: [
+        {
+          x: this.inputSocketPos.x + this.state.c14.width*0.5,
+          y: this.inputSocketPos.y + this.state.c14.height*0.5,
+        }
+      ],
       outputConnections: this.getOutputCoordinates(),
     };
 
