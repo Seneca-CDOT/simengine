@@ -2,12 +2,12 @@
 import React from 'react';
 import { Text, Image, Group } from 'react-konva';
 import psimg from '../../../images/power-supply.svg';
-import SocketStatus from '../common/SocketStatus';
+import Led from '../common/Led';
 import PropTypes from 'prop-types';
 
 
 /**
- * Outlet Graphics
+ * Power Supply
  */
 export default class PowerSupply extends React.Component {
 
@@ -73,7 +73,7 @@ export default class PowerSupply extends React.Component {
 
           {/* LED */}
           {this.props.selectable &&
-            <SocketStatus socketOn={this.props.red_means_on?!this.props.asset.status:this.props.asset.status} powered={this.props.powered}/>
+            <Led socketOn={this.props.asset.status} powered={this.props.powered}/>
           }
           <Text text={this.props.asset && this.props.asset.name ? this.props.asset.name :'socket'}  y={this.state.bgImage ? 175: 105} />
         </Group>
@@ -81,9 +81,6 @@ export default class PowerSupply extends React.Component {
     }
 }
 
-PowerSupply.defaultProps = {
-  red_means_on: false,
-};
 
 PowerSupply.propTypes = {
   x: PropTypes.number,
@@ -95,5 +92,4 @@ PowerSupply.propTypes = {
   parentSelected: PropTypes.bool, // Used when an outlet belongs to an asset
   onElementSelection: PropTypes.func, // Notify parent component of selection
   selectable: PropTypes.bool.isRequired, // Outlet is an asset
-  red_means_on: PropTypes.bool,
 };

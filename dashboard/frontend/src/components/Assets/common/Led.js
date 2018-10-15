@@ -5,35 +5,25 @@ import PropTypes from 'prop-types';
 import colors from '../../../styles/colors';
 
 /**
- * LED of a socket
+ * LED (green if asset is 'on', red if 'off', grey if not powered)
  */
-function SocketStatus({ powered, socketOn, x, y }) {
+const Led = ({ powered, socketOn, x, y }) => {
     const color = powered?(socketOn?"green": colors.red):"grey";
     return (
-      <Rect
-        x={x}
-        y={y}
-        width={10}
-        height={10}
-        fill={color}
-        shadowBlur={5}
-       />
+      <Rect x={x} y={y} width={10} height={10} fill={color} shadowBlur={3}/>
     );
 }
 
-
-SocketStatus.defaultProps = {
-  red_means_on: false,
+Led.defaultProps = {
   y: 85,
   x: 20
 };
 
-SocketStatus.propTypes = {
+Led.propTypes = {
   x: PropTypes.number, // X position of the asset
   y: PropTypes.number, // Y position of the asset
   socketOn: PropTypes.number.isRequired, // socket status
   powered: PropTypes.bool.isRequired, // indicates if upstream power is present
-
 };
 
-export default SocketStatus;
+export default Led;

@@ -13,8 +13,10 @@ export default class Pdu extends React.Component {
     this.state = {
       color: 'grey',
       selectedSocketKey: -1,
-      x: props.x?props.x:40,
-      y: props.y?props.y:40,
+      // coordinates
+      x: props.x,
+      y: props.y,
+      // graphics
       c14: null
     };
     this.selectSocket = this.selectSocket.bind(this);
@@ -51,7 +53,6 @@ export default class Pdu extends React.Component {
     Object.keys(childKeys).map((e, i) => (chidCoord[childKeys[i]]={x: 100+(i*90) + this.state.c14.width*0.5, y: this.state.c14.height*0.5}));
     return chidCoord;
   }
-
 
   updatePduPos = (s) => {
     const coord = {

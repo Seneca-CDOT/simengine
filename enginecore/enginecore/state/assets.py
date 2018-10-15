@@ -139,13 +139,13 @@ class SystemEnvironment(Component):
         """
         
         room_temp = sm.StateManager.get_ambient()
-        print("s",room_temp)
+        print("s", room_temp)
         
         while thermal_cond():
             print(sleep_duration())
             time.sleep(sleep_duration())
             room_temp = calc_temp_op()
-            print("w",room_temp)
+            print("w", room_temp)
             if update_cond(room_temp):   
                 print(room_temp)
                 sm.StateManager.set_ambient(room_temp)

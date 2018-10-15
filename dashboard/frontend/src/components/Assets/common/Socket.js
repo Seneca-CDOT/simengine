@@ -2,9 +2,10 @@
 import React from 'react';
 import { Text, Image, Group } from 'react-konva';
 import socket from '../../../images/socket.svg';
-import SocketStatus from './SocketStatus';
+import Led from './Led';
 import PropTypes from 'prop-types';
-/* eslint-disable */
+
+import colors from '../../../styles/colors';
 
 /**
  * Outlet Graphics
@@ -14,89 +15,58 @@ export default class Socket extends React.Component {
     constructor(props) {
       super();
       this.state = {
-        image: null,
-        color: 'grey',
-        x: props.x?props.x:40, // TODO: change to default
-        y: props.y?props.y:0,
+        color: colors.deselectedAsset,
+        // coordinates
+        x: props.x,
+        y: props.y,
+        // graphics
+        assetImage: null,
         bgImage: null,
       };
 
+      // Socket may have background image (static asset)
       if (props.asset && 'imgUrl' in props.asset) {
         const bgImage = new window.Image();
         bgImage.src = props.asset.imgUrl;
         bgImage.onload = () => {
-
+          
+          // resize the background image 
           const oldHeight = bgImage.height;
           bgImage.height = 160;
           bgImage.width = bgImage.width / (oldHeight/160);
 
-          this.setState({
-            bgImage: bgImage
-          });
+          this.setState({ bgImage });
         };
       }
     }
 
+
     /** Load Socket Image */
     componentDidMount() {
-      const image = new window.Image();
-      image.src = socket;
-      image.onload = () => {
-        // setState will redraw layer
-        // because "image" property is changed
-
-        this.setState({
-          image: image
-        });
-      };
+      const assetImage = new window.Image();
+      assetImage.src = socket;
+      assetImage.onload = () => { this.setState({ assetImage }); };
     }
 
-    // componentWillUpdate(newProps) {
-    //   // console.log("xxxxxxxxxxxxxxxxxxx")
-    //   // console.log(this.props.assetId)
-    //   // console.log({ x: newProps.x, y: newProps.y })
-    //   // console.log({ x: this.props.x, y:  this.props.y })
-    //   if (newProps.x != this.props.x || newProps.y != this.props.y) {
-    //     const coord = { x: newProps.x, y: newProps.y };
-    //     this.props.onPosChange(this.props.assetId, coord);
-    //   }
 
-    // }
-
-    // componentWillReceiveProps(newProps) {
-
-    //   //this.setState({ x: newProps.x, y: newProps.y });
-    //   console.log("xxxxxxxxxxxxxxxxxxx")
-    //   console.log(this.props.assetId)
-    //   console.log({ x: newProps.x, y: newProps.y })
-    //   console.log({ x: this.state.x, y:  this.state.y })
-    //   const coord = { x: newProps.x, y: newProps.y };
-    //   // this.props.onPosChange(this.props.assetId, coord);
-    //   // if (newProps.x != this.state.x || newProps.y != this.state.y) {
-    //   //   const coord = { x: newProps.x, y: newProps.y };
-    //   //   this.setState(coord);
-    //   //   this.props.onPosChange(this.props.assetId, coord);
-    //   // }
-
-    // }
-
-     /** Notify Parent of Selection */
+    /** Notify Parent of Selection */
     handleClick = () => {
       if (this.props.selectable) {
         this.props.onElementSelection(this.props.assetId, this.props.asset);
       }
     };
 
+    /** Notify Parent of Asset Transformation */
     updateSocketPos = (s) => {
-      this.refs.socket.setZIndex(100);
+      this.refs.assetGroup.setZIndex(100); 
 
       const coord = {
-        x: s.target.attrs.x,
-        y: s.target.attrs.y,
+        x: s.target.attrs.x, // asset position - x
+        y: s.target.attrs.y, // asset position - y
         inputConnections: [
           {
-            x: s.target.attrs.x + this.state.image.width * 0.5,
-            y: s.target.attrs.y + this.state.image.height * 0.5,
+            x: s.target.attrs.x + this.state.assetImage.width * 0.5,  // power input location - x
+            y: s.target.attrs.y + this.state.assetImage.height * 0.5, // power input location - y
           }
         ],
       };
@@ -108,49 +78,60 @@ export default class Socket extends React.Component {
     render() {
 
       let strokeColor = this.state.color;
+      const { bgImage, assetImage, x, y } = this.state;
 
       // Selected when either parent element (e.g. PDU outlet belongs to) is selected
       // or the socket was selected
       if (this.props.selectable) {
-        strokeColor = (this.props.selected || this.props.parentSelected) ? "blue" : "grey";
+        strokeColor = (this.props.selected || this.props.parentSelected) ? colors.selectedAsset: colors.deselectedAsset;
       }
 
       return(
         <Group
-          x={this.state.x}
-          y={this.state.y}
+          x={x}
+          y={y}
           draggable={this.props.draggable}
           onDragMove={this.updateSocketPos.bind(this)}
-          ref="socket"
+          onClick={this.handleClick}
+          ref="assetGroup"
         >
-          {this.state.bgImage !== null &&
-            <Image
-              image={this.state.bgImage}
-              stroke={strokeColor}
-              onClick={this.handleClick}
-            />
 
+          {/* Optional background image */}
+          {bgImage &&
+            <Image
+              image={bgImage}
+              stroke={strokeColor}
+            />
           }
+
+          {/* Outlet Image */}
           <Image
-            image={this.state.image}
-            stroke={strokeColor}
-            onClick={this.handleClick}
+            image={assetImage}
+            stroke={strokeColor}            
           />
 
           {/* LED */}
           {this.props.selectable &&
-            <SocketStatus socketOn={this.props.red_means_on?!this.props.asset.status:this.props.asset.status} powered={this.props.powered}/>
+            <Led socketOn={this.props.asset.status} powered={this.props.powered}/>
           }
-          { !this.props.hideName &&
-            <Text fontSize={14} fontFamily={'Helvetica'} text={this.props.asset && this.props.asset.name ? this.props.asset.name :'socket'}  y={this.state.bgImage ? 175: 105} />
+
+          {/* Socket title */}
+          {!this.props.hideName &&
+            <Text 
+              fontSize={this.props.fontSize} 
+              fontFamily={'Helvetica'} 
+              text={(this.props.asset && this.props.asset.name) ? this.props.asset.name : 'socket'}  
+              y={((bgImage) ? (bgImage.height) : (assetImage?(assetImage.height):0)) + 30} 
+            />
           }
+
         </Group>
       );
     }
 }
 
 Socket.defaultProps = {
-  red_means_on: false,
+  fontSize: 14
 };
 
 Socket.propTypes = {
@@ -159,7 +140,6 @@ Socket.propTypes = {
   onPosChange: PropTypes.func.isRequired, // called on asset position change
   powered: PropTypes.bool.isRequired, // indicates if upstream power is present
   draggable: PropTypes.bool, // Indicates if the outlet can be dragged
-  red_means_on: PropTypes.bool, // For LED color: if it is red -> powered on
   asset: PropTypes.object, // Asset Details
   assetId: PropTypes.string, // Asset Key
   selected: PropTypes.bool, // Selected by user
@@ -167,4 +147,5 @@ Socket.propTypes = {
   onElementSelection: PropTypes.func, // Notify parent component of selection
   selectable: PropTypes.bool.isRequired, // Outlet is an asset,
   hideName: PropTypes.bool, // Display outlet name
+  fontSize: PropTypes.number, // Asset name font
 };

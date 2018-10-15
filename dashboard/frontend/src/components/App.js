@@ -229,7 +229,7 @@ const drawerWidth = 240;
          Object.keys(assets[assetId]['children']).forEach((childId) => {
            if (childId in connections) {
               const child = assets[assetId]['children'][childId];
-              data['assets'][childId] = {x:0 ,y:0}
+              data['assets'][childId] = {x:0 ,y:0};
            }
          });
       }
