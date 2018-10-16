@@ -8,7 +8,7 @@ import colors from '../../../styles/colors';
  * LED (green if asset is 'on', red if 'off', grey if not powered)
  */
 const Led = ({ powered, socketOn, x, y }) => {
-    const color = powered?(socketOn?"green": colors.red):"grey";
+    const color = powered?(socketOn?colors.ledStatusOn: colors.red):colors.ledStatusOff;
     return (
       <Rect x={x} y={y} width={10} height={10} fill={color} shadowBlur={3}/>
     );

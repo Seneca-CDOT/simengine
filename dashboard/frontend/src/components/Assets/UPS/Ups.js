@@ -88,8 +88,8 @@ export default class Ups extends React.Component {
       y: s.target.attrs.y,
       inputConnections: [
         {
-          x: s.target.attrs.x + this.inputSocketPos.x + this.state.c14.width*0.5,
-          y: s.target.attrs.y + this.inputSocketPos.y + this.state.c14.height*0.5,
+          x: this.inputSocketPos.x + this.state.c14.width*0.5,
+          y: this.inputSocketPos.y + this.state.c14.height*0.5,
         }
       ],
       outputConnections: this.getOutputCoordinates(),
@@ -122,7 +122,6 @@ export default class Ups extends React.Component {
           x={x}
           key={ckey}
           onElementSelection={() => { this.selectSocket(ckey); }}
-          selectable={true}
           draggable={false}
           asset={asset.children[ckey]}
           assetId={ckey}

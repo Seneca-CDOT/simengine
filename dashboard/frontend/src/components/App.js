@@ -170,15 +170,16 @@ const drawerWidth = 240;
 
     const asset = this._get_asset_by_key(key);
 
+    // find all the incoming connections as well as output wiring
     const connections = this.state.connections;
-    let newConn = this._update_wiring(asset, key, coord.inputConnections);
-
+    let newConn = this._update_wiring(asset, key, coord.inputConnections.map((c)=>c={x: c.x+coord.x, y: c.y+coord.y}));
     let childConn = {};
 
     let assets = {...this.state.assets};
-    let asset_details = {...assets[key]};
-    assets[key] = {...asset_details, ...{x: coord.x, y: coord.y }};
+    let assetDetails = {...assets[key]};
+    assets[key] = {...assetDetails, ...{x: coord.x, y: coord.y }};
 
+    // output wiring
     if (asset.children) {
       for (const ckey of Object.keys(coord.outputConnections)) {
         const c = this._update_wiring(
@@ -264,7 +265,6 @@ const drawerWidth = 240;
       assetId={key}
       key={key}
       asset={asset}
-      selectable={true}
       selected={this.state.selectedAssetKey === key}
       draggable={true}
       powered={powered !== 0}

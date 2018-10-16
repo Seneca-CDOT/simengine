@@ -10,12 +10,11 @@ import colors from '../../../styles/colors';
 /**
  * Outlet Graphics
  */
-export default class Socket extends React.Component {
+class Socket extends React.Component {
 
     constructor(props) {
       super();
       this.state = {
-        color: colors.deselectedAsset,
         // coordinates
         x: props.x,
         y: props.y,
@@ -51,9 +50,7 @@ export default class Socket extends React.Component {
 
     /** Notify Parent of Selection */
     handleClick = () => {
-      if (this.props.selectable) {
-        this.props.onElementSelection(this.props.assetId, this.props.asset);
-      }
+      this.props.onElementSelection(this.props.assetId, this.props.asset);
     };
 
     /** Notify Parent of Asset Transformation */
@@ -65,8 +62,8 @@ export default class Socket extends React.Component {
         y: s.target.attrs.y, // asset position - y
         inputConnections: [
           {
-            x: s.target.attrs.x + this.state.assetImage.width * 0.5,  // power input location - x
-            y: s.target.attrs.y + this.state.assetImage.height * 0.5, // power input location - y
+            x: this.state.assetImage.width * 0.5,  // power input location - x
+            y: this.state.assetImage.height * 0.5, // power input location - y
           }
         ],
       };
@@ -77,14 +74,11 @@ export default class Socket extends React.Component {
 
     render() {
 
-      let strokeColor = this.state.color;
       const { bgImage, assetImage, x, y } = this.state;
 
       // Selected when either parent element (e.g. PDU outlet belongs to) is selected
       // or the socket was selected
-      if (this.props.selectable) {
-        strokeColor = (this.props.selected || this.props.parentSelected) ? colors.selectedAsset: colors.deselectedAsset;
-      }
+      const strokeColor = (this.props.selected || this.props.parentSelected) ? colors.selectedAsset: colors.deselectedAsset;
 
       return(
         <Group
@@ -111,10 +105,8 @@ export default class Socket extends React.Component {
           />
 
           {/* LED */}
-          {this.props.selectable &&
-            <Led socketOn={this.props.asset.status} powered={this.props.powered}/>
-          }
-
+          <Led socketOn={this.props.asset.status} powered={this.props.powered}/>
+          
           {/* Socket title */}
           {!this.props.hideName &&
             <Text 
@@ -130,8 +122,18 @@ export default class Socket extends React.Component {
     }
 }
 
+Socket.socketSize = () => {
+  return new Promise((resolve, reject) => {
+    let img = new window.Image();
+    img.src = socket;
+    img.onload = () => resolve({ height: img.height, width: img.width });
+    img.onerror = reject;
+  });
+};
+
 Socket.defaultProps = {
-  fontSize: 14
+  fontSize: 14,
+  draggable: false
 };
 
 Socket.propTypes = {
@@ -145,7 +147,8 @@ Socket.propTypes = {
   selected: PropTypes.bool, // Selected by user
   parentSelected: PropTypes.bool, // Used when an outlet belongs to an asset
   onElementSelection: PropTypes.func, // Notify parent component of selection
-  selectable: PropTypes.bool.isRequired, // Outlet is an asset,
   hideName: PropTypes.bool, // Display outlet name
   fontSize: PropTypes.number, // Asset name font
 };
+
+export default Socket;

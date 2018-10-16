@@ -54,12 +54,12 @@ export default class Server extends React.Component {
       y : s.target.attrs.y,
       inputConnections: [
         {
-          x: s.target.attrs.x + 50 + 190,
-          y: s.target.attrs.y + 60,
+          x: 50 + 190,
+          y: 60,
         },
         {
-          x: s.target.attrs.x + 290 + 190,
-          y: s.target.attrs.y + 60,
+          x: 290 + 190,
+          y: 60,
         }
       ],
       outputConnections: []
@@ -86,7 +86,6 @@ export default class Server extends React.Component {
           x={x}
           key={ckey}
           onElementSelection={() => { this.selectSocket(ckey); }}
-          selectable={true}
           draggable={false}
           asset={asset.children[ckey]}
           assetId={ckey}
