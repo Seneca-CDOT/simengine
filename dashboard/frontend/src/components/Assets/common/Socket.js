@@ -95,6 +95,7 @@ class Socket extends React.Component {
             <Image
               image={bgImage}
               stroke={strokeColor}
+              strokeWidth={4}
             />
           }
 

@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import Led from '../common/Led';
 import PowerSupply from './PowerSupply';
 import frontimg from '../../../images/server-front.svg';
+
 /**
  * Draw Server graphics
  */
@@ -12,30 +13,22 @@ export default class Server extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      color: 'grey',
       selectedPsuKey: -1,
-      x: props.x?props.x:40,
-      y: props.y?props.y:40,
-      frontimg: null
+      x: props.x,
+      y: props.y,
+      serverGraphics: null
     };
-    this.selectSocket = this.selectSocket.bind(this);
+    
+    this.selectPSU = this.selectPSU.bind(this);
   }
 
   componentDidMount() {
-    const image = new window.Image();
-    image.src = frontimg;
-    image.onload = () => {
-      // setState will redraw layer
-      // because "image" property is changed
-      this.setState({ frontimg: image });
-    };
-
+    const serverGraphics = new window.Image();
+    serverGraphics.src = frontimg;
+    serverGraphics.onload = () => { this.setState({ serverGraphics });};
   }
 
-  componentWillReceiveProps(nextProps) {
-    this.setState({ x: nextProps.x, y: nextProps.y });
-  }
-
+  
   /** Notify Parent of Selection */
   handleClick = () => {
     this.refs.server.setZIndex(100);
@@ -43,7 +36,7 @@ export default class Server extends React.Component {
   };
 
   /** Notify top-lvl Component that PDU-Outlet was selected*/
-  selectSocket = (ckey) => {
+  selectPSU = (ckey) => {
     this.setState({ selectedPsuKey: ckey });
     this.props.onElementSelection(ckey, this.props.asset.children[ckey]);
   }
@@ -85,7 +78,7 @@ export default class Server extends React.Component {
         <PowerSupply
           x={x}
           key={ckey}
-          onElementSelection={() => { this.selectSocket(ckey); }}
+          onElementSelection={() => { this.selectPSU(ckey); }}
           draggable={false}
           asset={asset.children[ckey]}
           assetId={ckey}
@@ -122,7 +115,7 @@ export default class Server extends React.Component {
 
         {/* Draw some placeholder server-stuff */}
         <Image
-            image={this.state.frontimg}
+            image={this.state.serverGraphics}
             x={550}
             y={-20}
             onClick={this.handleClick}
