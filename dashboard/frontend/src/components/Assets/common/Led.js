@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 
 import colors from '../../../styles/colors';
 
+
 /**
  * LED (green if asset is 'on', red if 'off', grey if not powered)
  */
@@ -12,7 +13,7 @@ const Led = ({ powered, socketOn, x, y }) => {
     return (
       <Rect x={x} y={y} width={10} height={10} fill={color} shadowBlur={3}/>
     );
-}
+};
 
 Led.defaultProps = {
   y: 85,

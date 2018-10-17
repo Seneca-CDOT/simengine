@@ -16,45 +16,61 @@ export default class Server extends React.Component {
       selectedPsuKey: -1,
       x: props.x,
       y: props.y,
-      serverGraphics: null
+      psuSize: {x:0, y:0},
+      
+      serverPlaceholderImg: null
     };
     
     this.selectPSU = this.selectPSU.bind(this);
   }
 
   componentDidMount() {
-    const serverGraphics = new window.Image();
-    serverGraphics.src = frontimg;
-    serverGraphics.onload = () => { this.setState({ serverGraphics });};
+    const serverPlaceholderImg = new window.Image();
+    serverPlaceholderImg.src = frontimg;
+    serverPlaceholderImg.onload = () => { this.setState({ serverPlaceholderImg });};
+    PowerSupply.socketSize().then((size) => {
+      this.setState({ psuSize: size });
+    });
   }
 
-  
+
   /** Notify Parent of Selection */
   handleClick = () => {
     this.refs.server.setZIndex(100);
     this.props.onElementSelection(this.props.assetId, this.props.asset);
   };
 
-  /** Notify top-lvl Component that PDU-Outlet was selected*/
+  /** Notify top-lvl Component that on of the PSUs was selected*/
   selectPSU = (ckey) => {
     this.setState({ selectedPsuKey: ckey });
     this.props.onElementSelection(ckey, this.props.asset.children[ckey]);
+  }
+
+  getInputCoordinates = (center=true) => {
+
+    const childKeys = Object.keys(this.props.asset.children);
+    const chidCoord = {};
+    const xPadding = center?this.state.psuSize.height*0.5:0;
+    const yPadding = center?this.state.psuSize.width*0.5:0;
+    Object.keys(childKeys).map((e, i) => (chidCoord[childKeys[i]]={x: 100+(i*90) + xPadding, y: yPadding}));
+
+    return [
+      {
+        x: 50 + 190,
+        y: 60,
+      },
+      {
+        x: 290 + 190,
+        y: 60,
+      }
+    ];
   }
 
   updateServerPos = (s) => {
     const coord = {
       x: s.target.attrs.x,
       y : s.target.attrs.y,
-      inputConnections: [
-        {
-          x: 50 + 190,
-          y: 60,
-        },
-        {
-          x: 290 + 190,
-          y: 60,
-        }
-      ],
+      inputConnections: this.getInputCoordinates(),
       outputConnections: []
     };
 
@@ -70,7 +86,7 @@ export default class Server extends React.Component {
     const serverName = this.props.asset.name ? this.props.asset.name:'ups';
     const asset = this.props.asset;
 
-    // Initialize Powe Supplies
+    // Initialize Power Supplies
     for (const ckey of Object.keys(asset.children)) {
 
       asset.children[ckey].name = `[${ckey}]`;
@@ -115,7 +131,7 @@ export default class Server extends React.Component {
 
         {/* Draw some placeholder server-stuff */}
         <Image
-            image={this.state.serverGraphics}
+            image={this.state.serverPlaceholderImg}
             x={550}
             y={-20}
             onClick={this.handleClick}

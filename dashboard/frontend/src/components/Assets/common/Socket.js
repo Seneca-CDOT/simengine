@@ -7,6 +7,7 @@ import PropTypes from 'prop-types';
 
 import colors from '../../../styles/colors';
 
+
 /**
  * Outlet Graphics
  */
@@ -19,22 +20,22 @@ class Socket extends React.Component {
         x: props.x,
         y: props.y,
         // graphics
-        assetImage: null,
-        bgImage: null,
+        assetImg: null,
+        backgroundImg: null,
       };
 
-      // Socket may have background image (static asset)
+      // Socket may have a background image (static asset)
       if (props.asset && 'imgUrl' in props.asset) {
-        const bgImage = new window.Image();
-        bgImage.src = props.asset.imgUrl;
-        bgImage.onload = () => {
+        const backgroundImg = new window.Image();
+        backgroundImg.src = props.asset.imgUrl;
+        backgroundImg.onload = () => {
           
           // resize the background image 
-          const oldHeight = bgImage.height;
-          bgImage.height = 160;
-          bgImage.width = bgImage.width / (oldHeight/160);
+          const oldHeight = backgroundImg.height;
+          backgroundImg.height = 160;
+          backgroundImg.width = backgroundImg.width / (oldHeight/160);
 
-          this.setState({ bgImage });
+          this.setState({ backgroundImg });
         };
       }
     }
@@ -42,11 +43,10 @@ class Socket extends React.Component {
 
     /** Load Socket Image */
     componentDidMount() {
-      const assetImage = new window.Image();
-      assetImage.src = socket;
-      assetImage.onload = () => { this.setState({ assetImage }); };
+      const assetImg = new window.Image();
+      assetImg.src = socket;
+      assetImg.onload = () => { this.setState({ assetImg }); };
     }
-
 
     /** Notify Parent of Selection */
     handleClick = () => {
@@ -62,8 +62,8 @@ class Socket extends React.Component {
         y: s.target.attrs.y, // asset position - y
         inputConnections: [
           {
-            x: this.state.assetImage.width * 0.5,  // power input location - x
-            y: this.state.assetImage.height * 0.5, // power input location - y
+            x: this.state.assetImg.width * 0.5,  // power input location - x
+            y: this.state.assetImg.height * 0.5, // power input location - y
           }
         ],
       };
@@ -74,7 +74,7 @@ class Socket extends React.Component {
 
     render() {
 
-      const { bgImage, assetImage, x, y } = this.state;
+      const { backgroundImg, assetImg, x, y } = this.state;
 
       // Selected when either parent element (e.g. PDU outlet belongs to) is selected
       // or the socket was selected
@@ -91,9 +91,9 @@ class Socket extends React.Component {
         >
 
           {/* Optional background image */}
-          {bgImage &&
+          {backgroundImg &&
             <Image
-              image={bgImage}
+              image={backgroundImg}
               stroke={strokeColor}
               strokeWidth={4}
             />
@@ -101,7 +101,7 @@ class Socket extends React.Component {
 
           {/* Outlet Image */}
           <Image
-            image={assetImage}
+            image={assetImg}
             stroke={strokeColor}            
           />
 
@@ -114,7 +114,7 @@ class Socket extends React.Component {
               fontSize={this.props.fontSize} 
               fontFamily={'Helvetica'} 
               text={(this.props.asset && this.props.asset.name) ? this.props.asset.name : 'socket'}  
-              y={((bgImage) ? (bgImage.height) : (assetImage?(assetImage.height):0)) + 30} 
+              y={((backgroundImg) ? (backgroundImg.height) : (assetImg?(assetImg.height):0)) + 30} 
             />
           }
 

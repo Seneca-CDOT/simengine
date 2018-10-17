@@ -8,23 +8,29 @@ from enginecore.state.state_listener import StateListener
 
 def configure_env(relative=False):
     """Set-up defaults for the env vars if not defined 
-    (such as folder containing static .snmprec files, SHA of redis lua script) 
+    (such as folder containing static .snmprec files, SHA of redis lua script)
+
+    Args:
+        relative(bool): used for the development version, enables relative paths
     """
 
     if relative:
-        static_path = os.path.abspath("../data")
-        ipmi_templ_path = os.path.abspath("./ipmi_template")
-        lua_script_path = 'script/snmppub.lua'
+        static_path = os.path.abspath(os.path.join(os.pardir, "data"))
+        ipmi_templ_path = os.path.abspath("ipmi_template")
+        lua_script_path = os.path.join("script", "snmppub.lua")
     else:
-        static_path = os.path.abspath("/usr/share/simengine/data")
-        ipmi_templ_path = os.path.abspath("/usr/share/simengine/enginecore/ipmi_template")
-        lua_script_path = '/usr/share/simengine/enginecore/script/snmppub.lua)'
+        share_dir = os.path.join(os.sep, "usr", "share", "simengine")
+
+        static_path = os.path.join(share_dir, "data")
+        ipmi_templ_path = os.path.join(share_dir, "enginecore", "ipmi_template")
+        lua_script_path = os.path.join(share_dir, "enginecore", "script", "snmppub.lua")
+
 
     os.environ['SIMENGINE_STATIC_DATA'] = os.environ.get('SIMENGINE_STATIC_DATA', static_path)
     os.environ['SIMENGINE_IPMI_TEMPL'] = os.environ.get('SIMENGINE_IPMI_TEMPL', ipmi_templ_path)
     os.environ['SIMENGINE_SNMP_SHA'] = os.environ.get(
         'SIMENGINE_SNMP_SHA',
-#        str(os.popen('/usr/local/bin/redis-cli script load "$(cat {})"'.format(lua_script_path)).read())
+        # str(os.popen('/usr/local/bin/redis-cli script load "$(cat {})"'.format(lua_script_path)).read())
         str(os.popen('redis-cli script load "$(cat {})"'.format(lua_script_path)).read())
     )
 

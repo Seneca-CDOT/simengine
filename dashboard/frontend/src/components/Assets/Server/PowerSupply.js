@@ -56,6 +56,15 @@ export default class PowerSupply extends React.Component {
     }
 }
 
+PowerSupply.socketSize = () => {
+  return new Promise((resolve, reject) => {
+    let img = new window.Image();
+    img.src = psuimg;
+    img.onload = () => resolve({ height: img.height, width: img.width });
+    img.onerror = reject;
+  });
+};
+
 
 PowerSupply.defaultProps = {
   y: 0,
