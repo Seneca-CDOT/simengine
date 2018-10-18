@@ -1,13 +1,13 @@
 import React from 'react';
-import { Text, Group, Image, Rect } from 'react-konva';
+import { Text, Group, Image } from 'react-konva';
 import Socket from '../common/Socket';
 import PropTypes from 'prop-types';
 import c14 from '../../../images/c14.svg';
 
 import Asset from '../common/Asset';
 import AssetOutline from '../common/AssetOutline';
+import LEDDisplay from './LEDDisplay';
 
-import colors from '../../../styles/colors';
 import paths from '../../../styles/paths';
 
 /**
@@ -18,7 +18,6 @@ export default class Pdu extends Asset {
   constructor(props) {
     super(props);
     this.state = {
-      
       socketSize: {x:0, y:0},
       // graphics
       c14: null,
@@ -40,7 +39,6 @@ export default class Pdu extends Asset {
       this.setState({ socketSize: size });
     });
   }
-
 
   /** Notify top-lvl Component that PDU-Outlet was selected*/
   selectSocket = (ckey) => {
@@ -65,9 +63,6 @@ export default class Pdu extends Asset {
 
     const {inX, inY} = this.getInputCoordinates(false)[0];
     const inputSocket = <Image image={this.state.c14} x={inX} y={inY}/>;
-  
-    let load = Math.round(this.props.asset.load);
-    load = load > 9?""+load:"0"+load;
 
     // Initialize outlets that are parts of the PDU
     const outputCoord = this.getOutputCoordinates(false);
@@ -108,18 +103,7 @@ export default class Pdu extends Asset {
         <Text y={-85} text={this.props.asset.name} fontSize={18}  fontFamily={'Helvetica'}/>
 
         {/* LED display (load) */}
-        <Group y={15} x={845}>
-          <Rect width={60} height={60} fill={colors.ledBackground} stroke={colors.ledStroke}/>
-          <Text 
-            y={10} 
-            x={5} 
-            text={load} 
-            fontFamily={'DSEG7Modern'} 
-            fontSize={30} 
-            fill={this.props.asset.status?colors.ledText:colors.ledStatusOff} 
-          />
-          <Text y={65} x={8} text={"AMPS"} />
-        </Group>
+        <LEDDisplay load={Math.round(this.props.asset.load)} y={15} x={845} status={this.props.asset.status}/>
 
         {/* Draw Sockets (input connector and output outlets) */}
         {inputSocket}

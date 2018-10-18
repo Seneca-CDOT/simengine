@@ -67,19 +67,10 @@ class Socket extends Asset {
         >
 
           {/* Optional background image */}
-          {backgroundImg &&
-            <Image
-              image={backgroundImg}
-              stroke={strokeColor}
-              strokeWidth={4}
-            />
-          }
+          {backgroundImg && <Image image={backgroundImg} stroke={strokeColor} strokeWidth={4}/>}
 
           {/* Outlet Image */}
-          <Image
-            image={assetImg}
-            stroke={strokeColor}            
-          />
+          <Image image={assetImg} stroke={strokeColor}            />
 
           {/* LED */}
           <Led socketOn={this.props.asset.status} powered={this.props.powered}/>

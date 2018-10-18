@@ -10,11 +10,10 @@ class Asset extends React.Component {
     };
   }
 
-
   componentWillReceiveProps(newProps) {
     this.setState({ x: newProps.x, y: newProps.y });
   }
-  
+
   /** Notify Parent of Selection */
   handleClick = () => {
     this.refs.asset.setZIndex(100);

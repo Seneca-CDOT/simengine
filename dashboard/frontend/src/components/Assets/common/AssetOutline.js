@@ -7,19 +7,16 @@ import colors from '../../../styles/colors';
 /**
  * AssetOutline (.svg outline of the asset)
  */
-const AssetOutline = ({ path, selected, onClick }) => {
-
-    return (
-        <Path data={path}
-          strokeWidth={0.4}
-          stroke={selected ? colors.selectedAsset : colors.deselectedAsset}
-          fill={colors.backgroundAssetColor}
-          scale={{x: 4, y: 4}}
-          y={-575}
-          onClick={onClick}
-        />
-    );
-};
+const AssetOutline = ({ path, selected, onClick }) => (
+  <Path data={path}
+    strokeWidth={0.4}
+    stroke={selected ? colors.selectedAsset : colors.deselectedAsset}
+    fill={colors.backgroundAssetColor}
+    scale={{x: 4, y: 4}}
+    y={-575}
+    onClick={onClick}
+  />
+);
 
 AssetOutline.propTypes = {
   path: PropTypes.string.isRequired, // .svg path
