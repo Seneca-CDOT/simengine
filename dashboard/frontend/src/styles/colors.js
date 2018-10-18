@@ -10,5 +10,6 @@ export default {
     ledStroke: 'black',
 
     selectedAsset: '#065b96',
-    deselectedAsset: '#727c84'
+    deselectedAsset: '#727c84',
+    backgroundAssetColor: 'white',
 };

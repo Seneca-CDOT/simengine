@@ -152,9 +152,6 @@ export default class Ups extends React.Component {
           onClick={this.handleClick.bind(this)}
         />
 
-        
-        {/* <Group x={250} y={130}>  </Group> */}
-
         {/* UPS Label */}
         <Text y={-125} x={230} text={upsName} fontSize={18}  fontFamily={'Helvetica'} />
 

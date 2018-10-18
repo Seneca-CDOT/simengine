@@ -5,20 +5,19 @@ import socket from '../../../images/socket.svg';
 import Led from './Led';
 import PropTypes from 'prop-types';
 
+import Asset from './Asset';
 import colors from '../../../styles/colors';
 
 
 /**
  * Outlet Graphics
  */
-class Socket extends React.Component {
+class Socket extends Asset {
 
     constructor(props) {
-      super();
+      super(props);
       this.state = {
-        // coordinates
-        x: props.x,
-        y: props.y,
+
         // graphics
         assetImg: null,
         backgroundImg: null,
@@ -40,37 +39,14 @@ class Socket extends React.Component {
       }
     }
 
-
     /** Load Socket Image */
     componentDidMount() {
       const assetImg = new window.Image();
       assetImg.src = socket;
       assetImg.onload = () => { this.setState({ assetImg }); };
     }
-
-    /** Notify Parent of Selection */
-    handleClick = () => {
-      this.props.onElementSelection(this.props.assetId, this.props.asset);
-    };
-
-    /** Notify Parent of Asset Transformation */
-    updateSocketPos = (s) => {
-      this.refs.assetGroup.setZIndex(100); 
-
-      const coord = {
-        x: s.target.attrs.x, // asset position - x
-        y: s.target.attrs.y, // asset position - y
-        inputConnections: [
-          {
-            x: this.state.assetImg.width * 0.5,  // power input location - x
-            y: this.state.assetImg.height * 0.5, // power input location - y
-          }
-        ],
-      };
-
-      this.setState(coord);
-      this.props.onPosChange(this.props.assetId, coord);
-    }
+    
+    getInputCoordinates = (center=true) => [{ x: (center?this.state.assetImg.width*0.5:0), y: (center?this.state.assetImg.height*0.5:0), }];
 
     render() {
 
@@ -85,9 +61,9 @@ class Socket extends React.Component {
           x={x}
           y={y}
           draggable={this.props.draggable}
-          onDragMove={this.updateSocketPos.bind(this)}
+          onDragMove={this.updateAssetPos.bind(this)}
           onClick={this.handleClick}
-          ref="assetGroup"
+          ref="asset"
         >
 
           {/* Optional background image */}
@@ -138,16 +114,8 @@ Socket.defaultProps = {
 };
 
 Socket.propTypes = {
-  x: PropTypes.number, // X position of the asset
-  y: PropTypes.number, // Y position of the asset
-  onPosChange: PropTypes.func.isRequired, // called on asset position change
-  powered: PropTypes.bool.isRequired, // indicates if upstream power is present
   draggable: PropTypes.bool, // Indicates if the outlet can be dragged
-  asset: PropTypes.object, // Asset Details
-  assetId: PropTypes.string, // Asset Key
-  selected: PropTypes.bool, // Selected by user
   parentSelected: PropTypes.bool, // Used when an outlet belongs to an asset
-  onElementSelection: PropTypes.func, // Notify parent component of selection
   hideName: PropTypes.bool, // Display outlet name
   fontSize: PropTypes.number, // Asset name font
 };
