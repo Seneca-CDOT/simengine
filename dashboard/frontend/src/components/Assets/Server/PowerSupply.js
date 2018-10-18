@@ -40,7 +40,7 @@ export default class PowerSupply extends React.Component {
           x={this.props.x}
           y={this.props.y}
         >
-          {/*PSU graphics */}
+          {/* PSU graphics */}
           <Image
             image={this.state.assetImage}
             stroke={strokeColor}
@@ -56,7 +56,7 @@ export default class PowerSupply extends React.Component {
     }
 }
 
-PowerSupply.socketSize = () => {
+PowerSupply.psuSize = () => {
   return new Promise((resolve, reject) => {
     let img = new window.Image();
     img.src = psuimg;

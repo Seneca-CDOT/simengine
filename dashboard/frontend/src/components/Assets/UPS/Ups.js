@@ -7,9 +7,8 @@ import upsimg from '../../../images/ups_monitor_2.png';
 import c14 from '../../../images/c14.svg';
 import Socket from '../common/Socket';
 
-
 import colors from '../../../styles/colors';
-
+import paths from '../../../styles/paths';
 
 /**
  * Draw Ups graphics
@@ -144,7 +143,7 @@ export default class Ups extends React.Component {
 
 
         {/* Draw Ups as SVG path */}
-        <Path data={"M 51.551168,118.02771 H 161.85062 l 10.30629,7.10992 H 41.244884 Z M 41.225275,125.12154 H 172.17651 c 0.86917,0 1.56887,5.60194 1.56887,12.56046 v 86.52769 c 0,6.95848 -0.6997,12.56045 -1.56887,12.56045 H 41.225275 c -0.869151,0 -1.568866,-5.60197 -1.568866,-12.56045 V 137.682 c 0,-6.95852 0.699715,-12.56046 1.568866,-12.56046 z"}
+        <Path data={paths.ups}
           strokeWidth={0.4}
           stroke={this.props.selected ? colors.selectedAsset : colors.deselectedAsset}
           fill={'white'}

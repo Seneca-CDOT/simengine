@@ -67,8 +67,8 @@ export default class Pdu extends React.Component {
   getInputCoordinates = (center=true) => {
     return [
       {
-        x: -70 + (center?this.state.c14.width*0.5:0),
-        y:   0 + (center?this.state.c14.height*0.5:0),
+        x: (center?this.state.c14.width*0.5:0),
+        y: (center?this.state.c14.height*0.5:0),
       }
     ];
   }

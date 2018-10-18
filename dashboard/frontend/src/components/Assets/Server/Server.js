@@ -5,6 +5,9 @@ import Led from '../common/Led';
 import PowerSupply from './PowerSupply';
 import frontimg from '../../../images/server-front.svg';
 
+import colors from '../../../styles/colors';
+import paths from '../../../styles/paths';
+
 /**
  * Draw Server graphics
  */
@@ -17,7 +20,7 @@ export default class Server extends React.Component {
       x: props.x,
       y: props.y,
       psuSize: {x:0, y:0},
-      
+
       serverPlaceholderImg: null
     };
     
@@ -28,7 +31,7 @@ export default class Server extends React.Component {
     const serverPlaceholderImg = new window.Image();
     serverPlaceholderImg.src = frontimg;
     serverPlaceholderImg.onload = () => { this.setState({ serverPlaceholderImg });};
-    PowerSupply.socketSize().then((size) => {
+    PowerSupply.psuSize().then((size) => {
       this.setState({ psuSize: size });
     });
   }
@@ -50,27 +53,19 @@ export default class Server extends React.Component {
 
     const childKeys = Object.keys(this.props.asset.children);
     const chidCoord = {};
-    const xPadding = center?this.state.psuSize.height*0.5:0;
-    const yPadding = center?this.state.psuSize.width*0.5:0;
-    Object.keys(childKeys).map((e, i) => (chidCoord[childKeys[i]]={x: 100+(i*90) + xPadding, y: yPadding}));
 
-    return [
-      {
-        x: 50 + 190,
-        y: 60,
-      },
-      {
-        x: 290 + 190,
-        y: 60,
-      }
-    ];
+    const xPadding = this.state.psuSize.width;
+    const yPadding = center?this.state.psuSize.height*0.5:0;
+
+    Object.keys(childKeys).map((e, i) => (chidCoord[childKeys[i]]={x: ((center?xPadding:50)+xPadding*i) + i*20, y: yPadding}));
+    return chidCoord;
   }
 
   updateServerPos = (s) => {
     const coord = {
       x: s.target.attrs.x,
       y : s.target.attrs.y,
-      inputConnections: this.getInputCoordinates(),
+      inputConnections: Object.values(this.getInputCoordinates()),
       outputConnections: []
     };
 
@@ -82,17 +77,18 @@ export default class Server extends React.Component {
 
     let psus = [];
 
-    let x=50;
     const serverName = this.props.asset.name ? this.props.asset.name:'ups';
     const asset = this.props.asset;
 
     // Initialize Power Supplies
-    for (const ckey of Object.keys(asset.children)) {
+    const inputCoord = this.getInputCoordinates(false);
 
+    for (const ckey of Object.keys(inputCoord)) {
       asset.children[ckey].name = `[${ckey}]`;
       psus.push(
         <PowerSupply
-          x={x}
+          x={inputCoord[ckey].x}
+          y={inputCoord[ckey].y}
           key={ckey}
           onElementSelection={() => { this.selectPSU(ckey); }}
           draggable={false}
@@ -102,9 +98,9 @@ export default class Server extends React.Component {
           powered={this.props.powered}
           parentSelected={this.props.selected}
         />
-      );
-      x += 240;
+      ); 
     }
+    
     return (
       <Group
         draggable="true"
@@ -114,11 +110,10 @@ export default class Server extends React.Component {
         ref="server"
       >
 
-
         {/* Draw Server as SVG path */}
-        <Path data={"m 7.84681,135.86767 h 194.30638 c 1.28966,0 2.3279,1.85111 2.3279,4.15049 v 28.5923 c 0,2.29937 -1.03824,4.15049 -2.3279,4.15049 H 7.84681 c -1.289654,0 -2.327895,-1.85112 -2.327895,-4.15049 v -28.5923 c 0,-2.29938 1.038241,-4.15049 2.327895,-4.15049 z M 22.554872,124.18558 H 187.44512 l 15.40721,11.70857 H 7.147672 Z"}
+        <Path data={paths.server}
           strokeWidth={0.4}
-          stroke={this.props.selected ? 'blue' : 'grey'}
+          stroke={this.props.selected ? colors.selectedAsset : colors.deselectedAsset}
           fill={'white'}
           scale={{x: 4, y: 4}}
           y={-575}
@@ -136,7 +131,10 @@ export default class Server extends React.Component {
             y={-20}
             onClick={this.handleClick}
         />
-         <Led socketOn={this.props.asset.status} powered={this.props.powered}/>
+
+        {/* Machine status */}
+        <Led socketOn={this.props.asset.status} powered={this.props.powered}/>
+        
       </Group>
     );
   }
