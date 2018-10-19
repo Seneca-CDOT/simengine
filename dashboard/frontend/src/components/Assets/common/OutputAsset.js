@@ -15,7 +15,7 @@ class OutputAsset extends Asset {
       selectedSocketKey: -1,
     };
 
-    this.selectSocket.bind(this)
+    this.selectSocket.bind(this);
   }
 
   /** Notify top-lvl Component that OUT-outlet was selected*/
@@ -24,7 +24,7 @@ class OutputAsset extends Asset {
     this.props.onElementSelection(ckey, this.props.asset.children[ckey]);
   }
 
-  getOutputSockets = () => {
+  getOutputSockets = (hideName=false) => {
     // Initialize outlets that are parts of the PDU
     const outputCoord = this.getOutputCoordinates(false);
     let outputSockets = [];
@@ -41,7 +41,8 @@ class OutputAsset extends Asset {
 
           onElementSelection={() => { this.selectSocket(ckey); }}
           onPosChange={this.props.onPosChange}
-
+          hideName={hideName}
+          
           selected={this.state.selectedSocketKey === ckey && this.props.nestedComponentSelected}
           powered={this.props.asset.status !== 0}
           parentSelected={this.props.selected}

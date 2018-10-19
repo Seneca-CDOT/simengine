@@ -1,14 +1,14 @@
 import React from 'react';
-import { Text, Group, Path, Image } from 'react-konva';
+import { Text, Group, Image } from 'react-konva';
 
 // ** components
 import Led from '../common/Led';
 import PowerSupply from './PowerSupply';
 import Asset from '../common/Asset';
+import AssetOutline from '../common/AssetOutline';
 
 // ** misc
 import serverPlaceholderSource from '../../../images/server-front.svg';
-import colors from '../../../styles/colors';
 import paths from '../../../styles/paths';
 
 /**
@@ -39,38 +39,25 @@ export default class Server extends Asset {
     this.props.onElementSelection(ckey, this.props.asset.children[ckey]);
   }
 
+  getOutputCoordinates = () => { return {}; }
+
   getInputCoordinates = (center=true) => {
 
     const childKeys = Object.keys(this.props.asset.children);
-    const chidCoord = {};
+    const childCoord = {};
 
     const xPadding = this.state.psuSize.width;
     const yPadding = center?this.state.psuSize.height*0.5:0;
 
-    Object.keys(childKeys).map((e, i) => (chidCoord[childKeys[i]]={x: ((center?xPadding:50)+xPadding*i) + i*20, y: yPadding}));
-    return chidCoord;
+    Object.keys(childKeys).map((e, i) => (childCoord[childKeys[i]]={x: ((center?xPadding:50)+xPadding*i) + i*20, y: yPadding}));
+    return center?Object.values(childCoord):childCoord;
   }
 
-  updateServerPos = (s) => {
-    const coord = {
-      x: s.target.attrs.x,
-      y : s.target.attrs.y,
-      inputConnections: Object.values(this.getInputCoordinates()),
-      outputConnections: []
-    };
-
-    this.setState(coord);
-    this.props.onPosChange(this.props.assetId, coord);
-  }
-
-  render() {
-
+  /** Initialize Power Supplies */
+  getInputPSUs = () => {
+    
     let psus = [];
-
-    const serverName = this.props.asset.name ? this.props.asset.name:'ups';
     const asset = this.props.asset;
-
-    // Initialize Power Supplies
     const inputCoord = this.getInputCoordinates(false);
 
     for (const ckey of Object.keys(inputCoord)) {
@@ -90,37 +77,28 @@ export default class Server extends Asset {
         />
       ); 
     }
+
+    return psus;
+  }
+
+
+  render() {
+
+    const psus = this.getInputPSUs();
+    const { x, y, serverPlaceholderImg } = this.state;
     
     return (
-      <Group
-        draggable="true"
-        onDragMove={this.updateServerPos.bind(this)}
-        x={this.state.x}
-        y={this.state.y}
-        ref="asset"
-      >
+      <Group draggable="true" onDragMove={this.updateAssetPos.bind(this)} x={x} y={y} ref="asset">
 
         {/* Draw Server as SVG path */}
-        <Path data={paths.server}
-          strokeWidth={0.4}
-          stroke={this.props.selected ? colors.selectedAsset : colors.deselectedAsset}
-          fill={'white'}
-          scale={{x: 4, y: 4}}
-          y={-575}
-          onClick={this.handleClick.bind(this)}
-        />
-
-        <Text y={-100} text={serverName} fontSize={18}  fontFamily={'Helvetica'}/>
+        <AssetOutline path={paths.server} onClick={this.handleClick.bind(this)} selected={this.props.selected} />
+        <Text y={-100} text={this.props.asset.name} fontSize={18}  fontFamily={'Helvetica'}/>
+        
         {/* Draw Power Supplies */}
         {psus}
 
         {/* Draw some placeholder server-stuff */}
-        <Image
-            image={this.state.serverPlaceholderImg}
-            x={550}
-            y={-20}
-            onClick={this.handleClick}
-        />
+        <Image x={550} y={-20} image={serverPlaceholderImg} onClick={this.handleClick}/>
 
         {/* Machine status */}
         <Led socketOn={this.props.asset.status} powered={this.props.powered}/>

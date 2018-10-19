@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import { Text, Group, Image } from 'react-konva';
 
 // ** components
@@ -37,12 +36,12 @@ export default class Pdu extends OutputAsset {
 
   getOutputCoordinates = (center=true) => {
     const childKeys = Object.keys(this.props.asset.children);
-    const chidCoord = {};
+    const childCoord = {};
 
     const xPadding = this.outputStartPosition + (center?this.state.socketSize.height*0.5:0);
     const yPadding = center?this.state.socketSize.width*0.5:0;
-    Object.keys(childKeys).map((e, i) => (chidCoord[childKeys[i]]={x: xPadding + (i*this.outputSpacing), y: yPadding}));
-    return chidCoord;
+    Object.keys(childKeys).map((e, i) => (childCoord[childKeys[i]]={x: xPadding + (i*this.outputSpacing), y: yPadding}));
+    return childCoord;
   }
 
   getInputCoordinates = (center=true) => [{ x: (center?this.state.c14Img.width*0.5:0), y: (center?this.state.c14Img.height*0.5:0), }];
@@ -80,7 +79,3 @@ export default class Pdu extends OutputAsset {
     );
   }
 }
-
-Pdu.propTypes = {
-  nestedComponentSelected: PropTypes.bool.isRequired, // One of the PDU outlets are selected
-};

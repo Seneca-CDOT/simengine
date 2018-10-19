@@ -30,7 +30,7 @@ class Socket extends Asset {
     componentDidMount() {
       const backgroundImg = 'imgUrl' in this.props.asset?this.props.asset['imgUrl']:null;
 
-      Promise.all(this.loadImages( {socketImg: socketSource, backgroundImg })).then(() => {
+      Promise.all(this.loadImages({ socketImg: socketSource, backgroundImg })).then(() => {
         let { backgroundImg } = this.state;
         if (backgroundImg) {
           // resize the image

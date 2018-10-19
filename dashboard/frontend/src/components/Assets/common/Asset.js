@@ -13,10 +13,12 @@ class Asset extends React.Component {
       x: props.x,
       y: props.y,
     };
+    
   }
 
   componentWillReceiveProps(newProps) {
     this.setState({ x: newProps.x, y: newProps.y });
+    // this.updateAssetPos({ target: { attrs: {  x: newProps.x, y: newProps.y}} });
   }
 
   /** Load images into state (returns array of promises) */
@@ -27,7 +29,7 @@ class Asset extends React.Component {
     for (const [imageName, imageSource] of Object.entries(assetImages)) {
       
       if (!imageSource) { continue; }
-      
+
       let image = new window.Image();
       image.src = imageSource;
 
@@ -45,11 +47,12 @@ class Asset extends React.Component {
     this.props.onElementSelection(this.props.assetId, this.props.asset);
   };
 
-  getOutputCoordinates = () => {}
+  getOutputCoordinates = () => { return {}; }
   getInputCoordinates = () => []
 
   /** returns global asset position (x, y), relative output & input outlet coordinates */
   updateAssetPos = (s) => {
+
     const coord = {
       x: s.target.attrs.x,
       y: s.target.attrs.y,
