@@ -2,6 +2,7 @@ import React from 'react';
 import { Rect, Group, Text } from 'react-konva';
 import PropTypes from 'prop-types';
 
+// ** misc
 import colors from '../../../styles/colors';
 
 
