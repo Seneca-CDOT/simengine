@@ -340,8 +340,8 @@ class GraphReference():
         for k in layout:
             if layout[k]:
                 session.run(
-                    "MATCH (a:Asset { key: $key }) SET a.x=$x, a.y=$y, a.x_conn=$x_c, a.y_conn=$y_c",
-                    key=int(k), x=layout[k]['x'], y=layout[k]['y'], x_c=layout[k]['x_conn'], y_c=layout[k]['y_conn']
+                    "MATCH (a:Asset { key: $key }) SET a.x=$x, a.y=$y",
+                    key=int(k), x=layout[k]['x'], y=layout[k]['y']
                 )
         if stage:
             session.run(

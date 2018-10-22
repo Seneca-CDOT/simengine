@@ -62,4 +62,3 @@ class AmbientIncreased(Event):
 class AmbientDecreased(Event):
     """Ambient temperature dropped"""
     pass
-
