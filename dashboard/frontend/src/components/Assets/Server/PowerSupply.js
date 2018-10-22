@@ -29,24 +29,18 @@ export default class PowerSupply extends Asset {
 
   render() {
     const strokeColor = (this.props.selected || this.props.parentSelected) ? colors.selectedAsset : colors.deselectedAsset;
-    
+    const { psuImg } = this.state;
+
     return(
-      <Group
-        x={this.props.x}
-        y={this.props.y}
-        ref="asset"
-      >
+      <Group x={this.props.x} y={this.props.y} ref="asset">
+
         {/* PSU graphics */}
-        <Image
-          image={this.state.psuImg}
-          stroke={strokeColor}
-          strokeWidth={4}
-          onClick={this.handleClick}
-        />
+        <Image image={psuImg} stroke={strokeColor} strokeWidth={4} onClick={this.handleClick}/>
 
         {/* LED & label*/}
         <Led socketOn={this.props.asset.status} powered={this.props.powered} />
         <Text text={this.props.asset && this.props.asset.name ? this.props.asset.name :'psu'}  y={105} />
+        
       </Group>
     );
   }

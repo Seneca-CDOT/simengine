@@ -335,17 +335,11 @@ const drawerWidth = 240;
 
       // draw wires
       for (const key of Object.keys(connections)) {
-        console.log(key)
         const asset = this._get_asset_by_key(key);
         
         wireDrawing.push(
           <Line
-            points={[
-              connections[key].sourceX,
-              connections[key].sourceY,
-              connections[key].destX,
-              connections[key].destY
-            ]}
+            points={Object.values(connections[key])}
             stroke={asset.status===1?colors.green:"grey"}
             strokeWidth={5}
             zIndex={300}

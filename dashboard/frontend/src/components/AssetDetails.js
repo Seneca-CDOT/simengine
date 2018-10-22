@@ -50,7 +50,7 @@ function AssetDetails(props) {
 
 
           <Typography variant="subheading" component="h5">
-            Current Load: {assetInfo.load ? assetInfo.load.toFixed(2): 0}
+            Current Load: {assetInfo.load ? assetInfo.load.toFixed(2): 0} Amp
           </Typography>
           <Divider />
             {/* Turn off/on the component */}
