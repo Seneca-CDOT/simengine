@@ -69,22 +69,11 @@ const drawerWidth = 240;
         const { assets } = data;
 
         Object.keys(assets).map((key) => {
-
-          // set up connections (wirings) between assets if there's a parent
           if (assets[key]['parent']) {
             for (const parent of assets[key]['parent']) {
-              const isComponent = !assets[parent.key];
-
-              // get parent x, y values (parent can be a component (e.g. pdu outlet))
-              const { x_conn, y_conn } = isComponent
-                                ? assets[this._get_parent_key(parent.key)].children[parent.key]
-                                : assets[parent.key];
-
               connections[parent.key] = {
-                sourceX: x_conn?x_conn:0,
-                sourceY: y_conn?y_conn:0,
-                destX: assets[key].x_conn?assets[key].x_conn:0,
-                destY: assets[key].y_conn?assets[key].y_conn:0,
+                sourceX: 0, sourceY: 0,
+                destX:   0, destY: 0,
                 destKey: key
               };
             }
@@ -174,8 +163,11 @@ const drawerWidth = 240;
     let childConn = {};
 
     let assets = {...this.state.assets};
-    let assetDetails = {...assets[key]};
-    assets[key] = {...assetDetails, ...{x: coord.x, y: coord.y }};
+    if (assets[key]) {
+      let assetDetails = {...assets[key]};
+      assets[key] = {...assetDetails, ...{x: coord.x, y: coord.y }};
+    }
+
 
     // output wiring
     if (asset.children) {
@@ -211,7 +203,7 @@ const drawerWidth = 240;
   /** Save assets' coordinates in db  */
   saveLayout() {
     let data = {};
-    const { assets, connections } = this.state;
+    const { assets } = this.state;
 
     const stage = this.refs.stage.getStage();
     const stageLayout = {
@@ -223,27 +215,8 @@ const drawerWidth = 240;
     data['stage'] = stageLayout;
     data['assets'] = {};
 
-    Object.keys(assets).forEach((assetId) => {
-      if (assets[assetId]['children']) {
-         Object.keys(assets[assetId]['children']).forEach((childId) => {
-           if (childId in connections) {
-              data['assets'][childId] = {x:0 ,y:0};
-           }
-         });
-      }
-    });
-
     // add asset layout info
     Object.keys(assets).map((a) => ( data['assets'][a]={ x: assets[a].x, y: assets[a].y }));
-    Object.keys(connections).map((a) => {
-
-      data['assets'][a].x_conn = connections[a].sourceX;
-      data['assets'][a].y_conn = connections[a].sourceY;
-
-      data['assets'][connections[a].destKey].x_conn = connections[a].destX;
-      data['assets'][connections[a].destKey].y_conn = connections[a].destY;
-
-    });
 
     if (this.ws.socketOnline()) {
       this.ws.sendData({request: 'layout', data });
@@ -263,7 +236,7 @@ const drawerWidth = 240;
       key={key}
       asset={asset}
       selected={this.state.selectedAssetKey === key}
-      draggable={true}
+      isComponent={false}
       powered={powered !== 0}
       x={asset.x}
       y={asset.y}

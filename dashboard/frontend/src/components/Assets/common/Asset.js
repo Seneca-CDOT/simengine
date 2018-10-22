@@ -7,18 +7,6 @@ import PropTypes from 'prop-types';
  * */
 class Asset extends React.Component {
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      x: props.x,
-      y: props.y,
-    };
-  }
-
-  componentWillReceiveProps(newProps) {
-    this.setState({ x: newProps.x, y: newProps.y });
-  }
-
   /** Load images into state (returns array of promises) */
   loadImages = (assetImages) => {
   
@@ -59,7 +47,6 @@ class Asset extends React.Component {
   /** returns global asset position (x, y), relative output & input outlet coordinates */
   updateAssetPos = (s) => {
     const coord = this.formatAssetCoordinates(s.target.attrs); 
-    this.setState(coord);
     this.props.onPosChange(this.props.assetId, coord);
   }
 }

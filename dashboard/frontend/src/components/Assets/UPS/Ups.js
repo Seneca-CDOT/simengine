@@ -33,8 +33,10 @@ export default class Ups extends OutputAsset {
   }
 
   componentDidMount() {
-    this.loadImages({ upsMonitorImg: upsMonitorSource, c14Img: c14Source });
-    Socket.socketSize().then((size) => { this.setState({ socketSize: size }); });
+    Promise.all(this.loadImages({ upsMonitorImg: upsMonitorSource, c14Img: c14Source }))
+      .then(Socket.socketSize)
+      .then((size) => { this.setState({ socketSize: size }); })
+      .then(() => this.props.onPosChange(this.props.assetId, this.formatAssetCoordinates(this.props)));
   }
 
   getOutputCoordinates = (center=true) => {
@@ -70,13 +72,13 @@ export default class Ups extends OutputAsset {
 
   render() {
 
-    const { x, y, upsMonitorImg, c14Img } = this.state;
+    const { upsMonitorImg, c14Img } = this.state;
 
     const inputSocket = <Image image={c14Img} x={this.inputSocketPos.x} y={this.inputSocketPos.y}/>;
     const outputSockets = this.getOutputSockets(true);
 
     return (
-      <Group x={x} y={y} ref="asset" draggable="true" onDragMove={this.updateAssetPos.bind(this)}>
+      <Group x={this.props.x} y={this.props.y} ref="asset" draggable="true" onDragMove={this.updateAssetPos.bind(this)}>
 
         {/* Draw Ups as SVG path */}
         <AssetOutline path={paths.ups} onClick={this.handleClick.bind(this)} selected={this.props.selected} />

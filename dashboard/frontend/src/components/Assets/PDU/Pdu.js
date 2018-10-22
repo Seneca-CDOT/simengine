@@ -31,10 +31,12 @@ export default class Pdu extends OutputAsset {
   }
 
   componentDidMount () {
-    this.loadImages({ c14Img: c14Source });
-    Socket.socketSize().then((size) => { this.setState({ socketSize: size }); });
+    Promise.all(this.loadImages({ c14Img: c14Source }))
+      .then(Socket.socketSize)
+      .then((size) => this.setState({ socketSize: size }))
+      .then(() => this.props.onPosChange(this.props.assetId, this.formatAssetCoordinates(this.props)));
   }
-
+ 
   getOutputCoordinates = (center=true) => {
     const childKeys = Object.keys(this.props.asset.children);
     const childCoord = {};
@@ -54,14 +56,14 @@ export default class Pdu extends OutputAsset {
 
   render() {
 
-    const {inX, inY} = this.getInputCoordinates(false)[0];
-    const { x, y, c14Img } = this.state;
+    const { inX, inY } = this.getInputCoordinates(false)[0];
+    const { c14Img } = this.state;
 
     const inputSocket = <Image image={c14Img} x={inX} y={inY}/>;
     const outputSockets = this.getOutputSockets();
 
     return (
-      <Group x={x} y={y} ref="asset" draggable="true" onDragMove={this.updateAssetPos.bind(this)}>
+      <Group x={this.props.x} y={this.props.y} ref="asset" draggable="true" onDragMove={this.updateAssetPos.bind(this)}>
 
         {/* Draw PDU - SVG Path */}
         <AssetOutline path={paths.pdu} onClick={this.handleClick.bind(this)} selected={this.props.selected} />

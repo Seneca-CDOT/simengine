@@ -29,8 +29,10 @@ export default class Server extends Asset {
   }
 
   componentDidMount() {
-    this.loadImages({ serverPlaceholderImg: serverPlaceholderSource });
-    PowerSupply.psuSize().then((size) => { this.setState({ psuSize: size }); });
+    Promise.all(this.loadImages({ serverPlaceholderImg: serverPlaceholderSource}))
+      .then(PowerSupply.psuSize)
+      .then((size) => { this.setState({ psuSize: size }); })
+      .then(() => this.props.onPosChange(this.props.assetId, this.formatAssetCoordinates(this.props)));
   }
 
   /** Notify top-lvl Component that on of the PSUs was selected*/
@@ -85,10 +87,10 @@ export default class Server extends Asset {
   render() {
 
     const psus = this.getInputPSUs();
-    const { x, y, serverPlaceholderImg } = this.state;
+    const { serverPlaceholderImg } = this.state;
     
     return (
-      <Group draggable="true" onDragMove={this.updateAssetPos.bind(this)} x={x} y={y} ref="asset">
+      <Group x={this.props.x} y={this.props.y} ref="asset" draggable="true" onDragMove={this.updateAssetPos.bind(this)}>
 
         {/* Draw Server as SVG path */}
         <AssetOutline path={paths.server} onClick={this.handleClick.bind(this)} selected={this.props.selected} />
