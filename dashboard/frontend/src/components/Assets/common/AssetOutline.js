@@ -13,7 +13,7 @@ const AssetOutline = ({ path, selected, onClick, scale }) => (
     stroke={selected ? colors.selectedAsset : colors.deselectedAsset}
     fill={colors.backgroundAssetColor}
     scale={scale}
-    y={-575}
+    y={-575 /*?!...*/} 
     onClick={onClick}
   />
 );

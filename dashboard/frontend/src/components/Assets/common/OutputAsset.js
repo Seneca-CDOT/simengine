@@ -15,6 +15,9 @@ class OutputAsset extends Asset {
       selectedSocketKey: -1,
     };
 
+    this.outputSpacing = { x: 0, y: 0 };
+    this.outputStartPosition = { x: 0, y: 0 };
+
     this.selectSocket.bind(this);
   }
 

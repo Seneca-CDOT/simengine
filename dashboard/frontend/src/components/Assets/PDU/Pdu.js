@@ -25,8 +25,9 @@ export default class Pdu extends OutputAsset {
       c14Img: null,
     };
 
-    this.outputStartPosition = 100;
-    this.outputSpacing = 90; // distance between out-sockets
+    // set outlet properties
+    this.outputSpacing = { x: 90, y: 0 };
+    this.outputStartPosition = { x: 100, y: 0 };
   }
 
   componentDidMount () {
@@ -38,9 +39,9 @@ export default class Pdu extends OutputAsset {
     const childKeys = Object.keys(this.props.asset.children);
     const childCoord = {};
 
-    const xPadding = this.outputStartPosition + (center?this.state.socketSize.height*0.5:0);
-    const yPadding = center?this.state.socketSize.width*0.5:0;
-    Object.keys(childKeys).map((e, i) => (childCoord[childKeys[i]]={x: xPadding + (i*this.outputSpacing), y: yPadding}));
+    const xPadding = this.outputStartPosition.x + (center?this.state.socketSize.height*0.5:0);
+    const yPadding = this.outputStartPosition.y + (center?this.state.socketSize.width*0.5:0);
+    Object.keys(childKeys).map((e, i) => (childCoord[childKeys[i]]={x: xPadding + (i*this.outputSpacing.x), y: yPadding}));
     return childCoord;
   }
 
@@ -49,18 +50,13 @@ export default class Pdu extends OutputAsset {
   render() {
 
     const {inX, inY} = this.getInputCoordinates(false)[0];
-    
-    const inputSocket = <Image image={this.state.c14Img} x={inX} y={inY}/>;
+    const { x, y, c14Img } = this.state;
+
+    const inputSocket = <Image image={c14Img} x={inX} y={inY}/>;
     const outputSockets = this.getOutputSockets();
 
     return (
-      <Group
-        draggable="true"
-        onDragMove={this.updateAssetPos.bind(this)}
-        x={this.state.x}
-        y={this.state.y}
-        ref="asset"
-      >
+      <Group x={x} y={y} ref="asset" draggable="true" onDragMove={this.updateAssetPos.bind(this)}>
 
         {/* Draw PDU - SVG Path */}
         <AssetOutline path={paths.pdu} onClick={this.handleClick.bind(this)} selected={this.props.selected} />

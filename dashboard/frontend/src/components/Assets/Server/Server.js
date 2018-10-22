@@ -20,7 +20,7 @@ export default class Server extends Asset {
     super(props);
     this.state = {
       selectedPsuKey: -1,
-      psuSize: {x:0, y:0},
+      psuSize: { x:0, y:0 },
 
       serverPlaceholderImg: null
     };

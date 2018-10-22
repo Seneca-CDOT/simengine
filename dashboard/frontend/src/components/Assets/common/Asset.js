@@ -13,7 +13,6 @@ class Asset extends React.Component {
       x: props.x,
       y: props.y,
     };
-    
   }
 
   componentWillReceiveProps(newProps) {

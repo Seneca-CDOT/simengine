@@ -4,7 +4,7 @@ import { Text, Group, Image } from 'react-konva';
 
 import upsMonitorSource from '../../../images/ups_monitor_2.png';
 import c14Source from '../../../images/c14.svg';
-// import Socket from '../common/Socket';
+import Socket from '../common/Socket';
 
 import OutputAsset from '../common/OutputAsset';
 import AssetOutline from '../common/AssetOutline';
@@ -20,30 +20,39 @@ export default class Ups extends OutputAsset {
   constructor(props) {
     super(props);
     this.state = {
+      socketSize: { x:0, y:0 },
       upsMonitorImg: null,
-      c14Img: null
+      c14Img: null,
     };
 
     this.inputSocketPos = {x: 254, y: 5};
+
+    // set outlet properties (spacing between rows/cols etc..)
+    this.outputSpacing = { x: 20, y: 30 };
+    this.outputStartPosition = { x: 250, y: 120 };
   }
 
   componentDidMount() {
-    this.loadImages({ upsMonitorImg: upsMonitorSource, c14Img: c14Source }); 
+    this.loadImages({ upsMonitorImg: upsMonitorSource, c14Img: c14Source });
+    Socket.socketSize().then((size) => { this.setState({ socketSize: size }); });
   }
 
   getOutputCoordinates = (center=true) => {
 
     let chidCoord = {};
-    let x = 250 + this.state.c14Img&&center?this.state.c14Img.width*0.5:0;
-    let y = 150 + this.state.c14Img&&center?this.state.c14Img.height*0.5:0;
+    const { socketSize } = this.state;
+
+    let x = this.outputStartPosition.x + (center?socketSize.width*0.5:0);
+    let y = this.outputStartPosition.y + (center?socketSize.height*0.5:0);
+    const xStart = x; 
 
     Object.keys(this.props.asset.children).forEach((key, i) => {
       chidCoord[key] = {x, y};
-      x += 100;
+      x += socketSize.width + this.outputSpacing.x;
 
       if (i == 3) {
-        y += 100;
-        x = 250;
+        y += socketSize.height + this.outputSpacing.y;
+        x = xStart;
       }
     });
 
@@ -53,69 +62,34 @@ export default class Ups extends OutputAsset {
   getInputCoordinates = () => {
     return  [
       {
-        x: this.inputSocketPos.x + this.state.c14Img?this.state.c14Img.width*0.5:0,
-        y: this.inputSocketPos.y + this.state.c14Img?this.state.c14Img.height*0.5:0,
+        x: this.inputSocketPos.x + (this.state.c14Img?this.state.c14Img.width*0.5:0),
+        y: this.inputSocketPos.y + (this.state.c14Img?this.state.c14Img.height*0.5:0),
       }
     ];
   } 
 
   render() {
 
-    const {upsMonitorImg} = this.state;
-    const inputSocket = <Image image={this.state.c14Img} x={this.inputSocketPos.x} y={this.inputSocketPos.y}/>;
+    const { x, y, upsMonitorImg, c14Img } = this.state;
 
-    const upsName = this.props.asset.name ? this.props.asset.name:'ups';
-    // let chargeBar = "|||||||||||||||||||||||||||||||||||";
-    // chargeBar = this.props.asset.battery === 1000 ? chargeBar: chargeBar.substring(chargeBar.length * (1-this.props.asset.battery * 0.001));
-
-    const outputSockets = this.getOutputSockets();
+    const inputSocket = <Image image={c14Img} x={this.inputSocketPos.x} y={this.inputSocketPos.y}/>;
+    const outputSockets = this.getOutputSockets(true);
 
     return (
-      <Group
-        draggable="true"
-        onDragMove={this.updateAssetPos.bind(this)}
-        x={this.state.x}
-        y={this.state.y}
-        ref="asset"
-      >
+      <Group x={x} y={y} ref="asset" draggable="true" onDragMove={this.updateAssetPos.bind(this)}>
 
         {/* Draw Ups as SVG path */}
         <AssetOutline path={paths.ups} onClick={this.handleClick.bind(this)} selected={this.props.selected} />
 
         {/* UPS Label */}
-        <Text y={-125} x={230} text={upsName} fontSize={18}  fontFamily={'Helvetica'} />
+        <Text x={230} y={-125} text={this.props.asset.name} fontSize={18}  fontFamily={'Helvetica'} />
 
         {/* UPS Display */}
-        <LEDDisplay battery={this.props.asset.battery} y={-50} x={345} status={this.props.asset.status} upsMonitorImg={upsMonitorImg}/>
-
-          {/* <Image image={this.state.upsMonitorImg}/>
-          <Group y={50} x={18}>
-            <Text
-              text={`Output ${this.props.asset.status?'ON':'OFF'}`}
-              fontFamily={'DSEG14Modern'}
-              fontSize={16}
-              fill={this.props.asset.status?'white':'grey'}
-            />
-
-            <Text y={30}
-              text={`Batt ${Math.floor(this.props.asset.battery/10)}%`}
-              fontFamily={'DSEG14Modern'}
-              fontSize={16}
-              fill={this.props.asset.status?'white':'grey'}
-            />
-            <Text y={30} x={110}
-              text={chargeBar}
-
-              fontSize={16}
-              fill={this.props.asset.status?'white':'grey'}
-            />
-          </Group>
-        </Group> */}
+        <LEDDisplay x={345} y={-50} battery={this.props.asset.battery} status={this.props.asset.status} upsMonitorImg={upsMonitorImg}/>
         
         {/* IO Sockets */}
         {outputSockets}
         {inputSocket}
-
 
       </Group>
     );
