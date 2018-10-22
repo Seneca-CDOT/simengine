@@ -12,10 +12,9 @@ import colors from '../../../styles/colors';
 const LEDDisplay = ({ battery, x, y, status, upsMonitorImg }) => {
   const fontFamily = 'DSEG14Modern';
   const fontSize = 16;
-  const fill = status?colors.ledStatusOn:colors.ledStatusOff;
 
-  let chargeBar = "|".repeat(35 * (1-battery * 0.001));
-  // chargeBar = battery === 1000 ? chargeBar: chargeBar.substring(chargeBar.length * (1-battery * 0.001));
+  const fill = status?colors.ledTextWhite:colors.ledStatusOff;
+  let chargeBar = "|".repeat(35 * (battery * 0.001));
 
   return (
     <Group x={x} y={y}>
@@ -34,7 +33,7 @@ LEDDisplay.propTypes = {
   y: PropTypes.number.isRequired, // Y position of the asset
   battery: PropTypes.number.isRequired, // battery level
   status: PropTypes.bool.isRequired, // on/off
-  upsMonitorImg: PropTypes.object.isRequired, // background image
+  upsMonitorImg: PropTypes.object, // background image
 };
 
 export default LEDDisplay;

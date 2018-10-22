@@ -41,7 +41,9 @@ class Socket extends Asset {
       });
     }
     
-    getInputCoordinates = (center=true) => [{ x: (center?this.state.socketImg.width*0.5:0), y: (center?this.state.socketImg.height*0.5:0), }];
+    getInputCoordinates = (center=true) => [
+      (center&&this.state.socketImg)?{ x: this.state.socketImg.width*0.5, y: this.state.socketImg.height*0.5, }:{ x: 0, y: 0 }
+    ];
 
     render() {
 

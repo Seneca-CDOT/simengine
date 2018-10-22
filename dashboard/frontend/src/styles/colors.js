@@ -4,6 +4,7 @@ export default {
     blue: '#3498db',
 
     ledText: 'yellow',
+    ledTextWhite: 'white',
     ledBackground: '#4d4d4d',
     ledStatusOn: 'green',
     ledStatusOff: 'grey',

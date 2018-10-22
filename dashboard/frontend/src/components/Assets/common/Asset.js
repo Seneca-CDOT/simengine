@@ -17,7 +17,6 @@ class Asset extends React.Component {
 
   componentWillReceiveProps(newProps) {
     this.setState({ x: newProps.x, y: newProps.y });
-    // this.updateAssetPos({ target: { attrs: {  x: newProps.x, y: newProps.y}} });
   }
 
   /** Load images into state (returns array of promises) */
@@ -40,30 +39,32 @@ class Asset extends React.Component {
     return imagePromises;
   }
 
+  // Asset position & IO coordinates //
+  getOutputCoordinates = () => { return {}; }
+  getInputCoordinates = () => []
+
+  formatAssetCoordinates = ({x, y}) => ({
+    x: x,
+    y: y,
+    inputConnections: this.getInputCoordinates(),
+    outputConnections: this.getOutputCoordinates(),
+  });
+
   /** Notify Parent of Selection */
   handleClick = () => {
     this.refs.asset.setZIndex(100);
     this.props.onElementSelection(this.props.assetId, this.props.asset);
   };
 
-  getOutputCoordinates = () => { return {}; }
-  getInputCoordinates = () => []
-
   /** returns global asset position (x, y), relative output & input outlet coordinates */
   updateAssetPos = (s) => {
-
-    const coord = {
-      x: s.target.attrs.x,
-      y: s.target.attrs.y,
-      inputConnections: this.getInputCoordinates(),
-      outputConnections: this.getOutputCoordinates(),
-    };
-
+    const coord = this.formatAssetCoordinates(s.target.attrs); 
     this.setState(coord);
     this.props.onPosChange(this.props.assetId, coord);
   }
-
 }
+
+Asset.defaultProps = { x:0, y: 0 };
 
 Asset.propTypes = {
   x: PropTypes.number, // X position of the asset

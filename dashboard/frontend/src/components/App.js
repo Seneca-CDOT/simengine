@@ -1,4 +1,3 @@
-/* eslint-disable */
 import React, { Component } from 'react';
 import { Stage, Layer, Line } from 'react-konva';
 import gridBackground from '../images/grid.png';
@@ -92,7 +91,6 @@ const drawerWidth = 240;
           }
         });
 
-        console.log(connections)
         this.setState({ assets, connections });
       },
 
@@ -158,7 +156,7 @@ const drawerWidth = 240;
       asset['parent'].forEach((p, idx) => {
         newConn[p.key] = {...connections[p.key], destX:coord[idx].x, destY:coord[idx].y };
       });
-    } else if (key in connections) {
+    } else if (key in connections && coord[0]) {
       newConn[key] = { ...connections[key], sourceX:coord[0].x, sourceY:coord[0].y };
     }
 
@@ -229,7 +227,6 @@ const drawerWidth = 240;
       if (assets[assetId]['children']) {
          Object.keys(assets[assetId]['children']).forEach((childId) => {
            if (childId in connections) {
-              const child = assets[assetId]['children'][childId];
               data['assets'][childId] = {x:0 ,y:0};
            }
          });
@@ -240,11 +237,11 @@ const drawerWidth = 240;
     Object.keys(assets).map((a) => ( data['assets'][a]={ x: assets[a].x, y: assets[a].y }));
     Object.keys(connections).map((a) => {
 
-      data['assets'][a].x_conn = connections[a].sourceX
-      data['assets'][a].y_conn = connections[a].sourceY
+      data['assets'][a].x_conn = connections[a].sourceX;
+      data['assets'][a].y_conn = connections[a].sourceY;
 
-      data['assets'][connections[a].destKey].x_conn = connections[a].destX
-      data['assets'][connections[a].destKey].y_conn = connections[a].destY
+      data['assets'][connections[a].destKey].x_conn = connections[a].destX;
+      data['assets'][connections[a].destKey].y_conn = connections[a].destY;
 
     });
 

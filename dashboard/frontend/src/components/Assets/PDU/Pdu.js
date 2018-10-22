@@ -26,7 +26,7 @@ export default class Pdu extends OutputAsset {
     };
 
     // set outlet properties
-    this.outputSpacing = { x: 90, y: 0 };
+    this.outputSpacing = { x: 10, y: 0 };
     this.outputStartPosition = { x: 100, y: 0 };
   }
 
@@ -39,13 +39,18 @@ export default class Pdu extends OutputAsset {
     const childKeys = Object.keys(this.props.asset.children);
     const childCoord = {};
 
-    const xPadding = this.outputStartPosition.x + (center?this.state.socketSize.height*0.5:0);
-    const yPadding = this.outputStartPosition.y + (center?this.state.socketSize.width*0.5:0);
-    Object.keys(childKeys).map((e, i) => (childCoord[childKeys[i]]={x: xPadding + (i*this.outputSpacing.x), y: yPadding}));
+    const startPosX = this.outputStartPosition.x + (center?this.state.socketSize.height*0.5:0);
+    const startPosY = this.outputStartPosition.y + (center?this.state.socketSize.width*0.5:0);
+
+    Object.keys(childKeys).map((e, i) => (
+      childCoord[childKeys[i]]={ x: startPosX + (i*(this.state.socketSize.width+this.outputSpacing.x)), y: startPosY })
+    );
     return childCoord;
   }
 
-  getInputCoordinates = (center=true) => [{ x: (center?this.state.c14Img.width*0.5:0), y: (center?this.state.c14Img.height*0.5:0), }];
+  getInputCoordinates = (center=true) => [
+    (center&&this.state.c14Img)?{ x: this.state.c14Img.width*0.5, y: this.state.c14Img.height*0.5, }:{ x: 0, y: 0 }
+  ];
 
   render() {
 
