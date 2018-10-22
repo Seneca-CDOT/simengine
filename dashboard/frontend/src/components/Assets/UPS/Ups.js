@@ -87,7 +87,7 @@ export default class Ups extends OutputAsset {
         <Text x={230} y={-125} text={this.props.asset.name} fontSize={18}  fontFamily={'Helvetica'} />
 
         {/* UPS Display */}
-        <LEDDisplay x={345} y={-50} battery={this.props.asset.battery} status={this.props.asset.status} upsMonitorImg={upsMonitorImg}/>
+        <LEDDisplay x={345} y={-50} battery={this.props.asset.battery} status={!!this.props.asset.status} upsMonitorImg={upsMonitorImg}/>
         
         {/* IO Sockets */}
         {outputSockets}

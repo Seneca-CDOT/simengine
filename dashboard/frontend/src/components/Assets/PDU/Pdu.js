@@ -72,7 +72,7 @@ export default class Pdu extends OutputAsset {
         <Text y={-85} text={this.props.asset.name} fontSize={18}  fontFamily={'Helvetica'}/>
 
         {/* LED display (load) */}
-        <LEDDisplay load={Math.round(this.props.asset.load)} y={15} x={845} status={this.props.asset.status}/>
+        <LEDDisplay load={Math.round(this.props.asset.load)} y={15} x={845} status={!!this.props.asset.status}/>
 
         {/* Draw Sockets (input connector and output outlets) */}
         {inputSocket}

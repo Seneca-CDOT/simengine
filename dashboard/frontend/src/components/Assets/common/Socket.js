@@ -8,7 +8,7 @@ import Led from './Led';
 import Asset from './Asset';
 
 // ** misc
-import socketSource from '../../../images/socket.svg';
+import socketSource from '../../../images/socket.png';
 import colors from '../../../styles/colors';
 
 
@@ -69,7 +69,7 @@ class Socket extends Asset {
           {backgroundImg && <Image image={backgroundImg} stroke={strokeColor} strokeWidth={4}/>}
 
           {/* Outlet Image */}
-          <Image image={socketImg} stroke={strokeColor} />
+          <Image image={socketImg} stroke={strokeColor} strokeWidth={4} />
 
           {/* LED */}
           <Led socketOn={this.props.asset.status} powered={this.props.powered}/>

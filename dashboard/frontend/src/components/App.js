@@ -168,7 +168,6 @@ const drawerWidth = 240;
       assets[key] = {...assetDetails, ...{x: coord.x, y: coord.y }};
     }
 
-
     // output wiring
     if (asset.children) {
       for (const ckey of Object.keys(coord.outputConnections)) {
@@ -240,6 +239,7 @@ const drawerWidth = 240;
       powered={powered !== 0}
       x={asset.x}
       y={asset.y}
+      fontSize={18}
     />);
   }
 
@@ -335,8 +335,9 @@ const drawerWidth = 240;
 
       // draw wires
       for (const key of Object.keys(connections)) {
+        console.log(key)
         const asset = this._get_asset_by_key(key);
-
+        
         wireDrawing.push(
           <Line
             points={[
@@ -365,7 +366,7 @@ const drawerWidth = 240;
             saveLayout={this.saveLayout.bind(this)}
             ambient={this.state.ambient}
             ambientRising={this.state.ambientRising}
-            mainsStatus={this.state.mainsStatus}
+            mainsStatus={!!this.state.mainsStatus}
             togglePower={(status) => this.ws.sendData({ request: 'mains', mains: status })}
             classes={classes}
           />
