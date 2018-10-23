@@ -66,7 +66,7 @@ const drawerWidth = 240;
       /** 1st time connection -> initialize system topology */
       onTopologyReceived: (data) => {
         let connections = {};
-        const { assets } = data;
+        const { assets, stageLayout } = data;
 
         Object.keys(assets).map((key) => {
           if (assets[key]['parent']) {
@@ -79,6 +79,12 @@ const drawerWidth = 240;
             }
           }
         });
+
+        if (stageLayout) {
+          let stage = this.refs.stage.getStage();
+          stage.position({ x: stageLayout.x, y: stageLayout.y });
+          stage.scale({ x: stageLayout.scale, y: stageLayout.scale });
+        }
 
         this.setState({ assets, connections });
       },
