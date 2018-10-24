@@ -777,33 +777,6 @@ class ServerStateManager(StaticDeviceStateManager):
         return powered
 
 
-
-class SensorRepository():
-
-    def __init__(self, server_key):
-        self._server_key = server_key
-        self._sensor_dir = os.path.join(
-            StateManager.get_temp_workplace_dir(),
-            server_key,
-            'sensor_dir'
-        )
-
-
-    @property
-    def sensor_dir(self):
-        """Get temp IPMI state dir"""
-        return self._sensor_dir
-
-
-    @property
-    def sensor(self):
-        pass
-
-
-    def _get_sensor_file(self, addr):
-        return os.path.join(self.sensor_dir, 'caseFan{}'.format(addr))
-
-
 class IPMIComponent():
     """ 
     PSU:

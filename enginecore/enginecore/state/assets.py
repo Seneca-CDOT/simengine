@@ -23,6 +23,7 @@ from circuits import Component, handler
 import enginecore.state.state_managers as sm
 from enginecore.state.asset_definition import register_asset, SUPPORTED_ASSETS
 from enginecore.state.agents import IPMIAgent, SNMPAgent
+from enginecore.state.sensors import SensorRepository
 
 PowerEventResult = namedtuple("PowerEventResult", "old_state new_state asset_key asset_type")
 PowerEventResult.__new__.__defaults__ = (None,) * len(PowerEventResult._fields)
@@ -32,7 +33,7 @@ LoadEventResult.__new__.__defaults__ = (None,) * len(PowerEventResult._fields)
 
 class SystemEnvironment(Component):
     """Represents hardware's environment (Room/ServerRack)"""
-    
+
     def __init__(self):
         super(SystemEnvironment, self).__init__()
 
@@ -42,7 +43,7 @@ class SystemEnvironment(Component):
 
         # Set defaults 
         self._outage_temp_increase = 2
-        self._outage_temp_rate = 60 * 6 # every 6 minutes 
+        self._outage_temp_rate = 60 * 6 # every 6 minutes s
         self._outage_temp_max = 34
 
         self._ac_on_temp_decrease = 1
@@ -609,19 +610,14 @@ class UPS(Asset, SNMPSim):
             event.success = e_result.new_state != e_result.old_state
 
             return e_result
-        else:
-            event.success = False
-            return None
+        
+        event.success = False
+        return None
     
 
     @handler("AmbientDecreased", "AmbientIncreased")
     def on_ambient_updated(self):
         self._state.update_temperature(7)
-
-    # @handler("AmbientIncreased")
-    # def on_ambient_increased(self):
-    #     self._state.update_temperature(7)
-
 
     @property
     def charge_speed_factor(self):
@@ -755,6 +751,8 @@ class ServerWithBMC(Server):
         # create state directory
         ipmi_dir = os.path.join(sm.StateManager.get_temp_workplace_dir(), str(asset_info['key']))
         sensors = self.StateManagerCls.get_sensor_definitions(asset_info['key'])
+        self._sensors = SensorRepository(asset_info['key'])
+
         os.makedirs(ipmi_dir)
 
         self._ipmi_agent = IPMIAgent(asset_info['key'], ipmi_dir, ipmi_config=asset_info, sensors=sensors)
