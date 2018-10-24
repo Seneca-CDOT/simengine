@@ -151,8 +151,9 @@ def handle_link(kwargs):
         sm.link_assets(kwargs['source_key'], kwargs['dest_key'])
             
 
-def handle_ambient(kwargs):
-    
+def handle_thermal_ambient(kwargs):
+    """Configure thermal properties for room temperature"""
+
     del kwargs['func']
      
     if kwargs['event'] and kwargs['stop_at'] and kwargs['rate']:
@@ -162,6 +163,10 @@ def handle_ambient(kwargs):
     else:
         StateManager.set_ambient(kwargs['degrees'])
 
+
+def handle_thermal_sensor(kwargs):
+    """Configure thermal sensor relations & properties"""
+    del kwargs['func']
 
 ############# Validations
 
@@ -212,9 +217,9 @@ status_group.add_argument('--watch-rate', nargs='?',
 ## -> Setup options for thermal/temperature group
 
 thermal_group = subparsers.add_parser('thermal', help="Manage temperature/thermal settings of the system")
-ambient_subp = thermal_group.add_subparsers()
+thermal_subp = thermal_group.add_subparsers()
 
-th_ambient_group = ambient_subp.add_parser(
+th_ambient_group = thermal_subp.add_parser(
     'ambient', 
     help="Configure/Retrieve ambient state (room temperature settings)"
 )
@@ -245,7 +250,7 @@ th_set_ambient_action.add_argument(
 )
 
 th_set_ambient_action.add_argument(
-    '-s', '--stop-at',
+    '-p', '--pause-at',
     help="Increase/Descrease room temperature until this value is reached", 
     type=float
 )
@@ -254,6 +259,65 @@ th_set_ambient_action.add_argument(
     '-r', '--rate',
     help="Update temperature value very 'n' seconds"
 )
+
+
+th_sensor_group = thermal_subp.add_parser(
+    'sensor', 
+    help="Configure/Retrieve sensor state and relationships"
+)
+
+th_sensor_subp = th_sensor_group.add_subparsers()
+
+th_set_sensor_action = th_sensor_subp.add_parser(
+    'set', 
+    help="Update sensor thermal settings", 
+)
+
+th_set_sensor_action.add_argument('-k', '--asset-key', help="Key of the server sensors belong to ", type=int)
+th_set_sensor_action.add_argument(
+    '-j', '--jitter', help="Jitter of temperature (rand +- max(this value) to the sensor readings)", type=int
+)
+
+th_set_sensor_action.add_argument('-s', '--source-sensor', help="Name of the source sensor", type=int)
+th_set_sensor_action.add_argument(
+    '-t', 
+    '--target-sensor', 
+    help="Name of the target sensor affected by the event associated with the source sensor", 
+    type=int
+)
+
+th_set_sensor_action.add_argument(
+    '-e', '--event', help="Event associated with the source sensor", choices=['up', 'down']
+)
+
+th_set_sensor_action.add_argument(
+    '-d', '--degrees', 
+    type=float, 
+    help="Update ambient temperature (in Celsius); \
+         if time period and event are specified, this value will be added to the previous room temp;", 
+    required=True
+)
+
+th_set_sensor_action.add_argument(
+    '-p', '--pause-at',
+    help="Increase/Descrease room temperature until this value is reached", 
+    type=float
+)
+
+th_set_sensor_action.add_argument(
+    '-r', '--rate',
+    help="Update temperature value very 'n' seconds"
+)
+
+
+th_get_sensor_action = th_sensor_subp.add_parser(
+    'get', 
+    help="Query current thermal configurations", 
+)
+
+th_get_sensor_action.add_argument('-k', '--asset-key', help="Key of the server sensor belongs to ", type=int)
+th_get_sensor_action.add_argument('-s', '--sensor', help="Name of the sensor", type=int)
+
 
 
 ## -> Setup options for oid queries
@@ -693,9 +757,16 @@ th_get_ambient_action.set_defaults(
 )
 
 th_set_ambient_action.set_defaults(
-    func=handle_ambient
+    func=handle_thermal_ambient
 )
 
+th_get_sensor_action.set_defaults(
+    func=lambda _: print("")
+)
+
+th_set_sensor_action.set_defaults(
+    func=handle_thermal_sensor
+)
 
 try:
     options = argparser.parse_args()
