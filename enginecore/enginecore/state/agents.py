@@ -140,9 +140,9 @@ class IPMIAgent(Agent):
             main_sdr_opt[s_specs['type']] += 'define R_UCR "{}"  \n'.format('ucr' in s_specs)
             main_sdr_opt[s_specs['type']] += 'define R_UNR "{}"  \n'.format('unr' in s_specs)
             
-            s_name = s_specs['name'].format(index='"$IDX"')
+            # s_name = s_specs['name'].format(index='"$IDX"')
 
-            main_sdr_opt[s_specs['type']] += 'define C_NAME "{}" \n'.format(s_name)
+            main_sdr_opt[s_specs['type']] += 'define C_NAME "{}" \n'.format(s_specs['name'])
             main_sdr_opt[s_specs['type']] += 'include "{}/{}.sdrs" \n'.format(self._ipmi_dir, s_specs['type'])
 
             #  0x20  0   0x74    3     1 

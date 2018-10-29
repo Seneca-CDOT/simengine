@@ -8,6 +8,7 @@ handled by individual assets.
 """
 import sys
 import json
+import logging
 
 from circuits import Component, Event, Timer, Worker, Debugger, task
 import redis
@@ -34,6 +35,7 @@ class StateListener(Component):
         super(StateListener, self).__init__()
 
         ### Set-up WebSocket & Redis listener ###
+        logging.info('Starting main simengine daemon...')
 
         # Use redis pub/sub communication
         self._redis_store = redis.StrictRedis(host='localhost', port=6379)
@@ -56,7 +58,7 @@ class StateListener(Component):
         # set up a web socket server
         self._server = Server(("0.0.0.0", 8000)).register(self)  
 
-        # Worker(process=False).register(self)
+        Worker(process=False).register(self)
         Static().register(self._server)
         Logger().register(self._server)
         
@@ -119,7 +121,7 @@ class StateListener(Component):
                         leaf_nodes.append(asset['key'])
 
                 except StopIteration:
-                    print('Detected asset that is not supported', file=sys.stderr)
+                    logging.error('Detected asset that is not supported')
 
         # initialize load by dispatching load update
         for key in leaf_nodes:
@@ -166,8 +168,8 @@ class StateListener(Component):
             for key in affected_keys:
                 self.fire(PowerEventManager.get_state_specs()[oid_name][oid_value_name], self._assets[key])
 
-        print('oid changed:')
-        print(">" + oid + ": " + oid_value)
+        logging.info('oid changed:')
+        logging.info(">" + oid + ": " + oid_value)
         
 
     def _handle_ambient_update(self, data, rising):
@@ -223,8 +225,10 @@ class StateListener(Component):
                     return
 
                 parent_load_change = load_change * parent.state.draw_percentage
-                print("-- child [{}] load_upd as '{}', updating load for [{}], old load: {}"
-                      .format(child_key, load_change, parent.key, parent.state.load))
+                # logging.info(
+                #     "child [%s] load update: %s; updating %s load for [%s]", 
+                # child_key, load_change, parent.state.load, parent.key
+                # )
                
                 if increased:
                     event = PowerEventManager.map_load_increased_by(parent_load_change, child_key)
@@ -323,14 +327,13 @@ class StateListener(Component):
                 # check upstream & branching power
                 # alternative power source is available, therefore the load needs to be re-directed
                 else:
-                    print('Found an asset that has alternative parent[{}], child[{}]'
-                          .format(second_parent_asset.key, child_asset.key))
+                    logging.info('Asset[%s] has alternative parent[%s]', child_asset.key, second_parent_asset.key)
 
                     # find out how much load the 2nd parent should take
                     # (how much updated asset was drawing)
                     node_load = child_asset.state.load * updated_asset.state.draw_percentage
 
-                    # print('Child load : {}'.format(node_load))
+                    # logging.info('Child load : {}'.format(node_load))
                     if int(new_state) == 0:  
                         alt_branch_event = PowerEventManager.map_load_increased_by(node_load, child_asset.key)             
                     else:
@@ -388,13 +391,12 @@ class StateListener(Component):
 
 
         except KeyError as error:
-            print("Detected unregistered asset under key [{}]".format(error), file=sys.stderr)
+            logging.error("Detected unregistered asset under key [%s]", error)
 
 
     def monitor_state(self):
         """ listens to redis events """
 
-        print("...")
         message = self._state_pubsub.get_message()
 
         # validate message
@@ -446,7 +448,7 @@ class StateListener(Component):
                 self._subscribe_to_channels()
 
         except KeyError as error:
-            print("Detected unregistered asset under key [{}]".format(error), file=sys.stderr)
+            logging.error("Detected unregistered asset under key [%s]", error)
 
 
     def monitor_thermal(self):
@@ -465,33 +467,31 @@ class StateListener(Component):
             if channel == RedisChannels.ambient_update_channel:
                 old_temp, new_temp = map(float, data.split('-'))
                 self._handle_ambient_update(float(new_temp), rising=(float(new_temp) > float(old_temp)))
-                print("AMBIENT")
                 for a_key in self._assets:
                     self.fire(PowerEventManager.map_ambient_event(old_temp, new_temp), self._assets[a_key]) 
 
             elif channel == RedisChannels.ambient_conf_channel:
                 ambient_conf = json.loads(data)
-                print(ambient_conf)
+
                 if ambient_conf['event'] == 'up':
                     self._sys_environ.ac_on_temp_decrease = ambient_conf['degrees']
                     self._sys_environ.ac_on_temp_rate = int(ambient_conf['rate'])
                     self._sys_environ.ac_on_temp_min = ambient_conf['stop_at']
                 elif ambient_conf['event'] == 'down':
-                    print('down')
                     self._sys_environ.outage_temp_increase = ambient_conf['degrees']
                     self._sys_environ.outage_temp_rate = int(ambient_conf['rate'])
                     self._sys_environ.outage_temp_max = ambient_conf['stop_at']
 
 
         except KeyError as error:
-            print("Detected unregistered asset under key [{}]".format(error), file=sys.stderr)
+            logging.error("Detected unregistered asset under key [%s]", error)
 
 
     def started(self, *args):
         """
             Called on start
         """
-        print('Listening to Redis events')
+        logging.info('Listening to Redis events')
         Timer(0.5, Event.create("monitor_state"), persist=True).register(self)
         Timer(1, Event.create("monitor_battery"), persist=True).register(self)
         Timer(2, Event.create("monitor_thermal"), persist=True).register(self)

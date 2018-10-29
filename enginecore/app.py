@@ -3,8 +3,11 @@
 
 import argparse
 import os
+import logging
 
 from enginecore.state.state_listener import StateListener
+
+FORMAT = "[%(threadName)s, %(asctime)s, %(module)s/%(funcName)s] %(message)s"
 
 def configure_env(relative=False):
     """Set-up defaults for the env vars if not defined 
@@ -18,6 +21,8 @@ def configure_env(relative=False):
         static_path = os.path.abspath(os.path.join(os.pardir, "data"))
         ipmi_templ_path = os.path.abspath("ipmi_template")
         lua_script_path = os.path.join("script", "snmppub.lua")
+
+        log_path = "info.log"
     else:
         share_dir = os.path.join(os.sep, "usr", "share", "simengine")
 
@@ -25,6 +30,9 @@ def configure_env(relative=False):
         ipmi_templ_path = os.path.join(share_dir, "enginecore", "ipmi_template")
         lua_script_path = os.path.join(share_dir, "enginecore", "script", "snmppub.lua")
 
+        log_path = os.path.join("var", "log", "simengine", "info.log")
+
+    logging.basicConfig(filename=log_path, level=logging.INFO, format=FORMAT)
 
     os.environ['SIMENGINE_STATIC_DATA'] = os.environ.get('SIMENGINE_STATIC_DATA', static_path)
     os.environ['SIMENGINE_IPMI_TEMPL'] = os.environ.get('SIMENGINE_IPMI_TEMPL', ipmi_templ_path)
