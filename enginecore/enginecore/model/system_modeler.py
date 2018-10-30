@@ -237,16 +237,14 @@ def _add_sensors(asset_key, preset_file=os.path.join(os.path.dirname(__file__), 
                     "address", "index", "type", "eventReadingType"
                 ]
 
+                sensor['name'] = sensor['name'].format(index=addr['index'] + 1 if 'index' in addr else '')
                 props = {
                     **sensor['thresholds'], 
                     **sensor, **addr, 
-                    **{
-                        'type': sensor_type, 
-                        'name': sensor['name'].format(**(sensor if 'index' in sensor else {'index': ''}))
-                    }
+                    **{'type': sensor_type}
                 }
-                props_stm = _get_props_stm(props, supported_attr=s_attr)
 
+                props_stm = _get_props_stm(props, supported_attr=s_attr)
                 query.append("CREATE (sensor{}:Sensor:{} {{ {} }})".format(sensor_node, sensor_type, props_stm))
 
                 if not ('address' in sensor) or not sensor['address']:
@@ -505,3 +503,43 @@ def delete_asset(key):
         OPTIONAL MATCH (a)-[:HAS_BATTERY]->(b)
         OPTIONAL MATCH (oid)-[:HAS_STATE_DETAILS]->(sd)
         DETACH DELETE a,s,oid,sd,b""", key=key)
+
+
+def set_thermal_sensor_target(attr):
+    """Set-up a new thermal relationship between 2 sensors or configure the existing one"""
+
+    query = []
+    if attr['source_sensor'] == attr['target_sensor']:
+        raise KeyError('Sensor cannot affect itself!')
+
+    # find the source sensor & server asset
+    query.append(
+        'MATCH (source {{ name: "{}" }} )<-[:HAS_SENSOR]-(server:Asset {{ key: {} }})'
+        .format(attr['source_sensor'], attr['asset_key'])
+    )
+
+    # find the destination or target sensor
+    query.append(
+        'MATCH (target {{ name: "{}" }} )<-[:HAS_SENSOR]-(server)'
+        .format(attr['target_sensor'])
+    )
+
+    # determine relationship type 
+    thermal_rel_type = ''
+    if attr['event'] == 'down':
+        thermal_rel_type = 'HEATED_BY'
+    elif attr['event'] == 'up':
+        thermal_rel_type = 'COOLED_BY'
+    else:
+        raise KeyError('Unrecognized event type: {}'.format(attr['event']))
+
+    # set the thermal relationship & relationship attributes
+    s_attr = ["pause_at", 'rate', 'event', 'degrees', 'jitter']
+    set_stm = _get_set_stm(attr, node_name="rel", supported_attr=s_attr)
+
+    query.append("MERGE (source)<-[rel:{}]-(target)".format(thermal_rel_type))
+    query.append("SET {}".format(set_stm))
+    
+    with GRAPH_REF.get_session() as session:
+        print("\n".join(query))
+        session.run("\n".join(query))

@@ -54,7 +54,8 @@ class IPMIAgent(Agent):
         'psuStatus': '',
         'psuVoltage': '',
         'psuPower': '',
-        'psuCurrent': ''
+        'psuCurrent': '',
+        'psuTemperature': ''
     }
 
     def __init__(self, key, ipmi_dir, ipmi_config, sensors):
@@ -70,8 +71,6 @@ class IPMIAgent(Agent):
         ipmisim_emu = os.path.join(self._ipmi_dir, 'ipmisim1.emu')
         sdr_main = os.path.join(*[self._ipmi_dir, 'emu_state', 'ipmi_sim', 'ipmisim1', 'sdr.20.main'])
         sensor_def = os.path.join(self._ipmi_dir, 'main.sdrs')
-        sensor_dir = os.path.join(self._ipmi_dir, 'sensor_dir')
-
 
         lib_path = os.path.join(sysconfig.get_config_var('LIBDIR'), "simengine", 'haos_extend.so')
         
@@ -103,7 +102,6 @@ class IPMIAgent(Agent):
 
         # initialize sensors
         for i, sensor in enumerate(sensors):
-            print(sensor)
 
             s_specs = sensor['specs']
             
@@ -112,11 +110,7 @@ class IPMIAgent(Agent):
             else:
                 s_idx = s_specs['address']
 
-            sensor_file = "{}_{}".format(s_specs['type'], s_idx)
-
-            with open(os.path.join(sensor_dir, sensor_file), "w+") as filein:
-                filein.write(str(int(s_specs['defaultValue']*0.1) if 'defaultValue' in s_specs else 0))
-            
+            sensor_file = s_specs['name']
 
             index = str(s_specs['index']+1)if 'index' in s_specs else ''
 
@@ -151,7 +145,6 @@ class IPMIAgent(Agent):
             ipmisim_emu_opt[s_specs['type']] += 'sensor_add 0x20  0   {}   3     {} poll 2000 '.format(s_idx, e_type)
             ipmisim_emu_opt[s_specs['type']] += 'file $TEMP_IPMI_DIR"/sensor_dir/{}" \n'.format(sensor_file)
         
-        print(main_sdr_opt)
 
         # Set server-specific includes
         if ipmi_config['num_components'] == 2:

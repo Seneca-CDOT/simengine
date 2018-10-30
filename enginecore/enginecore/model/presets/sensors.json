@@ -97,5 +97,20 @@
                 "name": "PSU{index} power"
             }
         ] 
+    },
+    "psuTemperature": {
+        "addressSpace": "0x10",
+        "sensorDefinitions": [
+            {
+                "thresholds": {},
+                "defaultValue": 0,
+                "name": "PSU{index} temperature"
+            },
+            {
+                "thresholds": {},
+                "defaultValue": 0,
+                "name": "PSU{index} temperature"
+            }
+        ] 
     }
 }

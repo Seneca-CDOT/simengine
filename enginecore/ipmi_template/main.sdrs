@@ -165,6 +165,7 @@ ${psuStatus}
 ${psuCurrent}
 ${psuPower}
 ${psuVoltage}
+${psuTemperature}
 
 define IPMI_DIR "${ipmi_dir}"
 # ${includes}

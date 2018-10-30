@@ -24,6 +24,8 @@ from enginecore.state.redis_channels import RedisChannels
 from enginecore.model.graph_reference import GraphReference
 from enginecore.state.state_initializer import initialize, clear_temp
 
+SOCKET_CONF = {'host': "0.0.0.0", 'port': 8000}
+
 class NotifyClient(Event):
     """Notify websocket clients of any data updates"""
 
@@ -35,9 +37,10 @@ class StateListener(Component):
         super(StateListener, self).__init__()
 
         ### Set-up WebSocket & Redis listener ###
-        logging.info('Starting main simengine daemon...')
+        logging.info('Starting simengine daemon...')
 
         # Use redis pub/sub communication
+        logging.info('Initializing redis connection...')
         self._redis_store = redis.StrictRedis(host='localhost', port=6379)
 
         self._bat_pubsub = self._redis_store.pubsub()
@@ -53,10 +56,12 @@ class StateListener(Component):
         StateManager.power_restore()
 
         # init graph db instance
+        logging.info('Initializing neo4j connection...')
         self._graph_ref = GraphReference()
         
         # set up a web socket server
-        self._server = Server(("0.0.0.0", 8000)).register(self)  
+        logging.info('Initializing websocket server at %s:%s ...', SOCKET_CONF['host'], SOCKET_CONF['port'])
+        self._server = Server((SOCKET_CONF['host'], SOCKET_CONF['port'])).register(self)  
 
         Worker(process=False).register(self)
         Static().register(self._server)
@@ -76,6 +81,8 @@ class StateListener(Component):
     def _subscribe_to_channels(self):
         """Subscribe to redis channels"""
         
+        logging.info('Initializing redis subscriptions...')
+
         # State Channels
         self._state_pubsub.psubscribe(
             RedisChannels.oid_update_channel,  # snmp oid updates
@@ -100,6 +107,8 @@ class StateListener(Component):
 
     def _reload_model(self, force_snmp_init=True):
         """Re-create system topology (instantiate assets based on graph ref)"""
+
+        logging.info('Initializing system topology...')
 
         self._assets = {}
 
@@ -491,7 +500,7 @@ class StateListener(Component):
         """
             Called on start
         """
-        logging.info('Listening to Redis events')
+        logging.info('Initializing pub/sub event handlers...')
         Timer(0.5, Event.create("monitor_state"), persist=True).register(self)
         Timer(1, Event.create("monitor_battery"), persist=True).register(self)
         Timer(2, Event.create("monitor_thermal"), persist=True).register(self)

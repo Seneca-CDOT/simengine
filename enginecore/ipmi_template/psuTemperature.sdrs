@@ -1,11 +1,9 @@
-# PSU voltage sensors (12v)
-# Range 10-14
+# Front panel temp sensor
 sdr type 1
 	sensor_owner_id		0x20
 	sensor_owner_lun	0
 	channel_number		0
 	
-
 	sensor_number		$ADDR
 	entity_instance		$ID_STR
 
@@ -22,7 +20,7 @@ sdr type 1
 	sensor_hysteresis	settable
 	sensor_threshold_access	settable
 	sensor_event_msg_ctrl	per_state
-	sensor_type		Voltage
+	sensor_type		Temperature
 	event_reading_type_code	1
 
 	return_lnc		$R_LNC
@@ -40,17 +38,15 @@ sdr type 1
 	deassert_uncgh		true
 	assert_ucgh		true
 	deassert_ucgh		true
-	
-    lc_thrsh_settable	true
+	lc_thrsh_settable	true
 	lnc_thrsh_settable	true
 	uc_thrsh_settable	true
 	unc_thrsh_settable	true
-
 	analog_data_format	unsigned
 	rate_unit		none
 	modifier_unit		none
 	percentage		false
-	base_unit		Volts
+	base_unit		degrees_C
 	modifier_unit_code	unspecified
 	linearization		linear
 
@@ -60,13 +56,12 @@ sdr type 1
 	accuracy		1
 	accuracy_exp		0
 	sensor_direction	input
-	r_exp			1
+	r_exp			0
 	b_exp			0
 	
-  nominal_specified	true
-	nominal_freading	12.0
-	sensor_maximum		255
+  sensor_maximum		255
 	sensor_minimum		0
+
 
 	lnc_fthresh		$LNC
 	lc_fthresh		$LCR
@@ -74,7 +69,6 @@ sdr type 1
 	unc_fthresh		$UNC
 	uc_fthresh		$UCR
 	unr_fthresh		$UNR
-
 
 	positive_hysteresis	2
 	negative_hysteresis	2

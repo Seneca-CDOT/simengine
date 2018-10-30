@@ -7,7 +7,7 @@ import json
 import time
 import curses
 from enginecore.state.assets import Asset
-import enginecore.model.system_modeler as sm
+import enginecore.model.system_modeler as sys_modeler
 from enginecore.state.state_managers import StateManager
 
 
@@ -146,9 +146,9 @@ def configure_battery(key, kwargs):
 def handle_link(kwargs):
     """Power connections"""
     if kwargs['remove']:
-        sm.remove_link(kwargs['source_key'], kwargs['dest_key'])
+        sys_modeler.remove_link(kwargs['source_key'], kwargs['dest_key'])
     else:
-        sm.link_assets(kwargs['source_key'], kwargs['dest_key'])
+        sys_modeler.link_assets(kwargs['source_key'], kwargs['dest_key'])
             
 
 def handle_thermal_ambient(kwargs):
@@ -167,6 +167,10 @@ def handle_thermal_ambient(kwargs):
 def handle_thermal_sensor(kwargs):
     """Configure thermal sensor relations & properties"""
     del kwargs['func']
+
+    print(kwargs)
+
+    sys_modeler.set_thermal_sensor_target(kwargs)
 
 ############# Validations
 
@@ -273,17 +277,19 @@ th_set_sensor_action = th_sensor_subp.add_parser(
     help="Update sensor thermal settings", 
 )
 
-th_set_sensor_action.add_argument('-k', '--asset-key', help="Key of the server sensors belong to ", type=int)
+th_set_sensor_action.add_argument(
+    '-k', '--asset-key', help="Key of the server sensors belong to ", type=int, required=True
+)
 th_set_sensor_action.add_argument(
     '-j', '--jitter', help="Jitter of temperature (rand +- max(this value) to the sensor readings)", type=int
 )
 
-th_set_sensor_action.add_argument('-s', '--source-sensor', help="Name of the source sensor", type=int)
+th_set_sensor_action.add_argument('-s', '--source-sensor', help="Name of the source sensor", type=str)
 th_set_sensor_action.add_argument(
     '-t', 
     '--target-sensor', 
     help="Name of the target sensor affected by the event associated with the source sensor", 
-    type=int
+    type=str
 )
 
 th_set_sensor_action.add_argument(
@@ -685,51 +691,51 @@ conf_ups_action.set_defaults(func=lambda args: configure_battery(args['asset_key
 ## asset_group callbacks
 create_outlet_action.set_defaults(
     validate=lambda args: validate_key(args['asset_key']),
-    func=lambda args: sm.create_outlet(args['asset_key'], args)
+    func=lambda args: sys_modeler.create_outlet(args['asset_key'], args)
 )
 
 create_pdu_action.set_defaults(
     validate=lambda args: validate_key(args['asset_key']),
-    func=lambda args: sm.create_pdu(args['asset_key'], args)
+    func=lambda args: sys_modeler.create_pdu(args['asset_key'], args)
 )
 
 create_ups_action.set_defaults(
     validate=lambda args: validate_key(args['asset_key']),
-    func=lambda args: sm.create_ups(args['asset_key'], args)
+    func=lambda args: sys_modeler.create_ups(args['asset_key'], args)
 )
 
 create_server_action.set_defaults(
     validate=lambda args: [validate_key(args['asset_key']), validate_server(args)],
-    func=lambda args: sm.create_server(args['asset_key'], args)
+    func=lambda args: sys_modeler.create_server(args['asset_key'], args)
 )
 
 create_server_bmc_action.set_defaults(
     validate=lambda args: [validate_key(args['asset_key']), validate_server(args)],
-    func=lambda args: sm.create_server(args['asset_key'], args, server_variation=sm.ServerVariations.ServerWithBMC)
+    func=lambda args: sys_modeler.create_server(args['asset_key'], args, server_variation=sys_modeler.ServerVariations.ServerWithBMC)
 )
 
 create_static_action.set_defaults(
     validate=lambda args: validate_key(args['asset_key']),
-    func=lambda args: sm.create_static(args['asset_key'], args)
+    func=lambda args: sys_modeler.create_static(args['asset_key'], args)
 )
 
 
 for action in update_actions:
-    action.set_defaults(func=lambda args: sm.configure_asset(args['asset_key'], args))
+    action.set_defaults(func=lambda args: sys_modeler.configure_asset(args['asset_key'], args))
 
 reload_asset_action.set_defaults(
     func=lambda args: StateManager.reload_model() 
 )
 
 delete_asset_action.set_defaults(
-    func=lambda args: sm.delete_asset(args['asset_key'])
+    func=lambda args: sys_modeler.delete_asset(args['asset_key'])
 )
 
 power_asset_action.set_defaults(
     func=handle_link
 )
 
-drop_system_action.set_defaults(func=lambda args: sm.drop_model())
+drop_system_action.set_defaults(func=lambda args: sys_modeler.drop_model())
 
 
 ## power_group callbacks

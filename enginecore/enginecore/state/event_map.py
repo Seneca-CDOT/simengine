@@ -70,5 +70,10 @@ class PowerEventManager:
     @classmethod
     def map_ambient_event(cls, old_value, new_value):
         '''Ambient changes'''
-        return events.AmbientDecreased() if old_value > new_value else events.AmbientIncreased()
+        if old_value > new_value:
+            amb_event = events.AmbientDecreased(old_value=old_value, new_value=new_value)
+        else:
+            amb_event = events.AmbientIncreased(old_value=old_value, new_value=new_value)
+
+        return amb_event
         

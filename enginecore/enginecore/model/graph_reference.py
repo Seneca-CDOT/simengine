@@ -371,7 +371,10 @@ class GraphReference():
     @classmethod
     def get_asset_sensors(cls, session, asset_key):
         """Get sensors that belong to a particular asset
-
+        
+        Args:
+            session: database session
+            asset_key: key of the asset sensors belong to
         Returns:
             list: of sensor dictionaries
         """
@@ -400,6 +403,8 @@ class GraphReference():
     def get_mains_powered_outlets(cls, session):
         """Wall-powered outlets
 
+        Args:
+            session: database session
         Returns:
             list: of outlet keys powered by the mains
         """
@@ -411,3 +416,32 @@ class GraphReference():
         # print(results['key'])
         return list(map(lambda x: x.get('key'), results))
             
+    @classmethod
+    def get_affected_sensors(cls, session, source_name):
+        """Get sensors affected by the source sensor
+        
+        Args:
+            session: database session
+            source_name(str): name of the source sensor
+        Returns:
+            dict: source and target sensor details    
+        """
+        
+        results = session.run(
+            """
+            MATCH (source:Sensor { name: $name })<-[rel]-(targets:Sensor) return source, targets, collect(rel) as rel
+            """, name=source_name
+        )
+
+        thermal_details = {'source': {}, 'targets': [],}
+
+        for record in results:
+            thermal_details['source'] = dict(record.get('source'))
+             
+            thermal_details['targets'].append(
+                {**dict(record.get('targets')), **{"rel": list(map(dict, record.get('rel')))}}
+            )
+
+        # print(source_name, thermal_details)
+
+        return thermal_details
