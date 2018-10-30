@@ -615,7 +615,7 @@ class UPS(Asset, SNMPSim):
     
 
     @handler("AmbientDecreased", "AmbientIncreased")
-    def on_ambient_updated(self):
+    def on_ambient_updated(self, event, *args, **kwargs):
         self._state.update_temperature(7)
 
     @property
@@ -752,12 +752,15 @@ class ServerWithBMC(Server):
         os.makedirs(ipmi_dir)
 
         sensors = self.StateManagerCls.get_sensor_definitions(asset_info['key'])
-        self._sensors = SensorRepository(asset_info['key'])
+        self._sensor_repo = SensorRepository(asset_info['key'])
 
         self._ipmi_agent = IPMIAgent(asset_info['key'], ipmi_dir, ipmi_config=asset_info, sensors=sensors)
         super(ServerWithBMC, self).__init__(asset_info)
-       
-        
+    
+
+    @handler("AmbientDecreased", "AmbientIncreased")
+    def on_ambient_updated(self, event, *args, **kwargs):
+        print(kwargs['old_value'], kwargs['new_value'])        
     
     @handler("ParentAssetPowerDown")
     def on_parent_asset_power_down(self, event, *args, **kwargs):
