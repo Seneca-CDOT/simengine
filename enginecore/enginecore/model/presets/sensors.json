@@ -1,5 +1,6 @@
 {
     "caseFan": {
+        "group": "fan",
         "addressSpace": "0x6f",
         "sensorDefinitions": [
             {
@@ -38,6 +39,7 @@
         ]
     },
     "psuStatus": {
+        "group": "psu",
         "addressSpace": "0x8",
         "eventReadingType": "0x6f",
         "sensorDefinitions": [
@@ -54,6 +56,7 @@
         ] 
     },
     "psuCurrent": {
+        "group": "current",
         "addressSpace": "0xa",
         "sensorDefinitions": [
             {
@@ -69,6 +72,7 @@
         ] 
     },
     "psuVoltage": {
+        "group": "voltage",
         "addressSpace": "0xc",
         "sensorDefinitions": [
             {
@@ -84,6 +88,7 @@
         ] 
     },
     "psuPower": {
+        "group": "wattage",
         "addressSpace": "0xE",
         "sensorDefinitions": [
             {
@@ -99,6 +104,7 @@
         ] 
     },
     "psuTemperature": {
+        "group": "temperature",
         "addressSpace": "0x10",
         "sensorDefinitions": [
             {

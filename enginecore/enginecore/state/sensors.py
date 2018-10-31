@@ -31,6 +31,7 @@ class Sensor():
 
         self._s_type = self._s_specs['type']
         self._s_name = self._s_specs['name']
+        self._s_group = self._s_specs['group']
 
         self._graph_ref = GraphReference()
 
@@ -74,7 +75,7 @@ class Sensor():
             try:
                 self._s_file_locks.get_lock(target['name']).acquire()
                 max_not_reached = lambda current_value: current_value+int(rel['degrees']) < int(rel['pauseAt'])
-                sensor_is_down = lambda _: int(self.value) == 0 
+                sensor_is_down = lambda _: int(self.sensor_value) == 0 
                 
                 
                 Sensor.update_sensor_value(
@@ -114,15 +115,25 @@ class Sensor():
         """Unique sensor name""" 
         return self._s_name
 
+
     @property
-    def value(self):
+    def group(self):
+        """Sensor group type"""
+        return self._s_group
+
+
+    @property
+    def sensor_value(self):
         with open(self._get_sensor_file_path()) as sf_handler: 
+            # print(sf_handler.read())
             return sf_handler.read()
 
-    @value.setter
-    def value(self, new_value):
+
+    @sensor_value.setter
+    def sensor_value(self, new_value):
         with open(self._get_sensor_file_path(), "w+") as filein:
             filein.write(str(new_value))
+
 
     def enable_thermal_impact(self):
         """Enable thread execution responsible for thermal updates"""
@@ -172,8 +183,17 @@ class SensorRepository():
         # time.sleep(10)
         # for sensor in self._sensors:
         #     sensor.disable_thermal_impact()
+
     def get_sensor_by_name(self, name):
         return self._sensors[name]
+
+    def adjust_thermal_sensors(self, ambient_change):
+        for s_name in self._sensors:
+            sensor = self._sensors[s_name]
+            if sensor.group == 'temperature':
+                with self._sensor_file_locks.get_lock(sensor.name):
+                    # logging.info("Name -> %s, Value -> >>%s<<", sensor.name, sensor.sensor_value)
+                    sensor.sensor_value = int(int(sensor.sensor_value) + ambient_change)
 
     @property
     def sensor_dir(self):

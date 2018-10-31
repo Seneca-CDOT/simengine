@@ -232,7 +232,7 @@ def _add_sensors(asset_key, preset_file=os.path.join(os.path.dirname(__file__), 
                     raise KeyError("Missing address for a seonsor {}".format(sensor_type))
 
                 s_attr = [
-                    "name", "defaultValue", 
+                    "name", "defaultValue", "group",
                     "lnr", "lcr", "lnc", "unc", "ucr", "unr", 
                     "address", "index", "type", "eventReadingType"
                 ]
@@ -240,7 +240,7 @@ def _add_sensors(asset_key, preset_file=os.path.join(os.path.dirname(__file__), 
                 sensor['name'] = sensor['name'].format(index=addr['index'] + 1 if 'index' in addr else '')
                 props = {
                     **sensor['thresholds'], 
-                    **sensor, **addr, 
+                    **sensor, **addr, **sensor_specs,
                     **{'type': sensor_type}
                 }
 

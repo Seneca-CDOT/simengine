@@ -52,7 +52,6 @@ class StateListener(Component):
         self._sys_environ = SystemEnvironment().register(self)
 
         # set default state
-        StateManager.set_ambient(21)
         StateManager.power_restore()
 
         # init graph db instance
@@ -76,6 +75,7 @@ class StateListener(Component):
         ### Register Assets ###
         self._subscribe_to_channels()
         self._reload_model(force_snmp_init)
+        StateManager.set_ambient(21)
        
 
     def _subscribe_to_channels(self):
