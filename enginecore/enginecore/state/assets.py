@@ -752,7 +752,7 @@ class ServerWithBMC(Server):
         os.makedirs(ipmi_dir)
 
         sensors = self.StateManagerCls.get_sensor_definitions(asset_info['key'])
-        self._sensor_repo = SensorRepository(asset_info['key'])
+        self._sensor_repo = SensorRepository(asset_info['key'], enable_thermal=True)
 
         self._ipmi_agent = IPMIAgent(asset_info['key'], ipmi_dir, ipmi_config=asset_info, sensors=sensors)
         super(ServerWithBMC, self).__init__(asset_info)

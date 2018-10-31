@@ -27,21 +27,17 @@ class Sensor():
     
     def __init__(self, sensor_dir, s_details, s_locks):
         self._s_dir = sensor_dir
-        s_specs = s_details['specs']
+        self._s_specs = s_details['specs']
 
-        self._s_type = s_specs['type']
-        self._s_name = s_specs['name']
+        self._s_type = self._s_specs['type']
+        self._s_name = self._s_specs['name']
 
         self._graph_ref = GraphReference()
 
-        if 'index' in s_specs:
-            self._s_addr = hex(int(s_details['address_space']['address'], 16) + s_specs['index']) 
+        if 'index' in self._s_specs:
+            self._s_addr = hex(int(s_details['address_space']['address'], 16) + self._s_specs['index']) 
         else:
-            self._s_addr = s_specs['address']
-
-        with open(self._get_sensor_file_path(), "w+") as filein:
-            filein.write(str(int(s_specs['defaultValue']*0.1) if 'defaultValue' in s_specs else 0))
-
+            self._s_addr = self._s_specs['address']
 
         s_locks.add_sensor_file_lock(self._s_name)
         
@@ -77,9 +73,14 @@ class Sensor():
             
             try:
                 self._s_file_locks.get_lock(target['name']).acquire()
+                max_not_reached = lambda current_value: current_value+int(rel['degrees']) < int(rel['pauseAt'])
+                sensor_is_down = lambda _: int(self.value) == 0 
+                
+                
                 Sensor.update_sensor_value(
                     os.path.join(self._s_dir, target['name']),
-                    lambda current_value: str(current_value + int(rel['degrees']))+'\n'
+                    can_update=lambda current_value: max_not_reached(current_value) and sensor_is_down(current_value),
+                    arith_op=lambda current_value: str(current_value + int(rel['degrees']))
                 )
             finally:
                 self._s_file_locks.get_lock(target['name']).release()
@@ -88,16 +89,17 @@ class Sensor():
 
 
     @classmethod
-    def update_sensor_value(cls, path, operation):
+    def update_sensor_value(cls, path, can_update, arith_op):
         with open(path, 'r+') as sf_handler:
     
             current_value = int(sf_handler.read())
-            new_value = operation(current_value)
-            logging.info("> Current sensor value: %s will be updated to %s", current_value, int(new_value))
+            new_value = arith_op(current_value)
+            if can_update(current_value):
+                logging.info("> Current sensor value: %s will be updated to %s", current_value, int(new_value))
 
-            sf_handler.seek(0)
-            sf_handler.truncate()
-            sf_handler.write(new_value)
+                sf_handler.seek(0)
+                sf_handler.truncate()
+                sf_handler.write(new_value)
             
 
     def _get_sensor_file_path(self):
@@ -112,6 +114,15 @@ class Sensor():
         """Unique sensor name""" 
         return self._s_name
 
+    @property
+    def value(self):
+        with open(self._get_sensor_file_path()) as sf_handler: 
+            return sf_handler.read()
+
+    @value.setter
+    def value(self, new_value):
+        with open(self._get_sensor_file_path(), "w+") as filein:
+            filein.write(str(new_value))
 
     def enable_thermal_impact(self):
         """Enable thread execution responsible for thermal updates"""
@@ -123,8 +134,13 @@ class Sensor():
         self._s_thermal_event.clear()
 
 
+    def set_to_defaults(self):
+        with open(self._get_sensor_file_path(), "w+") as filein:
+            filein.write(str(int(self._s_specs['defaultValue']*0.1) if 'defaultValue' in self._s_specs else 0))
+
+
 class SensorRepository():
-    def __init__(self, server_key):
+    def __init__(self, server_key, enable_thermal=False):
         self._server_key = server_key
         
         self._graph_ref = GraphReference()
@@ -136,7 +152,9 @@ class SensorRepository():
             'sensor_dir'
         )
 
-        os.mkdir(self._sensor_dir)
+        if not os.path.isdir(self._sensor_dir):
+            os.mkdir(self._sensor_dir)
+        
         self._sensors = {}
 
         with self._graph_ref.get_session() as session:
@@ -145,12 +163,17 @@ class SensorRepository():
                 sensor = Sensor(self._sensor_dir, sensor_info, self._sensor_file_locks)
                 self._sensors[sensor.name] = sensor
 
-        for s_name in self._sensors:
-            self._sensors[s_name].enable_thermal_impact()
+        if enable_thermal:
+            for s_name in self._sensors:
+                self._sensors[s_name].set_to_defaults()
+            for s_name in self._sensors:
+                self._sensors[s_name].enable_thermal_impact()
 
         # time.sleep(10)
         # for sensor in self._sensors:
         #     sensor.disable_thermal_impact()
+    def get_sensor_by_name(self, name):
+        return self._sensors[name]
 
     @property
     def sensor_dir(self):
