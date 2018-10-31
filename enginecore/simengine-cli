@@ -156,10 +156,10 @@ def handle_thermal_ambient(kwargs):
 
     del kwargs['func']
      
-    if kwargs['event'] and kwargs['stop_at'] and kwargs['rate']:
+    if kwargs['event'] and kwargs['pause_at'] and kwargs['rate']:
         StateManager.set_ambient_properties(kwargs)
-    elif kwargs['event'] or kwargs['stop_at'] or kwargs['rate']:
-        raise argparse.ArgumentTypeError("Event, stop-at and rate must be supplied")
+    elif kwargs['event'] or kwargs['pause_at'] or kwargs['rate']:
+        raise argparse.ArgumentTypeError("Event, pause-at and rate must be supplied")
     else:
         StateManager.set_ambient(kwargs['degrees'])
 
@@ -299,8 +299,8 @@ th_set_sensor_action.add_argument(
 th_set_sensor_action.add_argument(
     '-d', '--degrees', 
     type=float, 
-    help="Update ambient temperature (in Celsius); \
-         if time period and event are specified, this value will be added to the previous room temp;", 
+    help="Update sensor temperature (in Celsius); \
+         if time period and event are specified, this value will be added to the previous sensor temp;", 
     required=True
 )
 
