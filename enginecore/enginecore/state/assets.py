@@ -266,7 +266,7 @@ class Asset(Component):
         new_load = arithmetic_op(old_load, load_change)
         
         if msg:
-            print(msg.format(self.state.key, old_load, load_change, new_load))
+            logging.info(msg.format(self.state.key, old_load, load_change, new_load))
         
         self.state.update_load(new_load)
 
@@ -285,7 +285,7 @@ class Asset(Component):
         """
         
         increased_by = kwargs['child_load']
-        msg = 'Asset : {} : orig load {}, increased by: {}, new load: {}'
+        msg = 'Asset:[{}] - orig load {} was increased by "{}", new load will be set to "{}"'
         return self._update_load(increased_by, lambda old, change: old+change, msg)
 
     @handler("ChildAssetPowerDown", "ChildAssetLoadDecreased")
@@ -296,7 +296,7 @@ class Asset(Component):
         """
 
         decreased_by = kwargs['child_load']
-        msg = 'Asset : {} : orig load {}, decreased by: {}, new load: {}'
+        msg = 'Asset:[{}] - orig load {} was decreased by "{}", new load will be set to "{}"'
         return self._update_load(decreased_by, lambda old, change: old-change, msg)
 
     @classmethod
@@ -760,8 +760,8 @@ class ServerWithBMC(Server):
 
     @handler("AmbientDecreased", "AmbientIncreased")
     def on_ambient_updated(self, event, *args, **kwargs):
-        """Update thermal sensor readings on ambient changes """
-        self._sensor_repo.adjust_thermal_sensors(ambient_change=kwargs['new_value']-kwargs['old_value'])
+        """Update thermal sensor readings on ambient changes """ 
+        self._sensor_repo.adjust_thermal_sensors(new_ambient=kwargs['new_value'], old_ambient=kwargs['old_value'])
     
     @handler("ParentAssetPowerDown")
     def on_parent_asset_power_down(self, event, *args, **kwargs):

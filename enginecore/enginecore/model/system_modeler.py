@@ -534,7 +534,7 @@ def set_thermal_sensor_target(attr):
         raise KeyError('Unrecognized event type: {}'.format(attr['event']))
 
     # set the thermal relationship & relationship attributes
-    s_attr = ["pause_at", 'rate', 'event', 'degrees', 'jitter']
+    s_attr = ["pause_at", 'rate', 'event', 'degrees', 'jitter', 'action']
     set_stm = _get_set_stm(attr, node_name="rel", supported_attr=s_attr)
 
     query.append("MERGE (source)<-[rel:{}]-(target)".format(thermal_rel_type))

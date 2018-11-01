@@ -75,7 +75,6 @@ class StateListener(Component):
         ### Register Assets ###
         self._subscribe_to_channels()
         self._reload_model(force_snmp_init)
-        StateManager.set_ambient(21)
        
 
     def _subscribe_to_channels(self):
@@ -152,8 +151,9 @@ class StateListener(Component):
                 'key': asset_key, 
                 'load': new_load
             })
-
-        self._handle_ambient_update(StateManager.get_ambient(), rising=False)
+            
+        StateManager.set_ambient(21)
+        self._handle_ambient_update(new_temp=StateManager.get_ambient(), old_temp=0)
 
 
     def _handle_oid_update(self, asset_key, oid, value):
@@ -181,8 +181,17 @@ class StateListener(Component):
         logging.info(">" + oid + ": " + oid_value)
         
 
-    def _handle_ambient_update(self, data, rising):
-        self._notify_client(ClientRequests.ambient, {'ambient': data, 'rising': rising}) 
+    def _handle_ambient_update(self, new_temp, old_temp):
+        """React to ambient update by notifying all the assets in the sys topology
+        Args:
+            new_temp(float): new ambient value
+            old_temp(float): old ambient value
+        """
+
+        self._notify_client(ClientRequests.ambient, {'ambient': new_temp, 'rising': new_temp > old_temp})
+        for a_key in self._assets:
+            self.fire(PowerEventManager.map_ambient_event(old_temp, new_temp), self._assets[a_key]) 
+
     
 
     def _handle_state_update(self, asset_key):
@@ -420,6 +429,9 @@ class StateListener(Component):
         channel = message['channel'].decode()
 
         try:
+
+            logging.info("Received a message in channel [%s]: %s", channel, data)
+
             if channel == RedisChannels.state_update_channel:
                 asset_key, asset_type = data.split('-')
                 if asset_type in Asset.get_supported_assets():
@@ -475,9 +487,7 @@ class StateListener(Component):
         try:
             if channel == RedisChannels.ambient_update_channel:
                 old_temp, new_temp = map(float, data.split('-'))
-                self._handle_ambient_update(float(new_temp), rising=(float(new_temp) > float(old_temp)))
-                for a_key in self._assets:
-                    self.fire(PowerEventManager.map_ambient_event(old_temp, new_temp), self._assets[a_key]) 
+                self._handle_ambient_update(new_temp=float(new_temp), old_temp=old_temp)
 
             elif channel == RedisChannels.ambient_conf_channel:
                 ambient_conf = json.loads(data)

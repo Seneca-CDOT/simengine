@@ -13,15 +13,15 @@ class SensorFileLocks():
     def __init__(self):
         self._s_file_locks = {}
 
+    def __str__(self):
+        return str(self._s_file_locks)
+
     def add_sensor_file_lock(self, sensor_name):
         self._s_file_locks[sensor_name] = threading.Lock()
 
     def get_lock(self, sensor_name):
         return self._s_file_locks[sensor_name]
 
-    def __str__(self):
-        return str(self._s_file_locks)
-    
 
 class Sensor():
     
@@ -47,9 +47,36 @@ class Sensor():
         self._s_thermal_event = threading.Event()
 
         self._init_thermal_impact()
+  
+
+    def __str__(self):
+        with self._graph_ref.get_session() as session:
+            thermal_rel = GraphReference.get_affected_sensors(session, self._s_name)
+
+            s_str = []
+            s_str.append("[{}/{}]: '{}' located at {};".format(
+                self._s_group, 
+                self._s_type, 
+                self._s_name,
+                self._s_addr
+            ))
+            
+            if thermal_rel['targets']:
+
+                targets = thermal_rel['targets']
+
+                s_str.append("Thermal Impact:")
+                # rfmt = "{action} by {degrees}°/{rate} sec on {event} event"
+                
+                rfmt = "{action:7} by {degrees:4}°/{rate:6} sec on '{event:4}' event"
+                tfmt = lambda rel: " | ".join(map(lambda r: rfmt.format(**r), rel))
+
+                list(map(lambda t: s_str.append(" -> t:[{}] {}".format(t['name'], tfmt(t['rel']))), targets))
+
+            return '\n'.join(s_str)
 
 
-    def _init_thermal_impact(self):
+    def _init_thermal_impact(self): 
 
         with self._graph_ref.get_session() as session:
             thermal_rel_details = GraphReference.get_affected_sensors(session, self._s_name)
@@ -162,9 +189,6 @@ class SensorRepository():
             str(server_key),
             'sensor_dir'
         )
-
-        if not os.path.isdir(self._sensor_dir):
-            os.mkdir(self._sensor_dir)
         
         self._sensors = {}
 
@@ -175,6 +199,9 @@ class SensorRepository():
                 self._sensors[sensor.name] = sensor
 
         if enable_thermal:
+            if not os.path.isdir(self._sensor_dir):
+                os.mkdir(self._sensor_dir)
+
             for s_name in self._sensors:
                 self._sensors[s_name].set_to_defaults()
             for s_name in self._sensors:
@@ -187,13 +214,15 @@ class SensorRepository():
     def get_sensor_by_name(self, name):
         return self._sensors[name]
 
-    def adjust_thermal_sensors(self, ambient_change):
+    def adjust_thermal_sensors(self, old_ambient, new_ambient):
         for s_name in self._sensors:
             sensor = self._sensors[s_name]
             if sensor.group == 'temperature':
                 with self._sensor_file_locks.get_lock(sensor.name):
-                    # logging.info("Name -> %s, Value -> >>%s<<", sensor.name, sensor.sensor_value)
-                    sensor.sensor_value = int(int(sensor.sensor_value) + ambient_change)
+                    logging.info("Name -> %s, Value -> >>%s<<", sensor.name, sensor.sensor_value)
+                    logging.info("Old Amb -> %s, New Amb -> >>%s<<", old_ambient, new_ambient)
+
+                    sensor.sensor_value = int(int(sensor.sensor_value) - old_ambient + new_ambient)
 
     @property
     def sensor_dir(self):

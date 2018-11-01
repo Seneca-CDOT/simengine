@@ -175,8 +175,9 @@ def handle_thermal_ambient(kwargs):
 def handle_thermal_sensor(kwargs):
     """Configure thermal sensor relations & properties"""
     del kwargs['func']
-
-    print(kwargs)
+    
+    if not kwargs['action']:
+        kwargs['action'] = 'increase' if kwargs['event'] == 'down' else 'decrease'
 
     sys_modeler.set_thermal_sensor_target(kwargs)
 
@@ -302,7 +303,18 @@ th_set_sensor_action.add_argument(
 )
 
 th_set_sensor_action.add_argument(
-    '-e', '--event', help="Event associated with the source sensor", choices=['up', 'down']
+    '-e', '--event', help="Event associated with the source sensor", choices=['up', 'down'], required=True
+)
+
+th_set_sensor_action.add_argument(
+    '-a', 
+    '--action', 
+    help="Action associated with the event (for instance, on sensor 0x1 going down, \
+          the target sensor value will be either increased or decreased)\
+          Action can be omitted and in this case: \
+          'increase' action will be assigned to 'down' event & \
+          'decrese' action will be assigned to 'up' event ",
+    choices=['increase', 'decrease']
 )
 
 th_set_sensor_action.add_argument(
@@ -316,12 +328,15 @@ th_set_sensor_action.add_argument(
 th_set_sensor_action.add_argument(
     '-p', '--pause-at',
     help="Increase/Descrease room temperature until this value is reached", 
-    type=float
+    type=float,
+    required=True
 )
 
 th_set_sensor_action.add_argument(
     '-r', '--rate',
-    help="Update temperature value very 'n' seconds"
+    help="Update temperature value very 'n' seconds",
+    type=int,
+    required=True
 )
 
 
@@ -331,7 +346,7 @@ th_get_sensor_action = th_sensor_subp.add_parser(
 )
 
 th_get_sensor_action.add_argument('-k', '--asset-key', help="Key of the server sensor belongs to ", type=int)
-th_get_sensor_action.add_argument('-s', '--sensor', help="Name of the sensor", type=int)
+th_get_sensor_action.add_argument('-s', '--sensor', help="Name of the sensor", type=str)
 
 
 
@@ -795,7 +810,7 @@ th_set_ambient_action.set_defaults(
 )
 
 th_get_sensor_action.set_defaults(
-    func=lambda _: print("")
+    func=lambda args: print(SensorRepository(args['asset_key']).get_sensor_by_name(args['sensor']))
 )
 
 th_set_sensor_action.set_defaults(
@@ -812,7 +827,8 @@ try:
         options.func(vars(options))
     else:
         argparser.print_help()
-except AttributeError:
+except AttributeError as e:
+    print(e)
     argparser.print_help()
 except argparse.ArgumentTypeError as e:
     print(e)
