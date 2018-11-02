@@ -281,6 +281,10 @@ th_sensor_group = thermal_subp.add_parser(
 
 th_sensor_subp = th_sensor_group.add_subparsers()
 
+# -- SENSOR THERMAL
+
+# - SET
+
 th_set_sensor_action = th_sensor_subp.add_parser(
     'set', 
     help="Update sensor thermal settings", 
@@ -339,6 +343,7 @@ th_set_sensor_action.add_argument(
     required=True
 )
 
+# - GET
 
 th_get_sensor_action = th_sensor_subp.add_parser(
     'get', 
@@ -349,6 +354,27 @@ th_get_sensor_action.add_argument('-k', '--asset-key', help="Key of the server s
 th_get_sensor_action.add_argument('-s', '--sensor', help="Name of the sensor", type=str)
 
 
+# - DELETE
+
+th_delete_sensor_action = th_sensor_subp.add_parser(
+    'delete', 
+    help="Delete thermal connection between 2 sensors", 
+)
+
+th_delete_sensor_action.add_argument(
+    '-k', '--asset-key', help="Key of the server sensor belongs to ", type=int, required=True
+)
+th_delete_sensor_action.add_argument('-s', '--source-sensor', help="Name of the source sensor", type=str, required=True)
+th_delete_sensor_action.add_argument(
+    '-t', 
+    '--target-sensor', 
+    help="Name of the target sensor affected by the event associated with the source sensor", 
+    type=str,
+    required=True
+)
+th_delete_sensor_action.add_argument(
+    '-e', '--event', help="Event associated with the source sensor", choices=['up', 'down'], required=True
+)
 
 ## -> Setup options for oid queries
 # oid_group = subparsers.add_parser('oid', help="Manage OIDs")
@@ -815,6 +841,10 @@ th_get_sensor_action.set_defaults(
 
 th_set_sensor_action.set_defaults(
     func=handle_thermal_sensor
+)
+
+th_delete_sensor_action.set_defaults(
+    func=sys_modeler.delete_thermal_sensor_target
 )
 
 try:

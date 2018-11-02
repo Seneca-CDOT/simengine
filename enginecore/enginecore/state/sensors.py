@@ -66,11 +66,12 @@ class Sensor():
                 targets = thermal_rel['targets']
 
                 s_str.append("Thermal Impact:")
-                # rfmt = "{action} by {degrees}°/{rate} sec on {event} event"
                 
-                rfmt = "{action:7} by {degrees:4}°/{rate:6} sec on '{event:4}' event"
-                tfmt = lambda rel: " | ".join(map(lambda r: rfmt.format(**r), rel))
+                # format relationships
+                rfmt = "{:55}".format("{action} by {degrees}°/{rate} sec on '{event}' event")
+                tfmt = lambda rel: (" | ").format().join(map(lambda r: rfmt.format(**r), rel))
 
+                # add targets & relationships to the output
                 list(map(lambda t: s_str.append(" -> t:[{}] {}".format(t['name'], tfmt(t['rel']))), targets))
 
             return '\n'.join(s_str)
