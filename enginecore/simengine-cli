@@ -172,7 +172,7 @@ def handle_thermal_ambient(kwargs):
         StateManager.set_ambient(kwargs['degrees'])
 
 
-def handle_thermal_sensor(kwargs):
+def handle_set_thermal_sensor(kwargs):
     """Configure thermal sensor relations & properties"""
     del kwargs['func']
     
@@ -180,6 +180,13 @@ def handle_thermal_sensor(kwargs):
         kwargs['action'] = 'increase' if kwargs['event'] == 'down' else 'decrease'
 
     sys_modeler.set_thermal_sensor_target(kwargs)
+
+def handle_get_thermal_sensor(kwargs):
+    """Display information about BMC sensors"""
+    if kwargs['sensor']:
+        print(SensorRepository(kwargs['asset_key']).get_sensor_by_name(kwargs['sensor']))
+    else:
+        print(SensorRepository(kwargs['asset_key']))
 
 ############# Validations
 
@@ -347,10 +354,15 @@ th_set_sensor_action.add_argument(
 
 th_get_sensor_action = th_sensor_subp.add_parser(
     'get', 
-    help="Query current thermal configurations", 
+    help="""
+    Query current thermal configurations for all the sensors or a specific sensor
+    (if sensor name is provided)
+    """, 
 )
 
-th_get_sensor_action.add_argument('-k', '--asset-key', help="Key of the server sensor belongs to ", type=int)
+th_get_sensor_action.add_argument(
+    '-k', '--asset-key', help="Key of the server sensor belongs to ", type=int, required=True
+)
 th_get_sensor_action.add_argument('-s', '--sensor', help="Name of the sensor", type=str)
 
 
@@ -836,11 +848,11 @@ th_set_ambient_action.set_defaults(
 )
 
 th_get_sensor_action.set_defaults(
-    func=lambda args: print(SensorRepository(args['asset_key']).get_sensor_by_name(args['sensor']))
+    func=handle_get_thermal_sensor
 )
 
 th_set_sensor_action.set_defaults(
-    func=handle_thermal_sensor
+    func=handle_set_thermal_sensor
 )
 
 th_delete_sensor_action.set_defaults(

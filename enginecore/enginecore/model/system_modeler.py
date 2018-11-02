@@ -544,6 +544,7 @@ def set_thermal_sensor_target(attr):
     with GRAPH_REF.get_session() as session:
         session.run("\n".join(query))
 
+
 def delete_thermal_sensor_target(attr):
     """Remove thermal relationship between 2 sensors""" 
 
@@ -551,13 +552,13 @@ def delete_thermal_sensor_target(attr):
     
     # find the source sensor & server asset
     query.append(
-        'MATCH (source {{ name: "{}" }} )<-[:HAS_SENSOR]-(server:Asset {{ key: {} }})'
+        'MATCH (source {{ name: "{}" }} )<-[:HAS_SENSOR]-(:Asset {{ key: {} }})'
         .format(attr['source_sensor'], attr['asset_key'])
     )
 
     # find the destination or target sensor & save its thermal link
     query.append(
-        'MATCH (source)<-[thermal_link {{ event: "{}" }}]-(target {{ name: "{}" }})'
+        'MATCH (source)<-[thermal_link {{ event: "{}" }}]-({{ name: "{}" }}:Sensor)'
         .format(attr['event'], attr['target_sensor'])
     )
 

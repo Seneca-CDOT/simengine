@@ -61,18 +61,21 @@ class Sensor():
                 self._s_addr
             ))
             
+            # display sensor file location
+            s_str.append(" - Sensor File: '{}'".format(self._get_sensor_file_path()))
+
+            # print any thermal connections
             if thermal_rel['targets']:
 
                 targets = thermal_rel['targets']
-
-                s_str.append("Thermal Impact:")
+                s_str.append(" - Thermal Impact:")
                 
                 # format relationships
                 rfmt = "{:55}".format("{action} by {degrees}°/{rate} sec on '{event}' event")
                 tfmt = lambda rel: (" | ").format().join(map(lambda r: rfmt.format(**r), rel))
 
                 # add targets & relationships to the output
-                list(map(lambda t: s_str.append(" -> t:[{}] {}".format(t['name'], tfmt(t['rel']))), targets))
+                list(map(lambda t: s_str.append("   --> t:[{}] {}".format(t['name'], tfmt(t['rel']))), targets))
 
             return '\n'.join(s_str)
 
@@ -211,6 +214,19 @@ class SensorRepository():
         # time.sleep(10)
         # for sensor in self._sensors:
         #     sensor.disable_thermal_impact()
+
+    def __str__(self):
+        
+        repo_str = []
+        
+        repo_str.append("Sensor Repository for Server {}".format(self._server_key))
+        repo_str.append(" - files for sensor readings are located at '{}'".format(self._sensor_dir))
+
+        for s_name in self._sensors:
+            repo_str.append(str(self._sensors[s_name]))
+
+        return '\n\n'.join(repo_str)
+
 
     def get_sensor_by_name(self, name):
         return self._sensors[name]
