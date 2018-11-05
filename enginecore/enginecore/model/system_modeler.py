@@ -302,7 +302,7 @@ def create_server(key, attr, server_variation=ServerVariations.Server):
         if server_variation == ServerVariations.ServerWithBMC:
             
             if 'sensor_def' in attr and attr['sensor_def']:
-                sensor_file = attr['sensor_def']
+                sensor_file = os.path.expanduser(attr['sensor_def'])
             else:
                 sensor_file = os.path.join(os.path.dirname(__file__), 'presets/sensors.json')
            

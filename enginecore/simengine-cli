@@ -597,6 +597,12 @@ create_server_bmc_action.add_argument(
     help="""PSU Voltage \n"""
 )
 
+create_server_bmc_action.add_argument(
+    '--sensor-def', 
+    type=str,
+    help="File containing sensor definitions (defaults to presets.json file in enginecore/enginecore/model/presets)"
+)
+
 ## STATIC 
 create_static_action = create_subp.add_parser(
     'static', 
@@ -711,7 +717,6 @@ update_server_bmc_action = update_subp.add_parser(
 )
 
 
-update_server_bmc_action.add_argument('--sensor-def', type=str, help="JSON file containing sensor definitions")
 update_server_bmc_action.add_argument('--user', type=str, help="BMC-enabled server: IPMI admin user")
 update_server_bmc_action.add_argument('--password', type=str, help="BMC-enabled server: IPMI user password")
 update_server_bmc_action.add_argument('--port', type=int, help="IPMI interface port")
