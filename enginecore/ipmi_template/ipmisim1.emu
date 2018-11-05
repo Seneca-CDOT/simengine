@@ -73,9 +73,10 @@ ${psuCurrent}
 ${psuPower}
 ${psuVoltage}
 ${psuTemperature}
+${memoryTemperature}
+${Ambient}
 
 # $includes
-
 
 mc_enable 0x30
 

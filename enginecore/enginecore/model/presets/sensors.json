@@ -118,5 +118,91 @@
                 "name": "PSU{index} temperature"
             }
         ] 
+    },
+    "memoryTemperature": {
+        "group": "temperature",
+        "addressSpace": "0x12",
+        "sensorDefinitions": [
+            {
+                "thresholds": {
+                    "ucr": 78, 
+                    "unr": 82
+                },
+                "defaultValue": 0,
+                "name": "Mem A"
+            },
+            {
+                "thresholds": {
+                    "ucr": 78, 
+                    "unr": 82
+                },
+                "defaultValue": 0,
+                "name": "Mem B"
+            },
+            {
+                "thresholds": {
+                    "ucr": 78, 
+                    "unr": 82
+                },
+                "defaultValue": 0,
+                "name": "Mem C"
+            },
+            {
+                "thresholds": {
+                    "ucr": 78, 
+                    "unr": 82
+                },
+                "defaultValue": 0,
+                "name": "Mem D"
+            },
+            {
+                "thresholds": {
+                    "ucr": 78, 
+                    "unr": 82
+                },
+                "defaultValue": 0,
+                "name": "Mem E"
+            },
+            {
+                "thresholds": {
+                    "ucr": 78, 
+                    "unr": 82
+                },
+                "defaultValue": 0,
+                "name": "Mem F"
+            },
+            {
+                "thresholds": {
+                    "ucr": 78, 
+                    "unr": 82
+                },
+                "defaultValue": 0,
+                "name": "Mem G"
+            },
+            {
+                "thresholds": {
+                    "ucr": 78, 
+                    "unr": 82
+                },
+                "defaultValue": 0,
+                "name": "Mem H"
+            }
+        ] 
+    }, 
+    "Ambient": {
+        "group": "temperature",
+        "addressSpace": "0x21",
+        "sensorDefinitions": [
+            {
+                "thresholds": {
+                    "lcr": 1.000, 
+                    "lnc": 6.000, 
+                    "unc": 37.000,
+                    "ucr": 42.000
+                },
+                "defaultValue": 0,
+                "name": "Ambient"
+            }
+        ]
     }
 }

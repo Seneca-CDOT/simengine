@@ -6,7 +6,6 @@ and reacts to state updates by dispatching cuircuit events that are, in turn,
 handled by individual assets.
 
 """
-import sys
 import json
 import logging
 
