@@ -57,7 +57,8 @@ class IPMIAgent(Agent):
         'psuCurrent': '',
         'psuTemperature': '',
         'memoryTemperature': '',
-        'Ambient': ''
+        'Ambient': '',
+        'RAIDControllerTemperature': ''
     }
 
     def __init__(self, key, ipmi_dir, ipmi_config, sensors):

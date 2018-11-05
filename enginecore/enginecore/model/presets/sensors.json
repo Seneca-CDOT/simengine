@@ -204,5 +204,19 @@
                 "name": "Ambient"
             }
         ]
+    },
+    "RAIDControllerTemperature": {
+        "group": "temperature",
+        "addressSpace": "0x22",
+        "sensorDefinitions": [
+            {
+                "thresholds": {
+                    "unc": 110.000,
+                    "ucr": 115.000
+                },
+                "defaultValue": 0,
+                "name": "Ambient"
+            }
+        ]
     }
 }
