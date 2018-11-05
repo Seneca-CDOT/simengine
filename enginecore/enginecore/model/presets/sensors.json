@@ -215,7 +215,7 @@
                     "ucr": 115.000
                 },
                 "defaultValue": 0,
-                "name": "Ambient"
+                "name": "RAID Controller"
             }
         ]
     }
