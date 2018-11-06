@@ -137,12 +137,14 @@ class SystemEnvironment(Component):
         room_temp = sm.StateManager.get_ambient()
         
         while thermal_cond():
-            print(sleep_duration())
+            logging.info('Sys Environment: next update will occur in %s seconds', sleep_duration())
             time.sleep(sleep_duration())
             room_temp = calc_temp_op()
 
             if update_cond(room_temp):   
-                print(room_temp)
+                logging.info(
+                    'Sys Environment: ambient (%s) will be updated to %s', sm.StateManager.get_ambient(), room_temp
+                )
                 sm.StateManager.set_ambient(room_temp)
 
 
@@ -353,12 +355,13 @@ class PDU(Asset, SNMPSim):
             port=asset_info['port'] if 'port' in asset_info else 161
         )
 
-        self.state.agent = self.pid
+        self.state.agent = self._snmp_agent.pid
 
         agent_info = self.state.agent
         if not agent_info[1]:
-            logging.error('Asset:[%s] - agent process failed to start!', self.state.key)
-
+            logging.error('Asset:[%s] - agent process (%s) failed to start!', self.state.key, agent_info[0])
+        else:
+            logging.info('Asset:[%s] - agent process (%s) is up & running', self.state.key, agent_info[0])
 
     ##### React to any events of the connected components #####
     @handler("ParentAssetPowerDown")
@@ -405,7 +408,7 @@ class UPS(Asset, SNMPSim):
             port=asset_info['port'] if 'port' in asset_info else 161
         )
 
-        self.state.agent = self.pid
+        self.state.agent = self._snmp_agent.pid
 
         # Store known { wattage: time_remaining } key/value pairs (runtime graph)
         self._runtime_details = json.loads(asset_info['runtime'])
@@ -432,7 +435,10 @@ class UPS(Asset, SNMPSim):
 
         agent_info = self.state.agent
         if not agent_info[1]:
-            logging.error('Asset:[%s] - agent process failed to start!', self.state.key)
+            logging.error('Asset:[%s] - agent process (%s) failed to start!', self.state.key, agent_info[0])
+        else:
+            logging.info('Asset:[%s] - agent process (%s) is up & running', self.state.key, agent_info[0])
+
 
 
     def _cacl_time_left(self, wattage):
@@ -764,12 +770,13 @@ class ServerWithBMC(Server):
 
         self._ipmi_agent = IPMIAgent(asset_info['key'], ipmi_dir, ipmi_config=asset_info, sensors=sensors)
         super(ServerWithBMC, self).__init__(asset_info)
-        self.state.agent = self.pid
+        self.state.agent = self._ipmi_agent.pid
         
         agent_info = self.state.agent
         if not agent_info[1]:
-            logging.error('Asset:[%s] - agent process failed to start!', self.state.key)
-    
+            logging.error('Asset:[%s] - agent process (%s) failed to start!', self.state.key, agent_info[0])
+        else:
+            logging.info('Asset:[%s] - agent process (%s) is up & running', self.state.key, agent_info[0])
 
     @handler("AmbientDecreased", "AmbientIncreased")
     def on_ambient_updated(self, event, *args, **kwargs):

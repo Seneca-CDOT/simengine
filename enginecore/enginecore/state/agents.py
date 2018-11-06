@@ -195,8 +195,6 @@ class IPMIAgent(Agent):
             cmd, stderr=subprocess.DEVNULL, close_fds=True
         ))
 
-        logging.info("Started ipmi_sim process under pid %s", self._process.pid)
-
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.stop_agent()
@@ -264,5 +262,3 @@ class SNMPAgent(Agent):
         self.register_process(subprocess.Popen(
             cmd, stderr=subprocess.DEVNULL, close_fds=True
         ))
-    
-        logging.info('Started SNMPsim process under pid %s', self._process.pid)
