@@ -4,6 +4,7 @@
 import subprocess
 import os
 import atexit
+import logging
 from distutils.dir_util import copy_tree
 import sysconfig
 import pwd
@@ -66,13 +67,13 @@ class IPMIAgent(Agent):
         self._asset_key = key
         self._ipmi_dir = ipmi_dir
 
-        
+        logging.info(ipmi_dir)
         copy_tree(os.environ.get('SIMENGINE_IPMI_TEMPL'), self._ipmi_dir)
 
         # sensor, emu & lan configuration file paths
         lan_conf = os.path.join(self._ipmi_dir, 'lan.conf')
         ipmisim_emu = os.path.join(self._ipmi_dir, 'ipmisim1.emu')
-        sdr_main = os.path.join(*[self._ipmi_dir, 'emu_state', 'ipmi_sim', 'ipmisim1', 'sdr.20.main'])
+        sdr_main = os.path.join(self._ipmi_dir, 'emu_state', 'ipmi_sim', 'ipmisim1', 'sdr.20.main')
         sensor_def = os.path.join(self._ipmi_dir, 'main.sdrs')
 
         lib_path = os.path.join(sysconfig.get_config_var('LIBDIR'), "simengine", 'haos_extend.so')
@@ -188,13 +189,13 @@ class IPMIAgent(Agent):
                "-s", state_dir,
                "-n"]
 
-        print(' '.join(cmd))
+        logging.info('Starting agent: %s', ' '.join(cmd))
 
         self.register_process(subprocess.Popen(
             cmd, stderr=subprocess.DEVNULL, close_fds=True
         ))
 
-        print("Started ipmi_sim process under pid {}".format(self._process.pid))
+        logging.info("Started ipmi_sim process under pid %s", self._process.pid)
 
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -259,9 +260,9 @@ class SNMPAgent(Agent):
                "--logging-method=file:"+log_file
               ]
 
-        print(' '.join(cmd))
+        logging.info('Starting agent: %s', ' '.join(cmd))
         self.register_process(subprocess.Popen(
             cmd, stderr=subprocess.DEVNULL, close_fds=True
         ))
     
-        print("Started SNMPsim process under pid {}".format(self._process.pid))
+        logging.info('Started SNMPsim process under pid %s', self._process.pid)

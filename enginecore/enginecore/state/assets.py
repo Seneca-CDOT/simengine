@@ -355,6 +355,10 @@ class PDU(Asset, SNMPSim):
 
         self.state.agent = self.pid
 
+        agent_info = self.state.agent
+        if not agent_info[1]:
+            logging.error('Asset:[%s] - agent process failed to start!', self.state.key)
+
 
     ##### React to any events of the connected components #####
     @handler("ParentAssetPowerDown")
@@ -425,6 +429,10 @@ class UPS(Asset, SNMPSim):
 
         # set temp on start
         self._state.update_temperature(7)
+
+        agent_info = self.state.agent
+        if not agent_info[1]:
+            logging.error('Asset:[%s] - agent process failed to start!', self.state.key)
 
 
     def _cacl_time_left(self, wattage):
@@ -756,6 +764,11 @@ class ServerWithBMC(Server):
 
         self._ipmi_agent = IPMIAgent(asset_info['key'], ipmi_dir, ipmi_config=asset_info, sensors=sensors)
         super(ServerWithBMC, self).__init__(asset_info)
+        self.state.agent = self.pid
+        
+        agent_info = self.state.agent
+        if not agent_info[1]:
+            logging.error('Asset:[%s] - agent process failed to start!', self.state.key)
     
 
     @handler("AmbientDecreased", "AmbientIncreased")
