@@ -5,7 +5,7 @@ import subprocess
 import os
 import atexit
 import logging
-from distutils.dir_util import copy_tree
+from distutils import dir_util
 import sysconfig
 import pwd
 import grp
@@ -67,8 +67,12 @@ class IPMIAgent(Agent):
         self._asset_key = key
         self._ipmi_dir = ipmi_dir
 
-        logging.info(ipmi_dir)
-        copy_tree(os.environ.get('SIMENGINE_IPMI_TEMPL'), self._ipmi_dir)
+        # a workaround: https://stackoverflow.com/a/28055993
+        # pylint: disable=W0212
+        dir_util._path_created = {} 
+        # pylint: enable=W0212
+
+        dir_util.copy_tree(os.environ.get('SIMENGINE_IPMI_TEMPL'), self._ipmi_dir, verbose=4)
 
         # sensor, emu & lan configuration file paths
         lan_conf = os.path.join(self._ipmi_dir, 'lan.conf')

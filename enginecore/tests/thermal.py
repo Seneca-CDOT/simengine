@@ -51,7 +51,7 @@ class ThermalTest(unittest.TestCase):
         sm.link_assets(2, 42)
 
         StateManager.reload_model()
-        time.sleep(3)
+        time.sleep(5)
 
 
     def check_redis_values(self, expected_kv):

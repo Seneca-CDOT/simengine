@@ -834,7 +834,7 @@ class IPMIComponent():
 
     def _update_cpu_temp(self, value):
         """Set cpu temp value"""
-        self._write_sensor_file(self._get_cpu_temp_file(), value)
+        pass # self._write_sensor_file(self._get_cpu_temp_file(), value)
 
 
 class BMCServerStateManager(ServerStateManager, IPMIComponent):
@@ -886,25 +886,26 @@ class PSUStateManager(StateManager, IPMIComponent):
     def _update_current(self, load):
         """Update current inside state file """
         load = load if load >= 0 else 0
-        super()._write_sensor_file(super()._get_psu_current_file(self._psu_number), load)
+        # super()._write_sensor_file(super()._get_psu_current_file(self._psu_number), load)
     
 
     def _update_waltage(self, wattage):
         """Update wattage inside state file """        
         wattage = wattage if wattage >= 0 else 0    
-        super()._write_sensor_file(super()._get_psu_wattage_file(self._psu_number), wattage)
+        # super()._write_sensor_file(super()._get_psu_wattage_file(self._psu_number), wattage)
 
 
     def _update_fan_speed(self, value):
         """Speed In RPMs"""
         value = value if value >= 0 else 0    
-        super()._write_sensor_file(super()._get_psu_fan_file(self._psu_number), value)
+        # super()._write_sensor_file(super()._get_psu_fan_file(self._psu_number), value)
     
         
     def set_psu_status(self, value):
         """0x08 indicates AC loss"""
-        if super().get_state_dir():
-            super()._write_sensor_file(super()._get_psu_status_file(self._psu_number), value)
+        pass
+        # if super().get_state_dir():
+            # super()._write_sensor_file(super()._get_psu_status_file(self._psu_number), value)
     
 
     def update_load(self, load):
