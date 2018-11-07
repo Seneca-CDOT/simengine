@@ -8,7 +8,7 @@ import redis
 import os
 from threading import Thread
 
-from .redis_helpers import wait_redis_update 
+from .redis_helpers import wait_redis_update, wait_redis_channel_upd
 import enginecore.model.system_modeler as sm
 
 from enginecore.state.state_managers import  StateManager
@@ -64,7 +64,7 @@ class ThermalTest(unittest.TestCase):
             self.assertAlmostEqual(float(value), float(r_value), msg="asset [{}] = {}, expected({})".format(key, r_value, value))
 
 
-    def test_outage(self):
+    def _test_outage(self):
 
         mains_down = {'mains-source': 0, '1-outlet': 0, '2-outlet':0, '3-ups':1, '41-psu':1, '42-psu':0}
         mains_up = {'mains-source': 1, '1-outlet': 1, '2-outlet':1, '3-ups':1, '41-psu':1, '42-psu':1}
@@ -97,7 +97,7 @@ class ThermalTest(unittest.TestCase):
         self.check_redis_values(mains_up)
 
 
-    def test_ambient(self):
+    def _test_ambient(self):
 
         ambient_t = Thread(
             target=wait_redis_update, args=(ThermalTest.redis_store, RedisChannels.mains_update_channel, {'ambient': 22}, 1)
@@ -109,8 +109,45 @@ class ThermalTest(unittest.TestCase):
         self.assertAlmostEqual(22, StateManager.get_ambient())
         
         
+    def test_ambient_dynamic_changes(self):
 
-    def test_ambient_affecting_sensors(self):
+        ambient_rising_props = {'pause_at': 25, 'rate': 1, 'degrees':1, 'event': 'down'}
+        ambient_cooling_props = {'pause_at': 21, 'rate': 1, 'degrees':1, 'event': 'up'}
+        
+        StateManager.set_ambient_properties(ambient_rising_props)
+        StateManager.set_ambient_properties(ambient_cooling_props)
+        
+        time.sleep(5)
+
+        old_ambient = int(StateManager.get_ambient())
+        StateManager.power_outage()
+
+        ambient_t = Thread(
+            target=wait_redis_channel_upd, args=(ThermalTest.redis_store, RedisChannels.ambient_update_channel),
+        )
+        mains_t = Thread(
+            target=wait_redis_channel_upd, args=(ThermalTest.redis_store, RedisChannels.mains_update_channel),
+        )
+
+        ambient_t.start()
+        mains_t.start()
+        
+        ambient_t.join()
+        mains_t.join()
+
+        new_ambient = int(StateManager.get_ambient())
+        self.assertGreater(new_ambient, old_ambient)
+        
+        # check that ambeint hasn't changed 
+        time.sleep(5)
+        old_ambient = int(StateManager.get_ambient())
+        time.sleep(2) 
+        new_ambient = int(StateManager.get_ambient())
+        self.assertEqual(old_ambient, new_ambient)
+        self.assertEqual(new_ambient, ambient_rising_props['pause_at'])
+
+
+    def _test_ambient_affecting_sensors(self):
 
         print('-> Testing ambient affecting sensors...')
 
@@ -125,7 +162,7 @@ class ThermalTest(unittest.TestCase):
         amb_sensor = sensor_repo.get_sensor_by_name('Ambient')
 
         ambient_t.join()
-        time.sleep(2)
+        time.sleep(3)
 
         self.assertEqual(int(StateManager.get_ambient()), int(amb_sensor.sensor_value))
 

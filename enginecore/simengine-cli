@@ -159,7 +159,7 @@ def handle_link(kwargs):
         sys_modeler.link_assets(kwargs['source_key'], kwargs['dest_key'])
             
 
-def handle_thermal_ambient(kwargs):
+def handle_set_thermal_ambient(kwargs):
     """Configure thermal properties for room temperature"""
 
     del kwargs['func']
@@ -170,6 +170,13 @@ def handle_thermal_ambient(kwargs):
         raise argparse.ArgumentTypeError("Event, pause-at and rate must be supplied")
     else:
         StateManager.set_ambient(kwargs['degrees'])
+
+
+def handle_get_thermal_ambient(kwargs):
+    if kwargs['value_only']:
+        print(StateManager.get_ambient())
+    else:
+        print("Ambient: {}° ".format(StateManager.get_ambient()))
 
 
 def handle_set_thermal_sensor(kwargs):
@@ -187,6 +194,7 @@ def handle_get_thermal_sensor(kwargs):
         print(SensorRepository(kwargs['asset_key']).get_sensor_by_name(kwargs['sensor']))
     else:
         print(SensorRepository(kwargs['asset_key']))
+
 
 ############# Validations
 
@@ -253,6 +261,12 @@ th_set_ambient_action = th_ambient_subp.add_parser(
 th_get_ambient_action = th_ambient_subp.add_parser(
     'get', 
     help="Query current thermal configurations", 
+)
+
+th_get_ambient_action.add_argument(
+    '--value-only', 
+    help="Return ambient value only", 
+    action='store_true'
 )
 
 th_set_ambient_action.add_argument(
@@ -844,12 +858,10 @@ power_down_action.set_defaults(
 )
 
 ## Thermal group callbacks
-th_get_ambient_action.set_defaults(
-    func=lambda _: print(StateManager.get_ambient())
-)
+th_get_ambient_action.set_defaults(func=handle_get_thermal_ambient)
 
 th_set_ambient_action.set_defaults(
-    func=handle_thermal_ambient
+    func=handle_set_thermal_ambient
 )
 
 th_get_sensor_action.set_defaults(
