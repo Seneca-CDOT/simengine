@@ -228,8 +228,10 @@ class SensorRepository():
         return '\n\n'.join(repo_str)
 
 
+
     def get_sensor_by_name(self, name):
         return self._sensors[name]
+
 
     def adjust_thermal_sensors(self, old_ambient, new_ambient):
         for s_name in self._sensors:

@@ -388,8 +388,10 @@ class StateListener(Component):
         
         data = message['data'].decode("utf-8")
         channel = message['channel'].decode()
-
+        
         try:
+            logging.info("[REDIS:BATTERY] Received a message in channel [%s]: %s", channel, data)
+
             if channel == RedisChannels.battery_update_channel:
                 asset_key, _ = data.split('-')
                 self._notify_client(ClientRequests.asset, {
@@ -429,7 +431,7 @@ class StateListener(Component):
 
         try:
 
-            logging.info("Received a message in channel [%s]: %s", channel, data)
+            logging.info("[REDIS:POWER] Received a message in channel [%s]: %s", channel, data)
 
             if channel == RedisChannels.state_update_channel:
                 asset_key, asset_type = data.split('-')
@@ -484,6 +486,8 @@ class StateListener(Component):
         channel = message['channel'].decode()
 
         try:
+            logging.info("[REDIS:THERMAL] Received a message in channel [%s]: %s", channel, data)
+
             if channel == RedisChannels.ambient_update_channel:
                 old_temp, new_temp = map(float, data.split('-'))
                 self._handle_ambient_update(new_temp=float(new_temp), old_temp=old_temp)
@@ -512,7 +516,7 @@ class StateListener(Component):
         logging.info('Initializing pub/sub event handlers...')
         Timer(0.5, Event.create("monitor_state"), persist=True).register(self)
         Timer(1, Event.create("monitor_battery"), persist=True).register(self)
-        Timer(2, Event.create("monitor_thermal"), persist=True).register(self)
+        Timer(1, Event.create("monitor_thermal"), persist=True).register(self)
 
 
     # **Events are camel-case
