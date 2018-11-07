@@ -118,5 +118,21 @@
                 "name": "PSU{index} temperature"
             }
         ] 
+    }, 
+    "Ambient": {
+        "group": "temperature",
+        "addressSpace": "0x21",
+        "sensorDefinitions": [
+            {
+                "thresholds": {
+                    "lcr": 1.000, 
+                    "lnc": 6.000, 
+                    "unc": 37.000,
+                    "ucr": 42.000
+                },
+                "defaultValue": 0,
+                "name": "Ambient"
+            }
+        ]
     }
 }

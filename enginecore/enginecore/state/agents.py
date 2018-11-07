@@ -72,7 +72,7 @@ class IPMIAgent(Agent):
         dir_util._path_created = {} 
         # pylint: enable=W0212
 
-        dir_util.copy_tree(os.environ.get('SIMENGINE_IPMI_TEMPL'), self._ipmi_dir, verbose=4)
+        dir_util.copy_tree(os.environ.get('SIMENGINE_IPMI_TEMPL'), self._ipmi_dir)
 
         # sensor, emu & lan configuration file paths
         lan_conf = os.path.join(self._ipmi_dir, 'lan.conf')

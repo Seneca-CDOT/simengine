@@ -236,10 +236,21 @@ class SensorRepository():
             sensor = self._sensors[s_name]
             if sensor.group == 'temperature':
                 with self._sensor_file_locks.get_lock(sensor.name):
-                    logging.info("Name -> %s, Value -> >>%s<<", sensor.name, sensor.sensor_value)
-                    logging.info("Old Amb -> %s, New Amb -> >>%s<<", old_ambient, new_ambient)
+                    
+                    old_sensor_value = int(sensor.sensor_value)
+                    new_sensor_value = old_sensor_value - old_ambient + new_ambient if old_sensor_value else new_ambient
 
-                    sensor.sensor_value = int(int(sensor.sensor_value) - old_ambient + new_ambient)
+                    logging.info(
+                        "Sensor:[%s] - value will be updated from %s° to %s° due to ambient changes (%s° -> %s°)", 
+                        sensor.name,
+                        old_sensor_value,
+                        new_sensor_value,
+                        old_ambient, 
+                        new_ambient
+                    )
+
+                    sensor.sensor_value = int(new_sensor_value)
+
 
     @property
     def sensor_dir(self):

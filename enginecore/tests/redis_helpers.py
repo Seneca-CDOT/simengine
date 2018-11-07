@@ -16,14 +16,15 @@ def wait_redis_update(redis_store, channel, expected_kv, num_expected_updates, e
         # print(message)                    
         if message and message['pattern'] == str.encode(channel):
             data = message['data'].decode("utf-8")
+            if '-' in data:
+                key, _ = data.split('-')                                     
+                keys_updated[int(key)] = data
+                num_updated += 1 
 
-            key, _ = data.split('-')                                     
-            keys_updated[int(key)] = data
-            num_updated += 1 
 
-            if num_updated >= num_expected_updates:
-                CHECK = False                               
-                                        
+                if num_updated >= num_expected_updates:
+                    CHECK = False                               
+                                            
         else:
             empty_msg += 1
 

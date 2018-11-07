@@ -11,7 +11,9 @@ from threading import Thread
 from .redis_helpers import wait_redis_update 
 import enginecore.model.system_modeler as sm
 
-from enginecore.state.state_managers import BMCServerStateManager, StateManager, StaticDeviceStateManager
+from enginecore.state.state_managers import  StateManager
+from enginecore.state.sensors import SensorRepository
+from enginecore.state.redis_channels import RedisChannels
 
 class ThermalTest(unittest.TestCase):
 
@@ -29,7 +31,7 @@ class ThermalTest(unittest.TestCase):
             'power_source': 120,
             'psu_power_consumption': 24,
             'psu_power_source': 120,
-            'sensor_def': os.path.join(os.path.dirname(__file__), 'psuOnly.json')
+            'test_sensor_def': os.path.join(os.path.dirname(__file__), 'psuOnly.json')
         }
 
         attr = {}
@@ -64,27 +66,70 @@ class ThermalTest(unittest.TestCase):
 
     def test_outage(self):
 
-        mains_down = {'1-outlet': 0, '2-outlet':0, '3-ups':1, '41-psu':1, '42-psu':0}
+        mains_down = {'mains-source': 0, '1-outlet': 0, '2-outlet':0, '3-ups':1, '41-psu':1, '42-psu':0}
+        mains_up = {'mains-source': 1, '1-outlet': 1, '2-outlet':1, '3-ups':1, '41-psu':1, '42-psu':1}
 
         print('-> Simulating power outage')
-        thread = Thread(target=wait_redis_update, args=(ThermalTest.redis_store, 'mains-upd', {'mains-source': 0}, 1))
-        thread.start()
+        mains_t = Thread(target=wait_redis_update, args=(ThermalTest.redis_store, RedisChannels.mains_update_channel, {'mains-source': 0}, 1))
+        state_t = Thread(target=wait_redis_update, args=(ThermalTest.redis_store, RedisChannels.state_update_channel, mains_down, 2))
+
+        state_t.start()
+        mains_t.start()
 
         StateManager.power_outage()
 
-        thread.join()
+        mains_t.join()
+        state_t.join()
         self.check_redis_values(mains_down)
         
-        # # power up server
-        # print('-> Powering up server')
-        # thread = Thread(target=wait_redis_update, args=(ThermalTest.redis_store, 'load-upd', server_up, 7))
-        # thread.start()
-        # server.power_up()
-        # thread.join()
-        # self.check_redis_values(mains_down)
+        # restore power
+        print('-> Restoring power...')
+        mains_t = Thread(target=wait_redis_update, args=(ThermalTest.redis_store, RedisChannels.mains_update_channel, {'mains-source': 1}, 1))
+        state_t = Thread(target=wait_redis_update, args=(ThermalTest.redis_store, RedisChannels.state_update_channel, mains_up, 2))
+
+        state_t.start()
+        mains_t.start()
+
+        StateManager.power_restore()
+
+        mains_t.join()
+        state_t.join()
+        self.check_redis_values(mains_up)
 
 
+    def test_ambient(self):
 
+        ambient_t = Thread(
+            target=wait_redis_update, args=(ThermalTest.redis_store, RedisChannels.mains_update_channel, {'ambient': 22}, 1)
+        )
+
+        ambient_t.start()
+        StateManager.set_ambient(22)
+        ambient_t.join()
+        self.assertAlmostEqual(22, StateManager.get_ambient())
+        
+        
+
+    def test_ambient_affecting_sensors(self):
+
+        print('-> Testing ambient affecting sensors...')
+
+        ambient_t = Thread(
+            target=wait_redis_update, args=(ThermalTest.redis_store, RedisChannels.mains_update_channel, {'ambient': 23}, 1)
+        )
+
+        ambient_t.start()
+        StateManager.set_ambient(23)
+        
+        sensor_repo = SensorRepository(4)
+        amb_sensor = sensor_repo.get_sensor_by_name('Ambient')
+
+        ambient_t.join()
+        time.sleep(2)
+
+        self.assertEqual(int(StateManager.get_ambient()), int(amb_sensor.sensor_value))
+
+        
         
 if __name__ == '__main__':
     unittest.main()

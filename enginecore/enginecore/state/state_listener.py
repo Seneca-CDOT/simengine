@@ -152,7 +152,7 @@ class StateListener(Component):
             })
             
         StateManager.set_ambient(21)
-        self._handle_ambient_update(new_temp=StateManager.get_ambient(), old_temp=0)
+        #self._handle_ambient_update(new_temp=StateManager.get_ambient(), old_temp=0)
 
 
     def _handle_oid_update(self, asset_key, oid, value):
@@ -494,11 +494,11 @@ class StateListener(Component):
                 if ambient_conf['event'] == 'up':
                     self._sys_environ.ac_on_temp_decrease = ambient_conf['degrees']
                     self._sys_environ.ac_on_temp_rate = int(ambient_conf['rate'])
-                    self._sys_environ.ac_on_temp_min = ambient_conf['stop_at']
+                    self._sys_environ.ac_on_temp_min = ambient_conf['pause_at']
                 elif ambient_conf['event'] == 'down':
                     self._sys_environ.outage_temp_increase = ambient_conf['degrees']
                     self._sys_environ.outage_temp_rate = int(ambient_conf['rate'])
-                    self._sys_environ.outage_temp_max = ambient_conf['stop_at']
+                    self._sys_environ.outage_temp_max = ambient_conf['pause_at']
 
 
         except KeyError as error:
