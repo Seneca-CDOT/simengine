@@ -17,7 +17,9 @@ GRAPH_REF = GraphReference()
 # attributes shared by all the assets
 CREATE_SHARED_ATTR = ["x", "y", "name", "type", "key", "off_delay", "on_delay"]
 # Labels used by the app
-SIMENGINE_NODE_LABELS = ["Asset", "OID", "OIDDesc", "Battery", "StageLayout", "Sensor", "AddressSpace"]
+SIMENGINE_NODE_LABELS = [
+    "Asset", "OID", "OIDDesc", "Battery", "StageLayout", "Sensor", "AddressSpace", "SystemEnvironment"
+]
 
 def _get_props_stm(attr, supported_attr=None):
     """Format dict attributes as neo4j props ( attr: attrValue )"""
@@ -567,3 +569,18 @@ def delete_thermal_sensor_target(attr):
     with GRAPH_REF.get_session() as session:
         session.run("\n".join(query))
     
+
+
+def set_ambient_properties(properties):
+    """Save ambient properties """
+    query = []
+
+    query.append(
+        'MERGE (sys:SystemEnvironment { sref: 1 })-[:HAS_PROP]->( {{ event: "{}" }})'
+        
+    )
+
+    session.run(
+        "MERGE (sys:SystemEnvironment { sref: 1 })-[:HAS_PROP]->( {event: $event})",
+        scale=stage['scale'], x=stage['x'], y=stage['y']
+    )

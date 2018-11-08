@@ -130,39 +130,48 @@ class StateManager():
             self._set_state_on()
         return self.status
  
+
     def update_load(self, load):
         """Update load """
         load = load if load >= 0 else 0
         StateManager.get_store().set(self.redis_key + ":load", load)
         self._publish_load()
 
+
     def reset_boot_time(self):
         """Reset the boot time to now"""
         StateManager.get_store().set(str(self._asset_key) + ":start_time", int(time.time())) 
 
+
     def get_config_off_delay(self):
         return NotImplementedError
     
+
     def get_config_on_delay(self):
         return NotImplementedError
+
 
     def _sleep_shutdown(self):
         if 'offDelay' in self._asset_info:
             time.sleep(self._asset_info['offDelay'] / 1000.0) # ms to sec
 
+
     def _sleep_powerup(self):
         if 'onDelay' in self._asset_info:
             time.sleep(self._asset_info['onDelay'] / 1000.0) # ms to sec
     
+
     def _set_state_on(self):
         StateManager.get_store().set(self.redis_key, '1')
         if self._notify:
             self.publish_power()
 
+
     def _set_state_off(self):
         StateManager.get_store().set(self.redis_key, '0')
         if self._notify:
             self.publish_power()
+
 
     def publish_power(self):
         """ publish state changes """
@@ -171,6 +180,7 @@ class StateManager():
     def _publish_load(self):
         """ publish load changes """
         StateManager.get_store().publish(RedisChannels.load_update_channel, self.redis_key)
+
 
     def _update_oid_value(self, oid, data_type, oid_value):
         """Update oid with a new value
@@ -187,6 +197,7 @@ class StateManager():
 
         redis_store.set(rkey, rvalue)
         
+
     def _get_oid_value(self, oid, key):
         redis_store = StateManager.get_store() 
         rkey = format_as_redis_key(str(key), oid, key_formatted=False)
@@ -250,6 +261,7 @@ class StateManager():
         simengine_temp = os.path.join(sys_temp, 'simengine')
         return simengine_temp
     
+
     @classmethod 
     def get_store(cls):
         """Get redis db handler """
@@ -258,6 +270,7 @@ class StateManager():
 
         return cls.redis_store
     
+
     @classmethod 
     def _get_assets_states(cls, assets, flatten=True): 
         """Query redis store and find states for each asset
@@ -351,9 +364,14 @@ class StateManager():
         StateManager.get_store().publish(RedisChannels.ambient_update_channel, '{}-{}'.format(old_temp, value))  
     
     @classmethod
+    def get_ambient_properties(cls):
+        pass
+
+    @classmethod
     def set_ambient_properties(cls, props):
         """Update runtime thermal properties of the room temperature"""
         StateManager.get_store().publish(RedisChannels.ambient_conf_channel, json.dumps(props))  
+
 
     @classmethod
     def get_state_manager_by_key(cls, key, supported_assets, notify=True):

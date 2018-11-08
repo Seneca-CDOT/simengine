@@ -416,6 +416,7 @@ class GraphReference():
         # print(results['key'])
         return list(map(lambda x: x.get('key'), results))
             
+            
     @classmethod
     def get_affected_sensors(cls, session, source_name):
         """Get sensors affected by the source sensor
