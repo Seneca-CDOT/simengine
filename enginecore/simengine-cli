@@ -165,7 +165,7 @@ def handle_set_thermal_ambient(kwargs):
     del kwargs['func']
      
     if kwargs['event'] and kwargs['pause_at'] and kwargs['rate']:
-        StateManager.set_ambient_properties(kwargs)
+        StateManager.set_ambient_props(kwargs)
     elif kwargs['event'] or kwargs['pause_at'] or kwargs['rate']:
         raise argparse.ArgumentTypeError("Event, pause-at and rate must be supplied")
     else:
@@ -177,6 +177,10 @@ def handle_get_thermal_ambient(kwargs):
         print(StateManager.get_ambient())
     else:
         print("Ambient: {}° ".format(StateManager.get_ambient()))
+
+        ambient_props = StateManager.get_ambient_props()
+        print("A/C settings:")
+
 
 
 def handle_set_thermal_sensor(kwargs):

@@ -114,8 +114,8 @@ class ThermalTest(unittest.TestCase):
         ambient_rising_props = {'pause_at': 25, 'rate': 1, 'degrees':1, 'event': 'down'}
         ambient_cooling_props = {'pause_at': 21, 'rate': 1, 'degrees':1, 'event': 'up'}
         
-        StateManager.set_ambient_properties(ambient_rising_props)
-        StateManager.set_ambient_properties(ambient_cooling_props)
+        StateManager.set_ambient_props(ambient_rising_props)
+        StateManager.set_ambient_props(ambient_cooling_props)
         
         time.sleep(5)
 

@@ -18,7 +18,7 @@ GRAPH_REF = GraphReference()
 CREATE_SHARED_ATTR = ["x", "y", "name", "type", "key", "off_delay", "on_delay"]
 # Labels used by the app
 SIMENGINE_NODE_LABELS = [
-    "Asset", "OID", "OIDDesc", "Battery", "StageLayout", "Sensor", "AddressSpace", "SystemEnvironment"
+    "Asset", "OID", "OIDDesc", "Battery", "StageLayout", "Sensor", "AddressSpace", "SystemEnvironment", "EnvProp"
 ]
 
 def _get_props_stm(attr, supported_attr=None):
@@ -571,16 +571,15 @@ def delete_thermal_sensor_target(attr):
     
 
 
-def set_ambient_properties(properties):
+def set_ambient_props(properties):
     """Save ambient properties """
+
     query = []
 
-    query.append(
-        'MERGE (sys:SystemEnvironment { sref: 1 })-[:HAS_PROP]->( {{ event: "{}" }})'
-        
-    )
+    s_attr = ['event', 'degrees', 'rate', 'pause_at']
+    props_stm = _get_props_stm(properties, supported_attr=s_attr)
 
-    session.run(
-        "MERGE (sys:SystemEnvironment { sref: 1 })-[:HAS_PROP]->( {event: $event})",
-        scale=stage['scale'], x=stage['x'], y=stage['y']
+    query.append(
+        'MERGE (sys:SystemEnvironment {{ sref: 1 }})-[:HAS_PROP]->(:EnvProp {{ {} }})'
+        .format(props_stm)
     )

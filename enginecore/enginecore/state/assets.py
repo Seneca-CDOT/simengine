@@ -51,6 +51,9 @@ class SystemEnvironment(Component):
         self._ac_on_temp_rate = 60 * 6 # every 6 minutes 
         self._ac_on_temp_min = 21
 
+        amb_props = sm.StateManager.get_ambient_props()
+        if not amb_props:
+            sm.StateManager.set_ambient_props()
 
     @property
     def outage_temp_increase(self):

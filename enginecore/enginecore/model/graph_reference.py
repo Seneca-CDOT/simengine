@@ -416,7 +416,7 @@ class GraphReference():
         # print(results['key'])
         return list(map(lambda x: x.get('key'), results))
             
-            
+
     @classmethod
     def get_affected_sensors(cls, session, source_name):
         """Get sensors affected by the source sensor
@@ -446,3 +446,15 @@ class GraphReference():
         # print(source_name, thermal_details)
 
         return thermal_details
+
+
+    @classmethod
+    def get_ambient_props(cls, session):
+        """Get properties belonging to ambient """
+        
+        results = session.run(
+            "MATCH (sys:SystemEnvironment)-[:HAS_PROP]->(props:EnvProp) RETURN sys, collect(props) as props"
+        )
+
+        sys_env = results.single()
+        return (dict(sys_env.get('sys')), list(sys_env.get('props'))) if sys_env else None
