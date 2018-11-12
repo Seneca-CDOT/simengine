@@ -3,14 +3,12 @@ This module provides high-level control over system model.
 """
 import json
 import os
-import secrets
-import string
-import random
-import re
+
 from enum import Enum
 
 import libvirt
 from enginecore.model.graph_reference import GraphReference
+import enginecore.model.query_helpers as qh
 
 GRAPH_REF = GraphReference()
 
@@ -20,28 +18,6 @@ CREATE_SHARED_ATTR = ["x", "y", "name", "type", "key", "off_delay", "on_delay"]
 SIMENGINE_NODE_LABELS = [
     "Asset", "OID", "OIDDesc", "Battery", "StageLayout", "Sensor", "AddressSpace", "SystemEnvironment", "EnvProp"
 ]
-
-def _get_props_stm(attr, supported_attr=None):
-    """Format dict attributes as neo4j props ( attr: attrValue )"""
-
-    existing = dict(
-        filter(lambda k: attr[k[0]] is not None and (not supported_attr or k[0] in supported_attr), attr.items())
-    )
-    return ','.join(map(lambda k: "{}: {}".format(_to_camelcase(k), repr(existing[k])), existing))
-
-
-def _get_set_stm(attr, node_name="asset", supported_attr=None):
-    """Format dict as neo4j set statement ( nodeName.nodeProp=nodeValue ) """
-
-    existing = dict(
-        filter(lambda k: attr[k[0]] is not None and (not supported_attr or k[0] in supported_attr), attr.items())
-    )
-    return ','.join(map(lambda k: "{}.{}={}".format(node_name, _to_camelcase(k), repr(existing[k])), existing))
-
-
-def _get_oid_desc_stm(oid_desc):
-    """Format oid descriptions (int->value mappings) for neo4j """
-    return ','.join(map(lambda k: '{}: "{}"'.format(oid_desc[k], k), oid_desc))
 
 
 def _add_psu(key, psu_index, attr):
@@ -64,7 +40,7 @@ def _add_psu(key, psu_index, attr):
         attr['name'] = 'psu' + str(psu_index)
         attr['type'] = 'psu'
         
-        props_stm = _get_props_stm(attr)
+        props_stm = qh.get_props_stm(attr)
         query.append("CREATE (psu:Asset:PSU:Component {{ {} }})".format(props_stm))
 
         # set relationships
@@ -72,21 +48,6 @@ def _add_psu(key, psu_index, attr):
         query.append("CREATE (asset)-[:POWERED_BY]->(psu)") 
 
         session.run("\n".join(query))
-
-
-def _to_camelcase(snake_string):
-    """Convert snakecase to camelcase """    
-    return re.sub(r'(?!^)_([a-zA-Z])', lambda m: m.group(1).upper(), snake_string)
-
-
-def _generate_id(size=12, chars=string.ascii_uppercase + string.digits):
-    """Ref: https://stackoverflow.com/a/23728630"""
-    return ''.join(secrets.choice(chars) for _ in range(size))
-
-
-def _generate_mac():
-    """Generate a MAC address """
-    return ''.join(random.choice('0123456789abcdef') for _ in range(12))
 
     
 def configure_asset(key, attr):
@@ -105,7 +66,7 @@ def configure_asset(key, attr):
 
     with GRAPH_REF.get_session() as session:
 
-        set_statement = _get_set_stm(attr)
+        set_statement = qh.get_set_stm(attr)
         query = "MATCH (asset:Asset {{ key: {key} }}) SET {set_stm}".format(key=key, set_stm=set_statement)
         
         session.run(query)
@@ -182,7 +143,7 @@ def create_outlet(key, attr):
         attr['name'] = attr['name'] if 'name' in attr and attr['name'] else "out-{}".format(key)
 
         s_attr = CREATE_SHARED_ATTR
-        props_stm = _get_props_stm({**attr, **{'type': 'outlet', 'key': key}}, supported_attr=s_attr)
+        props_stm = qh.get_props_stm({**attr, **{'type': 'outlet', 'key': key}}, supported_attr=s_attr)
         session.run("CREATE (:Asset:Outlet {{ {} }})".format(props_stm))
 
 
@@ -246,7 +207,7 @@ def _add_sensors(asset_key, preset_file=os.path.join(os.path.dirname(__file__), 
                     **{'type': sensor_type}
                 }
 
-                props_stm = _get_props_stm(props, supported_attr=s_attr)
+                props_stm = qh.get_props_stm(props, supported_attr=s_attr)
                 query.append("CREATE (sensor{}:Sensor:{} {{ {} }})".format(sensor_node, sensor_type, props_stm))
 
                 if not ('address' in sensor) or not sensor['address']:
@@ -287,7 +248,7 @@ def create_server(key, attr, server_variation=ServerVariations.Server):
         attr['key'] = key
 
         s_attr = ["domain_name", "power_consumption", "power_source"] + CREATE_SHARED_ATTR
-        props_stm = _get_props_stm(attr, supported_attr=s_attr)
+        props_stm = qh.get_props_stm(attr, supported_attr=s_attr)
         
         # create a server
         query.append("CREATE (server:Asset  {{ {} }}) SET server :{}".format(props_stm, server_variation.name))
@@ -296,7 +257,7 @@ def create_server(key, attr, server_variation=ServerVariations.Server):
         if server_variation == ServerVariations.ServerWithBMC:
             bmc_attr = {**IPMI_LAN_DEFAULTS, **attr} # merge
 
-            set_stm = _get_set_stm(bmc_attr, node_name="server", supported_attr=IPMI_LAN_DEFAULTS.keys())
+            set_stm = qh.get_set_stm(bmc_attr, node_name="server", supported_attr=IPMI_LAN_DEFAULTS.keys())
             query.append("SET {}".format(set_stm))
 
         session.run("\n".join(query))
@@ -337,7 +298,7 @@ def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
         s_attr = ["staticOidFile", "port", "host", "outputPowerCapacity", "minPowerOnBatteryLevel", 
                   "fullRechargeTime", "runtime", "power_source", "power_consumption"] + CREATE_SHARED_ATTR
 
-        props_stm = _get_props_stm({**attr, **data, **{'key': key, 'type': 'ups'}}, supported_attr=s_attr)
+        props_stm = qh.get_props_stm({**attr, **data, **{'key': key, 'type': 'ups'}}, supported_attr=s_attr)
 
         # create UPS asset
         query.append("CREATE (ups:Asset:UPS:SNMPSim {{ {} }})".format(props_stm))
@@ -350,20 +311,20 @@ def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
         # Add UPS OIDs
         for oid_key, oid_props in data["OIDs"].items():
             if oid_key == 'SerialNumber':
-                oid_props['defaultValue'] = _generate_id()
+                oid_props['defaultValue'] = qh.generate_id()
 
             if oid_key == 'MAC':
-                oid_props['defaultValue'] = _generate_mac()
+                oid_props['defaultValue'] = qh.generate_mac()
 
             props = {**oid_props, **{'OIDName': oid_key}}
-            props_stm = _get_props_stm(props, ["OID", "dataType", "defaultValue", "OIDName"])
+            props_stm = qh.get_props_stm(props, ["OID", "dataType", "defaultValue", "OIDName"])
 
             query.append("CREATE ({}:OID {{ {} }})".format(oid_key, props_stm))
             query.append("CREATE (ups)-[:HAS_OID]->({})".format(oid_key))
 
             if "oidDesc" in oid_props and oid_props["oidDesc"]:
                 oid_desc = dict((y, x) for x, y in oid_props["oidDesc"].items())
-                desc_stm = _get_oid_desc_stm(oid_desc)
+                desc_stm = qh.get_oid_desc_stm(oid_desc)
                 query.append("CREATE ({}Desc:OIDDesc {{ {} }})".format(oid_key, desc_stm))
                 query.append("CREATE ({})-[:HAS_STATE_DETAILS]->({}Desc)".format(oid_key, oid_key))
 
@@ -374,7 +335,7 @@ def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
         for i in range(data["numOutlets"]):
 
             props = {'name': 'out'+str(i+1), 'type': 'outlet', 'key': int("{}{}".format(key, str(i+1)))}
-            props_stm = _get_props_stm(props)
+            props_stm = qhget_props_stm(props)
             query.append("CREATE (out{}:Asset:Outlet:Component {{ {} }})".format(i, props_stm))
             query.append("CREATE (ups)-[:HAS_COMPONENT]->(out{})".format(i))
             query.append("CREATE (out{})-[:POWERED_BY]->(ups)".format(i))
@@ -395,7 +356,7 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
         attr['name'] = attr['name'] if 'name' in attr and attr['name'] else data['assetName']
         s_attr = ["staticOidFile", "port", "host"] + CREATE_SHARED_ATTR
 
-        props_stm = _get_props_stm({**attr, **data, **{'key': key, 'type': 'pdu'}}, supported_attr=s_attr)
+        props_stm = qhget_props_stm({**attr, **data, **{'key': key, 'type': 'pdu'}}, supported_attr=s_attr)
 
         # create PDU asset
         query.append("CREATE (pdu:Asset:PDU:SNMPSim {{ {} }})".format(props_stm))
@@ -403,12 +364,12 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
         # Add PDU OIDS to the model
         for oid_key, oid_props in data["OIDs"].items():
             if oid_key == 'SerialNumber':
-                oid_props['defaultValue'] = _generate_id()
+                oid_props['defaultValue'] = qh.generate_id()
             if oid_key == 'MAC':
-                oid_props['defaultValue'] = _generate_mac()
+                oid_props['defaultValue'] = qh.generate_mac()
 
             s_attr = ["OID", "OIDName", "defaultValue", "dataType"]
-            props_stm = _get_props_stm({**oid_props, **{'OIDName': oid_key}}, supported_attr=s_attr)
+            props_stm = qhget_props_stm({**oid_props, **{'OIDName': oid_key}}, supported_attr=s_attr)
             query.append("CREATE (:OID {{ {props_stm} }})<-[:HAS_OID]-(pdu)".format(props_stm=props_stm))
 
 
@@ -420,13 +381,13 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
                 
                 oid_desc = dict((y, x) for x, y in oid_props["oidDesc"].items())
                 
-                desc_stm = _get_oid_desc_stm(oid_desc)
+                desc_stm = qh.get_oid_desc_stm(oid_desc)
                 query.append("CREATE (oidDesc:OIDDesc {{ {} }})".format(desc_stm))
 
                 for j in range(outlet_count):
                     
                     out_key = int("{}{}".format(key, str(j+1)))
-                    props_stm = _get_props_stm({'key': out_key, 'name': 'out'+str(j+1), 'type': 'outlet'})
+                    props_stm = qhget_props_stm({'key': out_key, 'name': 'out'+str(j+1), 'type': 'outlet'})
 
                     # create outlet per OID
                     query.append("CREATE (out{}:Asset:Outlet:Component {{ {} }})".format(out_key, props_stm))
@@ -447,7 +408,7 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
                             oid_num=oid_n
                         )
                         
-                        props_stm = _get_props_stm({
+                        props_stm = qhget_props_stm({
                             'OID': oid, 
                             'OIDName': oid_key, 
                             'dataType': oid_props['dataType'], 
@@ -465,7 +426,7 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
             else:
                 oid = oid_props['OID']
                 
-                props_stm = _get_props_stm({
+                props_stm = qhget_props_stm({
                     'OID': oid, 
                     'OIDName': oid_key, 
                     'dataType': oid_props['dataType'], 
@@ -486,7 +447,7 @@ def create_static(key, attr):
         
     with GRAPH_REF.get_session() as session:
         s_attr = ["img_url", "power_consumption", "power_source"] + CREATE_SHARED_ATTR
-        props_stm = _get_props_stm({**attr, **{'type': 'staticasset', 'key': key}}, supported_attr=s_attr)
+        props_stm = qhget_props_stm({**attr, **{'type': 'staticasset', 'key': key}}, supported_attr=s_attr)
         session.run("CREATE (:Asset:StaticAsset {{ {} }})".format(props_stm))
 
 
@@ -538,7 +499,7 @@ def set_thermal_sensor_target(attr):
 
     # set the thermal relationship & relationship attributes
     s_attr = ["pause_at", 'rate', 'event', 'degrees', 'jitter', 'action']
-    set_stm = _get_set_stm(attr, node_name="rel", supported_attr=s_attr)
+    set_stm = qh.get_set_stm(attr, node_name="rel", supported_attr=s_attr)
 
     query.append("MERGE (source)<-[rel:{}]-(target)".format(thermal_rel_type))
     query.append("SET {}".format(set_stm))
@@ -577,7 +538,7 @@ def set_ambient_props(properties):
     query = []
 
     s_attr = ['event', 'degrees', 'rate', 'pause_at']
-    props_stm = _get_props_stm(properties, supported_attr=s_attr)
+    props_stm = qhget_props_stm(properties, supported_attr=s_attr)
 
     query.append(
         'MERGE (sys:SystemEnvironment {{ sref: 1 }})-[:HAS_PROP]->(:EnvProp {{ {} }})'
