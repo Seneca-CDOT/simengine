@@ -173,13 +173,22 @@ def handle_set_thermal_ambient(kwargs):
 
 
 def handle_get_thermal_ambient(kwargs):
+    """Print some general information about ambient configurations"""
+
     if kwargs['value_only']:
         print(StateManager.get_ambient())
     else:
         print("Ambient: {}° ".format(StateManager.get_ambient()))
 
         ambient_props = StateManager.get_ambient_props()
-        print("A/C settings:")
+        if not ambient_props:
+            print('Ambient event properties are not configured yet!')
+            return
+        
+        prop_fmt = "{degrees}°/{rate} sec, until {pauseAt}° is reached"
+        print("AC settings:")
+        print(" -> [online]  : decrease by " + prop_fmt.format(**ambient_props['up']))
+        print(" -> [offline] : increase by " + prop_fmt.format(**ambient_props['down']))
 
 
 
