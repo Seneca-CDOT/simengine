@@ -454,11 +454,16 @@ class GraphReference():
         """Get properties belonging to ambient """
         
         results = session.run(
-            "MATCH (sys:SystemEnvironment)-[:HAS_PROP]->(props:EnvProp) RETURN sys, collect(props) as props"
+            "MATCH (sys:SystemEnvironment)-[:HAS_PROP]->(props:EnvProp) RETURN props"
         )
 
-        sys_env = results.single()
-        return (dict(sys_env.get('sys')), list(sys_env.get('props'))) if sys_env else None
+        amp_props = {}
+
+        for record in results:
+            event_prop = dict(record.get('props'))
+            amp_props[event_prop['event']] = event_prop
+
+        return amp_props 
 
 
     @classmethod
@@ -466,14 +471,12 @@ class GraphReference():
         """Save ambient properties """
 
         query = []
-
         s_attr = ['event', 'degrees', 'rate', 'pause_at', 'sref']
-        props_stm = qh.get_props_stm({**properties, **{'sref': 1}}, supported_attr=s_attr)
 
         query.append('MERGE (sys:SystemEnvironment { sref: 1 })')
-        query.append(
-            'MERGE (sys)-[:HAS_PROP]->(:EnvProp {{ {} }})'
-            .format(props_stm)
-        )
+        query.append('MERGE (sys)-[:HAS_PROP]->(env:EnvProp {{ event: "{}" }})'.format(properties['event']))
+
+        set_stm = qh.get_set_stm(properties, node_name="env", supported_attr=s_attr)
+        query.append('SET {}'.format(set_stm))
 
         session.run("\n".join(query))

@@ -16,6 +16,7 @@ import os
 import json
 import time
 import logging
+import operator
 from threading import Thread
 from collections import namedtuple
 import datetime as dt
@@ -42,94 +43,82 @@ class SystemEnvironment(Component):
         self._temp_warming_t = None
         self._temp_cooling_t = None
 
-
         amb_props = sm.StateManager.get_ambient_props()
-        if not amb_props:
-            sm.StateManager.set_ambient_props({
-                'event': 'down',
-                'degrees': 1,
-                'rate': 20,
-                'pause_at': 28
-            })
 
-            sm.StateManager.set_ambient_props({
-                'event': 'up',
-                'degrees': 1,
-                'rate': 20,
-                'pause_at': 21
-            })
+        if not amb_props: # set up default values on the first run
+            shared_attr = {'degrees': 1, 'rate': 20}
+            sm.StateManager.set_ambient_props({**shared_attr, **{'event': 'down', 'pause_at': 28}})
+            sm.StateManager.set_ambient_props({**shared_attr, **{'event': 'up', 'pause_at': 21}})
 
 
-    def _keep_changing_temp(self, thermal_cond, update_cond, sleep_duration, calc_temp_op):
+        self._launch_temp_warming()
+        self._launch_temp_cooling()
+
+
+    def _keep_changing_temp(self, event, env, bound_op, temp_op):
         """Change room temperature until limit is reached or AC state changes
         
         Args:
-            thermal_cond(callable): update room temp while the condition remains true
-            update_cond(callable): 
-            sleep_duration(callable): update every 'n' seconds
-            calc_temp_op(callable): calculate new temperature
+            event(str): on up/down event
+            env(callable): update while the environment is in certain condition
+            bound_op(callable): operator; reached max/min
+            temp_op(callable): calculate new temperature
         """
         
-        room_temp = sm.StateManager.get_ambient()
+        amb_props = sm.StateManager.get_ambient_props()[event]
         
-        while thermal_cond():
-            logging.info('Sys Environment: next update will occur in %s seconds', sleep_duration())
-            time.sleep(sleep_duration())
-            room_temp = calc_temp_op()
+        while True:
+            
+            time.sleep(amb_props['rate'])
+            if env():
+                # get old & calculate new temp values
+                current_temp = sm.StateManager.get_ambient()
+                new_temp = temp_op(current_temp, amb_props['degrees'])
+                needs_update = False
 
-            if update_cond(room_temp):   
-                logging.info(
-                    'Sys Environment: ambient (%s) will be updated to %s', sm.StateManager.get_ambient(), room_temp
-                )
-                sm.StateManager.set_ambient(room_temp)
+                msg_format = 'Sys Environment: ambient (%s) will be updated to %s'
+
+                needs_update = bound_op(new_temp, amb_props['pauseAt'])
+                if not needs_update and bound_op(current_temp, amb_props['pauseAt']):
+                    new_temp = amb_props['pauseAt']
+                    needs_update = True
+
+                if needs_update:
+                    logging.info(msg_format, current_temp, new_temp)
+                    sm.StateManager.set_ambient(new_temp)
+
+            amb_props = sm.StateManager.get_ambient_props()[event]
 
 
     def _launch_temp_warming(self):
         """Start the process of raising ambient"""
-
+        
+        run_thread_until = lambda: not sm.StateManager.mains_status()
         self._temp_warming_t = Thread(
             target=self._keep_changing_temp,
             kwargs={
-                'thermal_cond': lambda: not sm.StateManager.mains_status(), 
-                'update_cond':  lambda r_temp: r_temp <= self._outage_temp_max,
-                'sleep_duration': lambda: self._outage_temp_rate, # temp increase per num of seconds
-                'calc_temp_op': lambda: sm.StateManager.get_ambient() + self._ac_on_temp_decrease # temp increase 
+                'env': run_thread_until, 'temp_op': operator.add, 'bound_op': operator.lt, 'event': 'down'
             },
             name="temp_warming"
         )
+
         self._temp_warming_t.daemon = True
         self._temp_warming_t.start()
 
 
     def _launch_temp_cooling(self):
         """Start the process of cooling room temperature"""
-
+        
         self._temp_cooling_t = Thread(
             target=self._keep_changing_temp,
             kwargs={
-                'thermal_cond': sm.StateManager.mains_status,
-                'update_cond': lambda r_temp: r_temp >= self._ac_on_temp_min,
-                'sleep_duration': lambda: self._ac_on_temp_rate, # temp change per num of seconds
-                'calc_temp_op': lambda: sm.StateManager.get_ambient() - self._ac_on_temp_decrease # temp change 
-            }, 
+                'env': sm.StateManager.mains_status, 'temp_op': operator.sub, 'bound_op': operator.gt, 'event': 'up'
+            },
             name="temp_cooling"
         )
+
         self._temp_cooling_t.daemon = True
         self._temp_cooling_t.start()
-
-
-    @handler("PowerOutage")
-    def on_power_outage(self):
-        """Handle power outage - start warming up the room"""
-        pass
-        # self._launch_temp_warming()
-
-
-    @handler("PowerRestored")
-    def on_power_restored(self):
-        """Handle power restoration - start cooling down the room"""
-        pass
-        # self._launch_temp_cooling()
         
 
 class Asset(Component):

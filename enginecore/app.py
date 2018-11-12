@@ -9,7 +9,7 @@ import logging
 from enginecore.state.state_listener import StateListener
 
 FORMAT = "[%(threadName)s, %(asctime)s, %(module)s:%(lineno)s] %(message)s"
-DEV_FORMAT = "[%(threadName)s, %(module)s:%(lineno)s] %(message)s"
+DEV_FORMAT = "[%(threadName)s, %(asctime)s, %(module)s:%(lineno)s] %(message)s"
 
 
 def configure_logger(develop=False):
@@ -20,7 +20,7 @@ def configure_logger(develop=False):
 
     root = logging.getLogger()
     root.setLevel(logging.INFO)
-    formatter = logging.Formatter(DEV_FORMAT if develop else FORMAT)
+    formatter = logging.Formatter(DEV_FORMAT, "%H:%M:%S" if develop else FORMAT)
 
     if develop:
         log_path = "info.log"

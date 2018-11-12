@@ -295,6 +295,7 @@ th_set_ambient_action.add_argument(
 
 th_set_ambient_action.add_argument(
     '-r', '--rate',
+    type=int,
     help="Update temperature value very 'n' seconds"
 )
 
