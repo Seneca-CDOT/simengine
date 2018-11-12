@@ -22,7 +22,6 @@ class RedisChannels():
 
     # thermal channels
     ambient_update_channel = 'ambient-upd'
-    ambient_conf_channel = 'ambient-cfg-upd'
 
     # misc
     oid_update_channel = 'oid-upd' 

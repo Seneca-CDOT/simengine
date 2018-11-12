@@ -363,12 +363,14 @@ class StateManager():
         StateManager.get_store().set('ambient', str(value))
         StateManager.get_store().publish(RedisChannels.ambient_update_channel, '{}-{}'.format(old_temp, value))  
     
+    
     @classmethod
     def get_ambient_props(cls):
         graph_ref = GraphReference()
         with graph_ref.get_session() as session:
             props = GraphReference.get_ambient_props(session)
             return props
+
 
     @classmethod
     def set_ambient_props(cls, props):
@@ -377,7 +379,6 @@ class StateManager():
         graph_ref = GraphReference()
         with graph_ref.get_session() as session: 
             GraphReference.set_ambient_props(session, props)
-            StateManager.get_store().publish(RedisChannels.ambient_conf_channel, json.dumps(props))  
 
 
     @classmethod

@@ -98,8 +98,7 @@ class StateListener(Component):
 
         # Thermal Channels
         self._thermal_pubsub.psubscribe(
-            RedisChannels.ambient_update_channel, # on ambient changes
-            RedisChannels.ambient_conf_channel # ambient settings updated
+            RedisChannels.ambient_update_channel # on ambient changes
         )
 
 
@@ -491,18 +490,6 @@ class StateListener(Component):
             if channel == RedisChannels.ambient_update_channel:
                 old_temp, new_temp = map(float, data.split('-'))
                 self._handle_ambient_update(new_temp=float(new_temp), old_temp=old_temp)
-
-            elif channel == RedisChannels.ambient_conf_channel:
-                ambient_conf = json.loads(data)
-
-                if ambient_conf['event'] == 'up':
-                    self._sys_environ.ac_on_temp_decrease = ambient_conf['degrees']
-                    self._sys_environ.ac_on_temp_rate = int(ambient_conf['rate'])
-                    self._sys_environ.ac_on_temp_min = ambient_conf['pause_at']
-                elif ambient_conf['event'] == 'down':
-                    self._sys_environ.outage_temp_increase = ambient_conf['degrees']
-                    self._sys_environ.outage_temp_rate = int(ambient_conf['rate'])
-                    self._sys_environ.outage_temp_max = ambient_conf['pause_at']
 
 
         except KeyError as error:
