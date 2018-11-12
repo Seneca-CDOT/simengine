@@ -335,7 +335,7 @@ def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
         for i in range(data["numOutlets"]):
 
             props = {'name': 'out'+str(i+1), 'type': 'outlet', 'key': int("{}{}".format(key, str(i+1)))}
-            props_stm = qhget_props_stm(props)
+            props_stm = qh.get_props_stm(props)
             query.append("CREATE (out{}:Asset:Outlet:Component {{ {} }})".format(i, props_stm))
             query.append("CREATE (ups)-[:HAS_COMPONENT]->(out{})".format(i))
             query.append("CREATE (out{})-[:POWERED_BY]->(ups)".format(i))
@@ -356,7 +356,7 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
         attr['name'] = attr['name'] if 'name' in attr and attr['name'] else data['assetName']
         s_attr = ["staticOidFile", "port", "host"] + CREATE_SHARED_ATTR
 
-        props_stm = qhget_props_stm({**attr, **data, **{'key': key, 'type': 'pdu'}}, supported_attr=s_attr)
+        props_stm = qh.get_props_stm({**attr, **data, **{'key': key, 'type': 'pdu'}}, supported_attr=s_attr)
 
         # create PDU asset
         query.append("CREATE (pdu:Asset:PDU:SNMPSim {{ {} }})".format(props_stm))
@@ -369,7 +369,7 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
                 oid_props['defaultValue'] = qh.generate_mac()
 
             s_attr = ["OID", "OIDName", "defaultValue", "dataType"]
-            props_stm = qhget_props_stm({**oid_props, **{'OIDName': oid_key}}, supported_attr=s_attr)
+            props_stm = qh.get_props_stm({**oid_props, **{'OIDName': oid_key}}, supported_attr=s_attr)
             query.append("CREATE (:OID {{ {props_stm} }})<-[:HAS_OID]-(pdu)".format(props_stm=props_stm))
 
 
@@ -387,7 +387,7 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
                 for j in range(outlet_count):
                     
                     out_key = int("{}{}".format(key, str(j+1)))
-                    props_stm = qhget_props_stm({'key': out_key, 'name': 'out'+str(j+1), 'type': 'outlet'})
+                    props_stm = qh.get_props_stm({'key': out_key, 'name': 'out'+str(j+1), 'type': 'outlet'})
 
                     # create outlet per OID
                     query.append("CREATE (out{}:Asset:Outlet:Component {{ {} }})".format(out_key, props_stm))
@@ -408,7 +408,7 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
                             oid_num=oid_n
                         )
                         
-                        props_stm = qhget_props_stm({
+                        props_stm = qh.get_props_stm({
                             'OID': oid, 
                             'OIDName': oid_key, 
                             'dataType': oid_props['dataType'], 
@@ -426,7 +426,7 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
             else:
                 oid = oid_props['OID']
                 
-                props_stm = qhget_props_stm({
+                props_stm = qh.get_props_stm({
                     'OID': oid, 
                     'OIDName': oid_key, 
                     'dataType': oid_props['dataType'], 
@@ -447,7 +447,7 @@ def create_static(key, attr):
         
     with GRAPH_REF.get_session() as session:
         s_attr = ["img_url", "power_consumption", "power_source"] + CREATE_SHARED_ATTR
-        props_stm = qhget_props_stm({**attr, **{'type': 'staticasset', 'key': key}}, supported_attr=s_attr)
+        props_stm = qh.get_props_stm({**attr, **{'type': 'staticasset', 'key': key}}, supported_attr=s_attr)
         session.run("CREATE (:Asset:StaticAsset {{ {} }})".format(props_stm))
 
 
@@ -530,17 +530,3 @@ def delete_thermal_sensor_target(attr):
     with GRAPH_REF.get_session() as session:
         session.run("\n".join(query))
     
-
-
-def set_ambient_props(properties):
-    """Save ambient properties """
-
-    query = []
-
-    s_attr = ['event', 'degrees', 'rate', 'pause_at']
-    props_stm = qhget_props_stm(properties, supported_attr=s_attr)
-
-    query.append(
-        'MERGE (sys:SystemEnvironment {{ sref: 1 }})-[:HAS_PROP]->(:EnvProp {{ {} }})'
-        .format(props_stm)
-    )

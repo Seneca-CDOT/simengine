@@ -368,13 +368,16 @@ class StateManager():
         graph_ref = GraphReference()
         with graph_ref.get_session() as session:
             props = GraphReference.get_ambient_props(session)
-
             return props
 
     @classmethod
     def set_ambient_props(cls, props):
         """Update runtime thermal properties of the room temperature"""
-        StateManager.get_store().publish(RedisChannels.ambient_conf_channel, json.dumps(props))  
+
+        graph_ref = GraphReference()
+        with graph_ref.get_session() as session: 
+            GraphReference.set_ambient_props(session, props)
+            StateManager.get_store().publish(RedisChannels.ambient_conf_channel, json.dumps(props))  
 
 
     @classmethod

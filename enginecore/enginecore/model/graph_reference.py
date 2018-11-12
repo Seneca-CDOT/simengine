@@ -3,6 +3,7 @@
 import os
 from neo4j.v1 import GraphDatabase, basic_auth
 from enginecore.state.utils import format_as_redis_key
+import enginecore.model.query_helpers as qh
 
 class GraphReference():
     """Graph DB wrapper """
@@ -458,3 +459,21 @@ class GraphReference():
 
         sys_env = results.single()
         return (dict(sys_env.get('sys')), list(sys_env.get('props'))) if sys_env else None
+
+
+    @classmethod
+    def set_ambient_props(cls, session, properties):
+        """Save ambient properties """
+
+        query = []
+
+        s_attr = ['event', 'degrees', 'rate', 'pause_at', 'sref']
+        props_stm = qh.get_props_stm({**properties, **{'sref': 1}}, supported_attr=s_attr)
+
+        query.append('MERGE (sys:SystemEnvironment { sref: 1 })')
+        query.append(
+            'MERGE (sys)-[:HAS_PROP]->(:EnvProp {{ {} }})'
+            .format(props_stm)
+        )
+
+        session.run("\n".join(query))

@@ -42,89 +42,22 @@ class SystemEnvironment(Component):
         self._temp_warming_t = None
         self._temp_cooling_t = None
 
-        # Set defaults 
-        self._outage_temp_increase = 2
-        self._outage_temp_rate = 60 * 6 # every 6 minutes s
-        self._outage_temp_max = 34
-
-        self._ac_on_temp_decrease = 1
-        self._ac_on_temp_rate = 60 * 6 # every 6 minutes 
-        self._ac_on_temp_min = 21
 
         amb_props = sm.StateManager.get_ambient_props()
         if not amb_props:
-            sm.StateManager.set_ambient_props()
+            sm.StateManager.set_ambient_props({
+                'event': 'down',
+                'degrees': 1,
+                'rate': 20,
+                'pause_at': 28
+            })
 
-    @property
-    def outage_temp_increase(self):
-        """Temperature increase per rate (upon outage)"""
-        return self._outage_temp_increase
-    
-    
-    @outage_temp_increase.setter
-    def outage_temp_increase(self, value):
-        self._outage_temp_increase = value
-
-
-    @property
-    def outage_temp_rate(self):
-        """Rate in seconds (upon outage)"""
-        return self._outage_temp_rate
-
-
-    @outage_temp_rate.setter
-    def outage_temp_rate(self, value):
-        if value <= 0:
-            raise ValueError  
-        
-        self._outage_temp_rate = value
-
-
-    @property
-    def outage_temp_max(self):
-        """Maxium room temperature that can be reached (outage)"""
-        return self._outage_temp_max
-    
-
-    @outage_temp_max.setter
-    def outage_temp_max(self, value):
-        self._outage_temp_max = value
-
-
-    @property
-    def ac_on_temp_decrease(self):
-        """Temperature drop value per N num of seconds (when AC is on)"""
-        return self._ac_on_temp_decrease
-    
-    
-    @ac_on_temp_decrease.setter
-    def ac_on_temp_decrease(self, value):
-        self._ac_on_temp_decrease = value
-    
-
-    @property
-    def ac_on_temp_rate(self):
-        """Rate in seconds (when AC is on)"""
-        return self._ac_on_temp_rate
-
-
-    @ac_on_temp_rate.setter
-    def ac_on_temp_rate(self, value):
-        if value <= 0:
-            raise ValueError  
-        
-        self._ac_on_temp_rate = value
-
-
-    @property
-    def ac_on_temp_min(self):
-        """Miminum room temperature value that can be reached with AC cooling"""
-        return self._ac_on_temp_min
-    
-
-    @ac_on_temp_min.setter
-    def ac_on_temp_min(self, value):
-        self._ac_on_temp_min = value
+            sm.StateManager.set_ambient_props({
+                'event': 'up',
+                'degrees': 1,
+                'rate': 20,
+                'pause_at': 21
+            })
 
 
     def _keep_changing_temp(self, thermal_cond, update_cond, sleep_duration, calc_temp_op):
@@ -188,13 +121,15 @@ class SystemEnvironment(Component):
     @handler("PowerOutage")
     def on_power_outage(self):
         """Handle power outage - start warming up the room"""
-        self._launch_temp_warming()
+        pass
+        # self._launch_temp_warming()
 
 
     @handler("PowerRestored")
     def on_power_restored(self):
         """Handle power restoration - start cooling down the room"""
-        self._launch_temp_cooling()
+        pass
+        # self._launch_temp_cooling()
         
 
 class Asset(Component):
