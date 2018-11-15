@@ -93,7 +93,7 @@ class Sensor():
 
                     self._thermal_t[target['name']] = threading.Thread(
                         target=self._update_target_sensor,
-                        args=(target, rel,),
+                        args=(target['name'], rel['event']),
                         name=self._thermal_t_name_fmt.format(source=self._s_name, target=target['name'])
                     )
 
@@ -101,26 +101,32 @@ class Sensor():
                     self._thermal_t[target['name']].start()
 
     
-    def _update_target_sensor(self, target, rel):
+    def _update_target_sensor(self, target, event):
         
         while True:
             self._s_thermal_event.wait()
-            
-            try:
-                self._s_file_locks.get_lock(target['name']).acquire()
+          
+            with self._graph_ref.get_session() as session, self._s_file_locks.get_lock(target):
+
+                rel_details = GraphReference.get_target_sensor(session, self.name, target, event)
+                print(rel_details)
+                # shut down thread upon relationship removal
+                if not rel_details:
+                    return
+
+                rel = rel_details['rel']
+
                 max_not_reached = lambda current_value: current_value+int(rel['degrees']) < int(rel['pauseAt'])
                 sensor_is_down = lambda _: int(self.sensor_value) == 0 
                 
                 
                 Sensor.update_sensor_value(
-                    os.path.join(self._s_dir, target['name']),
+                    os.path.join(self._s_dir, target),
                     can_update=lambda current_value: max_not_reached(current_value) and sensor_is_down(current_value),
                     arith_op=lambda current_value: str(current_value + int(rel['degrees']))
                 )
-            finally:
-                self._s_file_locks.get_lock(target['name']).release()
 
-            time.sleep(int(rel['rate']))
+                time.sleep(int(rel['rate']))
 
     def _get_sensor_file_path(self):
         return os.path.join(self._s_dir, self._get_sensor_file())

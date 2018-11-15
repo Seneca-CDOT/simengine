@@ -470,7 +470,7 @@ class GraphReference():
             'source': dict(record.get('source')), 
             'target': dict(record.get('target')), 
             'rel': dict(record.get('rel')) 
-        }
+        } if record else None
 
 
     @classmethod
