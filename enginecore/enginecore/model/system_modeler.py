@@ -469,7 +469,10 @@ def delete_asset(key):
 
 
 def set_thermal_sensor_target(attr):
-    """Set-up a new thermal relationship between 2 sensors or configure the existing one"""
+    """Set-up a new thermal relationship between 2 sensors or configure the existing one
+    Returns:
+        bool: True if a new relationship was created
+    """
 
     if attr['source_sensor'] == attr['target_sensor']:
         raise KeyError('Sensor cannot affect itself!')
@@ -503,9 +506,17 @@ def set_thermal_sensor_target(attr):
 
     query.append("MERGE (source)<-[rel:{}]-(target)".format(thermal_rel_type))
     query.append("SET {}".format(set_stm))
-    
+
+    rel_query = [] 
+    rel_query.append("MATCH (source)<-[ex_rel:{}]-(target)".format(thermal_rel_type))
+    rel_query.append("RETURN ex_rel")
+
     with GRAPH_REF.get_session() as session:
+        result = session.run("\n".join(query[0:2] + rel_query))
+        rel_exists = result.single()
+
         session.run("\n".join(query))
+        return rel_exists is None
 
 
 def delete_thermal_sensor_target(attr):
@@ -521,7 +532,7 @@ def delete_thermal_sensor_target(attr):
 
     # find the destination or target sensor & save its thermal link
     query.append(
-        'MATCH (source)<-[thermal_link {{ event: "{}" }}]-({{ name: "{}" }}:Sensor)'
+        'MATCH (source)<-[thermal_link {{ event: "{}" }}]-(:Sensor {{ name: "{}" }})'
         .format(attr['event'], attr['target_sensor'])
     )
 

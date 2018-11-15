@@ -450,6 +450,30 @@ class GraphReference():
 
 
     @classmethod
+    def get_target_sensor(cls, session, source_name, target_name, event):
+        """
+        """
+
+        results = session.run(
+            """
+            MATCH (source:Sensor { name: $source })<-[rel]-(target:Sensor {name: $target})
+            WHERE rel.event = $event
+            RETURN source, target, rel
+            """, 
+            source=source_name,
+            target=target_name,
+            event=event
+        )
+
+        record = results.single()
+        return {
+            'source': dict(record.get('source')), 
+            'target': dict(record.get('target')), 
+            'rel': dict(record.get('rel')) 
+        }
+
+
+    @classmethod
     def get_ambient_props(cls, session):
         """Get properties belonging to ambient """
         

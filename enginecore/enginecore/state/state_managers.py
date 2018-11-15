@@ -16,9 +16,10 @@ import redis
 import libvirt
 import pysnmp.proto.rfc1902 as snmp_data_types
 from enginecore.model.graph_reference import GraphReference
+import enginecore.model.system_modeler as sys_modeler
+
 from enginecore.state.utils import format_as_redis_key
 from enginecore.state.redis_channels import RedisChannels
-
 
 class StateManager():
     """Base class for all the state managers """
@@ -894,6 +895,24 @@ class BMCServerStateManager(ServerStateManager, IPMIComponent):
         with graph_ref.get_session() as session:
             return GraphReference.get_asset_sensors(session, asset_key)
 
+    @classmethod
+    def update_thermal_sensor_target(cls, attr):
+        """Create new or update existing thermal relationship between 2 sensors"""
+        new_rel = sys_modeler.set_thermal_sensor_target(attr)
+        if new_rel: 
+            attr
+            StateManager.get_store().publish(
+                RedisChannels.sensor_conf_th_channel, 
+                json.dumps({
+                    'key': attr['asset_key'],
+                    'relationship': {
+                        'source': attr['source_sensor'],
+                        'target': attr['target_sensor'],
+                        'event': attr['event']
+                    }
+                })
+            )  
+            print('NEW REL')
 
 class SimplePSUStateManager(StateManager):
     def __init__(self, asset_info, asset_type='psu', notify=False):

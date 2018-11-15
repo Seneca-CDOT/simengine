@@ -705,11 +705,18 @@ class ServerWithBMC(Server):
         else:
             logging.info('Asset:[%s] - agent process (%s) is up & running', self.state.key, agent_info[0])
 
+
+    def add_new_thermal_impact(self, source, target, event):
+        """Add new thermal relationship at the runtime"""
+        self._sensor_repo.get_sensor_by_name(source).add_new_thermal_impact(target, event)
+
+
     @handler("AmbientDecreased", "AmbientIncreased")
     def on_ambient_updated(self, event, *args, **kwargs):
         """Update thermal sensor readings on ambient changes """ 
         self._sensor_repo.adjust_thermal_sensors(new_ambient=kwargs['new_value'], old_ambient=kwargs['old_value'])
     
+
     @handler("ParentAssetPowerDown")
     def on_parent_asset_power_down(self, event, *args, **kwargs):
         self._ipmi_agent.stop_agent()

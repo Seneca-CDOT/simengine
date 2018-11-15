@@ -8,7 +8,7 @@ import time
 import curses
 from enginecore.state.assets import Asset
 import enginecore.model.system_modeler as sys_modeler
-from enginecore.state.state_managers import StateManager
+from enginecore.state.state_managers import StateManager, BMCServerStateManager
 from enginecore.state.sensors import SensorRepository
 
 
@@ -199,7 +199,7 @@ def handle_set_thermal_sensor(kwargs):
     if not kwargs['action']:
         kwargs['action'] = 'increase' if kwargs['event'] == 'down' else 'decrease'
 
-    sys_modeler.set_thermal_sensor_target(kwargs)
+    BMCServerStateManager.update_thermal_sensor_target(kwargs)
 
 def handle_get_thermal_sensor(kwargs):
     """Display information about BMC sensors"""
