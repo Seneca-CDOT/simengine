@@ -804,87 +804,30 @@ class ServerStateManager(StaticDeviceStateManager):
         return powered
 
 
-class IPMIComponent():
-    """ 
-    PSU:
-        IOUT_*: Current
-        POUT_*: Power (Watts)
-        VOUT_*: Voltage
-    """
-
-    def __init__(self, server_key):
-        self._server_key = server_key
-        self._sensor_dir = 'sensor_dir'
 
 
-    def get_state_dir(self):
-        """Get temp IPMI state dir"""
-        return os.path.join(StateManager.get_temp_workplace_dir(), str(self._server_key))
-
-
-    def _read_sensor_file(self, sensor_file):
-        """Retrieve a single value representing sensor state"""
-        with open(sensor_file) as sf_handler:
-            return sf_handler.readline()
-    
-    
-    def _write_sensor_file(self, sensor_file, data):
-        """Update state of a sensor"""
-        with open(sensor_file, 'w') as sf_handler:
-            return sf_handler.write(str(int(data)) + '\n')
-
-
-    def _get_psu_current_file(self, psu_id):
-        """Get path to a file containing sensor current"""
-        return os.path.join(self.get_state_dir(), os.path.join(self._sensor_dir, 'IOUT_{}'.format(psu_id)))
-    
-    
-    def _get_psu_wattage_file(self, psu_id):
-        """Get path to a file containing sensor wattage"""
-        return os.path.join(self.get_state_dir(), os.path.join(self._sensor_dir, 'POUT_{}'.format(psu_id)))
-
-
-    def _get_psu_fan_file(self, psu_id):
-        """Get path to a file containing fan RPM"""
-        return os.path.join(self.get_state_dir(), os.path.join(self._sensor_dir, 'FAN_{}'.format(psu_id)))
-
-
-    def _get_psu_status_file(self, psu_id):
-        """Get path to a file indicating PSU status"""
-        return os.path.join(self.get_state_dir(), os.path.join(self._sensor_dir, 'STATUS_{}'.format(psu_id)))
-
-
-    def _get_cpu_temp_file(self):
-        """Get path to a file indicating current CPU temp in C"""
-        return os.path.join(self.get_state_dir(), os.path.join(self._sensor_dir, 'CPU_TEMP'))
-
-
-    def _update_cpu_temp(self, value):
-        """Set cpu temp value"""
-        pass # self._write_sensor_file(self._get_cpu_temp_file(), value)
-
-
-class BMCServerStateManager(ServerStateManager, IPMIComponent):
+class BMCServerStateManager(ServerStateManager):
     """Manage Server with BMC """
 
     def __init__(self, asset_info, asset_type='serverwithbmc', notify=False):
         ServerStateManager.__init__(self, asset_info, asset_type, notify)
-        IPMIComponent.__init__(self, asset_info['key'])
 
     def power_up(self):
         powered = super().power_up()
-        if powered: 
-            super()._update_cpu_temp(32)
+        # TODO:
+        # gradually update temp sensor readings
         return powered
 
 
     def shut_down(self):
-        super()._update_cpu_temp(0)
+        # TODO:
+        # gradually update temp sensor readings
         return super().shut_down()
 
 
     def power_off(self):
-        super()._update_cpu_temp(0)
+        # TODO:
+        # gradually update temp sensor readings
         return super().power_off()
 
 
@@ -900,7 +843,6 @@ class BMCServerStateManager(ServerStateManager, IPMIComponent):
         """Create new or update existing thermal relationship between 2 sensors"""
         new_rel = sys_modeler.set_thermal_sensor_target(attr)
         if new_rel: 
-            attr
             StateManager.get_store().publish(
                 RedisChannels.sensor_conf_th_channel, 
                 json.dumps({
@@ -914,17 +856,17 @@ class BMCServerStateManager(ServerStateManager, IPMIComponent):
             )  
             print('NEW REL')
 
+
 class SimplePSUStateManager(StateManager):
     def __init__(self, asset_info, asset_type='psu', notify=False):
         StateManager.__init__(self, asset_info, asset_type, notify)
 
 
-class PSUStateManager(StateManager, IPMIComponent):
+class PSUStateManager(StateManager):
 
 
     def __init__(self, asset_info, asset_type='psu', notify=False):
         StateManager.__init__(self, asset_info, asset_type, notify)
-        IPMIComponent.__init__(self, int(repr(asset_info['key'])[:-1]))
         self._psu_number = int(repr(asset_info['key'])[-1])
 
 
@@ -957,7 +899,7 @@ class PSUStateManager(StateManager, IPMIComponent):
         super().update_load(load)
         min_load = self._asset_info['powerConsumption'] / self._asset_info['powerSource']
         
-        if super().get_state_dir():
-            self._update_current(load + min_load)
-            self._update_waltage((load + min_load) * 10)
-            self._update_fan_speed(100 if load > 0 else 0)
+        # if super().get_state_dir():
+        #     self._update_current(load + min_load)
+        #     self._update_waltage((load + min_load) * 10)
+        #     self._update_fan_speed(100 if load > 0 else 0)

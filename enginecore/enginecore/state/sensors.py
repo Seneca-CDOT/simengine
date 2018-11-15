@@ -26,6 +26,8 @@ class SensorFileLocks():
 
 class Sensor():
     """Aggregates sensor information """
+
+
     def __init__(self, sensor_dir, s_details, s_locks):
         self._s_dir = sensor_dir
         
@@ -50,7 +52,6 @@ class Sensor():
         self._s_file_locks = s_locks
         self._s_thermal_event = threading.Event()
 
-        # self._init_thermal_impact()
   
 
     def __str__(self):
@@ -83,6 +84,7 @@ class Sensor():
 
             return '\n'.join(s_str)
 
+
     def _init_thermal_impact(self): 
 
         with self._graph_ref.get_session() as session:
@@ -114,10 +116,12 @@ class Sensor():
         
         with self._graph_ref.get_session() as session:
             while True:
-                # self._s_thermal_event.wait()
-            
+                
+                print(self._s_thermal_event.is_set())
+                self._s_thermal_event.wait()   
+
                 rel_details = GraphReference.get_target_sensor(session, self.name, target, event)
-                # print(rel_details)
+
 
                 logging.info('')
                 # shut down thread upon relationship removal
@@ -142,7 +146,7 @@ class Sensor():
                         if not needs_update and bound_op(current_value, rel['pauseAt']):
                             needs_update = True
                             new_value = rel['pauseAt']
-
+                        
                         if needs_update:
                             logging.info(
                                 "> Current sensor value: %s will be updated to %s", current_value, int(new_value)
@@ -174,7 +178,7 @@ class Sensor():
 
             if target not in self._thermal_t:
                 self._thermal_t[target] = {}
-                
+
             self._thermal_t[target][event] = threading.Thread(
                 target=self._update_target_sensor,
                 args=(target, rel_details['rel'],),
@@ -206,15 +210,22 @@ class Sensor():
             filein.write(str(new_value))
 
 
-    def enable_thermal_impact(self):
+    def start_thermal_impact(self):
         """Enable thread execution responsible for thermal updates"""
+        logging.info("Sensor:[%s] - initializing thermal processes", self._s_name)
         self._init_thermal_impact()
-        # self._s_thermal_event.set()
+        self.enable_thermal_impact()
+        
+    def enable_thermal_impact(self):
+        logging.info("Sensor:[%s] - enabling thermal impact", self._s_name)
+        self._s_thermal_event.set()
 
-
-    # def disable_thermal_impact(self):
-    #     """Disable thread execution responsible for thermal updates"""        
-    #     self._s_thermal_event.clear()
+    def disable_thermal_impact(self):
+        """Disable thread execution responsible for thermal updates"""
+        logging.info("Sensor:[%s] - disabling thermal impact", self._s_name)
+        self._s_thermal_event.clear()
+        logging.info(self._s_thermal_event.is_set())
+        logging.info(self._thermal_t)
 
 
     def set_to_defaults(self):
@@ -251,11 +262,8 @@ class SensorRepository():
             for s_name in self._sensors:
                 self._sensors[s_name].set_to_defaults()
             for s_name in self._sensors:
-                self._sensors[s_name].enable_thermal_impact()
+                self._sensors[s_name].start_thermal_impact()
 
-        # time.sleep(10)
-        # for sensor in self._sensors:
-        #     sensor.disable_thermal_impact()
 
     def __str__(self):
         
@@ -270,6 +278,17 @@ class SensorRepository():
         return '\n\n'.join(repo_str)
 
 
+    def enable_thermal_impact(self):
+        for s_name in self._sensors:
+            sensor = self._sensors[s_name]
+            if sensor.group == 'temperature':
+                sensor.enable_thermal_impact()     
+
+    def disable_thermal_impact(self):
+        for s_name in self._sensors:
+            sensor = self._sensors[s_name]
+            if sensor.group == 'temperature':
+                sensor.disable_thermal_impact()
 
     def get_sensor_by_name(self, name):
         return self._sensors[name]

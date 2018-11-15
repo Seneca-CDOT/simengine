@@ -720,14 +720,28 @@ class ServerWithBMC(Server):
     @handler("ParentAssetPowerDown")
     def on_parent_asset_power_down(self, event, *args, **kwargs):
         self._ipmi_agent.stop_agent()
-        return self.power_off()
+        e_result = self.power_off()
+        if e_result.old_state != e_result.new_state:
+            self._sensor_repo.disable_thermal_impact()
+        return e_result
 
 
     @handler("ParentAssetPowerUp")
     def on_power_up_request_received(self):
         self._ipmi_agent.start_agent() 
-        return self.power_up()
+        e_result = self.power_up()
+        if e_result.old_state != e_result.new_state:
+            self._sensor_repo.enable_thermal_impact()
+        return e_result
 
+
+    @handler("ButtonPowerDownPressed")
+    def on_asset_did_power_off(self):
+        self._sensor_repo.disable_thermal_impact()
+
+    @handler("ButtonPowerUpPressed")
+    def on_asset_did_power_on(self):
+        self._sensor_repo.enable_thermal_impact()
 
 @register_asset
 class PSU(StaticAsset):
