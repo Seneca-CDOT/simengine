@@ -3,6 +3,7 @@ import os
 import threading
 import logging
 import time
+import operator
 
 from enginecore.state.state_managers import StateManager
 from enginecore.model.graph_reference import GraphReference
@@ -34,7 +35,7 @@ class Sensor():
         self._s_group = self._s_specs['group']
 
         self._thermal_t = {}
-        self._thermal_t_name_fmt = "s:[{source}]->t:[{target}]"
+        self._thermal_t_name_fmt = "({event})s:[{source}]->t:[{target}]"
 
         self._graph_ref = GraphReference()
 
@@ -49,7 +50,7 @@ class Sensor():
         self._s_file_locks = s_locks
         self._s_thermal_event = threading.Event()
 
-        self._init_thermal_impact()
+        # self._init_thermal_impact()
   
 
     def __str__(self):
@@ -74,7 +75,7 @@ class Sensor():
                 s_str.append(" - Thermal Impact:")
                 
                 # format relationships
-                rfmt = "{:55}".format("{action} by {degrees}°/{rate} sec on '{event}' event")
+                rfmt = "{:55}".format("{action} by {degrees}°/{rate} sec on '{event}' event up until {pauseAt}°")
                 tfmt = lambda rel: (" | ").format().join(map(lambda r: rfmt.format(**r), rel))
 
                 # add targets & relationships to the output
@@ -91,63 +92,94 @@ class Sensor():
             for target in thermal_rel_details['targets']:
                 for rel in target['rel']:
 
-                    self._thermal_t[target['name']] = threading.Thread(
+                    target_name = target['name']
+                    source_event = rel['event']
+
+                    if target_name not in self._thermal_t:
+                        self._thermal_t[target_name] = {}
+                    
+                    self._thermal_t[target_name][source_event] = threading.Thread(
                         target=self._update_target_sensor,
-                        args=(target['name'], rel['event']),
-                        name=self._thermal_t_name_fmt.format(source=self._s_name, target=target['name'])
+                        args=(target_name, source_event, ),
+                        name=self._thermal_t_name_fmt.format(
+                            source=self._s_name, target=target_name, event=source_event
+                        )
                     )
 
-                    self._thermal_t[target['name']].daemon = True
-                    self._thermal_t[target['name']].start()
+                    self._thermal_t[target_name][source_event].daemon = True
+                    self._thermal_t[target_name][source_event].start()
 
     
     def _update_target_sensor(self, target, event):
         
-        while True:
-            self._s_thermal_event.wait()
-          
-            with self._graph_ref.get_session() as session, self._s_file_locks.get_lock(target):
-
+        with self._graph_ref.get_session() as session:
+            while True:
+                # self._s_thermal_event.wait()
+            
                 rel_details = GraphReference.get_target_sensor(session, self.name, target, event)
-                print(rel_details)
+                # print(rel_details)
+
+                logging.info('')
                 # shut down thread upon relationship removal
                 if not rel_details:
+                    del self._thermal_t[target][event]
                     return
 
                 rel = rel_details['rel']
 
-                max_not_reached = lambda current_value: current_value+int(rel['degrees']) < int(rel['pauseAt'])
-                sensor_is_down = lambda _: int(self.sensor_value) == 0 
-                
-                
-                Sensor.update_sensor_value(
-                    os.path.join(self._s_dir, target),
-                    can_update=lambda current_value: max_not_reached(current_value) and sensor_is_down(current_value),
-                    arith_op=lambda current_value: str(current_value + int(rel['degrees']))
-                )
+                source_sensor_status = operator.eq if rel['event'] == 'down' else operator.ne
+                arith_op = operator.add if rel['action'] == 'increase' else operator.sub
+                bound_op = operator.lt if rel['action'] == 'increase' else operator.gt
+
+                with self._s_file_locks.get_lock(target), open(os.path.join(self._s_dir, target), 'r+') as sf_handler:
+
+                    current_value = int(sf_handler.read())
+                    new_value = arith_op(current_value, int(rel['degrees']))
+
+                    if source_sensor_status(int(self.sensor_value), 0):
+
+                        needs_update = bound_op(new_value, rel['pauseAt'])
+                        if not needs_update and bound_op(current_value, rel['pauseAt']):
+                            needs_update = True
+                            new_value = rel['pauseAt']
+
+                        if needs_update:
+                            logging.info(
+                                "> Current sensor value: %s will be updated to %s", current_value, int(new_value)
+                            )
+
+                            sf_handler.seek(0)
+                            sf_handler.truncate()
+                            sf_handler.write(str(new_value))
 
                 time.sleep(int(rel['rate']))
+
 
     def _get_sensor_file_path(self):
         return os.path.join(self._s_dir, self._get_sensor_file())
 
+
     def _get_sensor_file(self):
         return self.name
 
+
     def add_new_thermal_impact(self, target, event):
-        # if target in self._thermal_t:
-        #     print(target)
-        #     raise ValueError('Thread already exists')
+        if target in self._thermal_t and event in self._thermal_t:
+            raise ValueError('Thread already exists')
         
         with self._graph_ref.get_session() as session:
             rel_details = GraphReference.get_target_sensor(session, self.name, target, event)
             print('RELATIONSHIP DETAILS:')
             print(rel_details)
-            # self._thermal_t[new_rel['target_sensor']] = threading.Thread(
-            #     target=self._update_target_sensor,
-            #     args=(target, rel,),
-            #     name=self._thermal_t_name_fmt.format(source=new_rel['source_sensor'], target=new_rel['target_sensor'])
-            # )
+
+            if target not in self._thermal_t:
+                self._thermal_t[target] = {}
+                
+            self._thermal_t[target][event] = threading.Thread(
+                target=self._update_target_sensor,
+                args=(target, rel_details['rel'],),
+                name=self._thermal_t_name_fmt.format(source=self._s_name, target=target, event=event)
+            )
 
     @property
     def name(self):
@@ -176,31 +208,18 @@ class Sensor():
 
     def enable_thermal_impact(self):
         """Enable thread execution responsible for thermal updates"""
-        self._s_thermal_event.set()
+        self._init_thermal_impact()
+        # self._s_thermal_event.set()
 
 
-    def disable_thermal_impact(self):
-        """Disable thread execution responsible for thermal updates"""        
-        self._s_thermal_event.clear()
+    # def disable_thermal_impact(self):
+    #     """Disable thread execution responsible for thermal updates"""        
+    #     self._s_thermal_event.clear()
 
 
     def set_to_defaults(self):
         with open(self._get_sensor_file_path(), "w+") as filein:
             filein.write(str(int(self._s_specs['defaultValue']*0.1) if 'defaultValue' in self._s_specs else 0))
-
-    @classmethod
-    def update_sensor_value(cls, path, can_update, arith_op):
-        with open(path, 'r+') as sf_handler:
-    
-            current_value = int(sf_handler.read())
-            new_value = arith_op(current_value)
-            if can_update(current_value):
-                logging.info("> Current sensor value: %s will be updated to %s", current_value, int(new_value))
-
-                sf_handler.seek(0)
-                sf_handler.truncate()
-                sf_handler.write(new_value)
-            
 
    
 

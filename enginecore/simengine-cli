@@ -147,7 +147,7 @@ def configure_battery(key, kwargs):
 def configure_sensor(kwargs):
     try:
         sensor = SensorRepository(kwargs['asset_key']).get_sensor_by_name(kwargs['sensor_name'])
-        sensor.value = kwargs['runtime_value']
+        sensor.sensor_value = kwargs['runtime_value']
     except KeyError as error:
         argparse.ArgumentTypeError("Server or Sensor does not exist: " + error)
 
