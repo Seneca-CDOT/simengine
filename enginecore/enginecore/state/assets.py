@@ -737,12 +737,12 @@ class ServerWithBMC(Server):
 
     @handler("ButtonPowerDownPressed")
     def on_asset_did_power_off(self):
-        self._sensor_repo.disable_thermal_impact()
+        self._sensor_repo.shut_down_sensors()
 
 
     @handler("ButtonPowerUpPressed")
     def on_asset_did_power_on(self):
-        self._sensor_repo.enable_thermal_impact()
+        self._sensor_repo.power_up_sensors()
 
 
 

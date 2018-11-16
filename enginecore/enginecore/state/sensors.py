@@ -113,16 +113,15 @@ class Sensor():
 
     
     def _update_target_sensor(self, target, event):
-        
+
+
         with self._graph_ref.get_session() as session:
             while True:
-                
+
                 self._s_thermal_event.wait()   
 
                 rel_details = GraphReference.get_target_sensor(session, self.name, target, event)
-
-
-                logging.info('')
+                # logging.info('')
                 # shut down thread upon relationship removal
                 if not rel_details:
                     del self._thermal_t[target][event]
@@ -144,7 +143,7 @@ class Sensor():
                         needs_update = bound_op(new_value, rel['pauseAt'])
                         if not needs_update and bound_op(current_value, rel['pauseAt']):
                             needs_update = True
-                            new_value = rel['pauseAt']
+                            new_value = int(rel['pauseAt'])
                         
                         if needs_update:
                             logging.info(
@@ -177,12 +176,16 @@ class Sensor():
 
             if target not in self._thermal_t:
                 self._thermal_t[target] = {}
+            
 
             self._thermal_t[target][event] = threading.Thread(
                 target=self._update_target_sensor,
-                args=(target, rel_details['rel'],),
+                args=(target, rel_details['rel']['event'],),
                 name=self._thermal_t_name_fmt.format(source=self._s_name, target=target, event=event)
             )
+
+            self._thermal_t[target][event].daemon = True
+            self._thermal_t[target][event].start()
 
     @property
     def name(self):
@@ -223,9 +226,14 @@ class Sensor():
         """Disable thread execution responsible for thermal updates"""
         logging.info("Sensor:[%s] - disabling thermal impact", self._s_name)
         self._s_thermal_event.clear()
-        logging.info(self._s_thermal_event.is_set())
-        logging.info(self._thermal_t)
+        # logging.info(self._s_thermal_event.is_set())
+        # logging.info(self._thermal_t)
 
+
+    def set_to_off(self):
+        with open(self._get_sensor_file_path(), "w+") as filein:
+            off_value = self._s_specs['offValue'] if 'offValue' in self._s_specs else 0
+            filein.write(str(off_value))
 
     def set_to_defaults(self):
         """Reset the sensor value to the specified default value"""
@@ -263,13 +271,13 @@ class SensorRepository():
                 self._sensors[sensor.name] = sensor
 
         if enable_thermal:
+            self._load_thermal = True
+ 
             if not os.path.isdir(self._sensor_dir):
                 os.mkdir(self._sensor_dir)
 
             for s_name in self._sensors:
                 self._sensors[s_name].set_to_defaults()
-            for s_name in self._sensors:
-                self._sensors[s_name].start_thermal_impact()
 
 
     def __str__(self):
@@ -296,16 +304,28 @@ class SensorRepository():
             sensor.disable_thermal_impact()
 
     def shut_down_sensors(self):
-        pass
+        
+        for s_name in self._sensors:
+            sensor = self._sensors[s_name]
+            if sensor.group != 'temperature':
+                sensor.set_to_off()
+
+        self.disable_thermal_impact()
         
     def power_up_sensors(self):
-        pass
+        
+        for s_name in self._sensors:
+            sensor = self._sensors[s_name]
+            if sensor.group != 'temperature':
+                sensor.set_to_defaults()
+        self.enable_thermal_impact()
 
     def get_sensor_by_name(self, name):
         return self._sensors[name]
 
 
     def adjust_thermal_sensors(self, old_ambient, new_ambient):
+
         for s_name in self._sensors:
             sensor = self._sensors[s_name]
             if sensor.group == 'temperature':
@@ -325,6 +345,11 @@ class SensorRepository():
 
                     sensor.sensor_value = int(new_sensor_value)
 
+        if self._load_thermal is True:
+            self._load_thermal = False
+
+            for s_name in self._sensors:
+                self._sensors[s_name].start_thermal_impact()
 
     @property
     def sensor_dir(self):

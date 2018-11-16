@@ -66,13 +66,13 @@
         "sensorDefinitions": [
             {
                 "thresholds": {},
-                "defaultValue": 0,
+                "defaultValue": 2,
                 "offValue": 0,
                 "name": "PSU{index} current"
             },
             {
                 "thresholds": {},
-                "defaultValue": 0,
+                "defaultValue": 2,
                 "offValue": 0,
                 "name": "PSU{index} current"
             }
@@ -84,13 +84,13 @@
         "sensorDefinitions": [
             {
                 "thresholds": {},
-                "defaultValue": 0,
+                "defaultValue": 10,
                 "offValue": 0,
                 "name": "PSU{index} voltage"
             },
             {
                 "thresholds": {},
-                "defaultValue": 0,
+                "defaultValue": 10,
                 "offValue": 0,
                 "name": "PSU{index} voltage"
             }
@@ -102,13 +102,13 @@
         "sensorDefinitions": [
             {
                 "thresholds": {},
-                "defaultValue": 0,
+                "defaultValue": 20,
                 "offValue": 0,
                 "name": "PSU{index} power"
             },
             {
                 "thresholds": {},
-                "defaultValue": 0,
+                "defaultValue": 20,
                 "offValue": 0,
                 "name": "PSU{index} power"
             }

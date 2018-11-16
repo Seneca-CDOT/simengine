@@ -18,8 +18,6 @@ import pysnmp.proto.rfc1902 as snmp_data_types
 from enginecore.model.graph_reference import GraphReference
 import enginecore.model.system_modeler as sys_modeler
 
-from enginecore.state.sensors import SensorRepository
-
 from enginecore.state.utils import format_as_redis_key
 from enginecore.state.redis_channels import RedisChannels
 
@@ -856,7 +854,6 @@ class BMCServerStateManager(ServerStateManager):
                     }
                 })
             )  
-            print('NEW REL')
 
 
 class SimplePSUStateManager(StateManager):
