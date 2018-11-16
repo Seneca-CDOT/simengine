@@ -195,7 +195,7 @@ def _add_sensors(asset_key, preset_file=os.path.join(os.path.dirname(__file__), 
                     raise KeyError("Missing address for a seonsor {}".format(sensor_type))
 
                 s_attr = [
-                    "name", "defaultValue", "group",
+                    "name", "defaultValue", "offValue", "group",
                     "lnr", "lcr", "lnc", "unc", "ucr", "unr", 
                     "address", "index", "type", "eventReadingType"
                 ]
@@ -501,7 +501,7 @@ def set_thermal_sensor_target(attr):
         raise KeyError('Unrecognized event type: {}'.format(attr['event']))
 
     # set the thermal relationship & relationship attributes
-    s_attr = ["pause_at", 'rate', 'event', 'degrees', 'jitter', 'action']
+    s_attr = ["pause_at", 'rate', 'event', 'degrees', 'jitter', 'action', 'at_source_value']
     set_stm = qh.get_set_stm(attr, node_name="rel", supported_attr=s_attr)
 
     query.append("MERGE (source)<-[rel:{}]-(target)".format(thermal_rel_type))

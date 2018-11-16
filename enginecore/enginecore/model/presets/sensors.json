@@ -13,6 +13,7 @@
                     "unr": 1500
                 },
                 "defaultValue": 1200,
+                "offValue": 0,
                 "name": "Frnt_FAN{index}"
             },
             {
@@ -23,6 +24,7 @@
                     "ucr": 1200
                 },
                 "defaultValue": 400,
+                "offValue": 0,                
                 "name": "Frnt_FAN{index}"
             },
             {
@@ -34,6 +36,7 @@
                 },
                 "defaultValue": 1000,
                 "name": "Frnt_FAN",
+                "offValue": 0,                
                 "address": "0x79"
             }
         ]
@@ -45,12 +48,14 @@
         "sensorDefinitions": [
             {
                 "thresholds": {},
-                "defaultValue": 0,
+                "defaultValue": "0x01",
+                "offValue": "0x08",                
                 "name": "PSU{index} status"
             },
             {
                 "thresholds": {},
-                "defaultValue": 0,
+                "defaultValue": "0x01",
+                "offValue": "0x08", 
                 "name": "PSU{index} status"
             }
         ] 
@@ -62,11 +67,13 @@
             {
                 "thresholds": {},
                 "defaultValue": 0,
+                "offValue": 0,
                 "name": "PSU{index} current"
             },
             {
                 "thresholds": {},
                 "defaultValue": 0,
+                "offValue": 0,
                 "name": "PSU{index} current"
             }
         ] 
@@ -78,11 +85,13 @@
             {
                 "thresholds": {},
                 "defaultValue": 0,
+                "offValue": 0,
                 "name": "PSU{index} voltage"
             },
             {
                 "thresholds": {},
                 "defaultValue": 0,
+                "offValue": 0,
                 "name": "PSU{index} voltage"
             }
         ] 
@@ -94,11 +103,13 @@
             {
                 "thresholds": {},
                 "defaultValue": 0,
+                "offValue": 0,
                 "name": "PSU{index} power"
             },
             {
                 "thresholds": {},
                 "defaultValue": 0,
+                "offValue": 0,
                 "name": "PSU{index} power"
             }
         ] 
@@ -110,11 +121,13 @@
             {
                 "thresholds": {},
                 "defaultValue": 0,
+                "offValue": 0,
                 "name": "PSU{index} temperature"
             },
             {
                 "thresholds": {},
                 "defaultValue": 0,
+                "offValue": 0,
                 "name": "PSU{index} temperature"
             }
         ] 
@@ -129,6 +142,7 @@
                     "unr": 82
                 },
                 "defaultValue": 0,
+                "offValue": 0,
                 "name": "Mem A"
             },
             {
@@ -137,6 +151,7 @@
                     "unr": 82
                 },
                 "defaultValue": 0,
+                "offValue": 0,
                 "name": "Mem B"
             },
             {
@@ -145,6 +160,7 @@
                     "unr": 82
                 },
                 "defaultValue": 0,
+                "offValue": 0,
                 "name": "Mem C"
             },
             {
@@ -153,6 +169,7 @@
                     "unr": 82
                 },
                 "defaultValue": 0,
+                "offValue": 0,
                 "name": "Mem D"
             },
             {
@@ -161,6 +178,7 @@
                     "unr": 82
                 },
                 "defaultValue": 0,
+                "offValue": 0,
                 "name": "Mem E"
             },
             {
@@ -169,6 +187,7 @@
                     "unr": 82
                 },
                 "defaultValue": 0,
+                "offValue": 0,
                 "name": "Mem F"
             },
             {
@@ -177,6 +196,7 @@
                     "unr": 82
                 },
                 "defaultValue": 0,
+                "offValue": 0,
                 "name": "Mem G"
             },
             {
@@ -185,6 +205,7 @@
                     "unr": 82
                 },
                 "defaultValue": 0,
+                "offValue": 0,
                 "name": "Mem H"
             }
         ] 
@@ -201,6 +222,7 @@
                     "ucr": 42.000
                 },
                 "defaultValue": 0,
+                "offValue": 0,
                 "name": "Ambient"
             }
         ]
@@ -215,6 +237,7 @@
                     "ucr": 115.000
                 },
                 "defaultValue": 0,
+                "offValue": 0,
                 "name": "RAID Controller"
             }
         ]

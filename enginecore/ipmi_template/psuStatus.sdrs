@@ -4,7 +4,7 @@ sdr type 2
 	channel_number		0
 
 	sensor_number		$ADDR
-    entity_instance		$ID_STR
+  entity_instance		$ID_STR
 
 	entity_id		power_supply
 	

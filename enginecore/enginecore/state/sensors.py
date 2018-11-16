@@ -117,7 +117,6 @@ class Sensor():
         with self._graph_ref.get_session() as session:
             while True:
                 
-                print(self._s_thermal_event.is_set())
                 self._s_thermal_event.wait()   
 
                 rel_details = GraphReference.get_target_sensor(session, self.name, target, event)
@@ -229,8 +228,16 @@ class Sensor():
 
 
     def set_to_defaults(self):
+        """Reset the sensor value to the specified default value"""
+
         with open(self._get_sensor_file_path(), "w+") as filein:
-            filein.write(str(int(self._s_specs['defaultValue']*0.1) if 'defaultValue' in self._s_specs else 0))
+            if self.group == 'fan':
+                default_value = int(self._s_specs['defaultValue']*0.1)
+            else:
+                default_value = self._s_specs['defaultValue']
+            
+            off_value = self._s_specs['offValue'] if 'offValue' in self._s_specs else 0
+            filein.write(str(default_value if 'defaultValue' in self._s_specs else off_value))
 
    
 
@@ -281,14 +288,18 @@ class SensorRepository():
     def enable_thermal_impact(self):
         for s_name in self._sensors:
             sensor = self._sensors[s_name]
-            if sensor.group == 'temperature':
-                sensor.enable_thermal_impact()     
+            sensor.enable_thermal_impact()     
 
     def disable_thermal_impact(self):
         for s_name in self._sensors:
             sensor = self._sensors[s_name]
-            if sensor.group == 'temperature':
-                sensor.disable_thermal_impact()
+            sensor.disable_thermal_impact()
+
+    def shut_down_sensors(self):
+        pass
+        
+    def power_up_sensors(self):
+        pass
 
     def get_sensor_by_name(self, name):
         return self._sensors[name]

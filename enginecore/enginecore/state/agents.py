@@ -149,8 +149,11 @@ class IPMIAgent(Agent):
 
             #  0x20  0   0x74    3     1 
             e_type = s_specs['eventReadingType'] if 'eventReadingType' in s_specs else 1
+            s_idx_2 = 8 if 'eventReadingType' in s_specs else 3
 
-            ipmisim_emu_opt[s_specs['type']] += 'sensor_add 0x20  0   {}   3     {} poll 2000 '.format(s_idx, e_type)
+            ipmisim_emu_opt[s_specs['type']] += 'sensor_add 0x20  0   {}   {}     {} poll 2000 '.format(
+                s_idx, s_idx_2, e_type
+            )
             ipmisim_emu_opt[s_specs['type']] += 'file $TEMP_IPMI_DIR"/sensor_dir/{}" \n'.format(sensor_file)
         
 

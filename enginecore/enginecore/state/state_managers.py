@@ -18,6 +18,8 @@ import pysnmp.proto.rfc1902 as snmp_data_types
 from enginecore.model.graph_reference import GraphReference
 import enginecore.model.system_modeler as sys_modeler
 
+from enginecore.state.sensors import SensorRepository
+
 from enginecore.state.utils import format_as_redis_key
 from enginecore.state.redis_channels import RedisChannels
 
@@ -868,6 +870,7 @@ class PSUStateManager(StateManager):
     def __init__(self, asset_info, asset_type='psu', notify=False):
         StateManager.__init__(self, asset_info, asset_type, notify)
         self._psu_number = int(repr(asset_info['key'])[-1])
+        # self._sensor = SensorRepository(int(repr(asset_info['key'])[:-1])).get
 
 
     def _update_current(self, load):
@@ -876,7 +879,7 @@ class PSUStateManager(StateManager):
         # super()._write_sensor_file(super()._get_psu_current_file(self._psu_number), load)
     
 
-    def _update_waltage(self, wattage):
+    def _update_wattage(self, wattage):
         """Update wattage inside state file """        
         wattage = wattage if wattage >= 0 else 0    
         # super()._write_sensor_file(super()._get_psu_wattage_file(self._psu_number), wattage)

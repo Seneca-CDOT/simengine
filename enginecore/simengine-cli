@@ -356,6 +356,14 @@ th_set_sensor_action.add_argument(
     choices=['increase', 'decrease']
 )
 
+
+th_set_sensor_action.add_argument(
+    '--at-source-value',  
+    help="Simengine will use this value to determine thermal impact for any given source sensor input; \
+         Source sensor's default value will be used instead if not specified", 
+)
+
+
 th_set_sensor_action.add_argument(
     '-d', '--degrees', 
     type=float, 

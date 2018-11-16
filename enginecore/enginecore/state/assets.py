@@ -722,7 +722,7 @@ class ServerWithBMC(Server):
         self._ipmi_agent.stop_agent()
         e_result = self.power_off()
         if e_result.old_state != e_result.new_state:
-            self._sensor_repo.disable_thermal_impact()
+            self._sensor_repo.shut_down_sensors()
         return e_result
 
 
@@ -731,7 +731,7 @@ class ServerWithBMC(Server):
         self._ipmi_agent.start_agent() 
         e_result = self.power_up()
         if e_result.old_state != e_result.new_state:
-            self._sensor_repo.enable_thermal_impact()
+            self._sensor_repo.power_up_sensors()
         return e_result
 
 
@@ -739,9 +739,12 @@ class ServerWithBMC(Server):
     def on_asset_did_power_off(self):
         self._sensor_repo.disable_thermal_impact()
 
+
     @handler("ButtonPowerUpPressed")
     def on_asset_did_power_on(self):
         self._sensor_repo.enable_thermal_impact()
+
+
 
 @register_asset
 class PSU(StaticAsset):
