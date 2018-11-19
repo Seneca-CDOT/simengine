@@ -653,8 +653,8 @@ class StaticAsset(Asset):
 
     channel = "engine-static"
     StateManagerCls = sm.StaticDeviceStateManager
-    def __init__(self, asset_info):
-        super(StaticAsset, self).__init__(self.StateManagerCls(asset_info))
+    def __init__(self, asset_info, asset_type='staticasset'):
+        super(StaticAsset, self).__init__(self.StateManagerCls(asset_info, asset_type=asset_type))
         self.state.update_load(self.state.power_usage)
 
     @handler("ParentAssetPowerDown")
@@ -665,6 +665,15 @@ class StaticAsset(Asset):
     @handler("ParentAssetPowerUp")
     def on_power_up_request_received(self):
         return self.power_up()
+
+
+@register_asset
+class Lamp(StaticAsset):
+    """A simple demonstration type """
+    channel = "engine-lamp"
+
+    def __init__(self, asset_info):
+        super(Lamp, self).__init__(asset_info, asset_type='lamp')
 
 
 @register_asset

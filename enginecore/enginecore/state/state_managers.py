@@ -814,20 +814,14 @@ class BMCServerStateManager(ServerStateManager):
 
     def power_up(self):
         powered = super().power_up()
-        # TODO:
-        # gradually update temp sensor readings
         return powered
 
 
     def shut_down(self):
-        # TODO:
-        # gradually update temp sensor readings
         return super().shut_down()
 
 
     def power_off(self):
-        # TODO:
-        # gradually update temp sensor readings
         return super().power_off()
 
 

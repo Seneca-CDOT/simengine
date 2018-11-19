@@ -440,15 +440,20 @@ def create_pdu(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'p
         session.run("\n".join(query))
 
 
-def create_static(key, attr):
+def create_static(key, attr, static_type='StaticAsset'):
     """Create Dummy static asset"""
     if not attr['power_consumption']:
         raise KeyError('Static asset requires power_consumption')
         
     with GRAPH_REF.get_session() as session:
         s_attr = ["img_url", "power_consumption", "power_source"] + CREATE_SHARED_ATTR
-        props_stm = qh.get_props_stm({**attr, **{'type': 'staticasset', 'key': key}}, supported_attr=s_attr)
-        session.run("CREATE (:Asset:StaticAsset {{ {} }})".format(props_stm))
+        props_stm = qh.get_props_stm({**attr, **{'type': static_type.lower(), 'key': key}}, supported_attr=s_attr)
+        session.run("CREATE (:Asset:{} {{ {} }})".format(static_type, props_stm))
+
+
+def create_lamp(key, attr):
+    """Create Dummy lamp asset"""
+    create_static(key, attr, static_type='Lamp')
 
 
 def drop_model():

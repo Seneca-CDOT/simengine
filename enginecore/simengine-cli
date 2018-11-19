@@ -648,6 +648,14 @@ create_static_action = create_subp.add_parser(
 
 create_static_action.add_argument('--img-url', help="URL of the image displayed on the frontend")
 
+
+## LAMP
+create_lamp_action = create_subp.add_parser(
+    'lamp', 
+    help="Used for power demonstrations", 
+    parents=[create_asset_parent, create_power_parent]
+)
+
 ### Configure / Update asset properties
 
 update_actions = []
@@ -771,12 +779,23 @@ update_static_action = update_subp.add_parser(
 
 update_static_action.add_argument('--img-url', help="URL of the image displayed on the frontend")
 
-update_actions.append(update_outlet_action)
-update_actions.append(update_pdu_action)
-update_actions.append(update_ups_action)
-update_actions.append(update_server_action)
-update_actions.append(update_server_bmc_action)
-update_actions.append(update_static_action)
+
+## Lamp
+update_lamp_action = update_subp.add_parser(
+    'lamp', 
+    help="Update lamp Asset properties", 
+    parents=[update_asset_parent, update_power_parent]
+)
+
+update_actions.extend([
+    update_outlet_action,
+    update_pdu_action,
+    update_ups_action,
+    update_server_action,
+    update_server_bmc_action,
+    update_static_action,
+    update_lamp_action
+])
 
 ###################################
 ## Assets' power control subgroup ##
@@ -841,6 +860,10 @@ create_static_action.set_defaults(
     func=lambda args: sys_modeler.create_static(args['asset_key'], args)
 )
 
+create_lamp_action.set_defaults(
+    validate=lambda args: validate_key(args['asset_key']),
+    func=lambda args: sys_modeler.create_lamp(args['asset_key'], args)
+)
 
 for action in update_actions:
     action.set_defaults(func=lambda args: sys_modeler.configure_asset(args['asset_key'], args))

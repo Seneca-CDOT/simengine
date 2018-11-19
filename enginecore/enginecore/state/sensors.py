@@ -1,9 +1,11 @@
+"""Aggregates sensor management tools """
 
 import os
 import threading
 import logging
 import time
 import operator
+from random import randint
 
 from enginecore.state.state_managers import StateManager
 from enginecore.model.graph_reference import GraphReference
@@ -85,31 +87,40 @@ class Sensor():
             return '\n'.join(s_str)
 
 
-    def _init_thermal_impact(self): 
+    def _launch_thermal_thread(self, target, event):
+        """Add a new impact thread 
+        Args:
+            target(str): name of the target sensor current sensor is affecting
+            event(str): name of the source event affecting target sensor
+        """
+        
+        if target not in self._thermal_t:
+            self._thermal_t[target] = {}
 
+        self._thermal_t[target][event] = threading.Thread(
+            target=self._update_target_sensor,
+            args=(target, event, ),
+            name=self._thermal_t_name_fmt.format(
+                source=self._s_name, target=target, event=event
+            )
+        )
+
+        self._thermal_t[target][event].daemon = True
+        self._thermal_t[target][event].start()
+
+
+
+    def _init_thermal_impact(self): 
+        """Initialize thermal imact based on the saved inter-connections"""
+    
         with self._graph_ref.get_session() as session:
             thermal_rel_details = GraphReference.get_affected_sensors(session, self._s_name)
 
             # for each target & for each set of relationships with the target
             for target in thermal_rel_details['targets']:
                 for rel in target['rel']:
+                    self._launch_thermal_thread(target['name'], rel['event'])
 
-                    target_name = target['name']
-                    source_event = rel['event']
-
-                    if target_name not in self._thermal_t:
-                        self._thermal_t[target_name] = {}
-                    
-                    self._thermal_t[target_name][source_event] = threading.Thread(
-                        target=self._update_target_sensor,
-                        args=(target_name, source_event, ),
-                        name=self._thermal_t_name_fmt.format(
-                            source=self._s_name, target=target_name, event=source_event
-                        )
-                    )
-
-                    self._thermal_t[target_name][source_event].daemon = True
-                    self._thermal_t[target_name][source_event].start()
 
     
     def _update_target_sensor(self, target, event):
@@ -119,9 +130,10 @@ class Sensor():
             while True:
 
                 self._s_thermal_event.wait()   
+                old_value = 0
 
                 rel_details = GraphReference.get_target_sensor(session, self.name, target, event)
-                # logging.info('')
+                logging.info('')
                 # shut down thread upon relationship removal
                 if not rel_details:
                     del self._thermal_t[target][event]
@@ -138,21 +150,40 @@ class Sensor():
                     current_value = int(sf_handler.read())
                     new_value = arith_op(current_value, int(rel['degrees']))
 
+                    # Source sensor status activated thermal impact
                     if source_sensor_status(int(self.sensor_value), 0):
-
                         needs_update = bound_op(new_value, rel['pauseAt'])
                         if not needs_update and bound_op(current_value, rel['pauseAt']):
                             needs_update = True
                             new_value = int(rel['pauseAt'])
                         
                         if needs_update:
+                            
+                            if 'jitter' in rel and rel['jitter']:
+                                new_value = randint(new_value-rel['jitter'], new_value+rel['jitter']) 
+
                             logging.info(
                                 "> Current sensor value: %s will be updated to %s", current_value, int(new_value)
                             )
-
+                            
                             sf_handler.seek(0)
                             sf_handler.truncate()
                             sf_handler.write(str(new_value))
+                            
+                            old_value = current_value
+
+                    # Apply jitter if defined
+                    elif 'jitter' in rel and rel['jitter'] and old_value:
+                        new_value = randint(old_value-rel['jitter'], old_value+rel['jitter'])
+
+                        logging.info(
+                            "> Current sensor value: %s will be updated to %s", current_value, int(new_value)
+                        )
+                        sf_handler.write(str(new_value))
+
+                    elif not old_value:
+                        old_value = current_value
+
 
                 time.sleep(int(rel['rate']))
 
@@ -171,21 +202,8 @@ class Sensor():
         
         with self._graph_ref.get_session() as session:
             rel_details = GraphReference.get_target_sensor(session, self.name, target, event)
-            print('RELATIONSHIP DETAILS:')
-            print(rel_details)
+            self._launch_thermal_thread(target, rel_details['rel']['event'])
 
-            if target not in self._thermal_t:
-                self._thermal_t[target] = {}
-            
-
-            self._thermal_t[target][event] = threading.Thread(
-                target=self._update_target_sensor,
-                args=(target, rel_details['rel']['event'],),
-                name=self._thermal_t_name_fmt.format(source=self._s_name, target=target, event=event)
-            )
-
-            self._thermal_t[target][event].daemon = True
-            self._thermal_t[target][event].start()
 
     @property
     def name(self):
@@ -218,9 +236,11 @@ class Sensor():
         self._init_thermal_impact()
         self.enable_thermal_impact()
         
+        
     def enable_thermal_impact(self):
         logging.info("Sensor:[%s] - enabling thermal impact", self._s_name)
         self._s_thermal_event.set()
+
 
     def disable_thermal_impact(self):
         """Disable thread execution responsible for thermal updates"""
@@ -234,6 +254,7 @@ class Sensor():
         with open(self._get_sensor_file_path(), "w+") as filein:
             off_value = self._s_specs['offValue'] if 'offValue' in self._s_specs else 0
             filein.write(str(off_value))
+
 
     def set_to_defaults(self):
         """Reset the sensor value to the specified default value"""
@@ -250,6 +271,8 @@ class Sensor():
    
 
 class SensorRepository():
+
+
     def __init__(self, server_key, enable_thermal=False):
         self._server_key = server_key
         
@@ -298,10 +321,12 @@ class SensorRepository():
             sensor = self._sensors[s_name]
             sensor.enable_thermal_impact()     
 
+
     def disable_thermal_impact(self):
         for s_name in self._sensors:
             sensor = self._sensors[s_name]
             sensor.disable_thermal_impact()
+
 
     def shut_down_sensors(self):
         
@@ -312,6 +337,7 @@ class SensorRepository():
 
         self.disable_thermal_impact()
         
+
     def power_up_sensors(self):
         
         for s_name in self._sensors:
@@ -319,6 +345,7 @@ class SensorRepository():
             if sensor.group != 'temperature':
                 sensor.set_to_defaults()
         self.enable_thermal_impact()
+
 
     def get_sensor_by_name(self, name):
         return self._sensors[name]
