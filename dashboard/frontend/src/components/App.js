@@ -8,10 +8,7 @@ import { withStyles } from '@material-ui/core/styles';
 import Snackbar from '@material-ui/core/Snackbar';
 
 // Local Components - Layout
-import Pdu from './Assets/PDU/Pdu';
-import Socket from './Assets/common/Socket';
-import Server from './Assets/Server/Server';
-import Ups from './Assets/UPS/Ups';
+import { Server, Pdu, Ups, Socket, Lamp } from './Assets';
 
 // Text & info boxes
 import AssetDetails from './AssetDetails';
@@ -312,6 +309,28 @@ const drawerWidth = 240;
     />);
   }
 
+  drawLamp(key, asset) {
+
+    let powered = false;
+    if (asset.parent) {
+      powered = asset.parent.find((x) => this._get_asset_by_key(x.key).status != 0) !== undefined;
+    }
+
+    return (
+      <Lamp
+        onPosChange={this.onPosChange.bind(this)}
+        onElementSelection={this.onElementSelection.bind(this)}
+        assetId={key}
+        key={key}
+        asset={asset}
+        selected={this.state.selectedAssetKey === key}
+        powered={powered}
+        x={asset.x}
+        y={asset.y}
+      />
+    )
+  }
+
 
   render() {
 
@@ -336,6 +355,8 @@ const drawerWidth = 240;
           systemLayout.push(this.drawServer(key, assets[key]));
         } else if (assets[key].type === 'ups') {
           systemLayout.push(this.drawUps(key, assets[key]));
+        } else if (assets[key].type === 'lamp') {
+          systemLayout.push(this.drawLamp(key, assets[key]));
         }
       }
 
