@@ -241,5 +241,29 @@
                 "name": "RAID Controller"
             }
         ]
+    },
+    "cpuTemperature": {
+        "group": "temperature",
+        "addressSpace": "0x24",
+        "sensorDefinitions": [
+            {
+                "thresholds": {
+                    "unc": 98,
+                    "ucr": 99
+                },
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "CPU{index} temperature"
+            },
+            {
+                "thresholds": {
+                    "unc": 98,
+                    "ucr": 99
+                },
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "CPU{index} temperature"
+            }
+        ]
     }
 }
