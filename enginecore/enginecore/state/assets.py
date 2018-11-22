@@ -715,9 +715,13 @@ class ServerWithBMC(Server):
             logging.info('Asset:[%s] - agent process (%s) is up & running', self.state.key, agent_info[0])
 
 
-    def add_new_thermal_impact(self, source, target, event):
+    def add_sensor_thermal_impact(self, source, target, event):
         """Add new thermal relationship at the runtime"""
-        self._sensor_repo.get_sensor_by_name(source).add_new_thermal_impact(target, event)
+        self._sensor_repo.get_sensor_by_name(source).add_sensor_thermal_impact(target, event)
+
+
+    def add_cpu_thermal_impact(self, target):
+        self._sensor_repo.get_sensor_by_name(target).add_cpu_thermal_impact()
 
 
     @handler("AmbientDecreased", "AmbientIncreased")

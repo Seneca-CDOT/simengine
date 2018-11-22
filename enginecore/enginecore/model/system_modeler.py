@@ -473,7 +473,10 @@ def delete_asset(key):
         OPTIONAL MATCH (a)-[:HAS_OID]->(oid)
         OPTIONAL MATCH (a)-[:HAS_BATTERY]->(b)
         OPTIONAL MATCH (oid)-[:HAS_STATE_DETAILS]->(sd)
-        DETACH DELETE a,s,oid,sd,b""", key=key)
+        OPTIONAL MATCH (a)-[:HAS_CPU]->(cp)
+        OPTIONAL MATCH (a)-[:HAS_SENSOR]->(sn)
+        OPTIONAL MATCH (sn)-[:HAS_ADDRESS_SPACE]->(as)
+        DETACH DELETE a,s,oid,sd,b,sn,as,cp""", key=key)
 
 
 def set_thermal_sensor_target(attr):

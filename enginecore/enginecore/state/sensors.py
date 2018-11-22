@@ -30,16 +30,20 @@ class Sensor():
     """Aggregates sensor information """
 
 
-    def __init__(self, sensor_dir, s_details, s_locks):
+    def __init__(self, sensor_dir, server_key, s_details, s_locks):
         self._s_dir = sensor_dir
+        self._server_key = server_key
         
         self._s_specs = s_details['specs']
         self._s_type = self._s_specs['type']
         self._s_name = self._s_specs['name']
         self._s_group = self._s_specs['group']
 
-        self._thermal_t = {}
-        self._thermal_t_name_fmt = "({event})s:[{source}]->t:[{target}]"
+        self._th_sensor_t = {}
+        self._th_cpu_t = None
+
+        self._th_sensor_t_name_fmt = "({event})s:[{source}]->t:[{target}]"
+        self._th_cpu_t_name_fmt = "s:[cpu]->t:[{target}]"
 
         self._graph_ref = GraphReference()
 
@@ -58,7 +62,7 @@ class Sensor():
 
     def __str__(self):
         with self._graph_ref.get_session() as session:
-            thermal_rel = GraphReference.get_affected_sensors(session, self._s_name)
+            thermal_rel = GraphReference.get_affected_sensors(session, self._server_key, self._s_name)
 
             s_str = []
             s_str.append("[{}/{}]: '{}' located at {};".format(
@@ -87,44 +91,68 @@ class Sensor():
             return '\n'.join(s_str)
 
 
-    def _launch_thermal_thread(self, target, event):
+    def _launch_thermal_sensor_thread(self, target, event):
         """Add a new impact thread 
         Args:
             target(str): name of the target sensor current sensor is affecting
             event(str): name of the source event affecting target sensor
         """
         
-        if target not in self._thermal_t:
-            self._thermal_t[target] = {}
+        if target not in self._th_sensor_t:
+            self._th_sensor_t[target] = {}
 
-        self._thermal_t[target][event] = threading.Thread(
+        self._th_sensor_t[target][event] = threading.Thread(
             target=self._update_target_sensor,
             args=(target, event, ),
-            name=self._thermal_t_name_fmt.format(
+            name=self._th_sensor_t_name_fmt.format(
                 source=self._s_name, target=target, event=event
             )
         )
 
-        self._thermal_t[target][event].daemon = True
-        self._thermal_t[target][event].start()
+        self._th_sensor_t[target][event].daemon = True
+        self._th_sensor_t[target][event].start()
 
+
+    def _launch_thermal_cpu_thread(self):
+        """Enable CPU impact upon the sensor
+        """
+        self._th_cpu_t = threading.Thread(
+            target=self._update_target_sensor,
+            name=self._th_cpu_t_name_fmt.format(target=self.name)
+        )
+
+        self._th_cpu_t.daemon = True
+        self._th_cpu_t.start()
 
 
     def _init_thermal_impact(self): 
         """Initialize thermal imact based on the saved inter-connections"""
     
         with self._graph_ref.get_session() as session:
-            thermal_rel_details = GraphReference.get_affected_sensors(session, self._s_name)
+            thermal_rel_details = GraphReference.get_affected_sensors(session, self._server_key, self._s_name)
 
             # for each target & for each set of relationships with the target
             for target in thermal_rel_details['targets']:
                 for rel in target['rel']:
-                    self._launch_thermal_thread(target['name'], rel['event'])
+                    self._launch_thermal_sensor_thread(target['name'], rel['event'])
+
+
+    def _update_cpu_impact(self):
+        with self._graph_ref.get_session() as session:
+            while True:
+                self._s_thermal_event.wait()
+
+                rel_details = GraphReference.get_cpu_thermal_rel(session, self._server_key, self.name)
+                
+                if not rel_details:
+                    return
+                
+                with self._s_file_locks.get_lock(self.name):
+                    current_value = int(self.sensor_value)
 
 
     
     def _update_target_sensor(self, target, event):
-
 
         with self._graph_ref.get_session() as session:
             while True:
@@ -132,11 +160,15 @@ class Sensor():
                 self._s_thermal_event.wait()   
                 old_value = 0
 
-                rel_details = GraphReference.get_target_sensor(session, self.name, target, event)
-                logging.info('')
+
+                rel_details = GraphReference.get_sensor_thermal_rel(
+                    session, self._server_key, relationship={'source': self.name, 'target': target, 'event': event}
+                )
+
+                # logging.info('')
                 # shut down thread upon relationship removal
                 if not rel_details:
-                    del self._thermal_t[target][event]
+                    del self._th_sensor_t[target][event]
                     return
 
                 rel = rel_details['rel']
@@ -189,20 +221,37 @@ class Sensor():
 
 
     def _get_sensor_file_path(self):
-        return os.path.join(self._s_dir, self._get_sensor_file())
+        """Full path to the sensor file"""
+        return os.path.join(self._s_dir, self._get_sensor_filename())
 
 
-    def _get_sensor_file(self):
+    def _get_sensor_filename(self):
+        """Name of the file sensor is pulling data from"""
         return self.name
 
 
-    def add_new_thermal_impact(self, target, event):
-        if target in self._thermal_t and event in self._thermal_t:
+    def add_sensor_thermal_impact(self, target, event):
+        """Set a target sensor that will be affected by the current source sensor values
+        Args:
+            target(str): Name of the target sensor
+            event(str): Source event causing the thermal impact to trigger
+        """
+        if target in self._th_sensor_t and event in self._th_sensor_t:
             raise ValueError('Thread already exists')
         
         with self._graph_ref.get_session() as session:
-            rel_details = GraphReference.get_target_sensor(session, self.name, target, event)
-            self._launch_thermal_thread(target, rel_details['rel']['event'])
+            
+            rel_details = GraphReference.get_sensor_thermal_rel(
+                session, self._server_key, relationship={'source': self.name, 'target': target, 'event': event}
+            )
+
+            self._launch_thermal_sensor_thread(target, rel_details['rel']['event'])
+
+
+    def add_cpu_thermal_impact(self):
+        """Set this sensor as one affected by the CPU-load
+        """
+        self._launch_thermal_cpu_thread()
 
 
     @property
@@ -213,14 +262,14 @@ class Sensor():
 
     @property
     def group(self):
-        """Sensor group type"""
+        """Sensor group type (datatype, e.g. temperature, voltage)"""
         return self._s_group
 
 
     @property
     def sensor_value(self):
+        """Current sensor reading value"""
         with open(self._get_sensor_file_path()) as sf_handler: 
-            # print(sf_handler.read())
             return sf_handler.read()
 
 
@@ -247,7 +296,7 @@ class Sensor():
         logging.info("Sensor:[%s] - disabling thermal impact", self._s_name)
         self._s_thermal_event.clear()
         # logging.info(self._s_thermal_event.is_set())
-        # logging.info(self._thermal_t)
+        # logging.info(self._th_sensor_t)
 
 
     def set_to_off(self):
@@ -290,7 +339,7 @@ class SensorRepository():
         with self._graph_ref.get_session() as session:
             sensors = GraphReference.get_asset_sensors(session, server_key)
             for sensor_info in sensors:
-                sensor = Sensor(self._sensor_dir, sensor_info, self._sensor_file_locks)
+                sensor = Sensor(self._sensor_dir, server_key, sensor_info, self._sensor_file_locks)
                 self._sensors[sensor.name] = sensor
 
         if enable_thermal:

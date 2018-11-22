@@ -419,11 +419,12 @@ class GraphReference():
             
 
     @classmethod
-    def get_affected_sensors(cls, session, source_name):
+    def get_affected_sensors(cls, session, server_key, source_name):
         """Get sensors affected by the source sensor
         
         Args:
             session: database session
+            server_key(int): key of the server sensors belong to
             source_name(str): name of the source sensor
         Returns:
             dict: source and target sensor details    
@@ -431,8 +432,11 @@ class GraphReference():
         
         results = session.run(
             """
-            MATCH (source:Sensor { name: $name })<-[rel]-(targets:Sensor) return source, targets, collect(rel) as rel
-            """, name=source_name
+            MATCH (:ServerWithBMC { key: $server })-[:HAS_SENSOR]->(source:Sensor { name: $source })
+            MATCH (source)<-[rel]-(targets:Sensor) return source, targets, collect(rel) as rel
+            """,
+            server=server_key,
+            source=source_name
         )
 
         thermal_details = {'source': {}, 'targets': [],}
@@ -450,19 +454,25 @@ class GraphReference():
 
 
     @classmethod
-    def get_target_sensor(cls, session, source_name, target_name, event):
-        """
+    def get_sensor_thermal_rel(cls, session, server_key, relationship):
+        """Get thermal details about target sensor affected by the source sensor
+        Args:
+            session: database session
+            server_key(int): key of the server sensors belong to
+            relationship(dict): source, target and event 
         """
 
         results = session.run(
             """
-            MATCH (source:Sensor { name: $source })<-[rel]-(target:Sensor {name: $target})
+            MATCH (:ServerWithBMC { key: $server })-[:HAS_SENSOR]->(source:Sensor { name: $source })
+            MATCH (source)<-[rel]-(target:Sensor {name: $target})
             WHERE rel.event = $event
             RETURN source, target, rel
             """, 
-            source=source_name,
-            target=target_name,
-            event=event
+            server=server_key,
+            source=relationship['source'],
+            target=relationship['target'],
+            event=relationship['event']
         )
 
         record = results.single()
@@ -471,6 +481,28 @@ class GraphReference():
             'target': dict(record.get('target')), 
             'rel': dict(record.get('rel')) 
         } if record else None
+
+
+    @classmethod
+    def get_cpu_thermal_rel(cls, session, server_key, sensor_name):
+        """Get thermal relationships between CPU and a sensor 
+        Args:
+            session:  database session
+            server_key(int): key of the server sensors belong to
+            sensor_name(str): name of the sensor affected by CPU load
+        """
+
+        results = session.run(
+            """
+            MATCH (:ServerWithBMC { key: $server })-[:HAS_SENSOR]->(sensor:Sensor { name: $sensor })
+            MATCH (:CPU)<-[rel:HEATED_BY]-(target:Sensor {name: $target})
+            """,
+            server=server_key,
+            sensor=sensor_name
+        )
+
+        record = results.single()
+        return dict(record.get('rel')) if record else None
 
 
     @classmethod
