@@ -598,3 +598,21 @@ def delete_thermal_sensor_target(attr):
     with GRAPH_REF.get_session() as session:
         session.run("\n".join(query))
     
+
+def delete_thermal_cpu_target(attr):
+    """Remove thermal relationship between CPU and """ 
+
+    query = []
+    
+    # find the source sensor & server asset
+    query.append(
+        'MATCH (target {{ name: "{}" }} )<-[:HAS_SENSOR]-(:Asset {{ key: {} }})'
+        .format(attr['target_sensor'], attr['asset_key'])
+    )
+
+    query.append('MATCH (target)-[thermal_link:HEATED_BY]->(:CPU)')
+    query.append('DELETE thermal_link') # delete the connection
+
+    with GRAPH_REF.get_session() as session:
+        session.run("\n".join(query))
+    

@@ -143,7 +143,7 @@ class Sensor():
                 self._s_thermal_event.wait()
 
                 rel_details = GraphReference.get_cpu_thermal_rel(session, self._server_key, self.name)
-                
+                print(rel_details)
                 if not rel_details:
                     return
                 
