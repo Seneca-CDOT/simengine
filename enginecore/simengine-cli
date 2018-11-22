@@ -316,6 +316,8 @@ th_cpu_usg_group = thermal_subp.add_parser(
 
 th_cpu_usg_subp = th_cpu_usg_group.add_subparsers()
 
+# - SET
+
 th_set_cpu_usg_action = th_cpu_usg_subp.add_parser(
     'set', 
     help="Update CPU usage / sensor relationship", 
@@ -341,6 +343,8 @@ th_set_cpu_usg_action.add_argument(
     required=True
 )
 
+# - GET
+
 th_get_cpu_usg_action = th_cpu_usg_subp.add_parser(
     'get', 
     help="Retrieve configured CPU usage / sensor relationship", 
@@ -348,6 +352,25 @@ th_get_cpu_usg_action = th_cpu_usg_subp.add_parser(
 
 th_get_cpu_usg_action.add_argument(
     '-k', '--asset-key', help="Key of the server sensors belong to ", type=int, required=True
+)
+
+# - DELETE
+
+th_delete_cpu_usg_action = th_cpu_usg_subp.add_parser(
+    'delete', 
+    help="Delete existing CPU usage / sensor relationship", 
+)
+
+th_delete_cpu_usg_action.add_argument(
+    '-k', '--asset-key', help="Key of the server sensors belong to ", type=int, required=True
+)
+
+th_delete_cpu_usg_action.add_argument(
+    '-t', 
+    '--target-sensor', 
+    help="Name of the target sensor affected by CPU load", 
+    type=str,
+    required=True
 )
 
 
@@ -960,13 +983,16 @@ th_set_sensor_action.set_defaults(
 )
 
 th_delete_sensor_action.set_defaults(
-    func=sys_modeler.delete_thermal_sensor_target
+    func=sys_modeler.delete_thermal_sensor_target # TODO: change sys_modeler to BMCServerStateManager
 )
 
 th_set_cpu_usg_action.set_defaults(
     func=BMCServerStateManager.update_thermal_cpu_target
 )
 
+th_delete_cpu_usg_action.set_defaults(
+    func=sys_modeler.delete_thermal_cpu_target
+)
 
 try:
     options = argparser.parse_args()
