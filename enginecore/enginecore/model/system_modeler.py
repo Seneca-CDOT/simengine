@@ -561,7 +561,7 @@ def set_thermal_cpu_target(attr):
     query.append("SET {}".format(set_stm))
 
     rel_query = [] 
-    rel_query.append("MATCH (source)<-[ex_rel:HEATED_BY]-(cpu)")
+    rel_query.append("MATCH (cpu)<-[ex_rel:HEATED_BY]-(target)")
     rel_query.append("RETURN ex_rel")
 
 
