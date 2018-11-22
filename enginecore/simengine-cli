@@ -309,14 +309,56 @@ th_set_ambient_action.add_argument(
 )
 
 
+th_cpu_usg_group = thermal_subp.add_parser(
+    'cpu-usage', 
+    help="Configure relationships between CPU load and server sensors"
+)
+
+th_cpu_usg_subp = th_cpu_usg_group.add_subparsers()
+
+th_set_cpu_usg_action = th_cpu_usg_subp.add_parser(
+    'set', 
+    help="Update CPU usage / sensor relationship", 
+)
+
+th_set_cpu_usg_action.add_argument(
+    '-k', '--asset-key', help="Key of the server sensor belongs to ", type=int, required=True
+)
+
+th_set_cpu_usg_action.add_argument(
+    '-t', 
+    '--target-sensor', 
+    help="Name of the target sensor affected by CPU load", 
+    type=str,
+    required=True
+)
+
+th_set_cpu_usg_action.add_argument(
+    '-m', 
+    '--model', 
+    help=".JSON model representing CPU usage & corresponding thermal change for the sensor value", 
+    type=str,
+    required=True
+)
+
+th_get_cpu_usg_action = th_cpu_usg_subp.add_parser(
+    'get', 
+    help="Retrieve configured CPU usage / sensor relationship", 
+)
+
+th_get_cpu_usg_action.add_argument(
+    '-k', '--asset-key', help="Key of the server sensors belong to ", type=int, required=True
+)
+
+
+# -- SENSOR THERMAL
+
 th_sensor_group = thermal_subp.add_parser(
     'sensor', 
     help="Configure/Retrieve sensor state and relationships"
 )
 
 th_sensor_subp = th_sensor_group.add_subparsers()
-
-# -- SENSOR THERMAL
 
 # - SET
 
