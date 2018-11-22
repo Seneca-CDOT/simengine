@@ -847,6 +847,21 @@ class BMCServerStateManager(ServerStateManager):
                         'event': attr['event']
                     }
                 })
+            ) 
+    
+    @classmethod
+    def update_thermal_cpu_target(cls, attr):
+        """Create new or update existing thermal relationship between CPU usage and sensor"""
+        new_rel = sys_modeler.set_thermal_cpu_target(attr)
+        if new_rel: 
+            StateManager.get_store().publish(
+                RedisChannels.cpu_usg_conf_th_channel, 
+                json.dumps({
+                    'key': attr['asset_key'],
+                    'relationship': {
+                        'target': attr['target_sensor'],
+                    }
+                })
             )  
 
 

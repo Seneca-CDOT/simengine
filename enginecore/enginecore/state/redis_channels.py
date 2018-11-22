@@ -23,6 +23,7 @@ class RedisChannels():
     # thermal channels
     ambient_update_channel = 'ambient-upd'
     sensor_conf_th_channel = 'sensor-th-upd'
+    cpu_usg_conf_th_channel = 'cpu-th-upd'
 
     # misc
     oid_update_channel = 'oid-upd' 

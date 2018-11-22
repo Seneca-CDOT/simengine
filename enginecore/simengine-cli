@@ -963,6 +963,11 @@ th_delete_sensor_action.set_defaults(
     func=sys_modeler.delete_thermal_sensor_target
 )
 
+th_set_cpu_usg_action.set_defaults(
+    func=BMCServerStateManager.update_thermal_cpu_target
+)
+
+
 try:
     options = argparser.parse_args()
     

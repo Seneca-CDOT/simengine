@@ -100,6 +100,7 @@ class StateListener(Component):
         self._thermal_pubsub.psubscribe(
             RedisChannels.ambient_update_channel, # on ambient changes
             RedisChannels.sensor_conf_th_channel, # new relationship
+            RedisChannels.cpu_usg_conf_th_channel, # new cpu-usage relationship
         )
 
 
@@ -493,8 +494,11 @@ class StateListener(Component):
                 self._handle_ambient_update(new_temp=float(new_temp), old_temp=old_temp)
             elif channel == RedisChannels.sensor_conf_th_channel:
                 new_rel = json.loads(data)
-                print(new_rel)
                 self._assets[new_rel['key']].add_new_thermal_impact(**new_rel['relationship'])
+            elif channel == RedisChannels.cpu_usg_conf_th_channel:
+                new_rel = json.loads(data)
+                print('NEW DATA:::')
+                print(new_rel)
 
         except KeyError as error:
             logging.error("Detected unregistered asset under key [%s]", error)

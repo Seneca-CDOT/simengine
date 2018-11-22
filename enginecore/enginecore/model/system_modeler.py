@@ -15,9 +15,10 @@ GRAPH_REF = GraphReference()
 # attributes shared by all the assets
 CREATE_SHARED_ATTR = ["x", "y", "name", "type", "key", "off_delay", "on_delay"]
 # Labels used by the app
-SIMENGINE_NODE_LABELS = [
-    "Asset", "OID", "OIDDesc", "Battery", "StageLayout", "Sensor", "AddressSpace", "SystemEnvironment", "EnvProp"
-]
+SIMENGINE_NODE_LABELS = []
+SIMENGINE_NODE_LABELS.extend(["Asset", "StageLayout", "SystemEnvironment", "EnvProp"])
+SIMENGINE_NODE_LABELS.extend(["OID", "OIDDesc", "Sensor", "AddressSpace"])
+SIMENGINE_NODE_LABELS.extend(["CPU", "Battery"])
 
 
 def _add_psu(key, psu_index, attr):
@@ -221,6 +222,7 @@ def _add_sensors(asset_key, preset_file=os.path.join(os.path.dirname(__file__), 
         # print("\n".join(query))
         session.run("\n".join(query))
 
+
 def create_server(key, attr, server_variation=ServerVariations.Server):
     """Create a simulated server """
 
@@ -252,6 +254,7 @@ def create_server(key, attr, server_variation=ServerVariations.Server):
         
         # create a server
         query.append("CREATE (server:Asset  {{ {} }}) SET server :{}".format(props_stm, server_variation.name))
+        query.append("CREATE (server)-[:HAS_CPU]->(:CPU)")
 
         # set BMC-server specific attributes if type is bmc
         if server_variation == ServerVariations.ServerWithBMC:
@@ -515,6 +518,52 @@ def set_thermal_sensor_target(attr):
     rel_query = [] 
     rel_query.append("MATCH (source)<-[ex_rel:{}]-(target)".format(thermal_rel_type))
     rel_query.append("RETURN ex_rel")
+
+    with GRAPH_REF.get_session() as session:
+        result = session.run("\n".join(query[0:2] + rel_query))
+        rel_exists = result.single()
+
+        session.run("\n".join(query))
+        return rel_exists is None
+
+
+def set_thermal_cpu_target(attr):
+    """Set-up a new thermal relationship between a sensor and CPU load 
+    of the server sensor belongs to
+
+    Returns:
+        bool: True if a new relationship was created
+    """
+    
+    try:
+        _ = json.loads(attr['model'])
+    except ValueError as error:
+        raise ValueError('Model .json is not valid: {}'.format(error))
+
+    query = []
+
+    # find the source sensor & server asset
+    query.append(
+        'MATCH (cpu:CPU)<-[:HAS_CPU]-(server:Asset {{ key: {} }})'
+        .format(attr['asset_key'])
+    )
+
+    # find the destination or target sensor
+    query.append(
+        'MATCH (target {{ name: "{}" }} )<-[:HAS_SENSOR]-(server)'
+        .format(attr['target_sensor'])
+    )
+
+    # set the thermal relationship & relationship attributes
+    set_stm = qh.get_set_stm(attr, node_name="rel", supported_attr=["model"])
+
+    query.append("MERGE (cpu)<-[rel:HEATED_BY]-(target)")
+    query.append("SET {}".format(set_stm))
+
+    rel_query = [] 
+    rel_query.append("MATCH (source)<-[ex_rel:HEATED_BY]-(cpu)")
+    rel_query.append("RETURN ex_rel")
+
 
     with GRAPH_REF.get_session() as session:
         result = session.run("\n".join(query[0:2] + rel_query))
