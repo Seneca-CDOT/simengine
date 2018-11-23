@@ -495,7 +495,8 @@ class GraphReference():
         results = session.run(
             """
             MATCH (:ServerWithBMC { key: $server })-[:HAS_SENSOR]->(sensor:Sensor { name: $sensor })
-            MATCH (:CPU)<-[rel:HEATED_BY]-(target:Sensor {name: $target})
+            MATCH (:CPU)<-[rel:HEATED_BY]-(sensor)
+            RETURN rel
             """,
             server=server_key,
             sensor=sensor_name

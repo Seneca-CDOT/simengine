@@ -825,6 +825,18 @@ class BMCServerStateManager(ServerStateManager):
         return super().power_off()
 
 
+    def get_cpu_stats(self):
+        return self._vm.getCPUStats(True)
+
+    @property
+    def cpu_load(self):
+        cpu_load = StateManager.get_store().get(self.redis_key + ":cpu_load")
+        return int(cpu_load.decode()) if cpu_load else 0
+
+    @cpu_load.setter
+    def cpu_load(self, value):
+        StateManager.get_store().set(self.redis_key + ":cpu_load", str(int(value)))
+
     @classmethod
     def get_sensor_definitions(cls, asset_key):
         """Get sensor definitions """

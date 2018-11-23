@@ -706,6 +706,7 @@ class ServerWithBMC(Server):
 
         self._ipmi_agent = IPMIAgent(asset_info['key'], ipmi_dir, ipmi_config=asset_info, sensors=sensors)
         super(ServerWithBMC, self).__init__(asset_info)
+
         self.state.agent = self._ipmi_agent.pid
         
         agent_info = self.state.agent
@@ -714,6 +715,45 @@ class ServerWithBMC(Server):
         else:
             logging.info('Asset:[%s] - agent process (%s) is up & running', self.state.key, agent_info[0])
 
+        self._cpu_load_t = None
+        self._launch_monitor_cpu_load()
+
+
+    def _launch_monitor_cpu_load(self):
+        """Start a thread that will decrease battery level """
+        
+        # launch a thread
+        self._cpu_load_t = Thread(
+            target=self._monitor_load, 
+            # args=(lambda: self.state.status,), 
+            name="cpu_load:{}".format(self.key)
+        )
+
+        self._cpu_load_t.daemon = True
+        self._cpu_load_t.start()
+
+
+    def _monitor_load(self):
+        """ """
+        
+        old_guest_cpu_time = self.state.cpu_load
+        sample_rate = 5
+
+        while True:
+            if self.state.status:
+                # https://stackoverflow.com/questions/40468370/what-does-cpu-time-represent-exactly-in-libvirt
+                cpu_stats = self.state.get_cpu_stats()[0]
+                print(cpu_stats)
+                guest_cpu_time = cpu_stats['cpu_time'] #cpu_stats['cpu_time'] - (cpu_stats['user_time'] + cpu_stats['system_time'])
+
+                
+                print(guest_cpu_time - old_guest_cpu_time)
+                self.state.cpu_load = 100 * (guest_cpu_time - old_guest_cpu_time) / sample_rate
+                old_guest_cpu_time = guest_cpu_time
+
+            time.sleep(sample_rate)
+
+
 
     def add_sensor_thermal_impact(self, source, target, event):
         """Add new thermal relationship at the runtime"""
@@ -721,6 +761,7 @@ class ServerWithBMC(Server):
 
 
     def add_cpu_thermal_impact(self, target):
+        """Add new thermal cpu load & sensor relationship"""
         self._sensor_repo.get_sensor_by_name(target).add_cpu_thermal_impact()
 
 

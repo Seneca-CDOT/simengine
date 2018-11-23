@@ -117,7 +117,7 @@ class Sensor():
         """Enable CPU impact upon the sensor
         """
         self._th_cpu_t = threading.Thread(
-            target=self._update_target_sensor,
+            target=self._update_cpu_impact,
             name=self._th_cpu_t_name_fmt.format(target=self.name)
         )
 
@@ -149,6 +149,7 @@ class Sensor():
                 
                 with self._s_file_locks.get_lock(self.name):
                     current_value = int(self.sensor_value)
+                    logging.info('CV:  %s', current_value)
 
 
     
