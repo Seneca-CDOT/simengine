@@ -715,6 +715,7 @@ class ServerWithBMC(Server):
         else:
             logging.info('Asset:[%s] - agent process (%s) is up & running', self.state.key, agent_info[0])
 
+        self.state.cpu_load = 0
         self._cpu_load_t = None
         self._launch_monitor_cpu_load()
 
@@ -736,20 +737,31 @@ class ServerWithBMC(Server):
     def _monitor_load(self):
         """ """
         
-        old_guest_cpu_time = self.state.cpu_load
+        old_guest_cpu_time = 0
         sample_rate = 5
 
         while True:
-            if self.state.status:
+            if self.state.status and self.state.vm_is_active():
                 # https://stackoverflow.com/questions/40468370/what-does-cpu-time-represent-exactly-in-libvirt
+
                 cpu_stats = self.state.get_cpu_stats()[0]
                 print(cpu_stats)
-                guest_cpu_time = cpu_stats['cpu_time'] #cpu_stats['cpu_time'] - (cpu_stats['user_time'] + cpu_stats['system_time'])
 
+                guest_cpu_time = cpu_stats['cpu_time'] - (cpu_stats['user_time'] + cpu_stats['system_time'])
+
+         
                 
-                print(guest_cpu_time - old_guest_cpu_time)
-                self.state.cpu_load = 100 * (guest_cpu_time - old_guest_cpu_time) / sample_rate
+                self.state.cpu_load = 30 # 100 * (guest_cpu_time - old_guest_cpu_time) / sample_rate
+                logging.info(
+                    "New Load (percentage): %s , new guest: %s, old guest %s",
+                    self.state.cpu_load,
+                    guest_cpu_time,
+                    old_guest_cpu_time
+                )
+            
                 old_guest_cpu_time = guest_cpu_time
+            else: 
+                self.state.cpu_load = 0
 
             time.sleep(sample_rate)
 

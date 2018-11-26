@@ -782,6 +782,9 @@ class ServerStateManager(StaticDeviceStateManager):
         self._vm = self._vm_conn.lookupByName(asset_info['domainName'])
 
 
+    def vm_is_active(self):
+        return self._vm.isActive()
+    
     def shut_down(self):
         if self._vm.isActive():
             self._vm.destroy()
