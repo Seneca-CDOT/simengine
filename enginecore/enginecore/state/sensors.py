@@ -157,7 +157,7 @@ class Sensor():
                 cpu_load_model = json.loads(rel_details['model'])
 
                 with self._s_file_locks.get_lock(self.name):
-                    current_sensor_value = int(self.sensor_value)
+
                     current_cpu_load = server_sm.cpu_load
                     
                     close_load = min(cpu_load_model, key=lambda x: abs(int(x)-current_cpu_load))
@@ -167,7 +167,8 @@ class Sensor():
                     cpu_impact_degrees = (close_degrees * current_cpu_load) / int(close_load) - int(cpu_impact_degrees)
 
                     logging.info(
-                        'new sensor degrees %s, old degrees %s', 
+                        'new calc impact %s, new sensor degrees %s, old degrees %s', 
+                        (close_degrees * current_cpu_load) / int(close_load),
                         int(cpu_impact_degrees),
                         old_cpu
                     )
