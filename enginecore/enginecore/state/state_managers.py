@@ -26,10 +26,9 @@ class StateManager():
 
     redis_store = None
 
-    def __init__(self, asset_info, asset_type, notify=False):
+    def __init__(self, asset_info, notify=False):
         self._graph_ref = GraphReference()
         self._asset_key = asset_info['key']
-        self._asset_type = asset_type
         self._asset_info = asset_info
 
         self._notify = notify
@@ -42,12 +41,12 @@ class StateManager():
     @property
     def redis_key(self):
         """Asset key in redis format as '{key}-{type}' """
-        return "{}-{}".format(str(self.key), self._asset_type)
+        return "{}-{}".format(str(self.key), self.asset_type)
 
     @property
     def asset_type(self):
         """Asset Type """
-        return self._asset_type
+        return self._asset_info['type']
 
     @property
     def power_usage(self):
@@ -409,8 +408,8 @@ class UPSStateManager(StateManager):
         blackout = 2
         deepMomentarySag = 3
           
-    def __init__(self, asset_info, asset_type='ups', notify=False):
-        super(UPSStateManager, self).__init__(asset_info, asset_type, notify)
+    def __init__(self, asset_info, notify=False):
+        super(UPSStateManager, self).__init__(asset_info, notify)
         self._max_battery_level = 1000#%
         self._min_restore_charge_level = self._asset_info['minPowerOnBatteryLevel']
         self._full_recharge_time = self._asset_info['fullRechargeTime']
@@ -673,8 +672,8 @@ class UPSStateManager(StateManager):
 class PDUStateManager(StateManager):
     """Handles state logic for PDU asset """
 
-    def __init__(self, asset_info, asset_type='pdu', notify=False):
-        super(PDUStateManager, self).__init__(asset_info, asset_type, notify)
+    def __init__(self, asset_info, notify=False):
+        super(PDUStateManager, self).__init__(asset_info, notify)
         
 
     def _update_current(self, load):
@@ -715,8 +714,8 @@ class OutletStateManager(StateManager):
         switchOff = 1
         switchOn = 2
 
-    def __init__(self, asset_info, asset_type='outlet', notify=False):
-        super(OutletStateManager, self).__init__(asset_info, asset_type, notify)
+    def __init__(self, asset_info, notify=False):
+        super(OutletStateManager, self).__init__(asset_info, notify)
 
     def _get_oid_value_by_name(self, oid_name):
         """Get value under object id name"""
@@ -756,8 +755,8 @@ class OutletStateManager(StateManager):
 class StaticDeviceStateManager(StateManager):
     """Dummy Device that doesn't do much except drawing power """
 
-    def __init__(self, asset_info, asset_type='staticasset', notify=False):
-        super(StaticDeviceStateManager, self).__init__(asset_info, asset_type, notify)
+    def __init__(self, asset_info, notify=False):
+        super(StaticDeviceStateManager, self).__init__(asset_info, notify)
 
 
     @property
@@ -775,8 +774,8 @@ class StaticDeviceStateManager(StateManager):
 class ServerStateManager(StaticDeviceStateManager):
     """Server state manager offers control over VM's state """
 
-    def __init__(self, asset_info, asset_type='server', notify=False):
-        super(ServerStateManager, self).__init__(asset_info, asset_type, notify)
+    def __init__(self, asset_info, notify=False):
+        super(ServerStateManager, self).__init__(asset_info, notify)
         self._vm_conn = libvirt.open("qemu:///system")
         # TODO: error handling if the domain is missing (throws libvirtError) & close the connection
         self._vm = self._vm_conn.lookupByName(asset_info['domainName'])
@@ -812,8 +811,8 @@ class ServerStateManager(StaticDeviceStateManager):
 class BMCServerStateManager(ServerStateManager):
     """Manage Server with BMC """
 
-    def __init__(self, asset_info, asset_type='serverwithbmc', notify=False):
-        ServerStateManager.__init__(self, asset_info, asset_type, notify)
+    def __init__(self, asset_info, notify=False):
+        ServerStateManager.__init__(self, asset_info, notify)
 
     def power_up(self):
         powered = super().power_up()
@@ -829,16 +828,21 @@ class BMCServerStateManager(ServerStateManager):
 
 
     def get_cpu_stats(self):
+        """Get VM cpu stats (user_time, cpu_time etc. (see libvirt api)) """
         return self._vm.getCPUStats(True)
+
 
     @property
     def cpu_load(self):
+        """Get latest recorded CPU load in percentage"""
         cpu_load = StateManager.get_store().get(self.redis_key + ":cpu_load")
         return int(cpu_load.decode()) if cpu_load else 0
+
 
     @cpu_load.setter
     def cpu_load(self, value):
         StateManager.get_store().set(self.redis_key + ":cpu_load", str(int(value)))
+
 
     @classmethod
     def get_sensor_definitions(cls, asset_key):
@@ -881,15 +885,15 @@ class BMCServerStateManager(ServerStateManager):
 
 
 class SimplePSUStateManager(StateManager):
-    def __init__(self, asset_info, asset_type='psu', notify=False):
-        StateManager.__init__(self, asset_info, asset_type, notify)
+    def __init__(self, asset_info, notify=False):
+        StateManager.__init__(self, asset_info, notify)
 
 
 class PSUStateManager(StateManager):
 
 
-    def __init__(self, asset_info, asset_type='psu', notify=False):
-        StateManager.__init__(self, asset_info, asset_type, notify)
+    def __init__(self, asset_info, notify=False):
+        StateManager.__init__(self, asset_info, notify)
         self._psu_number = int(repr(asset_info['key'])[-1])
         # self._sensor = SensorRepository(int(repr(asset_info['key'])[:-1])).get
 

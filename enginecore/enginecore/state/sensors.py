@@ -8,7 +8,7 @@ import json
 import operator
 from random import randint
 
-from enginecore.state.state_managers import StateManager
+import enginecore.state.state_managers as sm 
 from enginecore.model.graph_reference import GraphReference
 
 
@@ -137,22 +137,43 @@ class Sensor():
                 for rel in target['rel']:
                     self._launch_thermal_sensor_thread(target['name'], rel['event'])
 
+        self._launch_thermal_cpu_thread()
 
     def _update_cpu_impact(self):
+
         with self._graph_ref.get_session() as session:
+
+            asset_info = GraphReference.get_asset_and_components(session, self._server_key)
+            server_sm = sm.BMCServerStateManager(asset_info)
+            cpu_impact_degrees = 0
+
             while True:
                 self._s_thermal_event.wait()
 
                 rel_details = GraphReference.get_cpu_thermal_rel(session, self._server_key, self.name)
-                
                 if not rel_details:
                     return
                 
                 cpu_load_model = json.loads(rel_details['model'])
-                print(cpu_load_model)
+
                 with self._s_file_locks.get_lock(self.name):
-                    current_value = int(self.sensor_value)
-                    logging.info('CV:  %s', current_value)
+                    current_sensor_value = int(self.sensor_value)
+                    current_cpu_load = server_sm.cpu_load
+                    
+                    close_load = min(cpu_load_model, key=lambda x: abs(int(x)-current_cpu_load))
+                    close_degrees = int(cpu_load_model[close_load])
+
+                    old_cpu = int(cpu_impact_degrees)
+                    cpu_impact_degrees = (close_degrees * current_cpu_load) / int(close_load) - int(cpu_impact_degrees)
+
+                    logging.info(
+                        'new sensor degrees %s, old degrees %s', 
+                        int(cpu_impact_degrees),
+                        old_cpu
+                    )
+
+                    self.sensor_value = int(self.sensor_value) + int(cpu_impact_degrees)
+
                     time.sleep(5)
 
 
@@ -334,7 +355,7 @@ class SensorRepository():
         self._sensor_file_locks = SensorFileLocks()
 
         self._sensor_dir = os.path.join(
-            StateManager.get_temp_workplace_dir(),
+            sm.StateManager.get_temp_workplace_dir(),
             str(server_key),
             'sensor_dir'
         )

@@ -228,10 +228,12 @@ class Asset(Component):
         msg = 'Asset:[{}] - orig load {} was decreased by "{}", new load will be set to "{}"'
         return self._update_load(decreased_by, lambda old, change: old-change, msg)
 
+
     @classmethod
     def get_supported_assets(cls):
         """Get factory containing registered assets"""
         return SUPPORTED_ASSETS
+
 
     @classmethod
     def get_state_manager_by_key(cls, key, notify=True):
@@ -653,8 +655,8 @@ class StaticAsset(Asset):
 
     channel = "engine-static"
     StateManagerCls = sm.StaticDeviceStateManager
-    def __init__(self, asset_info, asset_type='staticasset'):
-        super(StaticAsset, self).__init__(self.StateManagerCls(asset_info, asset_type=asset_type))
+    def __init__(self, asset_info):
+        super(StaticAsset, self).__init__(self.StateManagerCls(asset_info))
         self.state.update_load(self.state.power_usage)
 
     @handler("ParentAssetPowerDown")
@@ -673,7 +675,7 @@ class Lamp(StaticAsset):
     channel = "engine-lamp"
 
     def __init__(self, asset_info):
-        super(Lamp, self).__init__(asset_info, asset_type='lamp')
+        super(Lamp, self).__init__(asset_info)
 
 
 @register_asset
@@ -742,22 +744,15 @@ class ServerWithBMC(Server):
 
         while True:
             if self.state.status and self.state.vm_is_active():
+
+                # good explanation
                 # https://stackoverflow.com/questions/40468370/what-does-cpu-time-represent-exactly-in-libvirt
-
                 cpu_stats = self.state.get_cpu_stats()[0]
-                print(cpu_stats)
-
                 guest_cpu_time = cpu_stats['cpu_time'] - (cpu_stats['user_time'] + cpu_stats['system_time'])
 
-         
-                
-                self.state.cpu_load = 30 # 100 * (guest_cpu_time - old_guest_cpu_time) / sample_rate
-                logging.info(
-                    "New Load (percentage): %s , new guest: %s, old guest %s",
-                    self.state.cpu_load,
-                    guest_cpu_time,
-                    old_guest_cpu_time
-                )
+                ns_to_sec = lambda x: x / 1e9
+                self.state.cpu_load = 100 * (ns_to_sec(guest_cpu_time) - ns_to_sec(old_guest_cpu_time)) / sample_rate
+                logging.info("New CPU load (percentage): %s%% for server[%s]", self.state.cpu_load, self.state.key)
             
                 old_guest_cpu_time = guest_cpu_time
             else: 
