@@ -739,7 +739,7 @@ class ServerWithBMC(Server):
     def _monitor_load(self):
         """ """
         
-        old_guest_cpu_time = 0
+        cpu_time_1 = 0
         sample_rate = 5
 
         while True:
@@ -748,13 +748,15 @@ class ServerWithBMC(Server):
                 # good explanation
                 # https://stackoverflow.com/questions/40468370/what-does-cpu-time-represent-exactly-in-libvirt
                 cpu_stats = self.state.get_cpu_stats()[0]
-                guest_cpu_time = cpu_stats['cpu_time'] - (cpu_stats['user_time'] + cpu_stats['system_time'])
+                cpu_time_2 = cpu_stats['cpu_time'] - (cpu_stats['user_time'] + cpu_stats['system_time'])
 
                 ns_to_sec = lambda x: x / 1e9
-                self.state.cpu_load = 100 * (ns_to_sec(guest_cpu_time) - ns_to_sec(old_guest_cpu_time)) / sample_rate
-                logging.info("New CPU load (percentage): %s%% for server[%s]", self.state.cpu_load, self.state.key)
+
+                if cpu_time_1:
+                    self.state.cpu_load = 100 * (ns_to_sec(cpu_time_2) - ns_to_sec(cpu_time_1)) / sample_rate
+                    logging.info("New CPU load (percentage): %s%% for server[%s]", self.state.cpu_load, self.state.key)
             
-                old_guest_cpu_time = guest_cpu_time
+                cpu_time_1 = cpu_time_2
             else: 
                 self.state.cpu_load = 0
 

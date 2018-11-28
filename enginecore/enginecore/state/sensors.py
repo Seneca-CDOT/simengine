@@ -44,7 +44,7 @@ class Sensor():
         self._th_cpu_t = None
 
         self._th_sensor_t_name_fmt = "({event})s:[{source}]->t:[{target}]"
-        self._th_cpu_t_name_fmt = "s:[cpu]->t:[{target}]"
+        self._th_cpu_t_name_fmt = "s:[cpu_load]->t:[{target}]"
 
         self._graph_ref = GraphReference()
 
@@ -139,13 +139,16 @@ class Sensor():
 
         self._launch_thermal_cpu_thread()
 
+
     def _update_cpu_impact(self):
 
         with self._graph_ref.get_session() as session:
 
             asset_info = GraphReference.get_asset_and_components(session, self._server_key)
             server_sm = sm.BMCServerStateManager(asset_info)
-            cpu_impact_degrees = 0
+
+            cpu_impact_degrees_1 = 0
+            cpu_impact_degrees_2 = 0
 
             while True:
                 self._s_thermal_event.wait()
@@ -162,18 +165,20 @@ class Sensor():
                     
                     close_load = min(cpu_load_model, key=lambda x: abs(int(x)-current_cpu_load))
                     close_degrees = int(cpu_load_model[close_load])
+                   
+                    cpu_impact_degrees_2 = int((close_degrees * current_cpu_load) / int(close_load))
 
-                    old_cpu = int(cpu_impact_degrees)
-                    cpu_impact_degrees = (close_degrees * current_cpu_load) / int(close_load) - int(cpu_impact_degrees)
+                    if cpu_impact_degrees_1 != cpu_impact_degrees_2:
 
-                    logging.info(
-                        'new calc impact %s, new sensor degrees %s, old degrees %s', 
-                        (close_degrees * current_cpu_load) / int(close_load),
-                        int(cpu_impact_degrees),
-                        old_cpu
-                    )
+                        self.sensor_value = int(self.sensor_value) + cpu_impact_degrees_2 - cpu_impact_degrees_1
+                        logging.info(
+                            'Thermal impact of CPU load at (%s%%) updated: (%s°)->(%s°)', 
+                            current_cpu_load,
+                            cpu_impact_degrees_1,
+                            cpu_impact_degrees_2
+                        )
 
-                    self.sensor_value = int(self.sensor_value) + int(cpu_impact_degrees)
+                    cpu_impact_degrees_1 = cpu_impact_degrees_2
 
                     time.sleep(5)
 
@@ -222,7 +227,7 @@ class Sensor():
                                 new_value = randint(new_value-rel['jitter'], new_value+rel['jitter']) 
 
                             logging.info(
-                                "> Current sensor value: %s will be updated to %s", current_value, int(new_value)
+                                "Current sensor value (%s°) will be updated to %s°", current_value, int(new_value)
                             )
                             
                             sf_handler.seek(0)
