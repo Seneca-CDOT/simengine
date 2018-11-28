@@ -745,7 +745,6 @@ class ServerWithBMC(Server):
         while True:
             if self.state.status and self.state.vm_is_active():
 
-                # good explanation
                 # https://stackoverflow.com/questions/40468370/what-does-cpu-time-represent-exactly-in-libvirt
                 cpu_stats = self.state.get_cpu_stats()[0]
                 cpu_time_2 = cpu_stats['cpu_time'] - (cpu_stats['user_time'] + cpu_stats['system_time'])
@@ -757,7 +756,8 @@ class ServerWithBMC(Server):
                     logging.info("New CPU load (percentage): %s%% for server[%s]", self.state.cpu_load, self.state.key)
             
                 cpu_time_1 = cpu_time_2
-            else: 
+            else:
+                cpu_time_1 = 0
                 self.state.cpu_load = 0
 
             time.sleep(sample_rate)

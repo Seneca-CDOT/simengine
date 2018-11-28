@@ -190,8 +190,7 @@ class Sensor():
             while True:
 
                 self._s_thermal_event.wait()   
-                old_value = 0
-
+                # old_value = 0
 
                 rel_details = GraphReference.get_sensor_thermal_rel(
                     session, self._server_key, relationship={'source': self.name, 'target': target, 'event': event}
@@ -223,8 +222,8 @@ class Sensor():
                         
                         if needs_update:
                             
-                            if 'jitter' in rel and rel['jitter']:
-                                new_value = randint(new_value-rel['jitter'], new_value+rel['jitter']) 
+                            # if 'jitter' in rel and rel['jitter']:
+                            #     new_value = randint(new_value-rel['jitter'], new_value+rel['jitter']) 
 
                             logging.info(
                                 "Current sensor value (%s°) will be updated to %s°", current_value, int(new_value)
@@ -234,19 +233,19 @@ class Sensor():
                             sf_handler.truncate()
                             sf_handler.write(str(new_value))
                             
-                            old_value = current_value
+                            # old_value = current_value
 
                     # Apply jitter if defined
-                    elif 'jitter' in rel and rel['jitter'] and old_value:
-                        new_value = randint(old_value-rel['jitter'], old_value+rel['jitter'])
+                    # elif 'jitter' in rel and rel['jitter'] and old_value:
+                    #     new_value = randint(old_value-rel['jitter'], old_value+rel['jitter'])
 
-                        logging.info(
-                            "> Current sensor value: %s will be updated to %s", current_value, int(new_value)
-                        )
-                        sf_handler.write(str(new_value))
+                    #     logging.info(
+                    #         "> Current sensor value: %s will be updated to %s", current_value, int(new_value)
+                    #     )
+                    #     sf_handler.write(str(new_value))
 
-                    elif not old_value:
-                        old_value = current_value
+                    # elif not old_value:
+                    #     old_value = current_value
 
 
                 time.sleep(int(rel['rate']))
