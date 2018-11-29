@@ -139,6 +139,17 @@ class Sensor():
 
         self._launch_thermal_cpu_thread()
 
+    def _calc_approx_value(self, model, current_value, inverse=False):
+        """Approximate value based on the model provided"""
+
+        nbr_model_key = min(model, key=lambda x: abs(int(x)-current_value))
+        nbr_value = int(model[nbr_model_key])
+        
+        multiplier = nbr_model_key if inverse else current_value
+        divisor = current_value if inverse else nbr_model_key
+
+        return int((nbr_value * multiplier) / int(divisor))
+
 
     def _update_cpu_impact(self):
 
@@ -162,21 +173,20 @@ class Sensor():
                 with self._s_file_locks.get_lock(self.name):
 
                     current_cpu_load = server_sm.cpu_load
-                    
-                    close_load = min(cpu_load_model, key=lambda x: abs(int(x)-current_cpu_load))
-                    close_degrees = int(cpu_load_model[close_load])
-                   
-                    cpu_impact_degrees_2 = int((close_degrees * current_cpu_load) / int(close_load))
+                    cpu_impact_degrees_2 = self._calc_approx_value(cpu_load_model, current_cpu_load)
+                    new_calc_value = int(self.sensor_value) + cpu_impact_degrees_2 - cpu_impact_degrees_1
 
-                    if cpu_impact_degrees_1 != cpu_impact_degrees_2:
+                    if cpu_impact_degrees_1 != cpu_impact_degrees_2 and new_calc_value > sm.StateManager.get_ambient():
 
-                        self.sensor_value = int(self.sensor_value) + cpu_impact_degrees_2 - cpu_impact_degrees_1
+                        self.sensor_value = new_calc_value
+                        
                         logging.info(
                             'Thermal impact of CPU load at (%s%%) updated: (%s°)->(%s°)', 
                             current_cpu_load,
                             cpu_impact_degrees_1,
                             cpu_impact_degrees_2
                         )
+                        
 
                     cpu_impact_degrees_1 = cpu_impact_degrees_2
 
@@ -205,8 +215,11 @@ class Sensor():
                 rel = rel_details['rel']
 
                 source_sensor_status = operator.eq if rel['event'] == 'down' else operator.ne
-                arith_op = operator.add if rel['action'] == 'increase' else operator.sub
                 bound_op = operator.lt if rel['action'] == 'increase' else operator.gt
+                # if rel['model']:
+                #     arith_op = operator.add if rel['action'] == 'increase' else operator.sub
+                # else:
+                arith_op = operator.add if rel['action'] == 'increase' else operator.sub
 
                 if rel['action'] == 'increase' or rel['pauseAt'] > sm.StateManager.get_ambient():
                     pause_at = rel['pauseAt'] 

@@ -149,7 +149,7 @@ def configure_sensor(kwargs):
         sensor = SensorRepository(kwargs['asset_key']).get_sensor_by_name(kwargs['sensor_name'])
         sensor.sensor_value = kwargs['runtime_value']
     except KeyError as error:
-        argparse.ArgumentTypeError("Server or Sensor does not exist: " + error)
+        raise argparse.ArgumentTypeError("Server or Sensor does not exist: " + str(error))
 
 def handle_link(kwargs):
     """Power connections"""
@@ -198,6 +198,9 @@ def handle_set_thermal_sensor(kwargs):
     
     if not kwargs['action']:
         kwargs['action'] = 'increase' if kwargs['event'] == 'down' else 'decrease'
+
+    if not kwargs['degrees'] and not kwargs['model']:
+        raise argparse.ArgumentTypeError("Must provide either the model or constant degree value!")
 
     BMCServerStateManager.update_thermal_sensor_target(kwargs)
 
@@ -423,8 +426,9 @@ th_set_sensor_action.add_argument(
 
 
 th_set_sensor_action.add_argument(
-    '--at-source-value',  
-    help="Simengine will use this value to determine thermal impact for any given source sensor input; \
+    '--model',
+    '-m',
+    help="Simengine will use this .JSON model to determine thermal impact for any given source sensor input; \
          Source sensor's default value will be used instead if not specified", 
 )
 
@@ -433,8 +437,7 @@ th_set_sensor_action.add_argument(
     '-d', '--degrees', 
     type=float, 
     help="Update sensor temperature (in Celsius); \
-         if time period and event are specified, this value will be added to the previous sensor temp;", 
-    required=True
+         if time period and event are specified, this value will be added to the previous sensor temp;"
 )
 
 th_set_sensor_action.add_argument(
