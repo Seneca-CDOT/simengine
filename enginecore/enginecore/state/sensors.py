@@ -208,6 +208,11 @@ class Sensor():
                 arith_op = operator.add if rel['action'] == 'increase' else operator.sub
                 bound_op = operator.lt if rel['action'] == 'increase' else operator.gt
 
+                if rel['action'] == 'increase' or rel['pauseAt'] > sm.StateManager.get_ambient():
+                    pause_at = rel['pauseAt'] 
+                else:
+                    pause_at = sm.StateManager.get_ambient()
+
                 with self._s_file_locks.get_lock(target), open(os.path.join(self._s_dir, target), 'r+') as sf_handler:
 
                     current_value = int(sf_handler.read())
@@ -215,10 +220,10 @@ class Sensor():
 
                     # Source sensor status activated thermal impact
                     if source_sensor_status(int(self.sensor_value), 0):
-                        needs_update = bound_op(new_value, rel['pauseAt'])
-                        if not needs_update and bound_op(current_value, rel['pauseAt']):
+                        needs_update = bound_op(new_value, pause_at)
+                        if not needs_update and bound_op(current_value, pause_at):
                             needs_update = True
-                            new_value = int(rel['pauseAt'])
+                            new_value = int(pause_at)
                         
                         if needs_update:
                             

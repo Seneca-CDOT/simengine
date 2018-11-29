@@ -728,7 +728,6 @@ class ServerWithBMC(Server):
         # launch a thread
         self._cpu_load_t = Thread(
             target=self._monitor_load, 
-            # args=(lambda: self.state.status,), 
             name="cpu_load:{}".format(self.key)
         )
 
