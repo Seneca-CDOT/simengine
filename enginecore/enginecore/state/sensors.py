@@ -177,18 +177,22 @@ class Sensor():
                     current_cpu_load = server_sm.cpu_load
                     cpu_impact_degrees_2 = self._calc_approx_value(cpu_load_model, current_cpu_load)
                     new_calc_value = int(self.sensor_value) + cpu_impact_degrees_2 - cpu_impact_degrees_1
+                    sensor_updated = False
 
-                    if cpu_impact_degrees_1 != cpu_impact_degrees_2 and new_calc_value > sm.StateManager.get_ambient():
+                    if cpu_impact_degrees_1 != cpu_impact_degrees_2:
+                        ambient = sm.StateManager.get_ambient()
+                        self.sensor_value = new_calc_value if new_calc_value > ambient else int(ambient)
+                        sensor_updated = True
 
-                        self.sensor_value = new_calc_value
-                        
+                    
+                    if sensor_updated:
                         logging.info(
                             'Thermal impact of CPU load at (%s%%) updated: (%s°)->(%s°)', 
                             current_cpu_load,
                             cpu_impact_degrees_1,
                             cpu_impact_degrees_2
                         )
-                        
+
 
                     cpu_impact_degrees_1 = cpu_impact_degrees_2
 
