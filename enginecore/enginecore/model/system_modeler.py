@@ -504,12 +504,13 @@ def set_thermal_sensor_target(attr):
 
     # determine relationship type 
     thermal_rel_type = ''
-    if attr['event'] == 'down':
+    if attr['action'] == 'increase':
         thermal_rel_type = 'HEATED_BY'
-    elif attr['event'] == 'up':
+    elif attr['action'] == 'decrease':
         thermal_rel_type = 'COOLED_BY'
     else:
         raise KeyError('Unrecognized event type: {}'.format(attr['event']))
+
 
     # set the thermal relationship & relationship attributes
     s_attr = ["pause_at", 'rate', 'event', 'degrees', 'jitter', 'action', 'model']
@@ -523,6 +524,7 @@ def set_thermal_sensor_target(attr):
     rel_query.append("RETURN ex_rel")
 
     with GRAPH_REF.get_session() as session:
+        
         result = session.run("\n".join(query[0:2] + rel_query))
         rel_exists = result.single()
 

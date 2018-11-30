@@ -191,17 +191,21 @@ def handle_get_thermal_ambient(kwargs):
         print(" -> [offline] : increase by " + prop_fmt.format(**ambient_props['down']))
 
 
-
 def handle_set_thermal_sensor(kwargs):
     """Configure thermal sensor relations & properties"""
     del kwargs['func']
     
-    if not kwargs['action']:
+    if not kwargs['action'] and kwargs['event']:
         kwargs['action'] = 'increase' if kwargs['event'] == 'down' else 'decrease'
+    elif not kwargs['action'] and kwargs['model']:
+        raise argparse.ArgumentTypeError("Must provide action type (increase/decrease) when model is specified")
 
     if not kwargs['degrees'] and not kwargs['model']:
         raise argparse.ArgumentTypeError("Must provide either the model or constant degree value!")
 
+    if kwargs['model']:
+        kwargs['event'] = 'up'
+    
     BMCServerStateManager.update_thermal_sensor_target(kwargs)
 
 def handle_get_thermal_sensor(kwargs):
@@ -410,7 +414,7 @@ th_set_sensor_action.add_argument(
 )
 
 th_set_sensor_action.add_argument(
-    '-e', '--event', help="Event associated with the source sensor", choices=['up', 'down'], required=True
+    '-e', '--event', help="Event associated with the source sensor", choices=['up', 'down']
 )
 
 th_set_sensor_action.add_argument(

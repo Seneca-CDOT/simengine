@@ -84,7 +84,10 @@ class Sensor():
                 
                 # format relationships
                 rfmt = "{:55}".format("{action} by {degrees}°/{rate} sec on '{event}' event up until {pauseAt}°")
-                tfmt = lambda rel: (" | ").format().join(map(lambda r: rfmt.format(**r), rel))
+                mfmt = "{:55}".format("{action} using {model} model every {rate} sec on, limit at {pauseAt}°")
+
+                map_to_rel_format = lambda r: mfmt.format(**r) if 'model' in r else rfmt.format(**r)
+                tfmt = lambda rel: (" | ").format().join(map(map_to_rel_format, rel))
 
                 # add targets & relationships to the output
                 list(map(lambda t: s_str.append("   --> t:[{}] {}".format(t['name'], tfmt(t['rel']))), targets))
@@ -145,11 +148,10 @@ class Sensor():
         nbr_model_key = min(model, key=lambda x: abs(int(x)-current_value))
         nbr_value = int(model[nbr_model_key])
         
-        multiplier = nbr_model_key if inverse else current_value
-        divisor = current_value if inverse else nbr_model_key
+        multiplier = int(nbr_model_key if inverse else current_value)
+        divisor = int(current_value if inverse else nbr_model_key)
 
         return int((nbr_value * multiplier) / int(divisor))
-
 
     def _update_cpu_impact(self):
 
@@ -216,20 +218,32 @@ class Sensor():
 
                 source_sensor_status = operator.eq if rel['event'] == 'down' else operator.ne
                 bound_op = operator.lt if rel['action'] == 'increase' else operator.gt
-                # if rel['model']:
-                #     arith_op = operator.add if rel['action'] == 'increase' else operator.sub
-                # else:
                 arith_op = operator.add if rel['action'] == 'increase' else operator.sub
 
+                # if model is specified -> use the runtime mappings
+                if 'model' in rel and rel['model']:
+
+                    calc_new_sv = arith_op
+                    arith_op = lambda sv, _: calc_new_sv(sv, self._calc_approx_value(
+                        json.loads(rel['model']), int(self.sensor_value)*10
+                    ))
+
+                    source_sensor_status = operator.ne
+
+
+                # verify that sensor value doesn't go below room temp
                 if rel['action'] == 'increase' or rel['pauseAt'] > sm.StateManager.get_ambient():
                     pause_at = rel['pauseAt'] 
                 else:
                     pause_at = sm.StateManager.get_ambient()
 
+                # update target sensor value
                 with self._s_file_locks.get_lock(target), open(os.path.join(self._s_dir, target), 'r+') as sf_handler:
 
                     current_value = int(sf_handler.read())
-                    new_value = arith_op(current_value, int(rel['degrees']))
+        
+                    change_by = int(rel['degrees']) if 'degrees' in rel and rel['degrees'] else 0
+                    new_value = arith_op(current_value, change_by)
 
                     # Source sensor status activated thermal impact
                     if source_sensor_status(int(self.sensor_value), 0):
@@ -294,7 +308,8 @@ class Sensor():
                 session, self._server_key, relationship={'source': self.name, 'target': target, 'event': event}
             )
 
-            self._launch_thermal_sensor_thread(target, rel_details['rel']['event'])
+            if rel_details:
+                self._launch_thermal_sensor_thread(target, rel_details['rel']['event'])
 
 
     def add_cpu_thermal_impact(self):
