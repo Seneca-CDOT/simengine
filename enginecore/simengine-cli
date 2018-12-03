@@ -3,153 +3,16 @@
 # pylint: disable=C0103
 
 import argparse
-import json
-import time
-import curses
 from enginecore.state.assets import Asset
 import enginecore.model.system_modeler as sys_modeler
-from enginecore.state.state_managers import StateManager, BMCServerStateManager
+from enginecore.state.state_managers import StateManager
 from enginecore.state.sensors import SensorRepository
 
+from enginecore.cli.status import status_command
+from enginecore.cli.power import power_command
+from enginecore.cli.thermal import thermal_command
+from enginecore.cli.configure_state import configure_command
 
-def manage_state(asset_key, mng_action):
-    """ Perform action for a node/asset with a certain key
-    Args:
-        asset_key (int): supplied asset identifier
-        mng_action (func): callable object (lambda/function etc) that identifies action
-    """
-    state_manager = Asset.get_state_manager_by_key(asset_key, notify=True)
-    mng_action(state_manager)
-
-class bcolors:
-    """ curses colours """
-    OKGREEN = 2
-    ERROR = 1
-
-
-def status_table_format(assets, stdscr=False):
-    """ Display status in a table format 
-    Args:
-        assets (dict): list of assets supported by the system
-        stdscr (optional): default window return by initscr(), status_table_format uses print if omitted
-    """
-    
-    # format headers
-    headers = ["Asset Key", "Type", "Status", "Children", "Load"]
-    row_format = "{:>10}" * (len(headers) + 1)
-
-    headers = row_format.format("", *headers, end='')
-    if stdscr: 
-        stdscr.addstr(0, 0, headers)
-    else:
-        print(headers)
-
-    for i, asset_key in enumerate(assets):
-        asset = assets[asset_key]
-        children = str("{}...{}".format(asset['children'][0], asset['children'][-1]) if 'children' in asset else "none")
-        row = row_format.format(
-            str(i), 
-            *[str(asset_key), asset['type'], str(asset['status']), children, "{0:.2f}".format(asset['load'])], 
-            end=''
-        )
-
-        if stdscr:
-            stdscr.addstr(
-                i+1, 0, row, curses.color_pair(bcolors.ERROR if int(asset['status']) == 0 else bcolors.OKGREEN)
-            )
-        else:
-            print(row)
-
-    if stdscr:
-        stdscr.refresh()
-
-
-def get_status(**kwargs):
-    """ Retrieve power states of the assets 
-    Args:
-        **kwargs: Command line options
-    """
-    
-    #### one asset ####
-    if kwargs['asset_key'] and kwargs['load']:
-    
-        state_manager = Asset.get_state_manager_by_key(kwargs['asset_key'])
-
-        if kwargs['value_only']:
-            print(state_manager.load)
-        else:
-            print("{}-{} : {}".format(state_manager.key, state_manager.asset_type, state_manager.load))
-        return
-    elif kwargs['asset_key'] and kwargs['agent']:
-        state_manager = Asset.get_state_manager_by_key(kwargs['asset_key'])
-        agent_info = state_manager.agent
-        if agent_info:
-            msg = "running" if agent_info[1] else "not running"
-            if kwargs['value_only']:
-                print(int(agent_info[1]))
-            else:
-                print("{}-{} : pid[{}] is {}".format(state_manager.key, state_manager.asset_type, agent_info[0], msg))
-        else:
-            print("{}-{} is not running any agents!".format(state_manager.key, state_manager.asset_type))
-
-        return
-    elif kwargs['asset_key']:
-        state_manager = Asset.get_state_manager_by_key(kwargs['asset_key'])
-        if kwargs['value_only']:
-            print(state_manager.status)
-        else:
-            print("{}-{} : {}".format(state_manager.key, state_manager.asset_type, state_manager.status))
-        return
-
-    ##### list states #####
-    assets = StateManager.get_system_status()
-
-    # json format
-    if kwargs['json']: 
-        print(json.dumps(assets, indent=4))
-
-    # monitor state with curses
-    elif kwargs['monitor']:
-        stdscr = curses.initscr()
-
-        curses.noecho()
-        curses.cbreak()
-
-        try:
-            curses.start_color()
-            curses.use_default_colors()
-            for i in range(0, curses.COLORS):
-                curses.init_pair(i, i, -1)
-            while True:
-                status_table_format(assets, stdscr)
-                time.sleep(kwargs['watch_rate'])
-                assets = StateManager.get_system_status()
-        except KeyboardInterrupt:
-            pass
-        finally:
-            curses.echo()
-            curses.nocbreak()
-            curses.endwin()
-            
-    # human-readable table
-    else:
-        status_table_format(assets)
-
-def configure_battery(key, kwargs):
-    """Udpate runtime battery status"""
-    if kwargs['drain_speed'] is not None:
-        state_manager = Asset.get_state_manager_by_key(key, notify=True)
-        state_manager.set_drain_speed_factor(kwargs['drain_speed'])
-    if kwargs['charge_speed'] is not None:
-        state_manager = Asset.get_state_manager_by_key(key, notify=True)
-        state_manager.set_charge_speed_factor(kwargs['charge_speed'])
-
-def configure_sensor(kwargs):
-    try:
-        sensor = SensorRepository(kwargs['asset_key']).get_sensor_by_name(kwargs['sensor_name'])
-        sensor.sensor_value = kwargs['runtime_value']
-    except KeyError as error:
-        raise argparse.ArgumentTypeError("Server or Sensor does not exist: " + str(error))
 
 def handle_link(kwargs):
     """Power connections"""
@@ -158,62 +21,6 @@ def handle_link(kwargs):
     else:
         sys_modeler.link_assets(kwargs['source_key'], kwargs['dest_key'])
             
-
-def handle_set_thermal_ambient(kwargs):
-    """Configure thermal properties for room temperature"""
-
-    del kwargs['func']
-     
-    if kwargs['event'] and kwargs['pause_at'] and kwargs['rate']:
-        StateManager.set_ambient_props(kwargs)
-    elif kwargs['event'] or kwargs['pause_at'] or kwargs['rate']:
-        raise argparse.ArgumentTypeError("Event, pause-at and rate must be supplied")
-    else:
-        StateManager.set_ambient(kwargs['degrees'])
-
-
-def handle_get_thermal_ambient(kwargs):
-    """Print some general information about ambient configurations"""
-
-    if kwargs['value_only']:
-        print(StateManager.get_ambient())
-    else:
-        print("Ambient: {}° ".format(StateManager.get_ambient()))
-
-        ambient_props = StateManager.get_ambient_props()
-        if not ambient_props:
-            print('Ambient event properties are not configured yet!')
-            return
-        
-        prop_fmt = "{degrees}°/{rate} sec, until {pauseAt}° is reached"
-        print("AC settings:")
-        print(" -> [online]  : decrease by " + prop_fmt.format(**ambient_props['up']))
-        print(" -> [offline] : increase by " + prop_fmt.format(**ambient_props['down']))
-
-
-def handle_set_thermal_sensor(kwargs):
-    """Configure thermal sensor relations & properties"""
-    del kwargs['func']
-    
-    if not kwargs['action'] and kwargs['event']:
-        kwargs['action'] = 'increase' if kwargs['event'] == 'down' else 'decrease'
-    elif not kwargs['action'] and kwargs['model']:
-        raise argparse.ArgumentTypeError("Must provide action type (increase/decrease) when model is specified")
-
-    if not kwargs['degrees'] and not kwargs['model']:
-        raise argparse.ArgumentTypeError("Must provide either the model or constant degree value!")
-
-    if kwargs['model']:
-        kwargs['event'] = 'up'
-    
-    BMCServerStateManager.update_thermal_sensor_target(kwargs)
-
-def handle_get_thermal_sensor(kwargs):
-    """Display information about BMC sensors"""
-    if kwargs['sensor']:
-        print(SensorRepository(kwargs['asset_key']).get_sensor_by_name(kwargs['sensor']))
-    else:
-        print(SensorRepository(kwargs['asset_key']))
 
 
 ############# Validations
@@ -235,276 +42,30 @@ def validate_server(kwargs):
 
 ################ Define Command line options & arguments
 
+## set-up top level params
 argparser = argparse.ArgumentParser(
     description='Simengine CLI provides a set of management tools for the engine core'
 )
 subparsers = argparser.add_subparsers()
 argparser.add_argument('--version', action='version', version='%(prog)s 2.0')
 
-power_group = subparsers.add_parser('power', help="Control power component of registered asset(s)")
-
-## -> Setup options for state queries
-status_group = subparsers.add_parser('status', help="Retrieve status of registered asset(s)")
-status_group.add_argument('-k', '--asset-key', help="Get status of one asset (by key) ", type=int)
-status_group.add_argument('--json', help="Format as .json", action='store_true')
-status_group.add_argument('--monitor', help="Monitor status", action='store_true')
-status_group.add_argument('--load', help="Get load for the specified asset (key must be provided)", action='store_true')
-status_group.add_argument(
-    '--agent', 
-    help="Get information about simulator agent (SNMP/IPMI, key must be provided)",
-    action='store_true'
+## set-up commands (status/power etc..)
+status_command(
+    subparsers.add_parser('status', help="Retrieve status of registered asset(s)")
+)
+power_command(
+    subparsers.add_parser('power', help="Control power component of registered asset(s)")
+)
+thermal_command(
+    subparsers.add_parser('thermal', help="Manage temperature/thermal settings of the system")
+)
+configure_command(
+    subparsers.add_parser('configure-state', help="Update runtime state of the assets/sensors")
 )
 
-status_group.add_argument('--value-only', help="Return value only", action='store_true')
-
-
-status_group.add_argument('--watch-rate', nargs='?', 
-                          help="Update state every n seconds, defaults to 1", default=1, type=int)
-
-
-## -> Setup options for thermal/temperature group
-
-thermal_group = subparsers.add_parser('thermal', help="Manage temperature/thermal settings of the system")
-thermal_subp = thermal_group.add_subparsers()
-
-th_ambient_group = thermal_subp.add_parser(
-    'ambient', 
-    help="Configure/Retrieve ambient state (room temperature settings)"
-)
-th_ambient_subp = th_ambient_group.add_subparsers()
-
-th_set_ambient_action = th_ambient_subp.add_parser(
-    'set', 
-    help="Update ambient thermal settings", 
-)
-
-th_get_ambient_action = th_ambient_subp.add_parser(
-    'get', 
-    help="Query current thermal configurations", 
-)
-
-th_get_ambient_action.add_argument(
-    '--value-only', 
-    help="Return ambient value only", 
-    action='store_true'
-)
-
-th_set_ambient_action.add_argument(
-    '-d', '--degrees', 
-    type=float, 
-    help="Update ambient temperature (in Celsius); \
-         if time period and event are specified, this value will be added to the previous room temp;", 
-    required=True
-)
-
-th_set_ambient_action.add_argument(
-    '-e', '--event',
-    help="Increase/Descrease temperature on down/up mains event", 
-    choices=['up', 'down']
-)
-
-th_set_ambient_action.add_argument(
-    '-p', '--pause-at',
-    help="Increase/Descrease room temperature until this value is reached", 
-    type=float
-)
-
-th_set_ambient_action.add_argument(
-    '-r', '--rate',
-    type=int,
-    help="Update temperature value very 'n' seconds"
-)
-
-
-th_cpu_usg_group = thermal_subp.add_parser(
-    'cpu-usage', 
-    help="Configure relationships between CPU load and server sensors"
-)
-
-th_cpu_usg_subp = th_cpu_usg_group.add_subparsers()
-
-# - SET
-
-th_set_cpu_usg_action = th_cpu_usg_subp.add_parser(
-    'set', 
-    help="Update CPU usage / sensor relationship", 
-)
-
-th_set_cpu_usg_action.add_argument(
-    '-k', '--asset-key', help="Key of the server sensor belongs to ", type=int, required=True
-)
-
-th_set_cpu_usg_action.add_argument(
-    '-t', 
-    '--target-sensor', 
-    help="Name of the target sensor affected by CPU load", 
-    type=str,
-    required=True
-)
-
-th_set_cpu_usg_action.add_argument(
-    '-m', 
-    '--model', 
-    help=".JSON model representing CPU usage & corresponding thermal change for the sensor value", 
-    type=str,
-    required=True
-)
-
-# - GET
-
-th_get_cpu_usg_action = th_cpu_usg_subp.add_parser(
-    'get', 
-    help="Retrieve configured CPU usage / sensor relationship", 
-)
-
-th_get_cpu_usg_action.add_argument(
-    '-k', '--asset-key', help="Key of the server sensors belong to ", type=int, required=True
-)
-
-# - DELETE
-
-th_delete_cpu_usg_action = th_cpu_usg_subp.add_parser(
-    'delete', 
-    help="Delete existing CPU usage / sensor relationship", 
-)
-
-th_delete_cpu_usg_action.add_argument(
-    '-k', '--asset-key', help="Key of the server sensors belong to ", type=int, required=True
-)
-
-th_delete_cpu_usg_action.add_argument(
-    '-t', 
-    '--target-sensor', 
-    help="Name of the target sensor affected by CPU load", 
-    type=str,
-    required=True
-)
-
-
-# -- SENSOR THERMAL
-
-th_sensor_group = thermal_subp.add_parser(
-    'sensor', 
-    help="Configure/Retrieve sensor state and relationships"
-)
-
-th_sensor_subp = th_sensor_group.add_subparsers()
-
-# - SET
-
-th_set_sensor_action = th_sensor_subp.add_parser(
-    'set', 
-    help="Update sensor thermal settings", 
-)
-
-th_set_sensor_action.add_argument(
-    '-k', '--asset-key', help="Key of the server sensors belong to ", type=int, required=True
-)
-th_set_sensor_action.add_argument(
-    '-j', '--jitter', help="Jitter of temperature (rand +- max(this value) to the sensor readings)", type=int
-)
-
-th_set_sensor_action.add_argument('-s', '--source-sensor', help="Name of the source sensor", type=str, required=True)
-th_set_sensor_action.add_argument(
-    '-t', 
-    '--target-sensor', 
-    help="Name of the target sensor affected by the event associated with the source sensor", 
-    type=str,
-    required=True
-)
-
-th_set_sensor_action.add_argument(
-    '-e', '--event', help="Event associated with the source sensor", choices=['up', 'down']
-)
-
-th_set_sensor_action.add_argument(
-    '-a', 
-    '--action', 
-    help="Action associated with the event (for instance, on sensor 0x1 going down, \
-          the target sensor value will be either increased or decreased)\
-          Action can be omitted and in this case: \
-          'increase' action will be assigned to 'down' event & \
-          'decrese' action will be assigned to 'up' event ",
-    choices=['increase', 'decrease']
-)
-
-
-th_set_sensor_action.add_argument(
-    '--model',
-    '-m',
-    help="Simengine will use this .JSON model to determine thermal impact for any given source sensor input; \
-         Source sensor's default value will be used instead if not specified", 
-)
-
-
-th_set_sensor_action.add_argument(
-    '-d', '--degrees', 
-    type=float, 
-    help="Update sensor temperature (in Celsius); \
-         if time period and event are specified, this value will be added to the previous sensor temp;"
-)
-
-th_set_sensor_action.add_argument(
-    '-p', '--pause-at',
-    help="Increase/Descrease room temperature until this value is reached", 
-    type=float,
-    required=True
-)
-
-th_set_sensor_action.add_argument(
-    '-r', '--rate',
-    help="Update temperature value very 'n' seconds",
-    type=int,
-    required=True
-)
-
-# - GET
-
-th_get_sensor_action = th_sensor_subp.add_parser(
-    'get', 
-    help="""
-    Query current thermal configurations for all the sensors or a specific sensor
-    (if sensor name is provided)
-    """, 
-)
-
-th_get_sensor_action.add_argument(
-    '-k', '--asset-key', help="Key of the server sensor belongs to ", type=int, required=True
-)
-th_get_sensor_action.add_argument('-s', '--sensor', help="Name of the sensor", type=str)
-
-
-# - DELETE
-
-th_delete_sensor_action = th_sensor_subp.add_parser(
-    'delete', 
-    help="Delete thermal connection between 2 sensors", 
-)
-
-th_delete_sensor_action.add_argument(
-    '-k', '--asset-key', help="Key of the server sensor belongs to ", type=int, required=True
-)
-th_delete_sensor_action.add_argument('-s', '--source-sensor', help="Name of the source sensor", type=str, required=True)
-th_delete_sensor_action.add_argument(
-    '-t', 
-    '--target-sensor', 
-    help="Name of the target sensor affected by the event associated with the source sensor", 
-    type=str,
-    required=True
-)
-th_delete_sensor_action.add_argument(
-    '-e', '--event', help="Event associated with the source sensor", choices=['up', 'down'], required=True
-)
-
-## -> Setup options for oid queries
-# oid_group = subparsers.add_parser('oid', help="Manage OIDs")
-
-## -> Setup options for snapshot commands
-# snapshot_group = subparsers.add_parser('snapshot', help="Manage snapshots of the assets' states")
-
-## -> Setup options for asset management commands
 
 asset_group = subparsers.add_parser('model', help="Manage system model: create new/update existing asset etc.")
+
 model_subp = asset_group.add_subparsers()
 create_asset_group = model_subp.add_parser('create', help="Create new asset")
 
@@ -527,40 +88,6 @@ power_asset_action.add_argument(
 )
 power_asset_action.add_argument('-d', '--dest-key', type=int, required=True, help="Key of an powered by the source-key")
 power_asset_action.add_argument('-r', '--remove', action='store_true', help="Delete power conneciton if exists")
-
-##############################
-## state configure subgroup ##
-configure_state_group = subparsers.add_parser('configure-state', help="Update runtime state of the assets/sensors")
-conf_state_subp = configure_state_group.add_subparsers()
-conf_ups_action = conf_state_subp.add_parser('ups', help="Update UPS runtime properties")
-conf_ups_action.add_argument(
-    '-k', '--asset-key', type=int, required=True, help="Unique asset key of the UPS"
-)
-
-conf_ups_action.add_argument(
-    '-d', '--drain-speed', type=float, help="Update factor of the battery drain (1 sets to regular speed)", 
-    choices=range(1, 101), 
-    metavar="[1-101]"
-)
-
-conf_ups_action.add_argument(
-    '-c', '--charge-speed', type=float, help="Update factor of the battery charge (1 sets to regular speed)", 
-    choices=range(1, 101), 
-    metavar="[1-101]"
-)
-
-conf_sensor_action = conf_state_subp.add_parser('sensor', help="Update sensor runtime properties")
-conf_sensor_action.add_argument(
-    '-k', '--asset-key', type=int, required=True, help="Unique asset key of the server sensor belongs to"
-)
-
-conf_sensor_action.add_argument(
-    '-s', '--sensor-name', type=str, required=True, help="Name of the sensor"
-)
-
-conf_sensor_action.add_argument(
-    '-r', '--runtime-value', required=True, help="New sensor value (will be reflected on ipmi)"
-)
 
 
 #################################
@@ -869,31 +396,8 @@ update_actions.extend([
     update_lamp_action
 ])
 
-###################################
-## Assets' power control subgroup ##
-
-subparsers = power_group.add_subparsers()
-power_up_action = subparsers.add_parser('up', help="Power up a particular component/asset")
-power_up_action.add_argument('-k', '--asset-key', type=int, required=True)
-
-power_down_action = subparsers.add_parser('down', help="Power down a particular component/asset")
-power_down_action.add_argument('-k', '--asset-key', type=int, required=True)
-power_down_action.add_argument(
-    '--hard', 
-    help="Enable abrupt poweroff instead of shutdown",
-    dest='hard', 
-    action='store_true'
-)
-
-power_outage_action = subparsers.add_parser('outage', help="Simulate complete power loss")
-power_restore_action = subparsers.add_parser('restore', help="Restore mains power after outage")
 
 ############ Callbacks for actions
-
-status_group.set_defaults(func=lambda args: get_status(**args))
-
-conf_ups_action.set_defaults(func=lambda args: configure_battery(args['asset_key'], args))
-conf_sensor_action.set_defaults(func=configure_sensor)
 
 # snapshot_group.set_defaults(func=lambda _: print('Not Implemented Yet'))
 
@@ -954,52 +458,6 @@ power_asset_action.set_defaults(
 
 drop_system_action.set_defaults(func=lambda args: sys_modeler.drop_model())
 
-
-## power_group callbacks
-
-power_outage_action.set_defaults(
-    func=lambda _: StateManager.power_outage()
-)
-
-power_restore_action.set_defaults(
-    func=lambda _: StateManager.power_restore()
-)
-
-power_up_action.set_defaults(
-    func=lambda args: manage_state(args['asset_key'], lambda a: a.power_up())
-)
-
-power_down_action.set_defaults(
-    hard=False,
-    func=lambda args: manage_state(args['asset_key'], lambda a: a.power_off() if args['hard'] else a.shut_down())
-)
-
-## Thermal group callbacks
-th_get_ambient_action.set_defaults(func=handle_get_thermal_ambient)
-
-th_set_ambient_action.set_defaults(
-    func=handle_set_thermal_ambient
-)
-
-th_get_sensor_action.set_defaults(
-    func=handle_get_thermal_sensor
-)
-
-th_set_sensor_action.set_defaults(
-    func=handle_set_thermal_sensor
-)
-
-th_delete_sensor_action.set_defaults(
-    func=sys_modeler.delete_thermal_sensor_target # TODO: change sys_modeler to BMCServerStateManager
-)
-
-th_set_cpu_usg_action.set_defaults(
-    func=BMCServerStateManager.update_thermal_cpu_target
-)
-
-th_delete_cpu_usg_action.set_defaults(
-    func=sys_modeler.delete_thermal_cpu_target
-)
 
 try:
     options = argparser.parse_args()

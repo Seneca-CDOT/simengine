@@ -461,7 +461,8 @@ class SensorRepository():
 
 
     def adjust_thermal_sensors(self, old_ambient, new_ambient):
-        """ """
+        """Indicate an ambient update"""
+        
         for s_name in self._sensors:
             sensor = self._sensors[s_name]
             if sensor.group == 'temperature':

@@ -263,6 +263,8 @@ class SNMPSim():
     def on_asset_did_power_on(self):
         self._snmp_agent.start_agent()
 
+
+
 @register_asset
 class PDU(Asset, SNMPSim):
     """Provides reactive logic for PDU & manages snmp simulator instance
