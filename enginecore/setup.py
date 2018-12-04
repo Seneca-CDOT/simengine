@@ -1,12 +1,12 @@
 """Simulation engine for Anvil! & similar High-Availability systems"""
-from setuptools import setup
-import enginecore
+from setuptools import setup, find_packages
 
 setup(
     name="SimEngine",
     version="1.0",
-    packages=['enginecore'],
+    packages=find_packages(),
     scripts=['simengine-cli'],
+    install_requires=['redis>=2.10.6', 'circuits', 'neo4j-driver', 'pysnmp', 'python-dev', 'libvirt-python'],
 
     author="Seneca OSTEP & Alteeve",
     author_email="olga.belavina@senecacollege.ca",
@@ -23,5 +23,4 @@ setup(
         "Documentation": "https://simengine.readthedocs.io/en/latest/",
         "Source Code": "https://github.com/Seneca-CDOT/simengine",
     }
-
 )
