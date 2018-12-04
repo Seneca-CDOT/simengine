@@ -6,7 +6,7 @@ setup(
     version="1.0",
     packages=find_packages(),
     scripts=['simengine-cli'],
-    install_requires=['redis>=2.10.6', 'circuits', 'neo4j-driver', 'pysnmp', 'python-dev', 'libvirt-python'],
+    install_requires=['redis>=2.10.6', 'circuits', 'neo4j-driver', 'pysnmp', 'libvirt-python'],
 
     author="Seneca OSTEP & Alteeve",
     author_email="olga.belavina@senecacollege.ca",
