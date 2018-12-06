@@ -1,0 +1,67 @@
+sdr type 1
+	sensor_owner_id		0x20
+	sensor_owner_lun	0
+	channel_number		0
+
+	sensor_number		$ADDR
+    entity_instance		$ID_STR
+
+	entity_id		power_supply
+	init_scanning		true
+	init_events		true
+	init_thresholds		true
+	init_hysteresis		true
+	init_sensor_type	true
+	default_event_gen_on	true
+	default_sensor_scan_on	true
+	sensor_auto_rearm	true
+	sensor_hysteresis	settable
+	sensor_threshold_access	settable
+	sensor_event_msg_ctrl	per_state
+	sensor_type		Current
+	event_reading_type_code	1
+
+	return_lnc		$R_LNC
+	return_lc		$R_LCR
+	return_lnr		$R_LNR
+	return_unc		$R_UNC
+	return_uc		$R_UCR
+	return_unr		$R_UNR
+
+	assert_uncgh		true
+	deassert_uncgh		true
+	assert_ucgh		true
+	deassert_ucgh		true
+	uc_thrsh_settable	true
+	unc_thrsh_settable	true
+	analog_data_format	unsigned
+	rate_unit		none
+	modifier_unit		none
+	percentage		false
+	base_unit		Watts
+	modifier_unit_code	unspecified
+	linearization		linear
+	m			10
+	tolerance		0
+	b			0
+	accuracy		1
+	accuracy_exp		0
+	sensor_direction	input
+	r_exp			0
+	b_exp			0
+	sensor_maximum		255
+	sensor_minimum		0
+
+
+	lnc_fthresh		$LNC
+	lc_fthresh		$LCR
+	lnr_fthresh		$LNR
+	unc_fthresh		$UNC
+	uc_fthresh		$UCR
+	unr_fthresh		$UNR
+
+	positive_hysteresis	2
+	negative_hysteresis	2
+    
+	id_string		$C_NAME
+endsdr

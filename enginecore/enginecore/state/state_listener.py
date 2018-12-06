@@ -6,7 +6,8 @@ and reacts to state updates by dispatching cuircuit events that are, in turn,
 handled by individual assets.
 
 """
-import sys
+import json
+import logging
 
 from circuits import Component, Event, Timer, Worker, Debugger, task
 import redis
@@ -14,12 +15,15 @@ import redis
 from circuits.web import Logger, Server, Static
 from circuits.web.dispatchers import WebSocketsDispatcher
 
-from enginecore.state.assets import Asset, PowerEventResult, LoadEventResult
+from enginecore.state.assets import Asset, SystemEnvironment, PowerEventResult, LoadEventResult
+from enginecore.state.state_managers import StateManager
 from enginecore.state.event_map import PowerEventManager
-from enginecore.state.web_socket import WebSocket
+from enginecore.state.web_socket import WebSocket, ClientRequests
 from enginecore.state.redis_channels import RedisChannels
 from enginecore.model.graph_reference import GraphReference
 from enginecore.state.state_initializer import initialize, clear_temp
+
+SOCKET_CONF = {'host': "0.0.0.0", 'port': 8000}
 
 class NotifyClient(Event):
     """Notify websocket clients of any data updates"""
@@ -32,23 +36,32 @@ class StateListener(Component):
         super(StateListener, self).__init__()
 
         ### Set-up WebSocket & Redis listener ###
+        logging.info('Starting simengine daemon...')
 
         # Use redis pub/sub communication
+        logging.info('Initializing redis connection...')
         self._redis_store = redis.StrictRedis(host='localhost', port=6379)
 
         self._bat_pubsub = self._redis_store.pubsub()
         self._state_pubsub = self._redis_store.pubsub()
+        self._thermal_pubsub = self._redis_store.pubsub()
 
         # assets will store all the devices/items including PDUs, switches etc.
         self._assets = {}
+        self._sys_environ = SystemEnvironment().register(self)
+
+        # set default state
+        StateManager.power_restore()
 
         # init graph db instance
+        logging.info('Initializing neo4j connection...')
         self._graph_ref = GraphReference()
         
         # set up a web socket server
-        self._server = Server(("0.0.0.0", 8000)).register(self)  
+        logging.info('Initializing websocket server at %s:%s ...', SOCKET_CONF['host'], SOCKET_CONF['port'])
+        self._server = Server((SOCKET_CONF['host'], SOCKET_CONF['port'])).register(self)  
 
-        # Worker(process=False).register(self)
+        Worker(process=False).register(self)
         Static().register(self._server)
         Logger().register(self._server)
         
@@ -66,10 +79,13 @@ class StateListener(Component):
     def _subscribe_to_channels(self):
         """Subscribe to redis channels"""
         
+        logging.info('Initializing redis subscriptions...')
+
         # State Channels
         self._state_pubsub.psubscribe(
             RedisChannels.oid_update_channel,  # snmp oid updates
             RedisChannels.state_update_channel, # power state changes
+            RedisChannels.mains_update_channel, # wall power updates
             RedisChannels.model_update_channel  # model changes
         )
 
@@ -80,9 +96,18 @@ class StateListener(Component):
             RedisChannels.battery_conf_charge_channel # update charge speed (factor)
         )
 
+        # Thermal Channels
+        self._thermal_pubsub.psubscribe(
+            RedisChannels.ambient_update_channel, # on ambient changes
+            RedisChannels.sensor_conf_th_channel, # new relationship
+            RedisChannels.cpu_usg_conf_th_channel, # new cpu-usage relationship
+        )
+
 
     def _reload_model(self, force_snmp_init=True):
         """Re-create system topology (instantiate assets based on graph ref)"""
+
+        logging.info('Initializing system topology...')
 
         self._assets = {}
 
@@ -104,7 +129,7 @@ class StateListener(Component):
                         leaf_nodes.append(asset['key'])
 
                 except StopIteration:
-                    print('Detected asset that is not supported', file=sys.stderr)
+                    logging.error('Detected asset that is not supported')
 
         # initialize load by dispatching load update
         for key in leaf_nodes:
@@ -122,7 +147,13 @@ class StateListener(Component):
             )
 
             # update websocket
-            self._notify_client(asset_key, {'load': new_load})
+            self._notify_client(ClientRequests.asset, {
+                'key': asset_key, 
+                'load': new_load
+            })
+            
+        StateManager.set_ambient(21)
+        #self._handle_ambient_update(new_temp=StateManager.get_ambient(), old_temp=0)
 
 
     def _handle_oid_update(self, asset_key, oid, value):
@@ -146,10 +177,23 @@ class StateListener(Component):
             for key in affected_keys:
                 self.fire(PowerEventManager.get_state_specs()[oid_name][oid_value_name], self._assets[key])
 
-        print('oid changed:')
-        print(">" + oid + ": " + oid_value)
+        logging.info('oid changed:')
+        logging.info(">" + oid + ": " + oid_value)
         
+
+    def _handle_ambient_update(self, new_temp, old_temp):
+        """React to ambient update by notifying all the assets in the sys topology
+        Args:
+            new_temp(float): new ambient value
+            old_temp(float): old ambient value
+        """
+
+        self._notify_client(ClientRequests.ambient, {'ambient': new_temp, 'rising': new_temp > old_temp})
+        for a_key in self._assets:
+            self.fire(PowerEventManager.map_ambient_event(old_temp, new_temp), self._assets[a_key]) 
+
     
+
     def _handle_state_update(self, asset_key):
         """React to asset state updates in redis store 
         Args:
@@ -160,7 +204,10 @@ class StateListener(Component):
         asset_status = str(updated_asset.state.status)
 
         # write to a web socket
-        self._notify_client(asset_key, {'status':  int(asset_status)})
+        self._notify_client(ClientRequests.asset, {
+            'key': asset_key, 
+            'status':  int(asset_status)
+        })
 
         # fire-up power events down the power stream
         self.fire(PowerEventManager.map_asset_event(asset_status), updated_asset)
@@ -196,8 +243,10 @@ class StateListener(Component):
                     return
 
                 parent_load_change = load_change * parent.state.draw_percentage
-                print("-- child [{}] load_upd as '{}', updating load for [{}], old load: {}"
-                      .format(child_key, load_change, parent.key, parent.state.load))
+                # logging.info(
+                #     "child [%s] load update: %s; updating %s load for [%s]", 
+                # child_key, load_change, parent.state.load, parent.key
+                # )
                
                 if increased:
                     event = PowerEventManager.map_load_increased_by(parent_load_change, child_key)
@@ -211,7 +260,7 @@ class StateListener(Component):
         
         Args:
             event_result(PowerEventResult): contains data about power state update event such as key of 
-                                           the affected asset, its old state, new new
+                                           the affected asset, its old state & new state
         Example:
             when a node is powered down, the assets it powers should be powered down as well
         """
@@ -238,7 +287,7 @@ class StateListener(Component):
                     else:
                         online_parents.append(parent.key)
 
-                # for each parent that is either online of it's load is not zero
+                # for each parent that is either online or it's load is not zero
                 # update the load value
                 for parent_key in online_parents:
 
@@ -256,7 +305,7 @@ class StateListener(Component):
                     updated_asset.state.update_load(0)
 
 
-            # Check assets down the power stream
+            # Check assets down the power stream (assets powered by the updated asset)
             for child in children:
                 child_asset = self._assets[child['key']]
                 second_parent_up = False
@@ -295,15 +344,14 @@ class StateListener(Component):
 
                 # check upstream & branching power
                 # alternative power source is available, therefore the load needs to be re-directed
-                if second_parent_up:
-                    print('Found an asset that has alternative parent[{}], child[{}]'
-                          .format(second_parent_asset.key, child_asset.key))
+                else:
+                    logging.info('Asset[%s] has alternative parent[%s]', child_asset.key, second_parent_asset.key)
 
                     # find out how much load the 2nd parent should take
                     # (how much updated asset was drawing)
                     node_load = child_asset.state.load * updated_asset.state.draw_percentage
 
-                    # print('Child load : {}'.format(node_load))
+                    # logging.info('Child load : {}'.format(node_load))
                     if int(new_state) == 0:  
                         alt_branch_event = PowerEventManager.map_load_increased_by(node_load, child_asset.key)             
                     else:
@@ -317,16 +365,16 @@ class StateListener(Component):
                     self.fire(event, updated_asset)
 
 
-    def _notify_client(self, asset_key, data):
+    def _notify_client(self, client_request, data):
         """Notify the WebSocket client(s) of any changes in asset states 
 
         Args:
-            asset_key(int): key of the updated asset
+            client_request(ClientRequests): type of data passed to the ws client
             data(dict): updated key/values (e.g. status, load)
         """
 
         self.fire(NotifyClient({
-            'key': int(asset_key),
+            'request': client_request.name,
             'data': data
         }), self._ws)
 
@@ -340,28 +388,35 @@ class StateListener(Component):
             return
         
         data = message['data'].decode("utf-8")
+        channel = message['channel'].decode()
+        
         try:
-            if message['channel'] == str.encode(RedisChannels.battery_update_channel):
+            logging.info("[REDIS:BATTERY] Received a message in channel [%s]: %s", channel, data)
+
+            if channel == RedisChannels.battery_update_channel:
                 asset_key, _ = data.split('-')
-                self._notify_client(int(asset_key), {'battery': self._assets[int(asset_key)].state.battery_level})
-            elif message['channel'] == str.encode(RedisChannels.battery_conf_charge_channel):
+                self._notify_client(ClientRequests.asset, {
+                    'key': int(asset_key),
+                    'battery': self._assets[int(asset_key)].state.battery_level
+                })
+                
+            elif channel == RedisChannels.battery_conf_charge_channel:
                 asset_key, _ = data.split('-')
                 _, speed = data.split('|')
                 self._assets[int(asset_key)].charge_speed_factor = float(speed)
-            elif message['channel'] == str.encode(RedisChannels.battery_conf_drain_channel):
+            elif channel == RedisChannels.battery_conf_drain_channel:
                 asset_key, _ = data.split('-')
                 _, speed = data.split('|')
                 self._assets[int(asset_key)].drain_speed_factor = float(speed)
 
 
         except KeyError as error:
-            print("Detected unregistered asset under key [{}]".format(error), file=sys.stderr)
+            logging.error("Detected unregistered asset under key [%s]", error)
 
 
     def monitor_state(self):
         """ listens to redis events """
 
-        print("...")
         message = self._state_pubsub.get_message()
 
         # validate message
@@ -373,23 +428,42 @@ class StateListener(Component):
         # interpret the published message 
         # "state-upd" indicates that certain asset was powered on/off by the interface(s)
         # "oid-upd" is published when SNMPsim updates an OID
+        channel = message['channel'].decode()
+
         try:
-            if message['channel'] == str.encode(RedisChannels.state_update_channel):
+
+            logging.info("[REDIS:POWER] Received a message in channel [%s]: %s", channel, data)
+
+            if channel == RedisChannels.state_update_channel:
                 asset_key, asset_type = data.split('-')
                 if asset_type in Asset.get_supported_assets():
                     self._handle_state_update(int(asset_key))
+            
+            elif channel == RedisChannels.mains_update_channel:
+        
+                with self._graph_ref.get_session() as session:
+                    mains_out_keys = GraphReference.get_mains_powered_outlets(session)
+                    mains_out = {out_key: self._assets[out_key] for out_key in mains_out_keys if out_key}
+          
+                    new_state = int(data)
 
-            elif message['channel'] == str.encode(RedisChannels.oid_update_channel):
+                    self._notify_client(ClientRequests.mains, {'mains': new_state})     
+                    self.fire(PowerEventManager.map_mains_event(data), self._sys_environ)
+
+                    for _, outlet in mains_out.items():
+                        if new_state == 0:
+                            outlet.state.shut_down() 
+                        else:
+                            outlet.state.power_up()
+
+                        outlet.state.publish_power()
+
+            elif channel == RedisChannels.oid_update_channel:
                 value = (self._redis_store.get(data)).decode()
                 asset_key, oid = data.split('-')
                 self._handle_oid_update(int(asset_key), oid, value)
 
-            elif message['channel'] == str.encode(RedisChannels.battery_update_channel):
-                asset_key, _ = data.split('-')
-                self._notify_client(int(asset_key), {'battery': self._assets[int(asset_key)].state.battery_level})
-
-            elif message['channel'] == str.encode(RedisChannels.model_update_channel):
-                print('RELOAD REQUESTED')
+            elif channel == RedisChannels.model_update_channel:
                 self._state_pubsub.unsubscribe()
                 self._bat_pubsub.unsubscribe()
 
@@ -397,16 +471,46 @@ class StateListener(Component):
                 self._subscribe_to_channels()
 
         except KeyError as error:
-            print("Detected unregistered asset under key [{}]".format(error), file=sys.stderr)
+            logging.error("Detected unregistered asset under key [%s]", error)
+
+
+    def monitor_thermal(self):
+        """Monitor thermal updates in a separate pub/sub channel"""
+
+        message = self._thermal_pubsub.get_message()
+
+        # validate message
+        if ((not message) or ('data' not in message) or (not isinstance(message['data'], bytes))):
+            return
+        
+        data = message['data'].decode("utf-8")
+        channel = message['channel'].decode()
+
+        try:
+            logging.info("[REDIS:THERMAL] Received a message in channel [%s]: %s", channel, data)
+
+            if channel == RedisChannels.ambient_update_channel:
+                old_temp, new_temp = map(float, data.split('-'))
+                self._handle_ambient_update(new_temp=float(new_temp), old_temp=old_temp)
+            elif channel == RedisChannels.sensor_conf_th_channel:
+                new_rel = json.loads(data)
+                self._assets[new_rel['key']].add_sensor_thermal_impact(**new_rel['relationship'])
+            elif channel == RedisChannels.cpu_usg_conf_th_channel:
+                new_rel = json.loads(data)
+                self._assets[new_rel['key']].add_cpu_thermal_impact(**new_rel['relationship'])
+
+        except KeyError as error:
+            logging.error("Detected unregistered asset under key [%s]", error)
 
 
     def started(self, *args):
         """
             Called on start
         """
-        print('Listening to Redis events')
+        logging.info('Initializing pub/sub event handlers...')
         Timer(0.5, Event.create("monitor_state"), persist=True).register(self)
         Timer(1, Event.create("monitor_battery"), persist=True).register(self)
+        Timer(1, Event.create("monitor_thermal"), persist=True).register(self)
 
 
     # **Events are camel-case
@@ -419,7 +523,7 @@ class StateListener(Component):
         self._chain_load_update(event_result, increased)
         if event_result.load_change:
             ckey = int(event_result.asset_key)
-            self._notify_client(ckey, {'load': self._assets[ckey].state.load})
+            self._notify_client(ClientRequests.asset, {'key': ckey, 'load': self._assets[ckey].state.load})
 
     # Notify parent asset of any child events
     def ChildAssetPowerDown_success(self, evt, event_result):
@@ -443,7 +547,10 @@ class StateListener(Component):
 
     def _power_success(self, event_result):
         """Handle power event success by dispatching power events down the power stream"""
-        self._notify_client(event_result.asset_key, {'status': int(event_result.new_state)})
+        self._notify_client(ClientRequests.asset, {
+            'key': event_result.asset_key, 
+            'status': int(event_result.new_state)
+        })
         self._chain_power_update(event_result)
     
      # Notify child asset of any parent events of interest
@@ -470,7 +577,10 @@ class StateListener(Component):
         if not e_result.old_state and e_result.old_state != e_result.new_state:
             self._chain_power_update(e_result)
 
-        self._notify_client(e_result.asset_key, {'status': e_result.new_state})
+        self._notify_client(ClientRequests.asset, {
+            'key': e_result.asset_key, 
+            'status': e_result.new_state
+        })
 
 if __name__ == '__main__':
     StateListener().run()

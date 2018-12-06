@@ -46,6 +46,7 @@ def initialize(force_snmp_init=False):
             init_from_snmprec = (not redis_store.exists("{}-{}".format(asset_key, asset_type))) or force_snmp_init
             redis_store.set("{}-{}".format(asset_key, asset_type), "1")
             formatted_key = asset_key.zfill(10)
+            temp_ordering_key = formatted_key + '-temp_oids_ordering'
 
             graph_oids = {}
             for oid in record['oids']: # loop over oids that are defined in the graph db
@@ -70,11 +71,11 @@ def initialize(force_snmp_init=False):
                             value = graph_oids[oid]['value']
                         
                         key_and_oid = format_as_redis_key(formatted_key, oid)
-                        redis_store.lpush(formatted_key + "-temp_oids_ordering", key_and_oid)
+                        redis_store.lpush(temp_ordering_key, key_and_oid)
                         redis_store.set(key_and_oid, "{}|{}".format(dtype, value))
 
-                redis_store.sort(formatted_key + '-temp_oids_ordering', store=formatted_key + '-oids_ordering', alpha=True)
-                redis_store.delete(formatted_key + '-temp_oids_ordering')
+                redis_store.sort(temp_ordering_key, store=formatted_key + '-oids_ordering', alpha=True)
+                redis_store.delete(temp_ordering_key)
                 redis_store.rpush(asset_key, formatted_key)            
 
         except StopIteration:

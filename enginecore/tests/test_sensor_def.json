@@ -1,0 +1,138 @@
+{
+    "caseFan": {
+        "group": "fan",
+        "addressSpace": "0x6f",
+        "sensorDefinitions": [
+            {
+                "thresholds": {
+                    "lnr": 0, 
+                    "lcr": 200, 
+                    "lnc": 300, 
+                    "unc": 1000,
+                    "ucr": 1200, 
+                    "unr": 1500
+                },
+                "defaultValue": 1200,
+                "name": "Frnt_FAN{index}"
+            },
+            {
+                "thresholds": {
+                    "lcr": 200, 
+                    "lnc": 300, 
+                    "unc": 1000,
+                    "ucr": 1200
+                },
+                "defaultValue": 400,
+                "name": "Frnt_FAN{index}"
+            },
+            {
+                "thresholds": {
+                    "lcr": 200, 
+                    "lnc": 300, 
+                    "unc": 1000,
+                    "ucr": 1200
+                },
+                "defaultValue": 1000,
+                "name": "Frnt_FAN",
+                "address": "0x79"
+            }
+        ]
+    },
+    "psuStatus": {
+        "group": "psu",
+        "addressSpace": "0x8",
+        "eventReadingType": "0x6f",
+        "sensorDefinitions": [
+            {
+                "thresholds": {},
+                "defaultValue": 0,
+                "name": "PSU{index} status"
+            },
+            {
+                "thresholds": {},
+                "defaultValue": 0,
+                "name": "PSU{index} status"
+            }
+        ] 
+    },
+    "psuCurrent": {
+        "group": "current",
+        "addressSpace": "0xa",
+        "sensorDefinitions": [
+            {
+                "thresholds": {},
+                "defaultValue": 0,
+                "name": "PSU{index} current"
+            },
+            {
+                "thresholds": {},
+                "defaultValue": 0,
+                "name": "PSU{index} current"
+            }
+        ] 
+    },
+    "psuVoltage": {
+        "group": "voltage",
+        "addressSpace": "0xc",
+        "sensorDefinitions": [
+            {
+                "thresholds": {},
+                "defaultValue": 0,
+                "name": "PSU{index} voltage"
+            },
+            {
+                "thresholds": {},
+                "defaultValue": 0,
+                "name": "PSU{index} voltage"
+            }
+        ] 
+    },
+    "psuPower": {
+        "group": "wattage",
+        "addressSpace": "0xE",
+        "sensorDefinitions": [
+            {
+                "thresholds": {},
+                "defaultValue": 0,
+                "name": "PSU{index} power"
+            },
+            {
+                "thresholds": {},
+                "defaultValue": 0,
+                "name": "PSU{index} power"
+            }
+        ] 
+    },
+    "psuTemperature": {
+        "group": "temperature",
+        "addressSpace": "0x10",
+        "sensorDefinitions": [
+            {
+                "thresholds": {},
+                "defaultValue": 0,
+                "name": "PSU{index} temperature"
+            },
+            {
+                "thresholds": {},
+                "defaultValue": 0,
+                "name": "PSU{index} temperature"
+            }
+        ] 
+    }, 
+    "Ambient": {
+        "group": "temperature",
+        "addressSpace": "0x21",
+        "sensorDefinitions": [
+            {
+                "thresholds": {
+                    "lcr": 1.000, 
+                    "lnc": 6.000, 
+                    "unc": 37.000,
+                    "ucr": 42.000
+                },
+                "defaultValue": 0,
+                "name": "Ambient"
+            }
+        ]
+    }
+}

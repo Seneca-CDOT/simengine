@@ -8,10 +8,7 @@ import { withStyles } from '@material-ui/core/styles';
 import Snackbar from '@material-ui/core/Snackbar';
 
 // Local Components - Layout
-import Pdu from './Assets/PDU/Pdu';
-import Socket from './Assets/common/Socket';
-import Server from './Assets/Server/Server';
-import Ups from './Assets/UPS/Ups';
+import { Server, Pdu, Ups, Socket, Lamp } from './Assets';
 
 // Text & info boxes
 import AssetDetails from './AssetDetails';
@@ -19,6 +16,10 @@ import TopNav from './TopNav';
 
 // few helpers
 import { onWheelScroll, onWheelDown } from './canvasEvents';
+import simengineSocketClient from './socketClient';
+
+import colors from '../styles/colors';
+
 
 const drawerWidth = 240;
 
@@ -31,10 +32,14 @@ const drawerWidth = 240;
       assets: null,
       selectedAssetKey: 0,
       connections:{},
+      ambient: 0,
+      ambientRising: false,
+      mainsStatus: 1,
       socketOffline: true,
       changesSaved: false,
     };
 
+    // establish client-server connection
     this.connectToSocket();
   }
 
@@ -46,102 +51,78 @@ const drawerWidth = 240;
   }
 
   connectToSocket() {
-    if ("WebSocket" in window)
-    {
-       // console.log("WebSocket is supported by your Browser!");
-       // Let us open a web socket
-       let new_uri = '';
-       let loc = window.location;
-       if (loc.protocol === "https:") {
-          new_uri = "wss:";
-       } else {
-          new_uri = "ws:";
-       }
-       new_uri += "//" + loc.hostname + ':8000/simengine';
-       this.ws = new WebSocket(new_uri);
-       this.ws.onopen = (() =>
-       {
-          // Web Socket is connected, send data using send()
-          // this.ws.send("Hello server");
-          // alert("Message is sent...");
-          this.setState({ socketOffline: false });
-       });
-       this.ws.onmessage = ((evt) =>
-       {
-          const data = JSON.parse(evt.data);
-          // Update state of the existing asset
-          if(data && 'key' in data) {
 
-            let assets = {...this.state.assets};
-            const isComponent = !this.state.assets[data.key];
+    if (!("WebSocket" in window)) {
+      alert("WebSocket is NOT supported by your Browser!");
+      return;
+    }
 
-            if (isComponent) {
-              const parent_id = this._get_parent_key(data.key);
-              let asset_details = {...assets[parent_id].children[data.key]};
-              assets[parent_id].children[data.key] = {...asset_details, ...data.data};
-            } else {
-              let asset_details = {...assets[data.key]};
-              assets[data.key] = {...asset_details, ...data.data};
+    // Establish connection with the simengine web socket
+    this.ws = new simengineSocketClient({
+
+      /** 1st time connection -> initialize system topology */
+      onTopologyReceived: (data) => {
+        let connections = {};
+        const { assets, stageLayout } = data;
+
+        Object.keys(assets).map((key) => {
+          if (assets[key]['parent']) {
+            for (const parent of assets[key]['parent']) {
+              connections[parent.key] = {
+                sourceX: 0, sourceY: 0,
+                destX:   0, destY: 0,
+                destKey: key
+              };
             }
-
-            this.setState({ assets });
-
-          } else if (data && 'assets' in data) { // initial query
-            let connections = {};
-            const assetDetails = data['assets'];
-
-            Object.keys(assetDetails).map((k) => {
-              let x1 = assetDetails[k].x?assetDetails[k].x:40;
-              let y1 = assetDetails[k].y?assetDetails[k].y:0;
-              let x1_pad = 0;
-              if (assetDetails[k]['parent']) {
-                for (const p of assetDetails[k]['parent']) {
-                  const isComponent = !assetDetails[p.key];
-
-                  let x = 0;
-                  let y = 0;
-                  if (isComponent) {
-                    const parent_key = this._get_parent_key(p.key);
-                    x = assetDetails[parent_key].children[p.key].x;
-                    y = assetDetails[parent_key].children[p.key].y;
-                  } else {
-                    x = assetDetails[p.key].x?assetDetails[p.key].x:50;
-                    y = assetDetails[p.key].y?assetDetails[p.key].y:50;
-                  }
-
-                  connections[p.key] = {x, y, x1: x1+x1_pad, y1, ckey: k };
-                  x1_pad+=250;
-                }
-              }
-            });
-
-            this.setState({
-              assets: assetDetails,
-              connections
-            });
           }
+        });
 
-          if (data && data['stageLayout']) {
-            let stage = this.refs.stage.getStage();
-            stage.position({ x: data['stageLayout'].x, y: data['stageLayout'].y });
-            stage.scale({ x: data['stageLayout'].scale, y: data['stageLayout'].scale });
-          }
+        if (stageLayout) {
+          let stage = this.refs.stage.getStage();
+          stage.position({ x: stageLayout.x, y: stageLayout.y });
+          stage.scale({ x: stageLayout.scale, y: stageLayout.scale });
+        }
 
+        this.setState({ assets, connections });
+      },
 
-       }).bind(this);
-       this.ws.onclose =  (() =>
-       {
-          // websocket is closed. try to reconnect every 5 seconds
-          // alert("Connection is closed...");
-          this.setState({ socketOffline: true });
-          setTimeout(() => {this.connectToSocket();}, 5000);
-       }).bind(this);
-    }
-    else
-    {
-       // The browser doesn't support WebSocket
-       alert("WebSocket NOT supported by your Browser!");
-    }
+      /** asset updates (power, load, battery etc... )  */
+      onAssetReceived: (data) => {
+        let assets = {...this.state.assets};
+        const isComponent = !this.state.assets[data.key];
+
+        if (isComponent) {
+          const parentId = this._get_parent_key(data.key);
+          let assetDetails = {...assets[parentId].children[data.key]};
+          assets[parentId].children[data.key] = {...assetDetails, ...data};
+        } else {
+          assets[data.key] = {...assets[data.key], ...data};
+        }
+
+        this.setState({ assets });
+      },
+
+      /** ambient updates */
+      onAmbientReceived: (data) => {
+        this.setState({ ambient: data.ambient, ambientRising: data.rising });
+      },
+
+      /** main power update */
+      onMainsReceived: (data) => {
+        this.setState({ mainsStatus: data.mains });
+      }
+    });
+
+    // when websocket is connected
+    this.ws.onOpen(() => {
+      this.setState({ socketOffline: false });
+    });
+
+    // websocket is closed. try to reconnect every 5 seconds
+    this.ws.onClose(() => {
+        this.setState({ socketOffline: true });
+        setTimeout(() => {this.connectToSocket();}, 5000);
+    });
   }
 
   _get_parent_key(key) {
@@ -158,57 +139,46 @@ const drawerWidth = 240;
     }
   }
 
-  _update_wiring(asset, key, x, y) {
+  _update_wiring(asset, key, coord) {
+    
     let newConn = {};
     const connections = this.state.connections;
 
     if(asset['parent']) {
-      for (const p of asset['parent']) {
-        newConn[p.key] = {...connections[p.key], x1:x,  y1:y};
-        x+=250;
-      }
-    } else if (key in connections) {
-      newConn[key] = { ...connections[key], x:x,  y:y };
+      asset['parent'].forEach((p, idx) => {
+        newConn[p.key] = {...connections[p.key], destX:coord[idx].x, destY:coord[idx].y };
+      });
+    } else if (key in connections && coord[0]) {
+      newConn[key] = { ...connections[key], sourceX:coord[0].x, sourceY:coord[0].y };
     }
 
     return newConn;
   }
 
   /** Update connections between assets (wires) */
-  onPosChange(key, e) {
+  onPosChange(key, coord) {
 
     const asset = this._get_asset_by_key(key);
-    const connections = this.state.connections;
-    let newConn = this._update_wiring(asset, key, e.target.x(), e.target.y());
 
+    // find all the incoming connections as well as output wiring
+    const connections = this.state.connections;
+    let newConn = this._update_wiring(asset, key, coord.inputConnections.map((c)=>c={x: c.x+coord.x, y: c.y+coord.y}));
     let childConn = {};
 
     let assets = {...this.state.assets};
-    let asset_details = {...assets[key]};
-    assets[key] = {...asset_details, ...{x: e.target.x(), y: e.target.y()}};
+    if (assets[key]) {
+      let assetDetails = {...assets[key]};
+      assets[key] = {...assetDetails, ...{x: coord.x, y: coord.y }};
+    }
 
-    if (asset.children && asset.type == 'pdu') {
+    // output wiring
+    if (asset.children) {
+      for (const ckey of Object.keys(coord.outputConnections)) {
+        const c = this._update_wiring(
+          this._get_asset_by_key(ckey), ckey, [{x: coord.x + coord.outputConnections[ckey].x, y: coord.y + coord.outputConnections[ckey].y}]
+        );
 
-      let x=100;
-      for (const ckey of Object.keys(asset.children)) {
-        const c = this._update_wiring(this._get_asset_by_key(ckey), ckey, e.target.x()+x, e.target.y());
         Object.assign(childConn, c);
-        x += 90;
-      }
-    } else if (asset.children && asset.type == 'ups') {
-
-      let x = 250;
-      let y = 150;
-      let outletIndex = 0;
-      for (const ckey of Object.keys(asset.children)) {
-        const c = this._update_wiring(this._get_asset_by_key(ckey), ckey, e.target.x()+x, e.target.y() + y);
-        Object.assign(childConn, c);
-        x += 100;
-        outletIndex++;
-        if (outletIndex == 4) {
-          y += 100;
-          x = 250;
-        }
       }
     }
 
@@ -229,15 +199,15 @@ const drawerWidth = 240;
   changeStatus(assetKey, assetInfo) {
     let data = {...assetInfo};
     data.status = !data.status;
-    this.ws.send(JSON.stringify({request: 'power', key: assetKey, data }));
+    this.ws.sendData({ request: 'power', key: assetKey, data });
   }
 
   /** Save assets' coordinates in db  */
   saveLayout() {
     let data = {};
-    const {assets, connections} = this.state;
+    const { assets } = this.state;
 
-    let stage = this.refs.stage.getStage();
+    const stage = this.refs.stage.getStage();
     const stageLayout = {
       scale: stage.scaleX(),
       x: stage.x(),
@@ -248,19 +218,13 @@ const drawerWidth = 240;
     data['assets'] = {};
 
     // add asset layout info
-    Object.keys(assets).map((a) => ( data['assets'][a]= {x: assets[a].x, y: assets[a].y} ));
-    Object.keys(connections).map((a) => {
-      if (!assets[a]) {
-        data['assets'][a]= { x: connections[a].x, y: connections[a].y };
-      }
-    });
+    Object.keys(assets).map((a) => ( data['assets'][a]={ x: assets[a].x, y: assets[a].y }));
 
-    if (this.ws.readyState == this.ws.OPEN) {
-      this.ws.send(JSON.stringify({request: 'layout', data }));
+    if (this.ws.socketOnline()) {
+      this.ws.sendData({request: 'layout', data });
       this.setState({ changesSaved: true });
     }
   }
-
 
 
   /** Add Socket to the Layout */
@@ -273,12 +237,12 @@ const drawerWidth = 240;
       assetId={key}
       key={key}
       asset={asset}
-      selectable={true}
       selected={this.state.selectedAssetKey === key}
-      draggable={true}
+      isComponent={false}
       powered={powered !== 0}
       x={asset.x}
       y={asset.y}
+      fontSize={18}
     />);
   }
 
@@ -345,6 +309,28 @@ const drawerWidth = 240;
     />);
   }
 
+  drawLamp(key, asset) {
+
+    let powered = false;
+    if (asset.parent) {
+      powered = asset.parent.find((x) => this._get_asset_by_key(x.key).status != 0) !== undefined;
+    }
+
+    return (
+      <Lamp
+        onPosChange={this.onPosChange.bind(this)}
+        onElementSelection={this.onElementSelection.bind(this)}
+        assetId={key}
+        key={key}
+        asset={asset}
+        selected={this.state.selectedAssetKey === key}
+        powered={powered}
+        x={asset.x}
+        y={asset.y}
+      />
+    )
+  }
+
 
   render() {
 
@@ -369,35 +355,22 @@ const drawerWidth = 240;
           systemLayout.push(this.drawServer(key, assets[key]));
         } else if (assets[key].type === 'ups') {
           systemLayout.push(this.drawUps(key, assets[key]));
+        } else if (assets[key].type === 'lamp') {
+          systemLayout.push(this.drawLamp(key, assets[key]));
         }
       }
 
       // draw wires
       for (const key of Object.keys(connections)) {
-        const socketX1pad = 34; // X1, Y1 are for parents
-        const socketY1pad = 35;
-        let socketYpad = 35;
-
-        let socketXpad = socketX1pad;
         const asset = this._get_asset_by_key(key);
-        const child_type = this.state.assets[connections[key].ckey].type;
-
-        if (child_type == 'staticasset') {
-          socketXpad = -35;
-        } else if (child_type == 'server' || child_type === 'serverwithbmc') {
-          socketXpad = -220;
-        } else if (child_type == 'ups') {
-          socketXpad = -300;
-          socketYpad = 45;
-        }
-
+        
         wireDrawing.push(
           <Line
-            points={[connections[key].x+socketX1pad, connections[key].y+socketY1pad, connections[key].x1-socketXpad , connections[key].y1+socketYpad]}
-            stroke={asset.status  === 1?"green":"grey"}
+            points={Object.values(connections[key])}
+            stroke={asset.status===1?colors.green:"grey"}
             strokeWidth={5}
             zIndex={300}
-            key={`${key}${connections[key].ckey}`}
+            key={`${key}${connections[key].destKey}`}
           />
         );
       }
@@ -412,6 +385,10 @@ const drawerWidth = 240;
           {/* Top-Navigation component */}
           <TopNav
             saveLayout={this.saveLayout.bind(this)}
+            ambient={this.state.ambient}
+            ambientRising={this.state.ambientRising}
+            mainsStatus={!!this.state.mainsStatus}
+            togglePower={(status) => this.ws.sendData({ request: 'mains', mains: status })}
             classes={classes}
           />
 
@@ -431,7 +408,7 @@ const drawerWidth = 240;
               </Layer>
             </Stage>
 
-            {/* LeftMost Card -> Display Element Details */}
+            {/* RightMost Card -> Display Element Details */}
             {(this.state.selectedAssetKey) ?
               <AssetDetails
                 assetInfo={selectedAsset}

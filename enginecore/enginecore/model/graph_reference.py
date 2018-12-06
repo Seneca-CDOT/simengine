@@ -3,6 +3,7 @@
 import os
 from neo4j.v1 import GraphDatabase, basic_auth
 from enginecore.state.utils import format_as_redis_key
+import enginecore.model.query_helpers as qh
 
 class GraphReference():
     """Graph DB wrapper """
@@ -22,6 +23,7 @@ class GraphReference():
         """ Get a database session """
         return self._driver.session()
 
+
     @classmethod
     def get_parent_assets(cls, session, asset_key):
         """Get information about parent assets
@@ -39,6 +41,7 @@ class GraphReference():
 
         assets = list(map(lambda x: dict(x['asset']), list(results)))
         return assets
+
 
     @classmethod
     def get_parent_keys(cls, session, asset_key):
@@ -79,6 +82,7 @@ class GraphReference():
                 
         return asset_keys, oid_keys
 
+
     @classmethod
     def get_asset_oid_info(cls, session, asset_key, oid):
         """Get oid info & (state) details that belong to a particular asset
@@ -108,6 +112,7 @@ class GraphReference():
             }
         
         return keys_oid_powers, oid_specs
+
 
     @classmethod
     def get_asset_oid_by_name(cls, session, asset_key, oid_name):
@@ -143,6 +148,7 @@ class GraphReference():
 
         return oid_info, oid_data_type, v_specs
 
+
     @classmethod
     def get_component_oid_by_name(cls, session, component_key, oid_name):
         """Get OID that is associated with a particular component (by human-readable name)
@@ -168,6 +174,7 @@ class GraphReference():
         parent_key = record.get('parent_key')
         
         return oid_info['OID'], int(parent_key) if (oid_info and 'OID' in oid_info) else None
+
 
     @classmethod
     def get_assets_and_children(cls, session):
@@ -197,6 +204,7 @@ class GraphReference():
 
         return assets
             
+
     @classmethod
     def get_assets_and_connections(cls, session, flatten=True):
         """Get assets, their components (e.g. PDU outlets) and parent asset(s) that powers them
@@ -320,23 +328,6 @@ class GraphReference():
         asset['children'] = children
         return asset
 
-    @classmethod
-    def get_asset_labels(cls, session, asset_key):        
-        """Retrieve asset labels 
-
-        Args:
-            session: database session
-            asset_key(int): query by key
-        Returns:
-            list: list of asset labels
-        """
-
-        results = session.run(
-            "MATCH (a:Asset { key: $key }) RETURN labels(a) as labels LIMIT 1",
-            key=int(asset_key)
-        )
-
-        return results.single()['labels']
 
     @classmethod
     def save_layout(cls, session, layout, stage=None):
@@ -359,6 +350,7 @@ class GraphReference():
                 scale=stage['scale'], x=stage['x'], y=stage['y']
             )
     
+
     @classmethod
     def get_stage_layout(cls, session):
         """Get Stage layout configurations
@@ -375,3 +367,203 @@ class GraphReference():
         stage_layout = results.single()
 
         return dict(stage_layout.get('stageLayout')) if stage_layout else None
+
+
+    @classmethod
+    def get_asset_sensors(cls, session, asset_key):
+        """Get sensors that belong to a particular asset
+        
+        Args:
+            session: database session
+            asset_key: key of the asset sensors belong to
+        Returns:
+            list: of sensor dictionaries
+        """
+        results = session.run(
+            """
+            MATCH (a:Asset { key: $key })-[:HAS_SENSOR]->(sensor:Sensor)
+            OPTIONAL MATCH (sensor)-[:HAS_ADDRESS_SPACE]->(addr)
+            RETURN sensor, addr
+            """, key=int(asset_key)
+        )
+
+        sensors = []
+
+        for record in results:
+            sensor = dict(record['sensor'])
+
+            sensors.append({ 
+                'specs': sensor, 
+                'address_space': dict(record['addr']) if 'index' in sensor else None
+            })
+
+        return sensors
+
+    
+    @classmethod
+    def get_mains_powered_outlets(cls, session):
+        """Wall-powered outlets
+
+        Args:
+            session: database session
+        Returns:
+            list: of outlet keys powered by the mains
+        """
+        results = session.run(
+            """
+            MATCH (outlet:Outlet) WHERE NOT (outlet)-[:POWERED_BY]->(:Asset) RETURN outlet.key as key
+            """
+        )
+        # print(results['key'])
+        return list(map(lambda x: x.get('key'), results))
+            
+
+    @classmethod
+    def get_affected_sensors(cls, session, server_key, source_name):
+        """Get sensors affected by the source sensor
+        
+        Args:
+            session: database session
+            server_key(int): key of the server sensors belong to
+            source_name(str): name of the source sensor
+        Returns:
+            dict: source and target sensor details    
+        """
+        
+        results = session.run(
+            """
+            MATCH (:ServerWithBMC { key: $server })-[:HAS_SENSOR]->(source:Sensor { name: $source })
+            MATCH (source)<-[rel]-(targets:Sensor) return source, targets, collect(rel) as rel
+            """,
+            server=server_key,
+            source=source_name
+        )
+
+        thermal_details = {'source': {}, 'targets': [],}
+
+        for record in results:
+            thermal_details['source'] = dict(record.get('source'))
+             
+            thermal_details['targets'].append(
+                {**dict(record.get('targets')), **{"rel": list(map(dict, record.get('rel')))}}
+            )
+
+        # print(source_name, thermal_details)
+
+        return thermal_details
+
+
+    @classmethod
+    def get_sensor_thermal_rel(cls, session, server_key, relationship):
+        """Get thermal details about target sensor affected by the source sensor
+        Args:
+            session: database session
+            server_key(int): key of the server sensors belong to
+            relationship(dict): source, target and event 
+        """
+
+        results = session.run(
+            """
+            MATCH (:ServerWithBMC { key: $server })-[:HAS_SENSOR]->(source:Sensor { name: $source })
+            MATCH (source)<-[rel]-(target:Sensor {name: $target})
+            WHERE rel.event = $event
+            RETURN source, target, rel
+            """, 
+            server=server_key,
+            source=relationship['source'],
+            target=relationship['target'],
+            event=relationship['event']
+        )
+
+        record = results.single()
+        return {
+            'source': dict(record.get('source')), 
+            'target': dict(record.get('target')), 
+            'rel': dict(record.get('rel')) 
+        } if record else None
+
+
+    @classmethod
+    def get_cpu_thermal_rel(cls, session, server_key, sensor_name):
+        """Get thermal relationships between CPU and a sensor 
+        Args:
+            session:  database session
+            server_key(int): key of the server sensor belongs to
+            sensor_name(str): name of the sensor affected by CPU load
+        """
+
+        results = session.run(
+            """
+            MATCH (:ServerWithBMC { key: $server })-[:HAS_SENSOR]->(sensor:Sensor { name: $sensor })
+            MATCH (:CPU)<-[rel:HEATED_BY]-(sensor)
+            RETURN rel
+            """,
+            server=server_key,
+            sensor=sensor_name
+        )
+
+        record = results.single()
+        return dict(record.get('rel')) if record else None
+
+
+    @classmethod
+    def get_ambient_props(cls, session):
+        """Get properties belonging to ambient """
+        
+        results = session.run(
+            "MATCH (sys:SystemEnvironment)-[:HAS_PROP]->(props:EnvProp) RETURN props"
+        )
+
+        amp_props = {}
+
+        for record in results:
+            event_prop = dict(record.get('props'))
+            amp_props[event_prop['event']] = event_prop
+
+        return amp_props 
+
+
+    @classmethod
+    def set_ambient_props(cls, session, properties):
+        """Save ambient properties """
+
+        query = []
+        s_attr = ['event', 'degrees', 'rate', 'pause_at', 'sref']
+
+        query.append('MERGE (sys:SystemEnvironment { sref: 1 })')
+        query.append('MERGE (sys)-[:HAS_PROP]->(env:EnvProp {{ event: "{}" }})'.format(properties['event']))
+
+        set_stm = qh.get_set_stm(properties, node_name="env", supported_attr=s_attr)
+        query.append('SET {}'.format(set_stm))
+
+        session.run("\n".join(query))
+
+
+    @classmethod
+    def get_thermal_cpu_details(cls, session, server_key):                 
+        """Get ALL thermal relationships between a CPU and server sensors
+        Args:
+            session:  database session
+            server_key(int): key of the server sensors belong to
+        Returns:
+            list: cpu/sensor relationships
+        """
+
+        results = session.run(
+            """
+            MATCH (:ServerWithBMC { key: $server })-[:HAS_SENSOR]->(sensor:Sensor)
+            MATCH (:CPU)<-[rel:HEATED_BY]-(sensor)
+            RETURN rel, sensor
+            """,
+            server=server_key
+        )
+
+        th_cpu_details = []
+        for record in results:
+            sensor = dict(record.get('sensor'))
+            th_cpu_details.append({
+                'sensor': sensor, 'rel': dict(record.get('rel'))
+            })
+        
+        return th_cpu_details
+    

@@ -8,24 +8,27 @@ Example:
 
 import time
 import os
-import redis
+import tempfile
+import json
 from enum import Enum
+
+import redis
 import libvirt
 import pysnmp.proto.rfc1902 as snmp_data_types
 from enginecore.model.graph_reference import GraphReference
+import enginecore.model.system_modeler as sys_modeler
+
 from enginecore.state.utils import format_as_redis_key
 from enginecore.state.redis_channels import RedisChannels
-
 
 class StateManager():
     """Base class for all the state managers """
 
     redis_store = None
 
-    def __init__(self, asset_info, asset_type, notify=False):
+    def __init__(self, asset_info, notify=False):
         self._graph_ref = GraphReference()
         self._asset_key = asset_info['key']
-        self._asset_type = asset_type
         self._asset_info = asset_info
 
         self._notify = notify
@@ -38,12 +41,12 @@ class StateManager():
     @property
     def redis_key(self):
         """Asset key in redis format as '{key}-{type}' """
-        return "{}-{}".format(str(self.key), self._asset_type)
+        return "{}-{}".format(str(self.key), self.asset_type)
 
     @property
     def asset_type(self):
         """Asset Type """
-        return self._asset_type
+        return self._asset_info['type']
 
     @property
     def power_usage(self):
@@ -127,39 +130,48 @@ class StateManager():
             self._set_state_on()
         return self.status
  
+
     def update_load(self, load):
         """Update load """
         load = load if load >= 0 else 0
         StateManager.get_store().set(self.redis_key + ":load", load)
         self._publish_load()
 
+
     def reset_boot_time(self):
         """Reset the boot time to now"""
         StateManager.get_store().set(str(self._asset_key) + ":start_time", int(time.time())) 
 
+
     def get_config_off_delay(self):
         return NotImplementedError
     
+
     def get_config_on_delay(self):
         return NotImplementedError
+
 
     def _sleep_shutdown(self):
         if 'offDelay' in self._asset_info:
             time.sleep(self._asset_info['offDelay'] / 1000.0) # ms to sec
 
+
     def _sleep_powerup(self):
         if 'onDelay' in self._asset_info:
             time.sleep(self._asset_info['onDelay'] / 1000.0) # ms to sec
     
+
     def _set_state_on(self):
         StateManager.get_store().set(self.redis_key, '1')
         if self._notify:
             self.publish_power()
 
+
     def _set_state_off(self):
         StateManager.get_store().set(self.redis_key, '0')
         if self._notify:
             self.publish_power()
+
 
     def publish_power(self):
         """ publish state changes """
@@ -168,6 +180,7 @@ class StateManager():
     def _publish_load(self):
         """ publish load changes """
         StateManager.get_store().publish(RedisChannels.load_update_channel, self.redis_key)
+
 
     def _update_oid_value(self, oid, data_type, oid_value):
         """Update oid with a new value
@@ -184,6 +197,7 @@ class StateManager():
 
         redis_store.set(rkey, rvalue)
         
+
     def _get_oid_value(self, oid, key):
         redis_store = StateManager.get_store() 
         rkey = format_as_redis_key(str(key), oid, key_formatted=False)
@@ -226,15 +240,28 @@ class StateManager():
         Returns:
             bool: True if parents are available
         """
-        asset_keys, oid_keys = GraphReference.get_parent_keys(self._graph_ref.get_session(), self._asset_key)
         
+        not_affected_by_mains = True
+        asset_keys, oid_keys = GraphReference.get_parent_keys(self._graph_ref.get_session(), self._asset_key)
+
+        if not asset_keys and not StateManager.mains_status():
+            not_affected_by_mains = False
+
         assets_up = self._check_parents(asset_keys, lambda rvalue, _: rvalue == b'0')
         oid_clause = lambda rvalue, rkey: rvalue.split(b'|')[1].decode() == oid_keys[rkey]['switchOff']
         oids_on = self._check_parents(oid_keys.keys(), oid_clause)
 
-        return assets_up and oids_on
+        return assets_up and oids_on and not_affected_by_mains
     
+
+    @classmethod
+    def get_temp_workplace_dir(cls):
+        """Get location of the temp directory"""
+        sys_temp = tempfile.gettempdir()
+        simengine_temp = os.path.join(sys_temp, 'simengine')
+        return simengine_temp
     
+
     @classmethod 
     def get_store(cls):
         """Get redis db handler """
@@ -243,6 +270,7 @@ class StateManager():
 
         return cls.redis_store
     
+
     @classmethod 
     def _get_assets_states(cls, assets, flatten=True): 
         """Query redis store and find states for each asset
@@ -300,6 +328,58 @@ class StateManager():
         """Request daemon reloading"""
         StateManager.get_store().publish(RedisChannels.model_update_channel, 'reload')
 
+    
+    @classmethod
+    def power_outage(cls):
+        """Simulate complete power outage/restoration"""
+        StateManager.get_store().set('mains-source', '0')
+        StateManager.get_store().publish(RedisChannels.mains_update_channel, '0')
+
+
+    @classmethod
+    def power_restore(cls):
+        """Simulate complete power restoration"""
+        StateManager.get_store().set('mains-source', '1')
+        StateManager.get_store().publish(RedisChannels.mains_update_channel, '1')
+    
+
+    @classmethod
+    def mains_status(cls):
+        """Get wall power status"""
+        return int(StateManager.get_store().get('mains-source').decode())
+
+
+    @classmethod
+    def get_ambient(cls):
+        """Retrieve current ambient value"""
+        temp = StateManager.get_store().get('ambient')
+        return int(temp.decode()) if temp else 0
+
+
+    @classmethod
+    def set_ambient(cls, value):
+        """Update ambient value"""
+        old_temp = cls.get_ambient()
+        StateManager.get_store().set('ambient', str(value))
+        StateManager.get_store().publish(RedisChannels.ambient_update_channel, '{}-{}'.format(old_temp, value))  
+    
+    
+    @classmethod
+    def get_ambient_props(cls):
+        graph_ref = GraphReference()
+        with graph_ref.get_session() as session:
+            props = GraphReference.get_ambient_props(session)
+            return props
+
+
+    @classmethod
+    def set_ambient_props(cls, props):
+        """Update runtime thermal properties of the room temperature"""
+
+        graph_ref = GraphReference()
+        with graph_ref.get_session() as session: 
+            GraphReference.set_ambient_props(session, props)
+
 
     @classmethod
     def get_state_manager_by_key(cls, key, supported_assets, notify=True):
@@ -328,8 +408,8 @@ class UPSStateManager(StateManager):
         blackout = 2
         deepMomentarySag = 3
           
-    def __init__(self, asset_info, asset_type='ups', notify=False):
-        super(UPSStateManager, self).__init__(asset_info, asset_type, notify)
+    def __init__(self, asset_info, notify=False):
+        super(UPSStateManager, self).__init__(asset_info, notify)
         self._max_battery_level = 1000#%
         self._min_restore_charge_level = self._asset_info['minPowerOnBatteryLevel']
         self._full_recharge_time = self._asset_info['fullRechargeTime']
@@ -369,6 +449,9 @@ class UPSStateManager(StateManager):
     def output_capacity(self):
         """UPS rated capacity"""
         return self._asset_info['outputPowerCapacity']
+
+    def update_temperature(self, temp):
+        self._update_battery_temp_oid(temp + StateManager.get_ambient())
 
     def update_battery(self, charge_level):
         """Updates battery level, checks for the charge level being in valid range, sets battery-related OIDs
@@ -496,6 +579,13 @@ class UPSStateManager(StateManager):
             if oid_hp:
                 self._update_oid_value(oid_hp, dt_hp, snmp_data_types.Gauge32(value_hp))
             
+    def _update_battery_temp_oid(self, temp):
+        with self._graph_ref.get_session() as db_s:
+            oid_hp, oid_dt, _ = GraphReference.get_asset_oid_by_name(
+                db_s, int(self._asset_key), 'HighPrecBatteryTemperature'
+            )
+
+            self._update_oid_value(oid_hp, oid_dt, snmp_data_types.Gauge32(temp*10))
 
     def _update_battery_oids(self, charge_level, old_level):
         """Update OIDs associated with UPS Battery
@@ -582,8 +672,8 @@ class UPSStateManager(StateManager):
 class PDUStateManager(StateManager):
     """Handles state logic for PDU asset """
 
-    def __init__(self, asset_info, asset_type='pdu', notify=False):
-        super(PDUStateManager, self).__init__(asset_info, asset_type, notify)
+    def __init__(self, asset_info, notify=False):
+        super(PDUStateManager, self).__init__(asset_info, notify)
         
 
     def _update_current(self, load):
@@ -624,8 +714,8 @@ class OutletStateManager(StateManager):
         switchOff = 1
         switchOn = 2
 
-    def __init__(self, asset_info, asset_type='outlet', notify=False):
-        super(OutletStateManager, self).__init__(asset_info, asset_type, notify)
+    def __init__(self, asset_info, notify=False):
+        super(OutletStateManager, self).__init__(asset_info, notify)
 
     def _get_oid_value_by_name(self, oid_name):
         """Get value under object id name"""
@@ -665,8 +755,8 @@ class OutletStateManager(StateManager):
 class StaticDeviceStateManager(StateManager):
     """Dummy Device that doesn't do much except drawing power """
 
-    def __init__(self, asset_info, asset_type='staticasset', notify=False):
-        super(StaticDeviceStateManager, self).__init__(asset_info, asset_type, notify)
+    def __init__(self, asset_info, notify=False):
+        super(StaticDeviceStateManager, self).__init__(asset_info, notify)
 
 
     @property
@@ -684,13 +774,16 @@ class StaticDeviceStateManager(StateManager):
 class ServerStateManager(StaticDeviceStateManager):
     """Server state manager offers control over VM's state """
 
-    def __init__(self, asset_info, asset_type='server', notify=False):
-        super(ServerStateManager, self).__init__(asset_info, asset_type, notify)
+    def __init__(self, asset_info, notify=False):
+        super(ServerStateManager, self).__init__(asset_info, notify)
         self._vm_conn = libvirt.open("qemu:///system")
         # TODO: error handling if the domain is missing (throws libvirtError) & close the connection
         self._vm = self._vm_conn.lookupByName(asset_info['domainName'])
 
 
+    def vm_is_active(self):
+        return self._vm.isActive()
+    
     def shut_down(self):
         if self._vm.isActive():
             self._vm.destroy()
@@ -712,134 +805,136 @@ class ServerStateManager(StaticDeviceStateManager):
             self.update_load(self.power_usage)
         return powered
 
-class IPMIComponent():
-    """ 
-    PSU:
-        IOUT_*: Current
-        POUT_*: Power (Watts)
-        VOUT_*: Voltage
-    """
-
-    def __init__(self, server_key):
-        self._server_key = server_key
-        self._sensor_dir = 'sensor_dir'
 
 
-    def set_state_dir(self, state_dir):
-        """Set temp state dir for an IPMI component"""
-        StateManager.get_store().set(str(self._server_key)+ ":state_dir", state_dir)
 
-
-    def get_state_dir(self):
-        """Get temp IPMI state dir"""
-        state_dir = StateManager.get_store().get(str(self._server_key)+ ":state_dir")
-        return state_dir.decode("utf-8") if state_dir else False
-
-
-    def _read_sensor_file(self, sensor_file):
-        """Retrieve a single value representing sensor state"""
-        with open(sensor_file) as sf_handler:
-            return sf_handler.readline()
-    
-    
-    def _write_sensor_file(self, sensor_file, data):
-        """Update state of a sensor"""
-        with open(sensor_file, 'w') as sf_handler:
-            return sf_handler.write(str(int(data)) + '\n')
-
-
-    def _get_psu_current_file(self, psu_id):
-        """Get path to a file containing sensor current"""
-        return os.path.join(self.get_state_dir(), os.path.join(self._sensor_dir, 'IOUT_{}'.format(psu_id)))
-    
-    
-    def _get_psu_wattage_file(self, psu_id):
-        """Get path to a file containing sensor wattage"""
-        return os.path.join(self.get_state_dir(), os.path.join(self._sensor_dir, 'POUT_{}'.format(psu_id)))
-
-
-    def _get_psu_fan_file(self, psu_id):
-        """Get path to a file containing fan RPM"""
-        return os.path.join(self.get_state_dir(), os.path.join(self._sensor_dir, 'FAN_{}'.format(psu_id)))
-
-
-    def _get_psu_status_file(self, psu_id):
-        """Get path to a file indicating PSU status"""
-        return os.path.join(self.get_state_dir(), os.path.join(self._sensor_dir, 'STATUS_{}'.format(psu_id)))
-
-
-    def _get_cpu_temp_file(self):
-        """Get path to a file indicating current CPU temp in C"""
-        return os.path.join(self.get_state_dir(), os.path.join(self._sensor_dir, 'CPU_TEMP'))
-
-
-    def _update_cpu_temp(self, value):
-        """Set cpu temp value"""
-        self._write_sensor_file(self._get_cpu_temp_file(), value)
-
-class BMCServerStateManager(ServerStateManager, IPMIComponent):
+class BMCServerStateManager(ServerStateManager):
     """Manage Server with BMC """
 
-
-    def __init__(self, asset_info, asset_type='serverwithbmc', notify=False):
-        ServerStateManager.__init__(self, asset_info, asset_type, notify)
-        IPMIComponent.__init__(self, asset_info['key'])
-        if 'ipmi_dir' in asset_info:
-            super().set_state_dir(asset_info['ipmi_dir'])
+    def __init__(self, asset_info, notify=False):
+        ServerStateManager.__init__(self, asset_info, notify)
 
     def power_up(self):
         powered = super().power_up()
-        if powered: 
-            super()._update_cpu_temp(32)
         return powered
 
+
     def shut_down(self):
-        super()._update_cpu_temp(0)
         return super().shut_down()
 
+
     def power_off(self):
-        super()._update_cpu_temp(0)
         return super().power_off()
 
+
+    def get_cpu_stats(self):
+        """Get VM cpu stats (user_time, cpu_time etc. (see libvirt api)) """
+        return self._vm.getCPUStats(True)
+
+
+    @property
+    def cpu_load(self):
+        """Get latest recorded CPU load in percentage"""
+        cpu_load = StateManager.get_store().get(self.redis_key + ":cpu_load")
+        return int(cpu_load.decode()) if cpu_load else 0
+
+
+    @cpu_load.setter
+    def cpu_load(self, value):
+        StateManager.get_store().set(self.redis_key + ":cpu_load", str(int(value)))
+
+
+    @classmethod
+    def get_sensor_definitions(cls, asset_key):
+        """Get sensor definitions """
+        graph_ref = GraphReference()
+        with graph_ref.get_session() as session:
+            return GraphReference.get_asset_sensors(session, asset_key)
+
+    @classmethod
+    def update_thermal_sensor_target(cls, attr):
+        """Create new or update existing thermal relationship between 2 sensors"""
+        new_rel = sys_modeler.set_thermal_sensor_target(attr)
+        if new_rel: 
+            StateManager.get_store().publish(
+                RedisChannels.sensor_conf_th_channel, 
+                json.dumps({
+                    'key': attr['asset_key'],
+                    'relationship': {
+                        'source': attr['source_sensor'],
+                        'target': attr['target_sensor'],
+                        'event': attr['event']
+                    }
+                })
+            ) 
+    
+    @classmethod
+    def update_thermal_cpu_target(cls, attr):
+        """Create new or update existing thermal relationship between CPU usage and sensor"""
+        new_rel = sys_modeler.set_thermal_cpu_target(attr)
+        if new_rel: 
+            StateManager.get_store().publish(
+                RedisChannels.cpu_usg_conf_th_channel, 
+                json.dumps({
+                    'key': attr['asset_key'],
+                    'relationship': {
+                        'target': attr['target_sensor'],
+                    }
+                })
+            )  
+
+    @classmethod
+    def get_thermal_cpu_details(cls, asset_key):
+        """Query existing cpu->sensor relationship"""
+        graph_ref = GraphReference()
+        with graph_ref.get_session() as session:
+            return GraphReference.get_thermal_cpu_details(session, asset_key)
+
+
 class SimplePSUStateManager(StateManager):
-    def __init__(self, asset_info, asset_type='psu', notify=False):
-        StateManager.__init__(self, asset_info, asset_type, notify)
-
-class PSUStateManager(StateManager, IPMIComponent):
+    def __init__(self, asset_info, notify=False):
+        StateManager.__init__(self, asset_info, notify)
 
 
-    def __init__(self, asset_info, asset_type='psu', notify=False):
-        StateManager.__init__(self, asset_info, asset_type, notify)
-        IPMIComponent.__init__(self, int(repr(asset_info['key'])[:-1]))
+class PSUStateManager(StateManager):
+
+
+    def __init__(self, asset_info, notify=False):
+        StateManager.__init__(self, asset_info, notify)
         self._psu_number = int(repr(asset_info['key'])[-1])
+        # self._sensor = SensorRepository(int(repr(asset_info['key'])[:-1])).get
+
 
     def _update_current(self, load):
         """Update current inside state file """
         load = load if load >= 0 else 0
-        super()._write_sensor_file(super()._get_psu_current_file(self._psu_number), load)
+        # super()._write_sensor_file(super()._get_psu_current_file(self._psu_number), load)
     
-    def _update_waltage(self, wattage):
+
+    def _update_wattage(self, wattage):
         """Update wattage inside state file """        
         wattage = wattage if wattage >= 0 else 0    
-        super()._write_sensor_file(super()._get_psu_wattage_file(self._psu_number), wattage)
+        # super()._write_sensor_file(super()._get_psu_wattage_file(self._psu_number), wattage)
+
 
     def _update_fan_speed(self, value):
         """Speed In RPMs"""
         value = value if value >= 0 else 0    
-        super()._write_sensor_file(super()._get_psu_fan_file(self._psu_number), value)
+        # super()._write_sensor_file(super()._get_psu_fan_file(self._psu_number), value)
     
         
     def set_psu_status(self, value):
         """0x08 indicates AC loss"""
-        if super().get_state_dir():
-            super()._write_sensor_file(super()._get_psu_status_file(self._psu_number), value)
+        pass
+        # if super().get_state_dir():
+            # super()._write_sensor_file(super()._get_psu_status_file(self._psu_number), value)
     
 
     def update_load(self, load):
         super().update_load(load)
         min_load = self._asset_info['powerConsumption'] / self._asset_info['powerSource']
         
-        if super().get_state_dir():
-            self._update_current(load + min_load)
-            self._update_waltage((load + min_load) * 10)
-            self._update_fan_speed(100 if load > 0 else 0)
+        # if super().get_state_dir():
+        #     self._update_current(load + min_load)
+        #     self._update_waltage((load + min_load) * 10)
+        #     self._update_fan_speed(100 if load > 0 else 0)

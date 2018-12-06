@@ -1,0 +1,45 @@
+sdr type 2
+	sensor_owner_id		0x20
+	sensor_owner_lun	0
+	channel_number		0
+
+	sensor_number		$ADDR
+  entity_instance		$ID_STR
+
+	entity_id		power_supply
+	
+	init_scanning		true
+	init_events		true
+	init_sensor_type	true
+	default_event_gen_on	true
+	default_sensor_scan_on	true
+	sensor_auto_rearm	false
+	sensor_type		Power_Supply
+	event_reading_type_code 0x6f
+
+
+
+	assert_event0		true
+	assert_event1		true
+	assert_event2		true
+	assert_event3		true
+	assert_event4		true
+	assert_event5		true
+	assert_event6		true
+	deassert_event0		true
+	deassert_event1		true
+	deassert_event2		true
+	deassert_event3		true
+	deassert_event4		true
+	deassert_event5		true
+	deassert_event6		true
+	event0_state_ret	true
+	event1_state_ret	true
+	event2_state_ret	true
+	event3_state_ret	true
+	event4_state_ret	true
+	event5_state_ret	true
+	event6_state_ret	true
+
+	id_string		$C_NAME
+endsdr

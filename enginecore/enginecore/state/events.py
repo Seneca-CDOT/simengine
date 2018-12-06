@@ -1,5 +1,7 @@
-"""Contains list of asset events dispatched by the main listener """
+"""Contains list of events dispatched by the main listener """
 from circuits import Event
+
+# Power Events -------
 
 class ButtonPowerDownPressed(Event):
     """On Asset Did Power Down (equivalent to power button press) """
@@ -42,4 +44,21 @@ class SignalUp(Event):
 class SignalReboot(Event):
     """Asset Received reboot request/command """
     success = True
-    
+
+class PowerOutage(Event):
+    """On Power Outage"""
+    pass
+
+class PowerRestored(Event):
+    """On power (mains source) restored"""
+    pass
+
+# Thermal Events -------
+
+class AmbientIncreased(Event):
+    """Ambient went up"""
+    pass
+
+class AmbientDecreased(Event):
+    """Ambient temperature dropped"""
+    pass

@@ -1,11 +1,22 @@
 """ Web-App Interface """
 
 import json
+from enum import Enum
+
 from circuits import handler, Component
 from circuits.net.events import write
 from enginecore.state.assets import SUPPORTED_ASSETS
 from enginecore.state.state_managers import StateManager
 from enginecore.model.graph_reference import GraphReference
+
+
+class ClientRequests(Enum):
+    """Requests to the client """
+    asset = 1
+    ambient = 2
+    topology = 3
+    mains = 4
+
 
 class WebSocket(Component):
     """Simple Web-Socket server that handles interactions between frontend & enginecore """
@@ -29,7 +40,29 @@ class WebSocket(Component):
         with graph_ref.get_session() as session:
             
             stage_layout = GraphReference.get_stage_layout(session)
-            self.fire(write(sock, json.dumps({'assets': assets, 'stageLayout': stage_layout}))) 
+            # self.fire(write(sock, json.dumps({'assets': assets, 'stageLayout': stage_layout}))) 
+            self.fire(write(sock, json.dumps({ 
+                'request': ClientRequests.topology.name, 
+                'data': {
+                    'assets': assets, 
+                    'stageLayout': stage_layout 
+                }
+            }))) 
+
+        self.fire(write(sock, json.dumps({ 
+            'request': ClientRequests.ambient.name, 
+            'data': {
+                'ambient': StateManager.get_ambient(), 
+                'rising': False 
+            }
+        })))
+
+        self.fire(write(sock, json.dumps({ 
+            'request': ClientRequests.mains.name, 
+            'data': {
+                'mains': StateManager.mains_status()
+            }
+        })))
 
 
     def read(self, _, data):
@@ -53,6 +86,11 @@ class WebSocket(Component):
                     state_manager.shut_down()
             elif data['request'] == 'layout':
                 GraphReference.save_layout(session, data['data']['assets'], stage=data['data']['stage'])
+            elif data['request'] == 'mains':
+                if data['mains'] == 0:
+                    StateManager.power_outage()
+                else:
+                    StateManager.power_restore()
 
 
     def disconnect(self, sock):

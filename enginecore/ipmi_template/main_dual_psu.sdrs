@@ -416,6 +416,8 @@ sdr type 1
 	id_string		"PSU2 power"
 endsdr
 
+
+
 define FAN "5"
 define PSU_NUM "1"
 include $IPMI_DIR"/psu_fan.sdrs"

@@ -1,77 +1,75 @@
 import React from 'react';
-import { Text, Group, Path, Image } from 'react-konva';
-import PropTypes from 'prop-types';
-import SocketStatus from '../common/SocketStatus';
+import { Text, Group, Image } from 'react-konva';
+
+// ** components
+import Led from '../common/Led';
 import PowerSupply from './PowerSupply';
-import frontimg from '../../../images/server-front.svg';
+import Asset from '../common/Asset';
+import AssetOutline from '../common/AssetOutline';
+
+// ** misc
+import serverPlaceholderSource from '../../../images/server-front.svg';
+import paths from '../../../styles/paths';
+
 /**
  * Draw Server graphics
  */
-export default class Server extends React.Component {
+export default class Server extends Asset {
 
   constructor(props) {
     super(props);
     this.state = {
-      color: 'grey',
       selectedPsuKey: -1,
-      x: props.x?props.x:40,
-      y: props.y?props.y:40,
-      frontimg: null
+      psuSize: { x:0, y:0 },
+
+      serverPlaceholderImg: null
     };
-    this.selectSocket = this.selectSocket.bind(this);
+    
+    this.selectPSU = this.selectPSU.bind(this);
   }
 
   componentDidMount() {
-    const image = new window.Image();
-    image.src = frontimg;
-    image.onload = () => {
-      // setState will redraw layer
-      // because "image" property is changed
-      this.setState({ frontimg: image });
-    };
-
+    Promise.all(this.loadImages({ serverPlaceholderImg: serverPlaceholderSource}))
+      .then(PowerSupply.psuSize)
+      .then((size) => { this.setState({ psuSize: size }); })
+      .then(() => this.props.onPosChange(this.props.assetId, this.formatAssetCoordinates(this.props)));
   }
 
-  componentWillReceiveProps(nextProps) {
-    this.setState({ x: nextProps.x, y: nextProps.y });
-  }
-
-  /** Notify Parent of Selection */
-  handleClick = () => {
-    this.refs.server.setZIndex(100);
-    this.props.onElementSelection(this.props.assetId, this.props.asset);
-  };
-
-  /** Notify top-lvl Component that PDU-Outlet was selected*/
-  selectSocket = (ckey) => {
+  /** Notify top-lvl Component that on of the PSUs was selected*/
+  selectPSU = (ckey) => {
     this.setState({ selectedPsuKey: ckey });
     this.props.onElementSelection(ckey, this.props.asset.children[ckey]);
   }
 
-  updateServerPos = (s) => {
-    this.setState({ x: s.target.attrs.x, y : s.target.attrs.y });
-    this.props.onPosChange(this.props.assetId, s);
+  getOutputCoordinates = () => { return {}; }
+
+  getInputCoordinates = (center=true) => {
+
+    const childKeys = Object.keys(this.props.asset.children);
+    const childCoord = {};
+
+    const xPadding = this.state.psuSize.width;
+    const yPadding = center?this.state.psuSize.height*0.5:0;
+
+    Object.keys(childKeys).map((e, i) => (childCoord[childKeys[i]]={x: ((center?xPadding:50)+xPadding*i) + i*20, y: yPadding}));
+    return center?Object.values(childCoord):childCoord;
   }
 
-  render() {
-
+  /** Initialize Power Supplies */
+  getInputPSUs = () => {
+    
     let psus = [];
-    // const inputSocket = <Socket x={-70} socketName={"input socket"} selectable={false} draggable={false}/>;
-
-    let x=50;
-    const serverName = this.props.asset.name ? this.props.asset.name:'ups';
     const asset = this.props.asset;
+    const inputCoord = this.getInputCoordinates(false);
 
-    // Initialize Powe Supplies
-    for (const ckey of Object.keys(asset.children)) {
-
+    for (const ckey of Object.keys(inputCoord)) {
       asset.children[ckey].name = `[${ckey}]`;
       psus.push(
         <PowerSupply
-          x={x}
+          x={inputCoord[ckey].x}
+          y={inputCoord[ckey].y}
           key={ckey}
-          onElementSelection={() => { this.selectSocket(ckey); }}
-          selectable={true}
+          onElementSelection={() => { this.selectPSU(ckey); }}
           draggable={false}
           asset={asset.children[ckey]}
           assetId={ckey}
@@ -79,55 +77,35 @@ export default class Server extends React.Component {
           powered={this.props.powered}
           parentSelected={this.props.selected}
         />
-      );
-      x += 240;
+      ); 
     }
-    return (
-      <Group
-        draggable="true"
-        onDragMove={this.updateServerPos.bind(this)}
-        x={this.state.x}
-        y={this.state.y}
-        ref="server"
-      >
 
+    return psus;
+  }
+
+
+  render() {
+
+    const psus = this.getInputPSUs();
+    const { serverPlaceholderImg } = this.state;
+    
+    return (
+      <Group x={this.props.x} y={this.props.y} ref="asset" draggable="true" onDragMove={this.updateAssetPos.bind(this)}>
 
         {/* Draw Server as SVG path */}
-        <Path data={"m 7.84681,135.86767 h 194.30638 c 1.28966,0 2.3279,1.85111 2.3279,4.15049 v 28.5923 c 0,2.29937 -1.03824,4.15049 -2.3279,4.15049 H 7.84681 c -1.289654,0 -2.327895,-1.85112 -2.327895,-4.15049 v -28.5923 c 0,-2.29938 1.038241,-4.15049 2.327895,-4.15049 z M 22.554872,124.18558 H 187.44512 l 15.40721,11.70857 H 7.147672 Z"}
-          strokeWidth={0.4}
-          stroke={this.props.selected ? 'blue' : 'grey'}
-          fill={'white'}
-          scale={{x: 4, y: 4}}
-          y={-575}
-          onClick={this.handleClick.bind(this)}
-        />
-
-        <Text y={-100} text={serverName} fontSize={18}  fontFamily={'Helvetica'}/>
+        <AssetOutline path={paths.server} onClick={this.handleClick.bind(this)} selected={this.props.selected} />
+        <Text y={-100} text={this.props.asset.name} fontSize={18}  fontFamily={'Helvetica'}/>
+        
         {/* Draw Power Supplies */}
         {psus}
 
         {/* Draw some placeholder server-stuff */}
-        <Image
-            image={this.state.frontimg}
-            x={550}
-            y={-20}
-            onClick={this.handleClick}
-        />
-         <SocketStatus socketOn={this.props.asset.status} powered={this.props.powered}/>
+        <Image x={550} y={-20} image={serverPlaceholderImg} onClick={this.handleClick}/>
+
+        {/* Machine status */}
+        <Led socketOn={this.props.asset.status} powered={this.props.powered}/>
+        
       </Group>
     );
   }
 }
-
-Server.propTypes = {
-  x: PropTypes.number, // X position of the asset
-  y: PropTypes.number, // Y position of the asset
-  onPosChange: PropTypes.func.isRequired, // called on asset position change
-  powered: PropTypes.bool.isRequired, // indicates if upstream power is present
-  name: PropTypes.string,
-  asset: PropTypes.object.isRequired, // Asset Details
-  assetId: PropTypes.string.isRequired, // Asset Key
-  selected: PropTypes.bool.isRequired, // Asset Selected by a user
-  onElementSelection: PropTypes.func.isRequired, // Notify parent component of selection
-  nestedComponentSelected: PropTypes.bool.isRequired, // One of the powerSupplies are selected
-};

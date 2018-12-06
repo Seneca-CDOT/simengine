@@ -51,22 +51,34 @@ sensor_set_threshold 0x30 0 1 settable 111000 0xa0 0x90 0x70 00 00 00
 sensor_set_event_support 0x30 0 1 enable scanning per-state \
 	000111111000000 000111111000000 \
 	000111111000000 000111111000000
-	
-# Chassis fans
-sensor_add 0x20  0   0x70   4     1
-sensor_add 0x20  0   0x71   4     1
-sensor_add 0x20  0   0x72   4     1
-sensor_add 0x20  0   0x73   4     1
 
-#### CPU Sensors
-sensor_add 0x20  0    2     1     1  poll 2000 \
-         file "${ipmi_dir}/sensor_dir/CPU_TEMP"
-# Status
-sensor_add 0x20  0    8     8     0x6f  poll 2000 \
-        file "${ipmi_dir}/sensor_dir/STATUS_1"
-sensor_add 0x20  0    9     8     0x6f  poll 2000 \
-	file "${ipmi_dir}/sensor_dir/STATUS_2"
-$includes
+
+
+# PSU SENSORS
+# ===========
+${psuStatus}
+${psuCurrent}
+${psuPower}
+${psuVoltage}
+${psuTemperature}
+
+# ===========
+# MEMORY 
+# ===========
+${memoryTemperature}
+
+# ===========
+# CPU
+# ===========
+${cpuTemperature}
+
+# ===========
+# MISC
+# ===========
+${caseFan}
+${Ambient}
+${RAIDControllerTemperature}
+
 
 mc_enable 0x30
 
