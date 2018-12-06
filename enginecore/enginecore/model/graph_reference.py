@@ -488,7 +488,7 @@ class GraphReference():
         """Get thermal relationships between CPU and a sensor 
         Args:
             session:  database session
-            server_key(int): key of the server sensors belong to
+            server_key(int): key of the server sensor belongs to
             sensor_name(str): name of the sensor affected by CPU load
         """
 
@@ -537,3 +537,33 @@ class GraphReference():
         query.append('SET {}'.format(set_stm))
 
         session.run("\n".join(query))
+
+
+    @classmethod
+    def get_thermal_cpu_details(cls, session, server_key):                 
+        """Get ALL thermal relationships between a CPU and server sensors
+        Args:
+            session:  database session
+            server_key(int): key of the server sensors belong to
+        Returns:
+            list: cpu/sensor relationships
+        """
+
+        results = session.run(
+            """
+            MATCH (:ServerWithBMC { key: $server })-[:HAS_SENSOR]->(sensor:Sensor)
+            MATCH (:CPU)<-[rel:HEATED_BY]-(sensor)
+            RETURN rel, sensor
+            """,
+            server=server_key
+        )
+
+        th_cpu_details = []
+        for record in results:
+            sensor = dict(record.get('sensor'))
+            th_cpu_details.append({
+                'sensor': sensor, 'rel': dict(record.get('rel'))
+            })
+        
+        return th_cpu_details
+    

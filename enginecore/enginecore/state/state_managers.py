@@ -883,6 +883,13 @@ class BMCServerStateManager(ServerStateManager):
                 })
             )  
 
+    @classmethod
+    def get_thermal_cpu_details(cls, asset_key):
+        """Query existing cpu->sensor relationship"""
+        graph_ref = GraphReference()
+        with graph_ref.get_session() as session:
+            return GraphReference.get_thermal_cpu_details(session, asset_key)
+
 
 class SimplePSUStateManager(StateManager):
     def __init__(self, asset_info, notify=False):

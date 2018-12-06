@@ -115,7 +115,6 @@ def cpu_usage_command(th_cpu_usg_group):
     )
 
     # - GET
-
     th_get_cpu_usg_action = th_cpu_usg_subp.add_parser(
         'get', 
         help="Retrieve configured CPU usage / sensor relationship", 
@@ -144,6 +143,9 @@ def cpu_usage_command(th_cpu_usg_group):
         required=True
     )
 
+    th_get_cpu_usg_action.set_defaults(
+        func=handle_get_thermal_cpu
+    )
 
     th_set_cpu_usg_action.set_defaults(
         func=BMCServerStateManager.update_thermal_cpu_target
@@ -272,7 +274,16 @@ def sensor_command(th_sensor_group):
         func=sys_modeler.delete_thermal_sensor_target # TODO: change sys_modeler to BMCServerStateManager
     )
 
+def handle_get_thermal_cpu(kwargs):
+    """Display current cpu & sensor relationship"""
 
+    th_cpu_details = BMCServerStateManager.get_thermal_cpu_details(kwargs['asset_key'])
+
+    if not th_cpu_details:
+        print("There are no cpu/sensor relationships for server {}".format(kwargs['asset_key']))
+    else:
+        th_cpu_fmt = lambda x: " --> t:[{}] using model '{}'".format(x['sensor']['name'], x['rel']['model'])
+        print('\n'.join(["Server [{}]:".format(kwargs['asset_key'])] + list(map(th_cpu_fmt, th_cpu_details))))
 
 def handle_set_thermal_ambient(kwargs):
     """Configure thermal properties for room temperature"""
