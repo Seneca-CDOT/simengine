@@ -353,7 +353,7 @@ class StateManager():
     def get_ambient(cls):
         """Retrieve current ambient value"""
         temp = StateManager.get_store().get('ambient')
-        return float(temp.decode()) if temp else 0
+        return int(temp.decode()) if temp else 0
 
 
     @classmethod
