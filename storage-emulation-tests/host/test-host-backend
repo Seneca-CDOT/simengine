@@ -1,0 +1,61 @@
+#!/bin/python3
+#
+# test-host-backend :: test of emulated storage controller backend
+
+import socket
+import os
+import json
+
+use_pipe = True
+
+if (not use_pipe):
+    # Create listening control socket
+    serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    serversocket.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,0)
+    serversocket.bind(('',50000))
+    serversocket.listen(5)
+
+# main loop
+while True:
+    if (use_pipe):
+        readpipe = open("/tmp/simengine-storage-pipe.out")
+        writepipe = open("/tmp/simengine-storage-pipe.in","w")
+        received = json.loads(readpipe.readline())
+    else:
+        print("Awaiting connection...")
+        (client,address) = serversocket.accept()
+
+        print("Connection opened.")
+        clientfile = client.makefile()
+
+        received = json.loads(clientfile.readline())
+
+    print("Data received")
+
+    # At this point we've received and decoded the arguments
+    # from the other end. For test purposes, if there is one
+    # argument and it is "--version", then return the version
+    # number, otherwise return an error message.
+
+    # Set up default return
+    stdout = ""
+    stderr = "Usage: " + received['argv'][0] +" --version"
+    status = 1
+
+    # Process non-default return cases
+    if (len(received['argv']) == 2):
+        if (received['argv'][1] == "--version"):
+            stdout = "Version 0.01"
+            stderr = ""
+            status = 0
+
+    # Send the message
+    reply = json.dumps({"stdout": stdout, "stderr": stderr, "status": status})+"\n"
+    if (use_pipe):
+        writepipe.write(reply)
+        readpipe.close()
+        writepipe.close()
+    else:
+        client.send(bytes(reply,"UTF-8"))
+        client.close()
+

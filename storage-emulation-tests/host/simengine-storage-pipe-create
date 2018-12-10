@@ -1,0 +1,13 @@
+#!/bin/bash
+#
+# Create pipes for simengine-storage-pipe
+#
+
+# Permissions/ownership could get tightened for production
+for X in {"",.in,.out}
+do
+	mknod -m 0666 /tmp/simengine-storage-pipe${X} p
+	chcon -t svirt_image_t /tmp/simengine-storage-pipe${X}
+done
+
+
