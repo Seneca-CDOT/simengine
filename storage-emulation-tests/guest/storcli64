@@ -1,0 +1,38 @@
+#!/usr/bin/python3
+#
+# storcli64 :: connector to emulate 'storcli64' storage tool
+#              by passing args to simengine and receiving
+#              stdio/stderr from simengine.
+#
+#              The connection to simengine is performed over
+#              a qemu virtserial port connected to a TCP socket
+#              on simengine. Communication is JSON-encoded over
+#              the raw socket.
+#
+# Chris Tyler <chris.tyler@senecacollege.ca> 2018-12-06
+
+import json
+import sys
+import os
+
+# Step 0: set up connection to simengine via virtio-serial connection
+# Select ONE of the following two lines to use socket or pipe communication
+simengine = open("/dev/virtio-ports/systems.cdot.simengine.storage.pipe", "r+b", 0)
+#simengine = open("/dev/virtio-ports/systems.cdot.simengine.storage.net", "r+b", 0)
+
+# Step 1: encapsulate command-line arguments in json and send to socket
+simengine.write(bytes(json.dumps({'argv': sys.argv}), 'UTF-8'))
+simengine.write(bytes('\n', "UTF-8"))
+
+# Step 2: wait for one line from the other end, deserialize, and output
+# the received values
+received = json.loads(simengine.readline())
+if (len(received['stdout']) > 0):
+  print(received['stdout'])
+if (len(received['stderr']) > 0):
+  print(received['stderr'], file=sys.stderr)
+
+# End: tidy and wrap
+simengine.close()
+sys.exit(received['status'])
+
