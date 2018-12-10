@@ -24,7 +24,7 @@ import datetime as dt
 from circuits import Component, handler
 import enginecore.state.state_managers as sm
 from enginecore.state.asset_definition import register_asset, SUPPORTED_ASSETS
-from enginecore.state.agents import IPMIAgent, SNMPAgent
+from enginecore.state.agents import IPMIAgent, SNMPAgent, StorCLIEmulator
 from enginecore.state.sensors import SensorRepository
 
 PowerEventResult = namedtuple("PowerEventResult", "old_state new_state asset_key asset_type")
@@ -709,7 +709,9 @@ class ServerWithBMC(Server):
         self._sensor_repo = SensorRepository(asset_info['key'], enable_thermal=True)
 
         self._ipmi_agent = IPMIAgent(asset_info['key'], ipmi_dir, ipmi_config=asset_info, sensors=sensors)
+        self._storcli_emu = StorCLIEmulator(asset_info['key'], ipmi_dir)
         super(ServerWithBMC, self).__init__(asset_info)
+        
 
         self.state.agent = self._ipmi_agent.pid
         
@@ -753,7 +755,7 @@ class ServerWithBMC(Server):
                 ns_to_sec = lambda x: x / 1e9
 
                 if cpu_time_1:
-                    self.state.cpu_load = 100 * (ns_to_sec(cpu_time_2) - ns_to_sec(cpu_time_1)) / sample_rate
+                    self.state.cpu_load = 100 * abs(ns_to_sec(cpu_time_2) - ns_to_sec(cpu_time_1)) / sample_rate
                     logging.info("New CPU load (percentage): %s%% for server[%s]", self.state.cpu_load, self.state.key)
             
                 cpu_time_1 = cpu_time_2

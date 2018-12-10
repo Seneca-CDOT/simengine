@@ -10,7 +10,67 @@ import sysconfig
 import pwd
 import grp
 import tempfile
+import json
+import threading
+import stat
 from string import Template
+
+
+class StorCLIEmulator():
+    
+    def __init__(self, asset_key, storcli_dir):
+        
+        self._storcli_dir = storcli_dir
+
+        no_ext_fifo_path = os.path.join(storcli_dir, "simengine-storage-pipe")
+        self._r_pipe_path = no_ext_fifo_path + ".out"
+        self._w_pipe_path = no_ext_fifo_path + ".in"
+       
+        for pfile in [no_ext_fifo_path, self._r_pipe_path, self._w_pipe_path]:
+            os.system("mknod -m 0666 {} p".format(pfile))
+            os.system("chcon -t svirt_image_t {}".format(pfile))
+
+
+        self._pipe_listener_t = threading.Thread(
+            target=self._listen_cmds,
+            name="storcli64:{}".format(asset_key)
+        )
+
+        self._pipe_listener_t.daemon = True
+        self._pipe_listener_t.start()
+
+
+    def _listen_cmds(self):
+
+        with open(self._r_pipe_path) as read_h:
+            while True:
+                with open(self._w_pipe_path, "w") as write_h:
+                    data = read_h.readline()
+
+                    if not data:
+                        continue
+
+                    received = json.loads(data)
+
+                    logging.info('Data received: %s', str(received))
+
+                    stdout = ""
+                    stderr = "Usage: " + received['argv'][0] +" --version"
+                    status = 1
+
+                    # Process non-default return cases
+                    if len(received['argv']) == 2:
+                        if received['argv'][1] == "--version":
+                            stdout = "Version 0.01"
+                            stderr = ""
+                            status = 0
+
+                    # Send the message
+                    reply = json.dumps({"stdout": stdout, "stderr": stderr, "status": status})+"\n"
+                    # print(reply)
+                    write_h.write(reply)
+                    write_h.close()
+
 
 class Agent():
     """Abstract Agent Class """

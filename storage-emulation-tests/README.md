@@ -14,29 +14,31 @@ To switch between the two communications techniques, adjust the source code in t
 ## Virsh XML setup (using QEMU-KVM)
 
 * Ensure that the libvirt QEMU schema is included in the XML namespace:
-  \<domain type='kvm' xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'>
+  `<domain type='kvm' xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'>`
+
+* For communication via a socket:
+  ```
+  <qemu:commandline>
+    <qemu:arg value='-chardev'/>
+    <qemu:arg value='socket,id=simengine-storage-tcp,host=localhost,port=50000,reconnect=10'/>
+    <qemu:arg value='-device'/>
+    <qemu:arg value='virtio-serial'/>
+    <qemu:arg value='-device'/>
+    <qemu:arg value='virtserialport,chardev=simengine-storage-tcp,name=systems.cdot.simengine.storage.net'/>
+  </qemu:commandline>
+  ```
 
 * For communication via a pipe:
-  \<qemu:commandline>
-    \<qemu:arg value='-chardev'/>
-    \<qemu:arg value='socket,id=simengine-storage-tcp,host=localhost,port=50000,reconnect=10'/>
-    \<qemu:arg value='-device'/>
-    \<qemu:arg value='virtio-serial'/>
-    \<qemu:arg value='-device'/>
-    \<qemu:arg value='virtserialport,chardev=simengine-storage-tcp,name=systems.cdot.simengine.storage.net'/>
-  \</qemu:commandline>
-
-* For communication via a pipe:
-  \<qemu:commandline>
-    \<qemu:arg value='virtserialport,chardev=simengine-storage-tcp,name=systems.cdot.simengine.storage.net'/>
-    \<qemu:arg value='-chardev'/>
-    \<qemu:arg value='pipe,id=simengine-storage-pipe,path=/tmp/simengine-storage-pipe'/>
-    \<qemu:arg value='-device'/>
-    \<qemu:arg value='virtio-serial'/>
-    \<qemu:arg value='-device'/>
-    \<qemu:arg value='virtserialport,chardev=simengine-storage-pipe,name=systems.cdot.simengine.storage.pipe'/>
-  \</qemu:commandline>
-
+  ```
+  <qemu:commandline>
+    <qemu:arg value='-chardev'/>
+    <qemu:arg value='pipe,id=simengine-storage-pipe,path=/tmp/simengine-storage-pipe'/>
+    <qemu:arg value='-device'/>
+    <qemu:arg value='virtio-serial'/>
+    <qemu:arg value='-device'/>
+    <qemu:arg value='virtserialport,chardev=simengine-storage-pipe,name=systems.cdot.simengine.storage.pipe'/>
+  </qemu:commandline>
+  ```
 Note that it is OK to enable both configurations in the VM at the same time.
 
 ## Communication via pipes
