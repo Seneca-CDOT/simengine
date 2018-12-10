@@ -56,6 +56,6 @@ while True:
         readpipe.close()
         writepipe.close()
     else:
-        client.send(reply,"UTF-8")
+        client.send(bytes(reply,"UTF-8"))
         client.close()
 
