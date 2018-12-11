@@ -43,14 +43,14 @@ class StorCLIEmulator():
         self._pipe_listener_t.start()
 
 
-    def _strcli_header(self, controller_num=0):
+    def _strcli_header(self, ctrl_num=0):
         with open(os.path.join(self._storcli_dir, 'header')) as templ_h:
             options = {
                 'cli_version': '007.0606.0000.0000 Mar 20, 2018',
                 'op_sys': 'Linux 2.6.32-754.6.3.el6.x86_64',
                 'status': 'Success',
                 'description': 'None',
-                'controller_line': ''
+                'controller_line': 'Controller = {}\n'.format(ctrl_num) if ctrl_num else ''
             }
 
             template = Template(templ_h.read())
@@ -67,8 +67,95 @@ class StorCLIEmulator():
             }
 
             template = Template(templ_h.read())
-
             return template.substitute(options)
+
+    def _strcli_ctrl_perf_mode(self, controller_num):
+        with open(os.path.join(self._storcli_dir, 'performance_mode')) as templ_h:
+         
+            options = {
+                'header': self._strcli_header(controller_num),
+                'mode_num': 0,
+                'mode_description': 'tuned to provide Best IOPS'
+            }
+
+            template = Template(templ_h.read())
+            return template.substitute(options)
+
+
+    def _strcli_ctrl_alarm_state(self, controller_num):
+        with open(os.path.join(self._storcli_dir, 'alarm_state')) as templ_h:
+         
+            options = {
+                'header': self._strcli_header(controller_num),
+                'alarm_state': 'OFF'
+            }
+
+            template = Template(templ_h.read())
+            return template.substitute(options)
+
+    def _strcli_ctrl_bbu(self, controller_num):
+        with open(os.path.join(self._storcli_dir, 'bbu_data')) as templ_h:
+         
+            options = {
+                'header': self._strcli_header(controller_num),
+                'ctrl_num': controller_num,
+                'status': 'Failed',
+                'property': '-',
+                'err_msg': 'use /cx/cv',
+                'err_code': 255
+            }
+
+            template = Template(templ_h.read())
+            return template.substitute(options)
+
+
+    def _strcli_bgi_rate(self, controller_num):
+        with open(os.path.join(self._storcli_dir, 'bgi_rate')) as templ_h:
+         
+            options = {
+                'header': self._strcli_header(controller_num),
+                'bgi_rate': 30
+            }
+
+            template = Template(templ_h.read())
+            return template.substitute(options)
+
+
+    def _strcli_cc_rate(self, controller_num):
+        with open(os.path.join(self._storcli_dir, 'cc_rate')) as templ_h:
+         
+            options = {
+                'header': self._strcli_header(controller_num),
+                'cc_rate': 30
+            }
+
+            template = Template(templ_h.read())
+            return template.substitute(options)
+
+
+    def _strcli_rebuild_rate(self, controller_num):
+        with open(os.path.join(self._storcli_dir, 'rebuild_rate')) as templ_h:
+         
+            options = {
+                'header': self._strcli_header(controller_num),
+                'rebuild_rate': 30
+            }
+
+            template = Template(templ_h.read())
+            return template.substitute(options)
+
+    def _strcli_pr_rate(self, controller_num):
+        with open(os.path.join(self._storcli_dir, 'pr_rate')) as templ_h:
+         
+            options = {
+                'header': self._strcli_header(controller_num),
+                'pr_rate': 20
+            }
+
+            template = Template(templ_h.read())
+            return template.substitute(options)
+
+
 
     def _listen_cmds(self):
 
@@ -85,19 +172,44 @@ class StorCLIEmulator():
 
                     logging.info('Data received: %s', str(received))
 
-                    reply = {"stdout": "", "stderr": "Usage: " + argv[0] +" --version", "status": 1}
+                    reply = {"stdout": "", "stderr": "", "status": 0}
 
                     # Process non-default return cases
                     if len(argv) == 2:
                         if argv[1] == "--version":
                             reply['stdout'] = "Version 0.01"
-                            reply['stderr'] = ""
-                            reply['status'] = 0
+
                     elif len(argv) == 3:
                         if argv[1] == "show" and argv[2] == "ctrlcount":
                             reply['stdout'] = self._strcli_ctrlcount()
-                            reply['stderr'] = ""
-                            reply['status'] = 0
+
+                    # Controller Commands
+                    elif len(argv) == 4 and argv[1].startswith("/c"):
+                        if argv[2] == "show" and argv[3] == "perfmode":
+                            reply['stdout'] = self._strcli_ctrl_perf_mode(argv[1][-1])
+                        elif argv[2] == "show" and argv[3] == "bgirate":
+                            reply['stdout'] = self._strcli_bgi_rate(argv[1][-1])
+                        elif argv[2] == "show" and argv[3] == "ccrate":
+                            reply['stdout'] = self._strcli_cc_rate(argv[1][-1])
+                        elif argv[2] == "show" and argv[3] == "rebuildrate":
+                            reply['stdout'] = self._strcli_rebuild_rate(argv[1][-1])
+                        elif argv[2] == "show" and argv[3] == "prrate":
+                            reply['stdout'] = self._strcli_pr_rate(argv[1][-1])
+                        elif argv[2] == "show" and argv[3] == "all":
+                            pass
+
+                    elif len(argv) == 5 and argv[1].startswith("/c"):
+                        if argv[2] == "/bbu" and argv[3] == "show" and argv[4] == "all":
+                            reply['stdout'] = self._strcli_ctrl_bbu(argv[1][-1])
+                        elif argv[2] == "/cv" and argv[3] == "show" and argv[4] == "all":
+                            pass
+                        elif argv[2] == "/vall" and argv[3] == "show" and argv[4] == "all":
+                            pass
+                    elif len(argv) == 6 and argv[1].startswith("/c"):
+                        if argv[2] == "/eall" and argv[3] == "/sall" and argv[4] == "show" and argv[5] == "all":
+                            pass
+                    else:
+                        reply = {"stdout": "", "stderr": "Usage: " + argv[0] +" --version", "status": 1}
 
                     # Send the message
                     print(json.dumps(reply)+"\n")

@@ -5,7 +5,7 @@ Detailed Status :
 --------------------------------------
 Ctrl Status Property ErrMsg     ErrCd 
 --------------------------------------
-${bbu_status}
+${ctrl_num} ${status} ${property}        ${err_msg}   ${err_code}
 --------------------------------------
 
 

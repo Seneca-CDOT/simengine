@@ -5,7 +5,7 @@ Controller Properties :
 -----------------------------------------
 Ctrl_Prop Value                          
 -----------------------------------------
-${ctrl_prop} 
+Perf Mode ${mode_num} - ${mode_description}
 -----------------------------------------
 
 
