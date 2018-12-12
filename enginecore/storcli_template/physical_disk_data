@@ -1,0 +1,763 @@
+${header}
+
+Drive /c0/e252/s0 :
+=================
+
+------------------------------------------------------------------------------
+EID:Slt DID State DG       Size Intf Med SED PI SeSz Model            Sp Type 
+------------------------------------------------------------------------------
+252:0     9 Onln   0 136.218 GB SAS  HDD N   N  512B MK1401GRRB       U  -    
+------------------------------------------------------------------------------
+
+EID-Enclosure Device ID|Slt-Slot No.|DID-Device ID|DG-DriveGroup
+DHS-Dedicated Hot Spare|UGood-Unconfigured Good|GHS-Global Hotspare
+UBad-Unconfigured Bad|Onln-Online|Offln-Offline|Intf-Interface
+Med-Media Type|SED-Self Encryptive Drive|PI-Protection Info
+SeSz-Sector Size|Sp-Spun|U-Up|D-Down/PowerSave|T-Transition|F-Foreign
+UGUnsp-Unsupported|UGShld-UnConfigured shielded|HSPShld-Hotspare shielded
+CFShld-Configured shielded|Cpybck-CopyBack|CBShld-Copyback Shielded
+
+
+Drive /c0/e252/s0 - Detailed Information :
+========================================
+
+Drive /c0/e252/s0 State :
+=======================
+Shield Counter = 0
+Media Error Count = 0
+Other Error Count = 0
+BBM Error Count = 0
+Drive Temperature =  23C (73.40 F)
+Predictive Failure Count = 0
+S.M.A.R.T alert flagged by drive = No
+
+
+Drive /c0/e252/s0 Device attributes :
+===================================
+SN = Y3D0A0FDFSR2
+Manufacturer Id = TOSHIBA 
+Model Number = MK1401GRRB      
+NAND Vendor = NA
+WWN = 500003952819DBF9
+Firmware Revision = 5205
+Firmware Release Number = N/A
+Raw size = 136.732 GB [0x11177330 Sectors]
+Coerced size = 136.218 GB [0x11070000 Sectors]
+Non Coerced size = 136.232 GB [0x11077330 Sectors]
+Device Speed = 6.0Gb/s
+Link Speed = 6.0Gb/s
+Write Cache = N/A
+Logical Sector Size = 512B
+Physical Sector Size = 512B
+Connector Name = Port 0 - 3 x1
+
+
+Drive /c0/e252/s0 Policies/Settings :
+===================================
+Drive position = DriveGroup:0, Span:0, Row:0
+Enclosure position = 1
+Connected Port Number = 3(path0) 
+Sequence Number = 2
+Commissioned Spare = No
+Emergency Spare = No
+Last Predictive Failure Event Sequence Number = 0
+Successful diagnostics completion on = N/A
+SED Capable = No
+SED Enabled = No
+Secured = No
+Cryptographic Erase Capable = No
+Locked = No
+Needs EKM Attention = No
+PI Eligible = No
+Certified = No
+Wide Port Capable = No
+
+Port Information :
+================
+
+-----------------------------------------
+Port Status Linkspeed SAS address        
+-----------------------------------------
+   0 Active 6.0Gb/s   0x500003952819dbfa 
+   1 Active 6.0Gb/s   0x0                
+-----------------------------------------
+
+
+Inquiry Data = 
+00 00 05 12 5b 00 10 02 54 4f 53 48 49 42 41 20 
+4d 4b 31 34 30 31 47 52 52 42 20 20 20 20 20 20 
+35 32 30 35 59 33 44 30 41 30 46 44 46 53 52 32 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+
+
+
+Drive /c0/e252/s1 :
+=================
+
+------------------------------------------------------------------------------
+EID:Slt DID State DG       Size Intf Med SED PI SeSz Model            Sp Type 
+------------------------------------------------------------------------------
+252:1    10 Onln   0 136.218 GB SAS  HDD N   N  512B MK1401GRRB       U  -    
+------------------------------------------------------------------------------
+
+EID-Enclosure Device ID|Slt-Slot No.|DID-Device ID|DG-DriveGroup
+DHS-Dedicated Hot Spare|UGood-Unconfigured Good|GHS-Global Hotspare
+UBad-Unconfigured Bad|Onln-Online|Offln-Offline|Intf-Interface
+Med-Media Type|SED-Self Encryptive Drive|PI-Protection Info
+SeSz-Sector Size|Sp-Spun|U-Up|D-Down/PowerSave|T-Transition|F-Foreign
+UGUnsp-Unsupported|UGShld-UnConfigured shielded|HSPShld-Hotspare shielded
+CFShld-Configured shielded|Cpybck-CopyBack|CBShld-Copyback Shielded
+
+
+Drive /c0/e252/s1 - Detailed Information :
+========================================
+
+Drive /c0/e252/s1 State :
+=======================
+Shield Counter = 0
+Media Error Count = 0
+Other Error Count = 0
+BBM Error Count = 0
+Drive Temperature =  22C (71.60 F)
+Predictive Failure Count = 0
+S.M.A.R.T alert flagged by drive = No
+
+
+Drive /c0/e252/s1 Device attributes :
+===================================
+SN = Y3E0A00DFSR2
+Manufacturer Id = TOSHIBA 
+Model Number = MK1401GRRB      
+NAND Vendor = NA
+WWN = 50000395281A08A9
+Firmware Revision = 5205
+Firmware Release Number = N/A
+Raw size = 136.732 GB [0x11177330 Sectors]
+Coerced size = 136.218 GB [0x11070000 Sectors]
+Non Coerced size = 136.232 GB [0x11077330 Sectors]
+Device Speed = 6.0Gb/s
+Link Speed = 6.0Gb/s
+Write Cache = N/A
+Logical Sector Size = 512B
+Physical Sector Size = 512B
+Connector Name = Port 0 - 3 x1
+
+
+Drive /c0/e252/s1 Policies/Settings :
+===================================
+Drive position = DriveGroup:0, Span:0, Row:1
+Enclosure position = 1
+Connected Port Number = 2(path0) 
+Sequence Number = 2
+Commissioned Spare = No
+Emergency Spare = No
+Last Predictive Failure Event Sequence Number = 0
+Successful diagnostics completion on = N/A
+SED Capable = No
+SED Enabled = No
+Secured = No
+Cryptographic Erase Capable = No
+Locked = No
+Needs EKM Attention = No
+PI Eligible = No
+Certified = No
+Wide Port Capable = No
+
+Port Information :
+================
+
+-----------------------------------------
+Port Status Linkspeed SAS address        
+-----------------------------------------
+   0 Active 6.0Gb/s   0x50000395281a08aa 
+   1 Active 6.0Gb/s   0x0                
+-----------------------------------------
+
+
+Inquiry Data = 
+00 00 05 12 5b 00 10 02 54 4f 53 48 49 42 41 20 
+4d 4b 31 34 30 31 47 52 52 42 20 20 20 20 20 20 
+35 32 30 35 59 33 45 30 41 30 30 44 46 53 52 32 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+
+
+
+Drive /c0/e252/s2 :
+=================
+
+------------------------------------------------------------------------------
+EID:Slt DID State DG       Size Intf Med SED PI SeSz Model            Sp Type 
+------------------------------------------------------------------------------
+252:2     8 Onln   0 136.218 GB SAS  HDD N   N  512B MK1401GRRB       U  -    
+------------------------------------------------------------------------------
+
+EID-Enclosure Device ID|Slt-Slot No.|DID-Device ID|DG-DriveGroup
+DHS-Dedicated Hot Spare|UGood-Unconfigured Good|GHS-Global Hotspare
+UBad-Unconfigured Bad|Onln-Online|Offln-Offline|Intf-Interface
+Med-Media Type|SED-Self Encryptive Drive|PI-Protection Info
+SeSz-Sector Size|Sp-Spun|U-Up|D-Down/PowerSave|T-Transition|F-Foreign
+UGUnsp-Unsupported|UGShld-UnConfigured shielded|HSPShld-Hotspare shielded
+CFShld-Configured shielded|Cpybck-CopyBack|CBShld-Copyback Shielded
+
+
+Drive /c0/e252/s2 - Detailed Information :
+========================================
+
+Drive /c0/e252/s2 State :
+=======================
+Shield Counter = 0
+Media Error Count = 0
+Other Error Count = 0
+BBM Error Count = 0
+Drive Temperature =  22C (71.60 F)
+Predictive Failure Count = 0
+S.M.A.R.T alert flagged by drive = No
+
+
+Drive /c0/e252/s2 Device attributes :
+===================================
+SN = Y3D0A0FNFSR2
+Manufacturer Id = TOSHIBA 
+Model Number = MK1401GRRB      
+NAND Vendor = NA
+WWN = 500003952819DD39
+Firmware Revision = 5205
+Firmware Release Number = N/A
+Raw size = 136.732 GB [0x11177330 Sectors]
+Coerced size = 136.218 GB [0x11070000 Sectors]
+Non Coerced size = 136.232 GB [0x11077330 Sectors]
+Device Speed = 6.0Gb/s
+Link Speed = 6.0Gb/s
+Write Cache = N/A
+Logical Sector Size = 512B
+Physical Sector Size = 512B
+Connector Name = Port 0 - 3 x1
+
+
+Drive /c0/e252/s2 Policies/Settings :
+===================================
+Drive position = DriveGroup:0, Span:0, Row:2
+Enclosure position = 1
+Connected Port Number = 1(path0) 
+Sequence Number = 2
+Commissioned Spare = No
+Emergency Spare = No
+Last Predictive Failure Event Sequence Number = 0
+Successful diagnostics completion on = N/A
+SED Capable = No
+SED Enabled = No
+Secured = No
+Cryptographic Erase Capable = No
+Locked = No
+Needs EKM Attention = No
+PI Eligible = No
+Certified = No
+Wide Port Capable = No
+
+Port Information :
+================
+
+-----------------------------------------
+Port Status Linkspeed SAS address        
+-----------------------------------------
+   0 Active 6.0Gb/s   0x500003952819dd3a 
+   1 Active 6.0Gb/s   0x0                
+-----------------------------------------
+
+
+Inquiry Data = 
+00 00 05 12 5b 00 10 02 54 4f 53 48 49 42 41 20 
+4d 4b 31 34 30 31 47 52 52 42 20 20 20 20 20 20 
+35 32 30 35 59 33 44 30 41 30 46 4e 46 53 52 32 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+
+
+
+Drive /c0/e252/s3 :
+=================
+
+------------------------------------------------------------------------------
+EID:Slt DID State DG       Size Intf Med SED PI SeSz Model            Sp Type 
+------------------------------------------------------------------------------
+252:3     7 Onln   0 136.218 GB SAS  HDD N   N  512B MK1401GRRB       U  -    
+------------------------------------------------------------------------------
+
+EID-Enclosure Device ID|Slt-Slot No.|DID-Device ID|DG-DriveGroup
+DHS-Dedicated Hot Spare|UGood-Unconfigured Good|GHS-Global Hotspare
+UBad-Unconfigured Bad|Onln-Online|Offln-Offline|Intf-Interface
+Med-Media Type|SED-Self Encryptive Drive|PI-Protection Info
+SeSz-Sector Size|Sp-Spun|U-Up|D-Down/PowerSave|T-Transition|F-Foreign
+UGUnsp-Unsupported|UGShld-UnConfigured shielded|HSPShld-Hotspare shielded
+CFShld-Configured shielded|Cpybck-CopyBack|CBShld-Copyback Shielded
+
+
+Drive /c0/e252/s3 - Detailed Information :
+========================================
+
+Drive /c0/e252/s3 State :
+=======================
+Shield Counter = 0
+Media Error Count = 0
+Other Error Count = 0
+BBM Error Count = 0
+Drive Temperature =  22C (71.60 F)
+Predictive Failure Count = 0
+S.M.A.R.T alert flagged by drive = No
+
+
+Drive /c0/e252/s3 Device attributes :
+===================================
+SN = Y3D0A0FAFSR2
+Manufacturer Id = TOSHIBA 
+Model Number = MK1401GRRB      
+NAND Vendor = NA
+WWN = 500003952819DBDD
+Firmware Revision = 5205
+Firmware Release Number = N/A
+Raw size = 136.732 GB [0x11177330 Sectors]
+Coerced size = 136.218 GB [0x11070000 Sectors]
+Non Coerced size = 136.232 GB [0x11077330 Sectors]
+Device Speed = 6.0Gb/s
+Link Speed = 6.0Gb/s
+Write Cache = N/A
+Logical Sector Size = 512B
+Physical Sector Size = 512B
+Connector Name = Port 0 - 3 x1
+
+
+Drive /c0/e252/s3 Policies/Settings :
+===================================
+Drive position = DriveGroup:0, Span:0, Row:3
+Enclosure position = 1
+Connected Port Number = 0(path0) 
+Sequence Number = 2
+Commissioned Spare = No
+Emergency Spare = No
+Last Predictive Failure Event Sequence Number = 0
+Successful diagnostics completion on = N/A
+SED Capable = No
+SED Enabled = No
+Secured = No
+Cryptographic Erase Capable = No
+Locked = No
+Needs EKM Attention = No
+PI Eligible = No
+Certified = No
+Wide Port Capable = No
+
+Port Information :
+================
+
+-----------------------------------------
+Port Status Linkspeed SAS address        
+-----------------------------------------
+   0 Active 6.0Gb/s   0x500003952819dbde 
+   1 Active 6.0Gb/s   0x0                
+-----------------------------------------
+
+
+Inquiry Data = 
+00 00 05 12 5b 00 10 02 54 4f 53 48 49 42 41 20 
+4d 4b 31 34 30 31 47 52 52 42 20 20 20 20 20 20 
+35 32 30 35 59 33 44 30 41 30 46 41 46 53 52 32 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+
+
+
+Drive /c0/e252/s4 :
+=================
+
+------------------------------------------------------------------------------
+EID:Slt DID State DG       Size Intf Med SED PI SeSz Model            Sp Type 
+------------------------------------------------------------------------------
+252:4    11 Onln   0 136.218 GB SAS  HDD N   N  512B MK1401GRRB       U  -    
+------------------------------------------------------------------------------
+
+EID-Enclosure Device ID|Slt-Slot No.|DID-Device ID|DG-DriveGroup
+DHS-Dedicated Hot Spare|UGood-Unconfigured Good|GHS-Global Hotspare
+UBad-Unconfigured Bad|Onln-Online|Offln-Offline|Intf-Interface
+Med-Media Type|SED-Self Encryptive Drive|PI-Protection Info
+SeSz-Sector Size|Sp-Spun|U-Up|D-Down/PowerSave|T-Transition|F-Foreign
+UGUnsp-Unsupported|UGShld-UnConfigured shielded|HSPShld-Hotspare shielded
+CFShld-Configured shielded|Cpybck-CopyBack|CBShld-Copyback Shielded
+
+
+Drive /c0/e252/s4 - Detailed Information :
+========================================
+
+Drive /c0/e252/s4 State :
+=======================
+Shield Counter = 0
+Media Error Count = 0
+Other Error Count = 0
+BBM Error Count = 0
+Drive Temperature =  23C (73.40 F)
+Predictive Failure Count = 0
+S.M.A.R.T alert flagged by drive = No
+
+
+Drive /c0/e252/s4 Device attributes :
+===================================
+SN = Y3D0A0ICFSR2
+Manufacturer Id = TOSHIBA 
+Model Number = MK1401GRRB      
+NAND Vendor = NA
+WWN = 500003952819F349
+Firmware Revision = 5205
+Firmware Release Number = N/A
+Raw size = 136.732 GB [0x11177330 Sectors]
+Coerced size = 136.218 GB [0x11070000 Sectors]
+Non Coerced size = 136.232 GB [0x11077330 Sectors]
+Device Speed = 6.0Gb/s
+Link Speed = 6.0Gb/s
+Write Cache = N/A
+Logical Sector Size = 512B
+Physical Sector Size = 512B
+Connector Name = Port 4 - 7 x1
+
+
+Drive /c0/e252/s4 Policies/Settings :
+===================================
+Drive position = DriveGroup:0, Span:0, Row:4
+Enclosure position = 1
+Connected Port Number = 7(path0) 
+Sequence Number = 2
+Commissioned Spare = No
+Emergency Spare = No
+Last Predictive Failure Event Sequence Number = 0
+Successful diagnostics completion on = N/A
+SED Capable = No
+SED Enabled = No
+Secured = No
+Cryptographic Erase Capable = No
+Locked = No
+Needs EKM Attention = No
+PI Eligible = No
+Certified = No
+Wide Port Capable = No
+
+Port Information :
+================
+
+-----------------------------------------
+Port Status Linkspeed SAS address        
+-----------------------------------------
+   0 Active 6.0Gb/s   0x500003952819f34a 
+   1 Active 6.0Gb/s   0x0                
+-----------------------------------------
+
+
+Inquiry Data = 
+00 00 05 12 5b 00 10 02 54 4f 53 48 49 42 41 20 
+4d 4b 31 34 30 31 47 52 52 42 20 20 20 20 20 20 
+35 32 30 35 59 33 44 30 41 30 49 43 46 53 52 32 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+
+
+
+Drive /c0/e252/s5 :
+=================
+
+------------------------------------------------------------------------------
+EID:Slt DID State DG       Size Intf Med SED PI SeSz Model            Sp Type 
+------------------------------------------------------------------------------
+252:5    14 Onln   0 136.218 GB SAS  HDD N   N  512B MK1401GRRB       U  -    
+------------------------------------------------------------------------------
+
+EID-Enclosure Device ID|Slt-Slot No.|DID-Device ID|DG-DriveGroup
+DHS-Dedicated Hot Spare|UGood-Unconfigured Good|GHS-Global Hotspare
+UBad-Unconfigured Bad|Onln-Online|Offln-Offline|Intf-Interface
+Med-Media Type|SED-Self Encryptive Drive|PI-Protection Info
+SeSz-Sector Size|Sp-Spun|U-Up|D-Down/PowerSave|T-Transition|F-Foreign
+UGUnsp-Unsupported|UGShld-UnConfigured shielded|HSPShld-Hotspare shielded
+CFShld-Configured shielded|Cpybck-CopyBack|CBShld-Copyback Shielded
+
+
+Drive /c0/e252/s5 - Detailed Information :
+========================================
+
+Drive /c0/e252/s5 State :
+=======================
+Shield Counter = 0
+Media Error Count = 0
+Other Error Count = 0
+BBM Error Count = 0
+Drive Temperature =  22C (71.60 F)
+Predictive Failure Count = 0
+S.M.A.R.T alert flagged by drive = No
+
+
+Drive /c0/e252/s5 Device attributes :
+===================================
+SN = Y3D0A0IBFSR2
+Manufacturer Id = TOSHIBA 
+Model Number = MK1401GRRB      
+NAND Vendor = NA
+WWN = 500003952819F2B5
+Firmware Revision = 5205
+Firmware Release Number = N/A
+Raw size = 136.732 GB [0x11177330 Sectors]
+Coerced size = 136.218 GB [0x11070000 Sectors]
+Non Coerced size = 136.232 GB [0x11077330 Sectors]
+Device Speed = 6.0Gb/s
+Link Speed = 6.0Gb/s
+Write Cache = N/A
+Logical Sector Size = 512B
+Physical Sector Size = 512B
+Connector Name = Port 4 - 7 x1
+
+
+Drive /c0/e252/s5 Policies/Settings :
+===================================
+Drive position = DriveGroup:0, Span:0, Row:5
+Enclosure position = 1
+Connected Port Number = 6(path0) 
+Sequence Number = 2
+Commissioned Spare = No
+Emergency Spare = No
+Last Predictive Failure Event Sequence Number = 0
+Successful diagnostics completion on = N/A
+SED Capable = No
+SED Enabled = No
+Secured = No
+Cryptographic Erase Capable = No
+Locked = No
+Needs EKM Attention = No
+PI Eligible = No
+Certified = No
+Wide Port Capable = No
+
+Port Information :
+================
+
+-----------------------------------------
+Port Status Linkspeed SAS address        
+-----------------------------------------
+   0 Active 6.0Gb/s   0x500003952819f2b6 
+   1 Active 6.0Gb/s   0x0                
+-----------------------------------------
+
+
+Inquiry Data = 
+00 00 05 12 5b 00 10 02 54 4f 53 48 49 42 41 20 
+4d 4b 31 34 30 31 47 52 52 42 20 20 20 20 20 20 
+35 32 30 35 59 33 44 30 41 30 49 42 46 53 52 32 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+
+
+
+Drive /c0/e252/s6 :
+=================
+
+------------------------------------------------------------------------------
+EID:Slt DID State DG       Size Intf Med SED PI SeSz Model            Sp Type 
+------------------------------------------------------------------------------
+252:6    12 Onln   0 136.218 GB SAS  HDD N   N  512B MK1401GRRB       U  -    
+------------------------------------------------------------------------------
+
+EID-Enclosure Device ID|Slt-Slot No.|DID-Device ID|DG-DriveGroup
+DHS-Dedicated Hot Spare|UGood-Unconfigured Good|GHS-Global Hotspare
+UBad-Unconfigured Bad|Onln-Online|Offln-Offline|Intf-Interface
+Med-Media Type|SED-Self Encryptive Drive|PI-Protection Info
+SeSz-Sector Size|Sp-Spun|U-Up|D-Down/PowerSave|T-Transition|F-Foreign
+UGUnsp-Unsupported|UGShld-UnConfigured shielded|HSPShld-Hotspare shielded
+CFShld-Configured shielded|Cpybck-CopyBack|CBShld-Copyback Shielded
+
+
+Drive /c0/e252/s6 - Detailed Information :
+========================================
+
+Drive /c0/e252/s6 State :
+=======================
+Shield Counter = 0
+Media Error Count = 0
+Other Error Count = 0
+BBM Error Count = 0
+Drive Temperature =  27C (80.60 F)
+Predictive Failure Count = 0
+S.M.A.R.T alert flagged by drive = No
+
+
+Drive /c0/e252/s6 Device attributes :
+===================================
+SN = Y3D0A0GYFSR2
+Manufacturer Id = TOSHIBA 
+Model Number = MK1401GRRB      
+NAND Vendor = NA
+WWN = 500003952819EBDD
+Firmware Revision = 5205
+Firmware Release Number = N/A
+Raw size = 136.732 GB [0x11177330 Sectors]
+Coerced size = 136.218 GB [0x11070000 Sectors]
+Non Coerced size = 136.232 GB [0x11077330 Sectors]
+Device Speed = 6.0Gb/s
+Link Speed = 6.0Gb/s
+Write Cache = N/A
+Logical Sector Size = 512B
+Physical Sector Size = 512B
+Connector Name = Port 4 - 7 x1
+
+
+Drive /c0/e252/s6 Policies/Settings :
+===================================
+Drive position = DriveGroup:0, Span:0, Row:6
+Enclosure position = 1
+Connected Port Number = 5(path0) 
+Sequence Number = 2
+Commissioned Spare = No
+Emergency Spare = No
+Last Predictive Failure Event Sequence Number = 0
+Successful diagnostics completion on = N/A
+SED Capable = No
+SED Enabled = No
+Secured = No
+Cryptographic Erase Capable = No
+Locked = No
+Needs EKM Attention = No
+PI Eligible = No
+Certified = No
+Wide Port Capable = No
+
+Port Information :
+================
+
+-----------------------------------------
+Port Status Linkspeed SAS address        
+-----------------------------------------
+   0 Active 6.0Gb/s   0x500003952819ebde 
+   1 Active 6.0Gb/s   0x0                
+-----------------------------------------
+
+
+Inquiry Data = 
+00 00 05 12 5b 00 10 02 54 4f 53 48 49 42 41 20 
+4d 4b 31 34 30 31 47 52 52 42 20 20 20 20 20 20 
+35 32 30 35 59 33 44 30 41 30 47 59 46 53 52 32 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+
+
+
+Drive /c0/e252/s7 :
+=================
+
+------------------------------------------------------------------------------
+EID:Slt DID State DG       Size Intf Med SED PI SeSz Model            Sp Type 
+------------------------------------------------------------------------------
+252:7    13 Onln   0 136.218 GB SAS  HDD N   N  512B MK1401GRRB       U  -    
+------------------------------------------------------------------------------
+
+EID-Enclosure Device ID|Slt-Slot No.|DID-Device ID|DG-DriveGroup
+DHS-Dedicated Hot Spare|UGood-Unconfigured Good|GHS-Global Hotspare
+UBad-Unconfigured Bad|Onln-Online|Offln-Offline|Intf-Interface
+Med-Media Type|SED-Self Encryptive Drive|PI-Protection Info
+SeSz-Sector Size|Sp-Spun|U-Up|D-Down/PowerSave|T-Transition|F-Foreign
+UGUnsp-Unsupported|UGShld-UnConfigured shielded|HSPShld-Hotspare shielded
+CFShld-Configured shielded|Cpybck-CopyBack|CBShld-Copyback Shielded
+
+
+Drive /c0/e252/s7 - Detailed Information :
+========================================
+
+Drive /c0/e252/s7 State :
+=======================
+Shield Counter = 0
+Media Error Count = 0
+Other Error Count = 0
+BBM Error Count = 0
+Drive Temperature =  25C (77.00 F)
+Predictive Failure Count = 0
+S.M.A.R.T alert flagged by drive = No
+
+
+Drive /c0/e252/s7 Device attributes :
+===================================
+SN = Y3D0A0F9FSR2
+Manufacturer Id = TOSHIBA 
+Model Number = MK1401GRRB      
+NAND Vendor = NA
+WWN = 500003952819DBA5
+Firmware Revision = 5205
+Firmware Release Number = N/A
+Raw size = 136.732 GB [0x11177330 Sectors]
+Coerced size = 136.218 GB [0x11070000 Sectors]
+Non Coerced size = 136.232 GB [0x11077330 Sectors]
+Device Speed = 6.0Gb/s
+Link Speed = 6.0Gb/s
+Write Cache = N/A
+Logical Sector Size = 512B
+Physical Sector Size = 512B
+Connector Name = Port 4 - 7 x1
+
+
+Drive /c0/e252/s7 Policies/Settings :
+===================================
+Drive position = DriveGroup:0, Span:0, Row:7
+Enclosure position = 1
+Connected Port Number = 4(path0) 
+Sequence Number = 2
+Commissioned Spare = No
+Emergency Spare = No
+Last Predictive Failure Event Sequence Number = 0
+Successful diagnostics completion on = N/A
+SED Capable = No
+SED Enabled = No
+Secured = No
+Cryptographic Erase Capable = No
+Locked = No
+Needs EKM Attention = No
+PI Eligible = No
+Certified = No
+Wide Port Capable = No
+
+Port Information :
+================
+
+-----------------------------------------
+Port Status Linkspeed SAS address        
+-----------------------------------------
+   0 Active 6.0Gb/s   0x500003952819dba6 
+   1 Active 6.0Gb/s   0x0                
+-----------------------------------------
+
+
+Inquiry Data = 
+00 00 05 12 5b 00 10 02 54 4f 53 48 49 42 41 20 
+4d 4b 31 34 30 31 47 52 52 42 20 20 20 20 20 20 
+35 32 30 35 59 33 44 30 41 30 46 39 46 53 52 32 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+
+
+
+

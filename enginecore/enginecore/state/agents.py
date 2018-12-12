@@ -11,6 +11,7 @@ import pwd
 import grp
 import tempfile
 import json
+import socket
 import threading
 import stat
 from string import Template
@@ -21,26 +22,18 @@ class StorCLIEmulator():
     def __init__(self, asset_key, server_dir):
         
         self._storcli_dir = os.path.join(server_dir, "storcli")
+    
         os.makedirs(self._storcli_dir)
-
-        no_ext_fifo_path = os.path.join(self._storcli_dir, "simengine-storage-pipe")
-        self._r_pipe_path = no_ext_fifo_path + ".out"
-        self._w_pipe_path = no_ext_fifo_path + ".in"
-       
-        for pfile in [no_ext_fifo_path, self._r_pipe_path, self._w_pipe_path]:
-            os.system("mknod -m 0666 {} p".format(pfile))
-            os.system("chcon -t svirt_image_t {}".format(pfile))
-
-
         dir_util.copy_tree(os.environ.get('SIMENGINE_STORCLI_TEMPL'), self._storcli_dir)
 
-        self._pipe_listener_t = threading.Thread(
+
+        self._socket_t = threading.Thread(
             target=self._listen_cmds,
             name="storcli64:{}".format(asset_key)
         )
 
-        self._pipe_listener_t.daemon = True
-        self._pipe_listener_t.start()
+        self._socket_t.daemon = True
+        self._socket_t.start()
 
 
     def _strcli_header(self, ctrl_num=0):
@@ -159,62 +152,68 @@ class StorCLIEmulator():
 
     def _listen_cmds(self):
 
-        with open(self._r_pipe_path) as read_h:
+        serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        serversocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        serversocket.bind(('', 50000))
+        serversocket.listen(5)
+
+        conn, _ = serversocket.accept()
+
+        with conn:
             while True:
-                with open(self._w_pipe_path, "w") as write_h:
-                    data = read_h.readline()
+                # write_h = open(self._w_pipe_path, "w")
+                # read_h = open(self._r_pipe_path)
 
-                    if not data:
-                        continue
+                data = conn.recv(1024)
+                if not data:
+                    break
+                
+                received = json.loads(data) 
+                argv = received['argv']
 
-                    received = json.loads(data)
-                    argv = received['argv']
+                logging.info('Data received: %s', str(received))
 
-                    logging.info('Data received: %s', str(received))
+                reply = {"stdout": "", "stderr": "", "status": 0}
 
-                    reply = {"stdout": "", "stderr": "", "status": 0}
+                # Process non-default return cases
+                if len(argv) == 2:
+                    if argv[1] == "--version":
+                        reply['stdout'] = "Version 0.01"
 
-                    # Process non-default return cases
-                    if len(argv) == 2:
-                        if argv[1] == "--version":
-                            reply['stdout'] = "Version 0.01"
+                elif len(argv) == 3:
+                    if argv[1] == "show" and argv[2] == "ctrlcount":
+                        reply['stdout'] = self._strcli_ctrlcount()
 
-                    elif len(argv) == 3:
-                        if argv[1] == "show" and argv[2] == "ctrlcount":
-                            reply['stdout'] = self._strcli_ctrlcount()
+                # Controller Commands
+                elif len(argv) == 4 and argv[1].startswith("/c"):
+                    if argv[2] == "show" and argv[3] == "perfmode":
+                        reply['stdout'] = self._strcli_ctrl_perf_mode(argv[1][-1])
+                    elif argv[2] == "show" and argv[3] == "bgirate":
+                        reply['stdout'] = self._strcli_bgi_rate(argv[1][-1])
+                    elif argv[2] == "show" and argv[3] == "ccrate":
+                        reply['stdout'] = self._strcli_cc_rate(argv[1][-1])
+                    elif argv[2] == "show" and argv[3] == "rebuildrate":
+                        reply['stdout'] = self._strcli_rebuild_rate(argv[1][-1])
+                    elif argv[2] == "show" and argv[3] == "prrate":
+                        reply['stdout'] = self._strcli_pr_rate(argv[1][-1])
+                    elif argv[2] == "show" and argv[3] == "all":
+                        pass
 
-                    # Controller Commands
-                    elif len(argv) == 4 and argv[1].startswith("/c"):
-                        if argv[2] == "show" and argv[3] == "perfmode":
-                            reply['stdout'] = self._strcli_ctrl_perf_mode(argv[1][-1])
-                        elif argv[2] == "show" and argv[3] == "bgirate":
-                            reply['stdout'] = self._strcli_bgi_rate(argv[1][-1])
-                        elif argv[2] == "show" and argv[3] == "ccrate":
-                            reply['stdout'] = self._strcli_cc_rate(argv[1][-1])
-                        elif argv[2] == "show" and argv[3] == "rebuildrate":
-                            reply['stdout'] = self._strcli_rebuild_rate(argv[1][-1])
-                        elif argv[2] == "show" and argv[3] == "prrate":
-                            reply['stdout'] = self._strcli_pr_rate(argv[1][-1])
-                        elif argv[2] == "show" and argv[3] == "all":
-                            pass
+                elif len(argv) == 5 and argv[1].startswith("/c"):
+                    if argv[2] == "/bbu" and argv[3] == "show" and argv[4] == "all":
+                        reply['stdout'] = self._strcli_ctrl_bbu(argv[1][-1])
+                    elif argv[2] == "/cv" and argv[3] == "show" and argv[4] == "all":
+                        pass
+                    elif argv[2] == "/vall" and argv[3] == "show" and argv[4] == "all":
+                        pass
+                elif len(argv) == 6 and argv[1].startswith("/c"):
+                    if argv[2] == "/eall" and argv[3] == "/sall" and argv[4] == "show" and argv[5] == "all":
+                        pass
+                else:
+                    reply = {"stdout": "", "stderr": "Usage: " + argv[0] +" --version", "status": 1}
 
-                    elif len(argv) == 5 and argv[1].startswith("/c"):
-                        if argv[2] == "/bbu" and argv[3] == "show" and argv[4] == "all":
-                            reply['stdout'] = self._strcli_ctrl_bbu(argv[1][-1])
-                        elif argv[2] == "/cv" and argv[3] == "show" and argv[4] == "all":
-                            pass
-                        elif argv[2] == "/vall" and argv[3] == "show" and argv[4] == "all":
-                            pass
-                    elif len(argv) == 6 and argv[1].startswith("/c"):
-                        if argv[2] == "/eall" and argv[3] == "/sall" and argv[4] == "show" and argv[5] == "all":
-                            pass
-                    else:
-                        reply = {"stdout": "", "stderr": "Usage: " + argv[0] +" --version", "status": 1}
-
-                    # Send the message
-                    print(json.dumps(reply)+"\n")
-                    write_h.write(json.dumps(reply)+"\n")
-                    write_h.close()
+                # Send the message
+                conn.sendall(bytes(json.dumps(reply) +"\n", "UTF-8"))
 
 
 class Agent():
