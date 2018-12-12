@@ -17,8 +17,8 @@ import os
 
 # Step 0: set up connection to simengine via virtio-serial connection
 # Select ONE of the following two lines to use socket or pipe communication
-simengine = open("/dev/virtio-ports/systems.cdot.simengine.storage.pipe", "r+b", 0)
-#simengine = open("/dev/virtio-ports/systems.cdot.simengine.storage.net", "r+b", 0)
+# simengine = open("/dev/virtio-ports/systems.cdot.simengine.storage.pipe", "r+b", 0)
+simengine = open("/dev/virtio-ports/systems.cdot.simengine.storage.net", "r+b", 0)
 
 # Step 1: encapsulate command-line arguments in json and send to socket
 simengine.write(bytes(json.dumps({'argv': sys.argv}), 'UTF-8'))
