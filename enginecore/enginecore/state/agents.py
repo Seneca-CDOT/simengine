@@ -148,7 +148,35 @@ class StorCLIEmulator():
             template = Template(templ_h.read())
             return template.substitute(options)
 
+    def _strcli_ctrl_info(self, controller_num):
+        with open(os.path.join(self._storcli_dir, 'controller_info')) as templ_h:
+         
+            options = {}
+            template = Template(templ_h.read())
+            return template.substitute(options)
 
+
+    def _strcli_ctrl_cachevault(self, controller_num):
+        with open(os.path.join(self._storcli_dir, 'cachevault_data')) as templ_h:
+         
+            options = {
+                'header': self._strcli_header(controller_num),
+            }
+
+            template = Template(templ_h.read())
+            return template.substitute(options)
+        
+
+    def _strcli_ctrl_virt_disk(self, controller_num):
+        with open(os.path.join(self._storcli_dir, 'virtual_drive_data')) as templ_h:
+         
+            options = {
+                'header': self._strcli_header(controller_num),
+            }
+            
+            template = Template(templ_h.read())
+            return template.substitute(options)
+        
 
     def _listen_cmds(self):
 
@@ -161,8 +189,6 @@ class StorCLIEmulator():
 
         with conn:
             while True:
-                # write_h = open(self._w_pipe_path, "w")
-                # read_h = open(self._r_pipe_path)
 
                 data = conn.recv(1024)
                 if not data:
@@ -197,15 +223,15 @@ class StorCLIEmulator():
                     elif argv[2] == "show" and argv[3] == "prrate":
                         reply['stdout'] = self._strcli_pr_rate(argv[1][-1])
                     elif argv[2] == "show" and argv[3] == "all":
-                        pass
+                        reply['stdout'] = self._strcli_ctrl_info(argv[1][-1])
 
                 elif len(argv) == 5 and argv[1].startswith("/c"):
                     if argv[2] == "/bbu" and argv[3] == "show" and argv[4] == "all":
                         reply['stdout'] = self._strcli_ctrl_bbu(argv[1][-1])
                     elif argv[2] == "/cv" and argv[3] == "show" and argv[4] == "all":
-                        pass
+                        reply['stdout'] = self._strcli_ctrl_cachevault(argv[1][-1])
                     elif argv[2] == "/vall" and argv[3] == "show" and argv[4] == "all":
-                        pass
+                        reply['stdout'] = self._strcli_ctrl_virt_disk(argv[1][-1])
                 elif len(argv) == 6 and argv[1].startswith("/c"):
                     if argv[2] == "/eall" and argv[3] == "/sall" and argv[4] == "show" and argv[5] == "all":
                         pass
