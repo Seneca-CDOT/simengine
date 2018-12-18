@@ -19,7 +19,7 @@ SIMENGINE_NODE_LABELS = []
 SIMENGINE_NODE_LABELS.extend(["Asset", "StageLayout", "SystemEnvironment", "EnvProp"])
 SIMENGINE_NODE_LABELS.extend(["OID", "OIDDesc", "Sensor", "AddressSpace"])
 SIMENGINE_NODE_LABELS.extend(["CPU", "Battery"])
-SIMENGINE_NODE_LABELS.extend(["Controller", "Storcli", "BBU", "CacheVault"])
+SIMENGINE_NODE_LABELS.extend(["Controller", "Storcli", "BBU", "CacheVault", "VirtuallDrive", "PhysicalDrive"])
 
 
 def _add_psu(key, psu_index, attr):
@@ -237,12 +237,14 @@ def _add_storage(asset_key, preset_file):
         for idx, controller in enumerate(data['controllers']):
             
             props_stm = qh.get_props_stm(
-                controller, supported_attr=["Model", "SerialNumber", "SASAddress", "PCIAddress", "MfgDate", "ReworkDate"]
+                controller,
+                
+                supported_attr=["Model", "SerialNumber", "SASAddress", "PCIAddress", "MfgDate", "ReworkDate"]
             )
 
-            ctrl_node_name = 'ctrl'+str(idx)
+            ctrl_node = 'ctrl'+str(idx)
             query.append(
-                "CREATE (server)-[:HAS_CONTROLLER]->({}:Controller {{ {} }})".format(ctrl_node_name, props_stm)
+                "CREATE (server)-[:HAS_CONTROLLER]->({}:Controller {{ {} }})".format(ctrl_node, props_stm)
             )
 
             # BBU or CacheVault
@@ -251,15 +253,51 @@ def _add_storage(asset_key, preset_file):
                     controller["BBU"], 
                     supported_attr=["Model", "SerialNumber", "Type", "ReplacementNeeded", "State", "DesignCapacity"]
                 )
-                query.append("CREATE ({})-[:HAS_BBU]->(bbu:BBU {{ {} }})".format(ctrl_node_name, props_stm))
-            elif  "CacheVault" in controller and controller["CacheVault"]:
+                query.append("CREATE ({})-[:HAS_BBU]->(bbu:BBU {{ {} }})".format(ctrl_node, props_stm))
+            elif "CacheVault" in controller and controller["CacheVault"]:
                 props_stm = qh.get_props_stm(
                     controller["CacheVault"], 
                     supported_attr=["Model", "SerialNumber", "Type", "ReplacementNeeded", "State", "DesignCapacity"]
                 )
                 query.append(
-                    "CREATE ({})-[:HAS_CACHEVAULT]->(cache:CacheVault {{ {} }})".format(ctrl_node_name, props_stm)
+                    "CREATE ({})-[:HAS_CACHEVAULT]->(cache:CacheVault {{ {} }})".format(ctrl_node, props_stm)
                 )
+
+            # Add physical drives
+            for phys_drive in controller['PD']:
+
+                pd_node = 'pd'+str(phys_drive["DID"])
+                s_attr = [
+                    "EID", "DID", "State", "DG", "Size",
+                    "Intf", "Med", "SED", "PI", "SeSz",
+                    "Model", "Sp", "Type", "PDC"
+                ]
+
+                props_stm = qh.get_props_stm(phys_drive, supported_attr=s_attr)
+
+                query.append(
+                    "CREATE ({})-[:HAS_PHYSICAL_DRIVE]->({}:PhysicalDrive {{ {} }})"
+                    .format(ctrl_node, pd_node, props_stm)
+                )
+
+            for vidx, virt_drive in enumerate(controller['VD']):
+                vd_node = 'vd'+str(vidx)
+
+                s_attr = ["Type", "State", "Access", "Consist", "sCC", "Size"]
+                props_stm = qh.get_props_stm(virt_drive, supported_attr=s_attr)
+
+                query.append(
+                    "CREATE ({})-[:HAS_VIRTUAL_DRIVE]->({}:VirtuallDrive {{ {} }})"
+                    .format(ctrl_node, vd_node, props_stm)
+                )
+
+                # connect PDs & VDs
+                for pidx in virt_drive["DID"]:
+                    
+                    query.append(
+                        "CREATE ({})<-[:BELONGS_TO_VIRTUAL_SPACE]-(pd{})"
+                        .format(vd_node, pidx)
+                    )
 
         print("\n".join(query))
         session.run("\n".join(query))
