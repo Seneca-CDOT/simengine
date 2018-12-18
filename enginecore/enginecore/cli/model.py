@@ -57,7 +57,10 @@ def model_command(asset_group):
     power_asset_action.add_argument(
         '-s', '--source-key', type=int, required=True, help="Key of an asset that POWERS dest. asset"
     )
-    power_asset_action.add_argument('-d', '--dest-key', type=int, required=True, help="Key of an powered by the source-key")
+    power_asset_action.add_argument(
+        '-d', '--dest-key', type=int, required=True, help="Key of the asset powered by the source-key"
+    )
+
     power_asset_action.add_argument('-r', '--remove', action='store_true', help="Delete power conneciton if exists")
 
     reload_asset_action.set_defaults(
@@ -366,7 +369,15 @@ def create_command(create_asset_group):
     create_server_bmc_action.add_argument(
         '--sensor-def', 
         type=str,
-        help="File containing sensor definitions (defaults to presets.json file in enginecore/enginecore/model/presets)"
+        help="File containing sensor definitions (defaults to sensors.json file in enginecore/enginecore/model/presets)"
+    )
+
+    create_server_bmc_action.add_argument(
+        '--storage-def', 
+        type=str,
+        help="""File containing storage definitions 
+        (defaults to storage.json file in enginecore/enginecore/model/presets)
+        """
     )
 
     ## STATIC 

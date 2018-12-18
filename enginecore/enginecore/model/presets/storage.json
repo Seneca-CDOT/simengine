@@ -1,3 +1,162 @@
 {
-    "controllers": 1
+    
+    "CLIVersion": " 007.0606.0000.0000 Mar 20, 2018",
+    "OperatingSystem": "Linux 2.6.32-754.6.3.el6.x86_64",
+    "controllers": [
+        {   
+            "Model": "RAID Ctrl SAS 6G 1GB (D3116C)",
+            "SerialNumber": "0000000043113622",
+            "SASAddress": "50030057013c6550",
+            "PCIAddress": "00:01:00:00",
+            "MfgDate": "00/00/00",
+            "ReworkDate": "00/00/00",
+
+            "CacheVault": {
+                "Model": "CVPM02",
+                "State": "Optimal",
+                "MfgDate": "2013/10/25"
+            },
+            "BBU": {},
+            "VD": [
+                {
+                    "Type": "RAID6",
+                    "State": "Optl",
+                    "Access": "RW",
+                    "Consist": "Yes",
+                    "sCC": "OFF",
+                    "Size": 817.312
+                }
+            ],
+            "PD": [
+                {
+                    "EID": 252,
+                    "DID": 9,
+                    "State": "Onln",
+                    "DG": 0,
+                    "Size": "136.218",
+                    "Intf": "SAS",
+                    "Med": "HDD",
+                    "SED": "N",
+                    "PI": "N",
+                    "SeSz": "512B",
+                    "Model": "MK1401GRRB",
+                    "Sp": "U",
+                    "Type": "-",
+                    "PDC": "dsbl"
+                },
+                {
+                    "EID": 252,
+                    "DID": 10,
+                    "State": "Onln",
+                    "DG": 0,
+                    "Size": "136.218",
+                    "Intf": "SAS",
+                    "Med": "HDD",
+                    "SED": "N",
+                    "PI": "N",
+                    "SeSz": "512B",
+                    "Model": "MK1401GRRB",
+                    "Sp": "U",
+                    "Type": "-",
+                    "PDC": "dsbl"
+                },
+                {
+                    "EID": 252,
+                    "DID": 8,
+                    "State": "Onln",
+                    "DG": 0,
+                    "Size": "136.218",
+                    "Intf": "SAS",
+                    "Med": "HDD",
+                    "SED": "N",
+                    "PI": "N",
+                    "SeSz": "512B",
+                    "Model": "MK1401GRRB",
+                    "Sp": "U",
+                    "Type": "-",
+                    "PDC": "dsbl"
+                },
+                {
+                    "EID": 252,
+                    "DID": 7,
+                    "State": "Onln",
+                    "DG": 0,
+                    "Size": "136.218",
+                    "Intf": "SAS",
+                    "Med": "HDD",
+                    "SED": "N",
+                    "PI": "N",
+                    "SeSz": "512B",
+                    "Model": "MK1401GRRB",
+                    "Sp": "U",
+                    "Type": "-",
+                    "PDC": "dsbl"
+                },
+                {
+                    "EID": 252,
+                    "DID": 11,
+                    "State": "Onln",
+                    "DG": 0,
+                    "Size": "136.218",
+                    "Intf": "SAS",
+                    "Med": "HDD",
+                    "SED": "N",
+                    "PI": "N",
+                    "SeSz": "512B",
+                    "Model": "MK1401GRRB",
+                    "Sp": "U",
+                    "Type": "-",
+                    "PDC": "dsbl"
+                },
+                {
+                    "EID": 252,
+                    "DID": 14,
+                    "State": "Onln",
+                    "DG": 0,
+                    "Size": "136.218",
+                    "Intf": "SAS",
+                    "Med": "HDD",
+                    "SED": "N",
+                    "PI": "N",
+                    "SeSz": "512B",
+                    "Model": "MK1401GRRB",
+                    "Sp": "U",
+                    "Type": "-",
+                    "PDC": "dsbl"
+                },
+                {
+                    "EID": 252,
+                    "DID": 12,
+                    "State": "Onln",
+                    "DG": 0,
+                    "Size": "136.218",
+                    "Intf": "SAS",
+                    "Med": "HDD",
+                    "SED": "N",
+                    "PI": "N",
+                    "SeSz": "512B",
+                    "Model": "MK1401GRRB",
+                    "Sp": "U",
+                    "Type": "-",
+                    "PDC": "dsbl"
+                },
+                {
+                    "EID": 252,
+                    "DID": 13,
+                    "State": "Onln",
+                    "DG": 0,
+                    "Size": "136.218",
+                    "Intf": "SAS",
+                    "Med": "HDD",
+                    "SED": "N",
+                    "PI": "N",
+                    "SeSz": "512B",
+                    "Model": "MK1401GRRB",
+                    "Sp": "U",
+                    "Type": "-",
+                    "PDC": "dsbl"
+                }
+            ]
+        }
+    ]
 }

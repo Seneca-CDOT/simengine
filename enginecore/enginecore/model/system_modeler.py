@@ -19,6 +19,7 @@ SIMENGINE_NODE_LABELS = []
 SIMENGINE_NODE_LABELS.extend(["Asset", "StageLayout", "SystemEnvironment", "EnvProp"])
 SIMENGINE_NODE_LABELS.extend(["OID", "OIDDesc", "Sensor", "AddressSpace"])
 SIMENGINE_NODE_LABELS.extend(["CPU", "Battery"])
+SIMENGINE_NODE_LABELS.extend(["Controller", "Storcli", "BBU", "CacheVault"])
 
 
 def _add_psu(key, psu_index, attr):
@@ -162,7 +163,7 @@ IPMI_LAN_DEFAULTS = {
 }
     
 
-def _add_sensors(asset_key, preset_file=os.path.join(os.path.dirname(__file__), 'presets/sensors.json')):
+def _add_sensors(asset_key, preset_file):
     """Add sensors based on a preset file"""
 
     with open(preset_file) as preset_handler, GRAPH_REF.get_session() as session:        
@@ -222,6 +223,46 @@ def _add_sensors(asset_key, preset_file=os.path.join(os.path.dirname(__file__), 
         # print("\n".join(query))
         session.run("\n".join(query))
 
+def _add_storage(asset_key, preset_file):
+    
+    with open(preset_file) as preset_handler, GRAPH_REF.get_session() as session:        
+        query = []
+
+        query.append("MATCH (server:Asset {{ key: {} }})".format(asset_key))
+        data = json.load(preset_handler)
+        
+        props_stm = qh.get_props_stm(data, supported_attr=["OperatingSystem", "CLIVersion"])
+        query.append("CREATE (server)-[:SUPPORTS_STORCLI]->(storage:Storcli {{ {} }})".format(props_stm))
+
+        for idx, controller in enumerate(data['controllers']):
+            
+            props_stm = qh.get_props_stm(
+                controller, supported_attr=["Model", "SerialNumber", "SASAddress", "PCIAddress", "MfgDate", "ReworkDate"]
+            )
+
+            ctrl_node_name = 'ctrl'+str(idx)
+            query.append(
+                "CREATE (server)-[:HAS_CONTROLLER]->({}:Controller {{ {} }})".format(ctrl_node_name, props_stm)
+            )
+
+            # BBU or CacheVault
+            if "BBU" in controller and controller["BBU"]:
+                props_stm = qh.get_props_stm(
+                    controller["BBU"], 
+                    supported_attr=["Model", "SerialNumber", "Type", "ReplacementNeeded", "State", "DesignCapacity"]
+                )
+                query.append("CREATE ({})-[:HAS_BBU]->(bbu:BBU {{ {} }})".format(ctrl_node_name, props_stm))
+            elif  "CacheVault" in controller and controller["CacheVault"]:
+                props_stm = qh.get_props_stm(
+                    controller["CacheVault"], 
+                    supported_attr=["Model", "SerialNumber", "Type", "ReplacementNeeded", "State", "DesignCapacity"]
+                )
+                query.append(
+                    "CREATE ({})-[:HAS_CACHEVAULT]->(cache:CacheVault {{ {} }})".format(ctrl_node_name, props_stm)
+                )
+
+        print("\n".join(query))
+        session.run("\n".join(query))
 
 def create_server(key, attr, server_variation=ServerVariations.Server):
     """Create a simulated server """
@@ -271,8 +312,14 @@ def create_server(key, attr, server_variation=ServerVariations.Server):
                 sensor_file = os.path.expanduser(attr['sensor_def'])
             else:
                 sensor_file = os.path.join(os.path.dirname(__file__), 'presets/sensors.json')
+
+            if 'storage_def' in attr and attr['storage_def']:
+                storage_file = os.path.expanduser(attr['storage_def'])
+            else:
+                storage_file = os.path.join(os.path.dirname(__file__), 'presets/storage.json')
            
             _add_sensors(key, sensor_file)
+            _add_storage(key, storage_file)
 
         # add PSUs to the model
         for i in range(attr['psu_num']):
