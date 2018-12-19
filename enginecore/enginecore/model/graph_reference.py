@@ -591,3 +591,28 @@ class GraphReference():
         query.append('SET {}'.format(set_stm))
 
         session.run("\n".join(query))
+
+    
+    @classmethod
+    def set_controller_prop(cls, session, server_key, controller, properties):
+        """Update controller state
+        Args:
+            session:  database session
+            server_key(int): key of the server controller belongs to
+            controller(int): controller number
+            properties(dict): e.g. 'media_error_count', 'other_error_count', 'predictive_error_count' or 'state'
+        """
+        query = []
+
+        s_attr = ['memory_correctable_errors', 'memory_uncorrectable_errors', 'alarm_state']
+
+        # query as (server)->(storage_controller)
+        query.append("MATCH (server:Asset {{ key: {} }})".format(server_key))
+        query.append("MATCH (server)-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})".format(controller))
+
+        set_stm = qh.get_set_stm(properties, node_name="ctrl", supported_attr=s_attr)
+        query.append('SET {}'.format(set_stm))
+
+        session.run("\n".join(query))
+
+    

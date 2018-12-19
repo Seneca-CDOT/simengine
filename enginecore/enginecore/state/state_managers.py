@@ -891,10 +891,17 @@ class BMCServerStateManager(ServerStateManager):
             return GraphReference.get_thermal_cpu_details(session, asset_key)
 
     @classmethod
-    def set_physical_drive_prop(cls, asset_key, controller, pid, properties):
+    def set_physical_drive_prop(cls, asset_key, controller, did, properties):
         graph_ref = GraphReference()
         with graph_ref.get_session() as session:
-            return GraphReference.set_physical_drive_prop(session, asset_key, controller, pid, properties)
+            return GraphReference.set_physical_drive_prop(session, asset_key, controller, did, properties)
+
+
+    @classmethod
+    def set_controller_prop(cls, asset_key, controller, properties):
+        graph_ref = GraphReference()
+        with graph_ref.get_session() as session:
+            return GraphReference.set_controller_prop(session, asset_key, controller, properties)
 
 
 class SimplePSUStateManager(StateManager):

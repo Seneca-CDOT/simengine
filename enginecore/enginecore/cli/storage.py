@@ -103,9 +103,8 @@ def controller_command(ctrl_group):
         '-a', '--alarm-state', help="Controller alarm state", choices=["missing", "off", "on"], required=False
     )
 
-    # set_ctrl_action.set_defaults(
-    #     func=lambda args: BMCServerStateManager.set_physical_drive_prop(
-    #         args['asset_key'], args['controller'], args
-    #     )
-    # )
-
+    set_ctrl_action.set_defaults(
+        func=lambda args: BMCServerStateManager.set_controller_prop(
+            args['asset_key'], args['controller'], args
+        )
+    )
