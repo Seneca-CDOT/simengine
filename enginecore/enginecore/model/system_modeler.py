@@ -236,10 +236,10 @@ def _add_storage(asset_key, preset_file):
 
         for idx, controller in enumerate(data['controllers']):
             
+            s_attr = ["controllerNum", "model", "serialNumber", "SASAddress", "PCIAddress", "mfgDate", "reworkDate"]
             props_stm = qh.get_props_stm(
-                controller,
-                
-                supported_attr=["model", "serialNumber", "SASAddress", "PCIAddress", "mfgDate", "reworkDate"]
+                {**controller, **{"controllerNum": idx}},
+                supported_attr=s_attr
             )
 
             ctrl_node = 'ctrl'+str(idx)
@@ -264,20 +264,23 @@ def _add_storage(asset_key, preset_file):
                 )
 
             # Add physical drives
-            for phys_drive in controller['PD']:
+            for pidx, phys_drive in enumerate(controller['PD']):
 
-                pd_node = 'pd'+str(phys_drive["DID"])
+                pd_node = 'pd'+str(phys_drive["DID"]) 
 
                 # define supported attributes
                 s_attr = [
                     "EID", "DID", "state", "DG", "size",
                     "intf", "med", "SED", "PI", "seSz",
-                    "model", "sp", "type", "PDC",
-                    'mediaErrorCount', 'otherErrorCount', 'predictiveErrorCount'
+                    "model", "sp", "type", "PDC", "slotNum",
+                    "mediaErrorCount", "otherErrorCount", "predictiveErrorCount"
                 ]
 
                 props_stm = qh.get_props_stm(
-                    {**phys_drive, **{'mediaErrorCount': 0, 'otherErrorCount': 0, 'predictiveErrorCount': 0}}, 
+                    {   
+                        **phys_drive, 
+                        **{'slotNum': pidx, 'mediaErrorCount': 0, 'otherErrorCount': 0, 'predictiveErrorCount': 0}
+                    }, 
                     supported_attr=s_attr
                 )
 
