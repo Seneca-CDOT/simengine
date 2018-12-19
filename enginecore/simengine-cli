@@ -9,6 +9,7 @@ from enginecore.cli.power import power_command
 from enginecore.cli.thermal import thermal_command
 from enginecore.cli.configure_state import configure_command
 from enginecore.cli.model import model_command
+from enginecore.cli.storage import storage_command
 
 
 ################ Define Command line options & arguments
@@ -29,6 +30,9 @@ power_command(
 )
 thermal_command(
     subparsers.add_parser('thermal', help="Manage temperature/thermal settings of the system")
+)
+storage_command(
+    subparsers.add_parser('storage', help="Manage storage state of the system")
 )
 configure_command(
     subparsers.add_parser('configure-state', help="Update runtime state of the assets/sensors")

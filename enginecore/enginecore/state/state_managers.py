@@ -890,6 +890,12 @@ class BMCServerStateManager(ServerStateManager):
         with graph_ref.get_session() as session:
             return GraphReference.get_thermal_cpu_details(session, asset_key)
 
+    @classmethod
+    def set_physical_drive_prop(cls, asset_key, controller, pid, properties):
+        graph_ref = GraphReference()
+        with graph_ref.get_session() as session:
+            return GraphReference.set_physical_drive_prop(session, asset_key, controller, pid, properties)
+
 
 class SimplePSUStateManager(StateManager):
     def __init__(self, asset_info, notify=False):

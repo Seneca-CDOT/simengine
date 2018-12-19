@@ -567,3 +567,27 @@ class GraphReference():
         
         return th_cpu_details
     
+
+    @classmethod
+    def set_physical_drive_prop(cls, session, server_key, controller, did, properties):
+        """Update physical drive properties (such as error counts or state)
+        Args:
+            session:  database session
+            server_key(int): key of the server physical drive belongs to
+            controller(int): controller number
+            did(int): drive id 
+            properties(dict): e.g. 'media_error_count', 'other_error_count', 'predictive_error_count' or 'state'
+        """
+        query = []
+
+        s_attr = ['media_error_count', 'other_error_count', 'predictive_error_count', 'state']
+
+        # query as (server)->(storage_controller)->(physical drive)
+        query.append("MATCH (server:Asset {{ key: {} }})".format(server_key))
+        query.append("MATCH (server)-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})".format(controller))
+        query.append("MATCH (ctrl)-[:HAS_PHYSICAL_DRIVE]->(pd:PhysicalDrive {{ DID: {} }})".format(did))
+
+        set_stm = qh.get_set_stm(properties, node_name="pd", supported_attr=s_attr)
+        query.append('SET {}'.format(set_stm))
+
+        session.run("\n".join(query))
