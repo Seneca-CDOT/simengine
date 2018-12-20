@@ -633,3 +633,50 @@ class GraphReference():
 
         record = results.single()
         return dict(record.get('cli')) if record else None
+
+
+    @classmethod
+    def get_controller_details(cls, session, server_key, controller):
+        """Query controller specs
+        Args:
+            session:  database session
+            server_key(int): key of the server controller belongs to
+            controller(int): controller number
+        Returns:
+            dict: controller information 
+        """
+
+        results = session.run( 
+            """
+            MATCH (:Asset { key: $key })-[:HAS_CONTROLLER]->(ctrl:Controller {controllerNum: $ctrl_num}) 
+            RETURN ctrl
+            """,
+            key=server_key,
+            ctrl_num=controller
+        )
+
+
+        record = results.single()
+        print(record)
+        return dict(record.get('ctrl')) if record else None
+
+
+    @classmethod
+    def get_controller_count(cls, session, server_key):
+        """Get number of controllers per server
+        Args:
+            session:  database session
+            server_key(int): key of the server controller belongs to
+        Returns:
+            int: controller count
+        """
+
+        results = session.run( 
+            """
+            MATCH (:Asset { key: $key })-[:HAS_CONTROLLER]->(ctrl:Controller) RETURN count(ctrl) as ctrl_count
+            """,
+            key=server_key
+        )
+
+        record = results.single()
+        return int(record.get('ctrl_count')) if record else None

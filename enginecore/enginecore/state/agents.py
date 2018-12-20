@@ -23,6 +23,7 @@ class StorCLIEmulator():
     def __init__(self, asset_key, server_dir):
         
         self._graph_ref = GraphReference()
+        self._server_key = asset_key
         
         with self._graph_ref.get_session() as session:
             self._storcli_details = GraphReference.get_storcli_details(session, asset_key)
@@ -57,11 +58,14 @@ class StorCLIEmulator():
 
 
     def _strcli_ctrlcount(self):
-        with open(os.path.join(self._storcli_dir, 'adapter_count')) as templ_h:
+        """Number of adapters per server """
+
+        template_f_path = os.path.join(self._storcli_dir, 'adapter_count')
+        with open(template_f_path) as templ_h, self._graph_ref.get_session() as session:
 
             options = {
                 'header': self._strcli_header(),
-                'ctrl_count': 1
+                'ctrl_count': GraphReference.get_controller_count(session, self._server_key)
             }
 
             template = Template(templ_h.read())
@@ -81,15 +85,21 @@ class StorCLIEmulator():
 
 
     def _strcli_ctrl_alarm_state(self, controller_num):
-        with open(os.path.join(self._storcli_dir, 'alarm_state')) as templ_h:
-         
+        """Get controller alarm state"""
+
+        alarm_state_f_path = os.path.join(self._storcli_dir, 'alarm_state')
+        with open(alarm_state_f_path) as templ_h, self._graph_ref.get_session() as session:
+            
+            ctrl_info = GraphReference.get_controller_details(session, self._server_key, controller_num)
+            
             options = {
                 'header': self._strcli_header(controller_num),
-                'alarm_state': 'OFF'
+                'alarm_state': ctrl_info['alarmState']
             }
 
             template = Template(templ_h.read())
             return template.substitute(options)
+
 
     def _strcli_ctrl_bbu(self, controller_num):
         with open(os.path.join(self._storcli_dir, 'bbu_data')) as templ_h:
@@ -227,6 +237,8 @@ class StorCLIEmulator():
                         reply['stdout'] = self._strcli_rebuild_rate(argv[1][-1])
                     elif argv[2] == "show" and argv[3] == "prrate":
                         reply['stdout'] = self._strcli_pr_rate(argv[1][-1])
+                    elif argv[2] == "show" and argv[3] == "alarm":
+                        reply['stdout'] = self._strcli_ctrl_alarm_state(argv[1][-1])
                     elif argv[2] == "show" and argv[3] == "all":
                         reply['stdout'] = self._strcli_ctrl_info(argv[1][-1])
 
