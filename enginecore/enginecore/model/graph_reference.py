@@ -616,3 +616,20 @@ class GraphReference():
         session.run("\n".join(query))
 
     
+    @classmethod
+    def get_storcli_details(cls, session, server_key):
+        """
+        Args:
+            session:  database session
+            server_key(int): key of the server controller belongs to
+        """
+
+        results = session.run( 
+            """
+            MATCH (:Asset { key: $key })-[:SUPPORTS_STORCLI]->(cli) RETURN cli
+            """,
+            key=server_key
+        )
+
+        record = results.single()
+        return dict(record.get('cli')) if record else None

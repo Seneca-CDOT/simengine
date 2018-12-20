@@ -16,16 +16,21 @@ import threading
 import stat
 from string import Template
 
+from enginecore.model.graph_reference import GraphReference
 
 class StorCLIEmulator():
     
     def __init__(self, asset_key, server_dir):
         
+        self._graph_ref = GraphReference()
+        
+        with self._graph_ref.get_session() as session:
+            self._storcli_details = GraphReference.get_storcli_details(session, asset_key)
+
         self._storcli_dir = os.path.join(server_dir, "storcli")
-    
+
         os.makedirs(self._storcli_dir)
         dir_util.copy_tree(os.environ.get('SIMENGINE_STORCLI_TEMPL'), self._storcli_dir)
-
 
         self._socket_t = threading.Thread(
             target=self._listen_cmds,
@@ -36,12 +41,12 @@ class StorCLIEmulator():
         self._socket_t.start()
 
 
-    def _strcli_header(self, ctrl_num=0):
+    def _strcli_header(self, ctrl_num=0, status='Success'):
         with open(os.path.join(self._storcli_dir, 'header')) as templ_h:
             options = {
-                'cli_version': '007.0606.0000.0000 Mar 20, 2018',
-                'op_sys': 'Linux 2.6.32-754.6.3.el6.x86_64',
-                'status': 'Success',
+                'cli_version': self._storcli_details['CLIVersion'],
+                'op_sys': self._storcli_details['operatingSystem'],
+                'status': status,
                 'description': 'None',
                 'controller_line': 'Controller = {}\n'.format(ctrl_num) if ctrl_num else ''
             }
