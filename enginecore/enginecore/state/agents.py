@@ -181,8 +181,13 @@ class StorCLIEmulator():
         
 
     def _strcli_ctrl_virt_disk(self, controller_num):
-        with open(os.path.join(self._storcli_dir, 'virtual_drive_data')) as templ_h:
-         
+
+        vd_file = os.path.join(self._storcli_dir, 'virtual_drive_data')
+        with open(vd_file) as templ_h, self._graph_ref.get_session() as session:
+            
+            vd_details = GraphReference.get_virtual_drive_details(session, self._server_key, controller_num)
+            print('\n---------\n')
+            print(vd_details)
             options = {
                 'header': self._strcli_header(controller_num),
             }

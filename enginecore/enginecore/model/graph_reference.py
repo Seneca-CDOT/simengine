@@ -649,7 +649,7 @@ class GraphReference():
         query = "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }}) RETURN ctrl"
         results = session.run(query.format(server_key, controller))
         record = results.single()
-        
+
         return dict(record.get('ctrl')) if record else None
 
 
@@ -672,3 +672,35 @@ class GraphReference():
 
         record = results.single()
         return int(record.get('ctrl_count')) if record else None
+
+
+    @classmethod 
+    def get_virtual_drive_details(cls, session, server_key, controller):
+        """Get virtual drive details
+        Args:
+            session:  database session
+            server_key(int): key of the server controller belongs to
+            controller(int): controller number of VDs
+        Returns:
+            list: virtual drives
+        """
+
+        query = []
+        query.append(
+            "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})"
+            .format(server_key, controller)
+        )
+        query.append("MATCH (ctrl)-[:HAS_VIRTUAL_DRIVE]->(vd:VirtualDrive)")
+        query.append("RETURN vd ORDER BY vd.vdNum ASC")
+        
+        print("\n".join(query))
+        results = session.run("\n".join(query))        
+
+        vd_details = [dict(r.get('vd')) for r in results]
+        # for record in results:
+        #     sensor = dict(record.get('vd'))
+        #     vd_details.append({
+        #         'sensor': sensor, 'rel': dict(record.get('rel'))
+        #     })
+        print(vd_details)
+        return vd_details

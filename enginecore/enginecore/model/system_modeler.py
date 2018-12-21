@@ -19,7 +19,7 @@ SIMENGINE_NODE_LABELS = []
 SIMENGINE_NODE_LABELS.extend(["Asset", "StageLayout", "SystemEnvironment", "EnvProp"])
 SIMENGINE_NODE_LABELS.extend(["OID", "OIDDesc", "Sensor", "AddressSpace"])
 SIMENGINE_NODE_LABELS.extend(["CPU", "Battery"])
-SIMENGINE_NODE_LABELS.extend(["Controller", "Storcli", "BBU", "CacheVault", "VirtuallDrive", "PhysicalDrive"])
+SIMENGINE_NODE_LABELS.extend(["Controller", "Storcli", "BBU", "CacheVault", "VirtualDrive", "PhysicalDrive"])
 
 
 def _add_psu(key, psu_index, attr):
@@ -301,11 +301,11 @@ def _add_storage(asset_key, preset_file):
             for vidx, virt_drive in enumerate(controller['VD']):
                 vd_node = 'vd'+str(vidx)
 
-                s_attr = ["type", "state", "access", "consist", "sCC", "size"]
-                props_stm = qh.get_props_stm(virt_drive, supported_attr=s_attr)
+                s_attr = ["type", "state", "access", "consist", "sCC", "size", "vdNum"]
+                props_stm = qh.get_props_stm({**virt_drive, **{'vdNum': vidx}}, supported_attr=s_attr)
 
                 query.append(
-                    "CREATE ({})-[:HAS_VIRTUAL_DRIVE]->({}:VirtuallDrive {{ {} }})"
+                    "CREATE ({})-[:HAS_VIRTUAL_DRIVE]->({}:VirtualDrive {{ {} }})"
                     .format(ctrl_node, vd_node, props_stm)
                 )
 
