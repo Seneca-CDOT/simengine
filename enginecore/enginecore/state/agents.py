@@ -119,10 +119,10 @@ class StorCLIEmulator():
 
 
     def _get_rate_prop(self, controller_num, rate_type):
-        """Get controller rate property """
+        """Get controller rate property (rate type matches rate template file and the rate template value)"""
 
-        alarm_state_f_path = os.path.join(self._storcli_dir, rate_type)
-        with open(alarm_state_f_path) as templ_h, self._graph_ref.get_session() as session:
+        rate_file = os.path.join(self._storcli_dir, rate_type)
+        with open(rate_file) as templ_h, self._graph_ref.get_session() as session:
             
             ctrl_info = GraphReference.get_controller_details(session, self._server_key, controller_num)
 
@@ -135,11 +135,38 @@ class StorCLIEmulator():
         
 
     def _strcli_ctrl_info(self, controller_num):
-        with open(os.path.join(self._storcli_dir, 'controller_info')) as templ_h:
-         
-            options = {}
-            template = Template(templ_h.read())
-            return template.substitute(options)
+        ctrl_info_f = os.path.join(self._storcli_dir, 'controller_info')
+        ctrl_entry_f = os.path.join(self._storcli_dir, 'controller_entry')
+
+        with open(ctrl_info_f) as info_h, open(ctrl_entry_f) as entry_h, self._graph_ref.get_session() as session:
+            
+            ctrl_info = GraphReference.get_controller_details(session, self._server_key, controller_num)
+
+            ctrl_info_templ_keys = [
+                'serial_number', 'model', 'serial_number', 'mfg_date',
+                'SAS_address', 'PCI_address', 'rework_date',
+                'memory_correctable_errors', 'memory_uncorrectable_errors',
+                'rebuild_rate', 'pr_rate', 'bgi_rate', 'cc_rate'
+            ]
+            
+
+            entry_options = {
+                'controller_num': controller_num,
+                'controller_date': '',
+                'system_date': '',
+                'status': 'Optimal',
+            }
+
+            for key in ctrl_info_templ_keys:
+                entry_options[key] = ctrl_info[to_camelcase(key)]
+
+            info_options = {
+                'header': self._strcli_header(controller_num),
+                'controller_entry': Template(entry_h.read()).substitute(entry_options)
+            }
+
+            info_template = Template(info_h.read())
+            return info_template.substitute(info_options)
 
 
     def _strcli_ctrl_cachevault(self, controller_num):
