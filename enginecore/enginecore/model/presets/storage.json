@@ -10,6 +10,10 @@
             "PCIAddress": "00:01:00:00",
             "mfgDate": "00/00/00",
             "reworkDate": "00/00/00",
+            "bgiRate": 30,
+            "prRate": 20,
+            "rebuildRate": 30,
+            "ccRate": 30,
 
             "CacheVault": {
                 "model": "CVPM02",

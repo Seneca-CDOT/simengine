@@ -17,6 +17,7 @@ import stat
 from string import Template
 
 from enginecore.model.graph_reference import GraphReference
+from enginecore.model.query_helpers import to_camelcase
 
 class StorCLIEmulator():
     
@@ -117,51 +118,21 @@ class StorCLIEmulator():
             return template.substitute(options)
 
 
-    def _strcli_bgi_rate(self, controller_num):
-        with open(os.path.join(self._storcli_dir, 'bgi_rate')) as templ_h:
-         
-            options = {
-                'header': self._strcli_header(controller_num),
-                'bgi_rate': 30
-            }
+    def _get_rate_prop(self, controller_num, rate_type):
+        """Get controller rate property """
+
+        alarm_state_f_path = os.path.join(self._storcli_dir, rate_type)
+        with open(alarm_state_f_path) as templ_h, self._graph_ref.get_session() as session:
+            
+            ctrl_info = GraphReference.get_controller_details(session, self._server_key, controller_num)
+
+            options = {}
+            options['header'] = self._strcli_header(controller_num)
+            options[rate_type] = ctrl_info[to_camelcase(rate_type)]
 
             template = Template(templ_h.read())
             return template.substitute(options)
-
-
-    def _strcli_cc_rate(self, controller_num):
-        with open(os.path.join(self._storcli_dir, 'cc_rate')) as templ_h:
-         
-            options = {
-                'header': self._strcli_header(controller_num),
-                'cc_rate': 30
-            }
-
-            template = Template(templ_h.read())
-            return template.substitute(options)
-
-
-    def _strcli_rebuild_rate(self, controller_num):
-        with open(os.path.join(self._storcli_dir, 'rebuild_rate')) as templ_h:
-         
-            options = {
-                'header': self._strcli_header(controller_num),
-                'rebuild_rate': 30
-            }
-
-            template = Template(templ_h.read())
-            return template.substitute(options)
-
-    def _strcli_pr_rate(self, controller_num):
-        with open(os.path.join(self._storcli_dir, 'pr_rate')) as templ_h:
-         
-            options = {
-                'header': self._strcli_header(controller_num),
-                'pr_rate': 20
-            }
-
-            template = Template(templ_h.read())
-            return template.substitute(options)
+        
 
     def _strcli_ctrl_info(self, controller_num):
         with open(os.path.join(self._storcli_dir, 'controller_info')) as templ_h:
@@ -230,13 +201,13 @@ class StorCLIEmulator():
                     if argv[2] == "show" and argv[3] == "perfmode":
                         reply['stdout'] = self._strcli_ctrl_perf_mode(argv[1][-1])
                     elif argv[2] == "show" and argv[3] == "bgirate":
-                        reply['stdout'] = self._strcli_bgi_rate(argv[1][-1])
+                        reply['stdout'] = self._get_rate_prop(argv[1][-1], 'bgi_rate')
                     elif argv[2] == "show" and argv[3] == "ccrate":
-                        reply['stdout'] = self._strcli_cc_rate(argv[1][-1])
+                        reply['stdout'] = self._get_rate_prop(argv[1][-1], 'cc_rate')
                     elif argv[2] == "show" and argv[3] == "rebuildrate":
-                        reply['stdout'] = self._strcli_rebuild_rate(argv[1][-1])
+                        reply['stdout'] = self._get_rate_prop(argv[1][-1], 'rebuild_rate')
                     elif argv[2] == "show" and argv[3] == "prrate":
-                        reply['stdout'] = self._strcli_pr_rate(argv[1][-1])
+                        reply['stdout'] = self._get_rate_prop(argv[1][-1], 'pr_rate')
                     elif argv[2] == "show" and argv[3] == "alarm":
                         reply['stdout'] = self._strcli_ctrl_alarm_state(argv[1][-1])
                     elif argv[2] == "show" and argv[3] == "all":

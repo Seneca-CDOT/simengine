@@ -239,7 +239,8 @@ def _add_storage(asset_key, preset_file):
             s_attr = [
                 "controllerNum", "model", "serialNumber", 
                 "SASAddress", "PCIAddress", "mfgDate", "reworkDate",
-                'memoryCorrectable_errors', 'memoryUncorrectable_errors', 'alarmState'   
+                'memoryCorrectable_errors', 'memoryUncorrectable_errors', 'alarmState',
+                "bgiRate", "prRate", "rebuildRate", "ccRate"
             ]
 
             default_ctr_prop = {
