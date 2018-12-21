@@ -646,18 +646,10 @@ class GraphReference():
             dict: controller information 
         """
 
-        results = session.run( 
-            """
-            MATCH (:Asset { key: $key })-[:HAS_CONTROLLER]->(ctrl:Controller {controllerNum: $ctrl_num}) 
-            RETURN ctrl
-            """,
-            key=server_key,
-            ctrl_num=controller
-        )
-
-
+        query = "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }}) RETURN ctrl"
+        results = session.run(query.format(server_key, controller))
         record = results.single()
-        print(record)
+        
         return dict(record.get('ctrl')) if record else None
 
 
