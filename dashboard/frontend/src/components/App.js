@@ -12,7 +12,7 @@ import { Server, Pdu, Ups, Socket, Lamp } from './Assets';
 
 // Text & info boxes
 import AssetDetails from './AssetDetails';
-import TopNav from './TopNav';
+import TopNav from './Navigation/TopNav';
 
 // few helpers
 import { onWheelScroll, onWheelDown } from './canvasEvents';
@@ -328,7 +328,7 @@ const drawerWidth = 240;
         x={asset.x}
         y={asset.y}
       />
-    )
+    );
   }
 
 
