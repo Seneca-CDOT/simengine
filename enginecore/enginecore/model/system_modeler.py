@@ -279,9 +279,9 @@ def _add_storage(asset_key, preset_file):
 
                 # define supported attributes
                 s_attr = [
-                    "EID", "DID", "state", "DG", "size",
-                    "intf", "med", "SED", "PI", "seSz",
-                    "model", "sp", "type", "PDC", "slotNum",
+                    "EID", "DID", "State", "DG", "Size",
+                    "Intf", "Med", "SED", "PI", "SeSz",
+                    "Model", "Sp", "Type", "PDC", "slotNum",
                     "mediaErrorCount", "otherErrorCount", "predictiveErrorCount"
                 ]
 

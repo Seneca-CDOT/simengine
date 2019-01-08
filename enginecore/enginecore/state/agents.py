@@ -222,9 +222,6 @@ class StorCLIEmulator():
             vd_output = []
             template = Template(templ_h.read())
 
-            print('\n---------\n')
-            print(vd_details)
-
             options = {
                 'controller': controller_num,
                 'virtual_drives_num': 0,
@@ -232,19 +229,30 @@ class StorCLIEmulator():
                 'virtual_drives': '-'
             }
 
-            for i, vd in enumerate(vd_details):
+            for i, v_drive in enumerate(vd_details):
                 options['virtual_drives_num'] = i
 
-                
-                vd['DG/VD'] = '0/' + str(i)
-                vd['Size'] = str(vd['Size']) + ' GB'
+                # Add Virtual Drive output
+                v_drive['DG/VD'] = '0/' + str(i)
+                v_drive['Size'] = str(v_drive['Size']) + ' GB'
 
-    
                 options['virtual_drives'] = self._format_as_table(
                     ["DG/VD", "TYPE", "State", "Access", "Consist", "Cache", "Cac", "sCC", "Size", "Name"], 
-                    [vd]
+                    [v_drive]
                 )
 
+                # Add physical drive output
+                for p_drive in v_drive['pd']:
+                    p_drive['EID:Slt'] = '{}:{}'.format(p_drive['EID'], p_drive['slotNum'])
+                    p_drive['Size'] = str(p_drive['Size']) + ' GB'
+                
+                p_header = [
+                    "EID:Slt", "DID", "State", "DG", "Size", "Intf", "Med", "SED", "PI", "SeSz", "Model", "Sp", "Type"
+                ]
+
+                options['physical_drives'] = self._format_as_table(p_header, v_drive['pd'])
+
+                # format templated file
                 vd_output.append(template.substitute(options))
 
             return self._strcli_header(controller_num) + '\n' + '\n'.join(vd_output)

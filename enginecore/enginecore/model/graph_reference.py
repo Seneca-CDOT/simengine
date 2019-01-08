@@ -697,9 +697,7 @@ class GraphReference():
         query.append("ORDER BY pd.slotNum ASC")
         query.append("RETURN vd, collect(pd) as pd ORDER BY vd.vdNum ASC")
 
-        print("\n".join(query))
         results = session.run("\n".join(query))        
-
         vd_details = [{**dict(r.get('vd')), **{'pd': list(map(dict, list(r.get('pd')))) }} for r in results]
-        print(vd_details)
+        
         return vd_details

@@ -13,11 +13,7 @@ Check Consistency
 PDs for VD ${virtual_drives_num} :
 ============
 
-------------------------------------------------------------------------------
-EID:Slt DID State DG       Size Intf Med SED PI SeSz Model            Sp Type 
-------------------------------------------------------------------------------
 ${physical_drives}
-------------------------------------------------------------------------------
 
 EID-Enclosure Device ID|Slt-Slot No.|DID-Device ID|DG-DriveGroup
 DHS-Dedicated Hot Spare|UGood-Unconfigured Good|GHS-Global Hotspare
