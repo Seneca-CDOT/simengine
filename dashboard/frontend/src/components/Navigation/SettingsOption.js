@@ -55,6 +55,9 @@ class SettingsOption extends React.Component {
                   <ListItem button onClick={this.props.saveLayout.bind(this)}>
                     <ListItemText primary="Save Layout" />
                   </ListItem>
+                  <ListItem button onClick={()=>window.open('https://simengine.readthedocs.io/en/latest/')}>
+                    <ListItemText primary="View Documentation" />
+                  </ListItem>
                 </List>
               </div>
           </div>
