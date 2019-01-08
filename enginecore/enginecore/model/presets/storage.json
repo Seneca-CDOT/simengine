@@ -23,12 +23,15 @@
             "BBU": {},
             "VD": [
                 {
-                    "type": "RAID6",
-                    "state": "Optl",
-                    "sccess": "RW",
-                    "consist": "Yes",
+                    "TYPE": "RAID6",
+                    "State": "Optl",
+                    "Access": "RW",
+                    "Consist": "Yes",
                     "sCC": "OFF",
-                    "size": 817.312,
+                    "Size": 817.312,
+                    "Name": "",
+                    "Cac": "-",
+                    "Cache": "RWBD",
                     "DID": [9, 10, 8, 7, 11, 14, 12, 13]
                 }
             ],

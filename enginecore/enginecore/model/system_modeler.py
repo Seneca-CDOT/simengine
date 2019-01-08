@@ -301,7 +301,7 @@ def _add_storage(asset_key, preset_file):
             for vidx, virt_drive in enumerate(controller['VD']):
                 vd_node = 'vd'+str(vidx)
 
-                s_attr = ["type", "state", "access", "consist", "sCC", "size", "vdNum"]
+                s_attr = ["TYPE", "State", "Access", "Cac", "Cache", "Name", "Consist", "sCC", "Size", "vdNum"]
                 props_stm = qh.get_props_stm({**virt_drive, **{'vdNum': vidx}}, supported_attr=s_attr)
 
                 query.append(

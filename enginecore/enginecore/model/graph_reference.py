@@ -690,17 +690,16 @@ class GraphReference():
             "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})"
             .format(server_key, controller)
         )
-        query.append("MATCH (ctrl)-[:HAS_VIRTUAL_DRIVE]->(vd:VirtualDrive)")
-        query.append("RETURN vd ORDER BY vd.vdNum ASC")
         
+        query.append("MATCH (ctrl)-[:HAS_VIRTUAL_DRIVE]->(vd:VirtualDrive)")
+        query.append("MATCH (vd)<-[:BELONGS_TO_VIRTUAL_SPACE]-(pd:PhysicalDrive)")
+        query.append("WITH vd, pd")
+        query.append("ORDER BY pd.slotNum ASC")
+        query.append("RETURN vd, collect(pd) as pd ORDER BY vd.vdNum ASC")
+
         print("\n".join(query))
         results = session.run("\n".join(query))        
 
-        vd_details = [dict(r.get('vd')) for r in results]
-        # for record in results:
-        #     sensor = dict(record.get('vd'))
-        #     vd_details.append({
-        #         'sensor': sensor, 'rel': dict(record.get('rel'))
-        #     })
+        vd_details = [{**dict(r.get('vd')), **{'pd': list(map(dict, list(r.get('pd')))) }} for r in results]
         print(vd_details)
         return vd_details

@@ -1,12 +1,7 @@
-${header}
 /c${controller}/v${virtual_drives_num} :
 ======
 
----------------------------------------------------------------
-DG/VD TYPE  State Access Consist Cache Cac sCC       Size Name 
----------------------------------------------------------------
 ${virtual_drives}
----------------------------------------------------------------
 
 Cac=CacheCade|Rec=Recovery|OfLn=OffLine|Pdgd=Partially Degraded|Dgrd=Degraded
 Optl=Optimal|RO=Read Only|RW=Read Write|HD=Hidden|TRANS=TransportReady|B=Blocked|
@@ -21,7 +16,7 @@ PDs for VD ${virtual_drives_num} :
 ------------------------------------------------------------------------------
 EID:Slt DID State DG       Size Intf Med SED PI SeSz Model            Sp Type 
 ------------------------------------------------------------------------------
-${physical drives}
+${physical_drives}
 ------------------------------------------------------------------------------
 
 EID-Enclosure Device ID|Slt-Slot No.|DID-Device ID|DG-DriveGroup

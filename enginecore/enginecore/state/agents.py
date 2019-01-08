@@ -135,6 +135,8 @@ class StorCLIEmulator():
         
 
     def _strcli_ctrl_info(self, controller_num):
+        """Return aggregated information for a particular controller"""
+
         ctrl_info_f = os.path.join(self._storcli_dir, 'controller_info')
         ctrl_entry_f = os.path.join(self._storcli_dir, 'controller_entry')
 
@@ -180,20 +182,72 @@ class StorCLIEmulator():
             return template.substitute(options)
         
 
+    def _format_as_table(self, headers, table_options):
+
+        value_rows = []
+        header_lengths = {key: len(str(key)) for key in headers}
+
+        for table_row in table_options:
+
+            row = ""
+            for col_key in headers:
+                val_len = len(str(table_row[col_key]))
+                val_len = val_len if val_len >= len(col_key) else len(col_key)
+
+                if val_len > header_lengths[col_key]:
+                    header_lengths[col_key] = val_len
+
+                row += '{val:<{width}}'.format(val=table_row[col_key], width=val_len+1)
+
+            value_rows.append(row)
+
+        header = ' '.join(['{val:<{width}}'.format(val=key, width=header_lengths[key]) for key in header_lengths])
+        divider = '-'*len(header) + '\n'
+
+        return str(
+            divider + 
+            header + '\n' + 
+            divider + 
+            '\n'.join(value_rows) + '\n' + 
+            divider 
+        )
+
+
     def _strcli_ctrl_virt_disk(self, controller_num):
 
         vd_file = os.path.join(self._storcli_dir, 'virtual_drive_data')
         with open(vd_file) as templ_h, self._graph_ref.get_session() as session:
             
             vd_details = GraphReference.get_virtual_drive_details(session, self._server_key, controller_num)
+            vd_output = []
+            template = Template(templ_h.read())
+
             print('\n---------\n')
             print(vd_details)
+
             options = {
-                'header': self._strcli_header(controller_num),
+                'controller': controller_num,
+                'virtual_drives_num': 0,
+                'physical_drives': '-',
+                'virtual_drives': '-'
             }
-            
-            template = Template(templ_h.read())
-            return template.substitute(options)
+
+            for i, vd in enumerate(vd_details):
+                options['virtual_drives_num'] = i
+
+                
+                vd['DG/VD'] = '0/' + str(i)
+                vd['Size'] = str(vd['Size']) + ' GB'
+
+    
+                options['virtual_drives'] = self._format_as_table(
+                    ["DG/VD", "TYPE", "State", "Access", "Consist", "Cache", "Cac", "sCC", "Size", "Name"], 
+                    [vd]
+                )
+
+                vd_output.append(template.substitute(options))
+
+            return self._strcli_header(controller_num) + '\n' + '\n'.join(vd_output)
         
 
     def _listen_cmds(self):
