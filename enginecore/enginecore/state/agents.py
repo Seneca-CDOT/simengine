@@ -183,13 +183,14 @@ class StorCLIEmulator():
         
 
     def _format_as_table(self, headers, table_options):
+        """ """
 
         value_rows = []
         header_lengths = {key: len(str(key)) for key in headers}
 
         for table_row in table_options:
 
-            row = ""
+            row_str = ""
             for col_key in headers:
                 val_len = len(str(table_row[col_key]))
                 val_len = val_len if val_len >= len(col_key) else len(col_key)
@@ -197,9 +198,9 @@ class StorCLIEmulator():
                 if val_len > header_lengths[col_key]:
                     header_lengths[col_key] = val_len
 
-                row += '{val:<{width}}'.format(val=table_row[col_key], width=val_len+1)
+                row_str += '{val:<{width}}'.format(val=table_row[col_key], width=val_len+1)
 
-            value_rows.append(row)
+            value_rows.append(row_str)
 
         header = ' '.join(['{val:<{width}}'.format(val=key, width=header_lengths[key]) for key in header_lengths])
         divider = '-'*len(header) + '\n'
@@ -214,6 +215,7 @@ class StorCLIEmulator():
 
 
     def _strcli_ctrl_virt_disk(self, controller_num):
+        """Display virtual disk details """
 
         vd_file = os.path.join(self._storcli_dir, 'virtual_drive_data')
         with open(vd_file) as templ_h, self._graph_ref.get_session() as session:

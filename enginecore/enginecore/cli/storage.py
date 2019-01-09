@@ -14,7 +14,12 @@ def storage_command(storage_group):
 
     pd_command(storage_subp.add_parser(
         'pd', 
-        help="Storage - physical drive details and configurations"
+        help="Physical drive details and configurations"
+    ))
+
+    vd_command(storage_subp.add_parser(
+        'vd', 
+        help="Virtual drive configurations"
     ))
 
     controller_command(storage_subp.add_parser(
@@ -34,6 +39,7 @@ def get_ctrl_storage_args():
     )
 
     return server_controller_parent
+
 
 def pd_command(pd_group):
     """Endpoints for setting storage props (pd, vd, controller etc.) """
@@ -76,6 +82,20 @@ def pd_command(pd_group):
         )
     )
 
+
+def vd_command(vd_group):
+    """Confgiguring virtual drive"""
+    vd_subp = vd_group.add_subparsers()
+
+    # group a few args into a common parent element
+    server_controller_parent = get_ctrl_storage_args()
+    
+    # CLI PD setter
+    set_pd_action = vd_subp.add_parser(
+        'set', 
+        help="Configure a virtual drive (degraded state props)",
+        parents=[server_controller_parent]
+    )
 
 
 def controller_command(ctrl_group):
