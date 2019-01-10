@@ -90,8 +90,8 @@ def vd_command(vd_group):
     # group a few args into a common parent element
     server_controller_parent = get_ctrl_storage_args()
     
-    # CLI PD setter
-    set_pd_action = vd_subp.add_parser(
+    # CLI virt-drive setter
+    set_vd_action = vd_subp.add_parser(
         'set', 
         help="Configure a virtual drive (degraded state props)",
         parents=[server_controller_parent]

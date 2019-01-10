@@ -1,11 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { withStyles } from '@material-ui/core/styles';
-import Card from '@material-ui/core/Card';
-import CardContent from '@material-ui/core/CardContent';
-import CardHeader from '@material-ui/core/CardHeader';
-import Divider from '@material-ui/core/Divider';
-import Typography from '@material-ui/core/Typography';
+import { Card, CardContent, CardHeader, Divider, Typography } from '@material-ui/core';
+
+// ** local imports
 import PowerSwitch from './common/PowerSwitch';
 
 
@@ -14,16 +12,15 @@ function AssetDetails(props) {
   let children = [];
 
   if(assetInfo.children) {
-    children.push(
-      <div key={0}><h3> Connected Components </h3></div>
-    );
+    children.push(<div key={0}><h3> Connected Components </h3></div>);
 
     const c = assetInfo.children;
     for (const ckey of Object.keys(c)) {
+        const childStatus = c[ckey].status === 1?(<span style={{color: 'green'}}>on</span>):(<span style={{color: 'red'}}>off</span>)
         children.push(
           <div key={ckey}>
             <Typography variant="subheading" component="h5">
-              {ckey}-{c[ckey].type} is {c[ckey].status === 1?<span style={{color: 'green'}}>on</span>:<span style={{color: 'red'}}>off</span>}
+              {ckey}-{c[ckey].type} is {childStatus}
             </Typography>
           </div>
         );
@@ -48,17 +45,16 @@ function AssetDetails(props) {
             Name: {assetInfo.name}
           </Typography>
 
-
           <Typography variant="subheading" component="h5">
             Current Load: {assetInfo.load ? assetInfo.load.toFixed(2): 0} Amp
           </Typography>
           <Divider />
-            {/* Turn off/on the component */}
-            <PowerSwitch
-              checked={assetInfo.status === 1}
-              onChange={()=>changeStatus(assetKey, assetInfo)}
-              label={<Typography variant="subheading" component="h5">Toggle Status</Typography>}
-            />
+          {/* Turn off/on the component */}
+          <PowerSwitch
+            checked={assetInfo.status === 1}
+            onChange={()=>changeStatus(assetKey, assetInfo)}
+            label={<Typography variant="subheading" component="h5">Toggle Status</Typography>}
+          />
           <Divider/>
           {/* Display any nested elements */}
           <div style={{maxHeight: 500, overflow: 'auto'}}>

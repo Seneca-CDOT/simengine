@@ -140,7 +140,7 @@ const drawerWidth = 240;
   }
 
   _update_wiring(asset, key, coord) {
-    
+
     let newConn = {};
     const connections = this.state.connections;
 
@@ -363,7 +363,7 @@ const drawerWidth = 240;
       // draw wires
       for (const key of Object.keys(connections)) {
         const asset = this._get_asset_by_key(key);
-        
+
         wireDrawing.push(
           <Line
             points={Object.values(connections[key])}
@@ -436,8 +436,13 @@ const drawerWidth = 240;
             <Snackbar
               anchorOrigin={snackbarOrigin}
               open={!this.state.socketOffline && !assets}
-              message={<span>The system toplology appears to be empty. <br/> Please, refer to the documentation
-                (System Modelling <a href="https://simengine.readthedocs.io/en/latest/SystemModeling/">link</a>)</span>}
+              message={
+                <span>
+                  The system toplology appears to be empty. <br/>
+                  Please, refer to the documentation (System Modelling
+                  <a href="https://simengine.readthedocs.io/en/latest/SystemModeling/">link</a>)
+                </span>
+              }
             />
           </main>
         </div>

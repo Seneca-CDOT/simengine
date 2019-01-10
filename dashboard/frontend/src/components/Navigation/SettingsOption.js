@@ -8,21 +8,14 @@ import { IconButton, Divider, Drawer, List, ListItem, ListItemText } from '@mate
  * Drawer option/settings
  */
 class SettingsOption extends React.Component {
-  
 
   constructor(props) {
     super(props);
     this.state = { drawerAnchor: null,};
   }
 
-  handleMenu = event => {
-    this.setState({ drawerAnchor: event.currentTarget });
-  };
-
-  handleDrawerClose = () => {
-    this.setState({ drawerAnchor: null });
-  };
-
+  openDrawer = event => this.setState({ drawerAnchor: event.currentTarget });
+  handleDrawerClose = () => this.setState({ drawerAnchor: null });
 
   render() {
 
@@ -30,18 +23,25 @@ class SettingsOption extends React.Component {
 
     const { drawerAnchor } = this.state;
     const drawerOpen = Boolean(drawerAnchor);
-    
+
     return (
       <Fragment>
+        {/* Button to open up a menu */}
         <IconButton aria-owns={drawerOpen ? 'menu-appbar' : null}
           aria-haspopup="true"
           color="inherit"
-          onClick={this.handleMenu}
+          onClick={this.openDrawer}
         >
           <Settings/>
-          </IconButton>
-          <Drawer open={drawerOpen} onClose={this.handleDrawerClose}
-            classes={{paper: classes.drawerPaper,}} anchor={'left'}>
+        </IconButton>
+
+        {/* Sidebar menu */}
+        <Drawer
+            open={drawerOpen}
+            onClose={this.handleDrawerClose}
+            classes={{paper: classes.drawerPaper,}}
+            anchor={'left'}
+        >
           <div className={classes.toolbar}/>
             <Divider />
             <div
@@ -49,17 +49,17 @@ class SettingsOption extends React.Component {
               role="button"
               onClick={this.handleDrawerClose}
               onKeyDown={this.handleDrawerClose}
+              className={classes.fullList}
             >
-              <div className={classes.fullList}>
-                <List>
-                  <ListItem button onClick={this.props.saveLayout.bind(this)}>
-                    <ListItemText primary="Save Layout" />
-                  </ListItem>
-                  <ListItem button onClick={()=>window.open('https://simengine.readthedocs.io/en/latest/')}>
-                    <ListItemText primary="View Documentation" />
-                  </ListItem>
-                </List>
-              </div>
+              {/* Sidebar options */}
+              <List>
+                <ListItem button onClick={this.props.saveLayout.bind(this)}>
+                  <ListItemText primary="Save Layout" />
+                </ListItem>
+                <ListItem button onClick={()=>window.open('https://simengine.readthedocs.io/en/latest/')}>
+                  <ListItemText primary="View Documentation" />
+                </ListItem>
+              </List>
           </div>
         </Drawer>
       </Fragment>
