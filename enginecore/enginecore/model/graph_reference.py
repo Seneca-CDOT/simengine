@@ -698,6 +698,30 @@ class GraphReference():
         query.append("RETURN vd, collect(pd) as pd ORDER BY vd.vdNum ASC")
 
         results = session.run("\n".join(query))        
-        vd_details = [{**dict(r.get('vd')), **{'pd': list(map(dict, list(r.get('pd')))) }} for r in results]
+        vd_details = [{**dict(r.get('vd')), **{'pd': list(map(dict, list(r.get('pd'))))}} for r in results]
         
         return vd_details
+
+
+    @classmethod
+    def update_virt_drive_state_params(cls, session, server_key, controller, vd_opt):
+        """
+        Args:
+            session:  database session
+            server_key(int): key of the server controller belongs to
+            controller(int): controller number of VDs 
+            vd_opt(dict): virt drive details (including id & props to be updated)
+        """
+
+        query = []
+        query.append(
+            "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})"
+            .format(server_key, controller)
+        )
+        
+        query.append(
+            "MATCH (ctrl)-[:HAS_VIRTUAL_DRIVE]->(vd:VirtualDrive {{ vdNum: {} }})"
+            .format(vd_opt['vd_num'])
+        )
+
+        session.run("\n".join(query))

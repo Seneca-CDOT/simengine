@@ -90,12 +90,30 @@ def vd_command(vd_group):
     # group a few args into a common parent element
     server_controller_parent = get_ctrl_storage_args()
     
-    # CLI virt-drive setter
+    # CLI virtual drive setter
     set_vd_action = vd_subp.add_parser(
         'set', 
         help="Configure a virtual drive (degraded state props)",
         parents=[server_controller_parent]
     )
+
+    set_vd_action.add_argument(
+        '-p', 
+        '--partially-degraded', 
+        help="Set state to partially degraded at this number of physical drive errors (accumulative)", 
+        type=int, 
+        required=False
+    )
+
+    set_vd_action.add_argument(
+        '-d', 
+        '--degraded', 
+        help="Set state to degraded at this number of physical drive errors (accumulative)", 
+        type=int, 
+        required=False
+    )
+
+
 
 
 def controller_command(ctrl_group):
