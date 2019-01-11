@@ -43,7 +43,7 @@ class SettingsOption extends React.Component {
             anchor={'left'}
         >
           <div className={classes.toolbar}/>
-            <Divider />
+            <Divider/>
             <div
               tabIndex={0}
               role="button"
