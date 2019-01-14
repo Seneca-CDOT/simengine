@@ -340,6 +340,13 @@ def create_command(create_asset_group):
     )
 
     create_server_bmc_action.add_argument(
+        '--storcli-port', 
+        type=int, 
+        default=50000, 
+        help="Storcli websocket port used to establish a connection with a vm"
+    )
+
+    create_server_bmc_action.add_argument(
         '--psu-num', type=int, default=1, help="Number of PSUs installed in the server"
     )
     create_server_bmc_action.add_argument(

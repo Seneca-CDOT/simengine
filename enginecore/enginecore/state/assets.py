@@ -709,7 +709,7 @@ class ServerWithBMC(Server):
         self._sensor_repo = SensorRepository(asset_info['key'], enable_thermal=True)
 
         self._ipmi_agent = IPMIAgent(asset_info['key'], ipmi_dir, ipmi_config=asset_info, sensors=sensors)
-        self._storcli_emu = StorCLIEmulator(asset_info['key'], ipmi_dir)
+        self._storcli_emu = StorCLIEmulator(asset_info['key'], ipmi_dir, socket_port=asset_info['storcliPort'])
         super(ServerWithBMC, self).__init__(asset_info)
         
 

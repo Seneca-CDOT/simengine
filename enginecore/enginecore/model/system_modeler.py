@@ -159,7 +159,8 @@ IPMI_LAN_DEFAULTS = {
     'password': 'test',
     'host': 'localhost',
     'port': 9001,
-    'vmport': 9002
+    'vmport': 9002,
+    'storcli_port': 50000,
 }
     
 
@@ -323,6 +324,7 @@ def _add_storage(asset_key, preset_file):
 
         # print("\n".join(query))
         session.run("\n".join(query))
+
 
 def create_server(key, attr, server_variation=ServerVariations.Server):
     """Create a simulated server """

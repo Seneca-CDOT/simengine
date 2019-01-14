@@ -21,7 +21,7 @@ from enginecore.model.query_helpers import to_camelcase
 
 class StorCLIEmulator():
     
-    def __init__(self, asset_key, server_dir):
+    def __init__(self, asset_key, server_dir, socket_port):
         
         self._graph_ref = GraphReference()
         self._server_key = asset_key
@@ -36,6 +36,7 @@ class StorCLIEmulator():
 
         self._socket_t = threading.Thread(
             target=self._listen_cmds,
+            args=(socket_port,),
             name="storcli64:{}".format(asset_key)
         )
 
@@ -260,11 +261,11 @@ class StorCLIEmulator():
             return self._strcli_header(controller_num) + '\n' + '\n'.join(vd_output)
         
 
-    def _listen_cmds(self):
+    def _listen_cmds(self, socket_port):
 
         serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         serversocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        serversocket.bind(('', 50000))
+        serversocket.bind(('', socket_port))
         serversocket.listen(5)
 
         conn, _ = serversocket.accept()
