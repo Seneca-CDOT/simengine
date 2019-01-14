@@ -3,6 +3,9 @@
 # pylint: disable=C0103
 
 import argparse
+import sys
+
+import neo4j.exceptions as db_error
 
 from enginecore.cli.status import status_command
 from enginecore.cli.power import power_command
@@ -52,5 +55,8 @@ try:
         options.func(vars(options))
     else:
         argparser.print_help()
+except db_error.ConstraintError as e:
+    print('Database constraint was violated: ')
+    print(e, file=sys.stderr)
 except argparse.ArgumentTypeError as e:
-    print(e)
+    print(e, file=sys.stderr)
