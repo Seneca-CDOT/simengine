@@ -387,6 +387,13 @@ def create_command(create_asset_group):
         """
     )
 
+    create_server_bmc_action.add_argument(
+        '--storage-states', 
+        type=str,
+        help="""File containing storage state mappings (.JSON)
+        """
+    )
+
     ## STATIC 
     create_static_action = create_subp.add_parser(
         'static', 

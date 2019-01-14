@@ -1,0 +1,21 @@
+{
+    "virtualDrive": {
+        "partiallyDegraded": {
+            "minNumPdOffline": -1,
+            "minMediaErrorCount": 5,
+            "minOtherErrorCount": 7
+        },
+        "degraded": {
+            "minNumPdOffline": 1,
+            "minMediaErrorCount": -1,
+            "minOtherErrorCount": -1
+        }
+    },
+    "controller": {
+        "needsAttention": {
+            "minNumPdOffline": 1,
+            "minMemoryCorrectableErrors": 100,
+            "minMemoryUncorrectableErrors": 20
+        }
+    }
+}

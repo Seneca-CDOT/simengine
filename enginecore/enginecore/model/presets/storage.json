@@ -4,7 +4,7 @@
     "operatingSystem": "Linux 2.6.32-754.6.3.el6.x86_64",
     "controllers": [
         {   
-            "Model": "RAID Ctrl SAS 6G 1GB (D3116C)",
+            "model": "RAID Ctrl SAS 6G 1GB (D3116C)",
             "serialNumber": "0000000043113622",
             "SASAddress": "50030057013c6550",
             "PCIAddress": "00:01:00:00",

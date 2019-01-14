@@ -224,18 +224,22 @@ def _add_sensors(asset_key, preset_file):
         # print("\n".join(query))
         session.run("\n".join(query))
 
-def _add_storage(asset_key, preset_file):
+def _add_storage(asset_key, preset_file, storage_state_file):
     
-    with open(preset_file) as preset_handler, GRAPH_REF.get_session() as session:        
+    with open(preset_file) as preset_h, open(storage_state_file) as state_h, GRAPH_REF.get_session() as session:        
         query = []
 
         query.append("MATCH (server:Asset {{ key: {} }})".format(asset_key))
-        data = json.load(preset_handler)
+        storage_data = json.load(preset_h)
+        state_data = json.load(state_h)
         
-        props_stm = qh.get_props_stm(data, supported_attr=["operatingSystem", "CLIVersion"])
+        props_stm = qh.get_props_stm(
+            {**storage_data, **{'stateConfig': json.dumps(state_data)}}, 
+            supported_attr=["operatingSystem", "CLIVersion", "stateConfig"]
+        )
         query.append("CREATE (server)-[:SUPPORTS_STORCLI]->(storage:Storcli {{ {} }})".format(props_stm))
 
-        for idx, controller in enumerate(data['controllers']):
+        for idx, controller in enumerate(storage_data['controllers']):
             
             s_attr = [
                 "controllerNum", "model", "serialNumber", 
@@ -370,18 +374,16 @@ def create_server(key, attr, server_variation=ServerVariations.Server):
 
         if server_variation == ServerVariations.ServerWithBMC:
             
-            if 'sensor_def' in attr and attr['sensor_def']:
-                sensor_file = os.path.expanduser(attr['sensor_def'])
-            else:
-                sensor_file = os.path.join(os.path.dirname(__file__), 'presets/sensors.json')
+            # if preset is provided -> use the user-defined file
+            f_loc = os.path.dirname(__file__)
+            s_def_file = lambda p, j: os.path.expanduser(attr[p]) if attr[p] else os.path.join(f_loc, 'presets/' + j)
 
-            if 'storage_def' in attr and attr['storage_def']:
-                storage_file = os.path.expanduser(attr['storage_def'])
-            else:
-                storage_file = os.path.join(os.path.dirname(__file__), 'presets/storage.json')
+            sensor_file = s_def_file('sensor_def', 'sensors.json')
+            storage_def_file = s_def_file('storage_def', 'storage.json')
+            storage_state_file = s_def_file('storage_states', 'storage_states.json')
            
             _add_sensors(key, sensor_file)
-            _add_storage(key, storage_file)
+            _add_storage(key, storage_def_file, storage_state_file)
 
         # add PSUs to the model
         for i in range(attr['psu_num']):

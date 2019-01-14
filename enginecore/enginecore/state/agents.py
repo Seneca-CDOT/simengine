@@ -184,9 +184,11 @@ class StorCLIEmulator():
         
 
     def _format_as_table(self, headers, table_options):
-        """ """
+        """"""
 
         value_rows = []
+
+        # store row with the max char count in a column
         header_lengths = {key: len(str(key)) for key in headers}
 
         for table_row in table_options:
@@ -194,6 +196,7 @@ class StorCLIEmulator():
             row_str = ""
             for col_key in headers:
                 val_len = len(str(table_row[col_key]))
+                # whitespace padding
                 val_len = val_len if val_len >= len(col_key) else len(col_key)
 
                 if val_len > header_lengths[col_key]:

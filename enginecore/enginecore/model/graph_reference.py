@@ -580,8 +580,10 @@ class GraphReference():
         """
         query = []
 
-        s_attr = ['media_error_count', 'other_error_count', 'predictive_error_count', 'state']
+        s_attr = ['media_error_count', 'other_error_count', 'predictive_error_count', 'State']
 
+        properties['State'] = properties['state']
+        
         # query as (server)->(storage_controller)->(physical drive)
         query.append("MATCH (server:Asset {{ key: {} }})".format(server_key))
         query.append("MATCH (server)-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})".format(controller))
