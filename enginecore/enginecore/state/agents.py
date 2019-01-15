@@ -20,7 +20,8 @@ from enginecore.model.graph_reference import GraphReference
 from enginecore.model.query_helpers import to_camelcase
 
 class StorCLIEmulator():
-    
+    """Emulates storcli behaviour"""
+
     def __init__(self, asset_key, server_dir, socket_port):
         
         self._graph_ref = GraphReference()
@@ -218,6 +219,17 @@ class StorCLIEmulator():
         )
 
 
+    def _get_state_from_config(self, config_entry, current_state, optimal_state):
+        state_config = self._storcli_details['stateConfig'][config_entry]
+        for status in state_config:
+            for prop in current_state:
+                if current_state[prop] >= state_config[status][prop] and state_config[status][prop] != -1:
+                    return status
+
+        return optimal_state
+
+        
+
     def _strcli_ctrl_virt_disk(self, controller_num):
         """Display virtual disk details """
 
@@ -225,6 +237,13 @@ class StorCLIEmulator():
         with open(vd_file) as templ_h, self._graph_ref.get_session() as session:
             
             vd_details = GraphReference.get_virtual_drive_details(session, self._server_key, controller_num)
+
+            vd_state = {
+                'numPdOffline': 0,
+                'mediaErrorCount': 0,
+                'otherErrorCount': 0
+            }
+
             vd_output = []
             template = Template(templ_h.read())
 
@@ -242,21 +261,28 @@ class StorCLIEmulator():
                 v_drive['DG/VD'] = '0/' + str(i)
                 v_drive['Size'] = str(v_drive['Size']) + ' GB'
 
-                options['virtual_drives'] = self._format_as_table(
-                    ["DG/VD", "TYPE", "State", "Access", "Consist", "Cache", "Cac", "sCC", "Size", "Name"], 
-                    [v_drive]
-                )
-
                 # Add physical drive output
                 for p_drive in v_drive['pd']:
                     p_drive['EID:Slt'] = '{}:{}'.format(p_drive['EID'], p_drive['slotNum'])
                     p_drive['Size'] = str(p_drive['Size']) + ' GB'
-                
+
+                    vd_state['mediaErrorCount'] += p_drive['mediaErrorCount']
+                    vd_state['otherErrorCount'] += p_drive['otherErrorCount']
+
+                    if p_drive['State'] == 'Offln':
+                        vd_state['numPdOffline'] += 1
+                    
+                v_drive['State'] = self._get_state_from_config('virtualDrive', vd_state, 'Optl')
+
                 p_header = [
                     "EID:Slt", "DID", "State", "DG", "Size", "Intf", "Med", "SED", "PI", "SeSz", "Model", "Sp", "Type"
                 ]
 
                 options['physical_drives'] = self._format_as_table(p_header, v_drive['pd'])
+                options['virtual_drives'] = self._format_as_table(
+                    ["DG/VD", "TYPE", "State", "Access", "Consist", "Cache", "Cac", "sCC", "Size", "Name"], 
+                    [v_drive]
+                )
 
                 # format templated file
                 vd_output.append(template.substitute(options))

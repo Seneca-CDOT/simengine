@@ -7,9 +7,10 @@ import PropTypes from 'prop-types';
  * */
 class Asset extends React.Component {
 
-  /** Load images into state (returns array of promises) */
+
   loadImages = (assetImages) => {
-  
+    /** Load images into state (returns array of promises) */
+
     let imagePromises = [];
 
     for (const [imageName, imageSource] of Object.entries(assetImages)) {
@@ -32,10 +33,12 @@ class Asset extends React.Component {
   getInputCoordinates = () => []
 
   formatAssetCoordinates = ({x, y}) => ({
-    x: x,
-    y: y,
-    inputConnections: this.getInputCoordinates(),
-    outputConnections: this.getOutputCoordinates(),
+    x: x, // asset position -> x 
+    y: y, // asset position -> y
+
+    // i/o coordinates are relative to the asset { x, y } coordinates
+    inputConnections: this.getInputCoordinates(),   // input power position { x, y }
+    outputConnections: this.getOutputCoordinates(), // output power position { x, y } (if supported)
   });
 
   /** Notify Parent of Selection */

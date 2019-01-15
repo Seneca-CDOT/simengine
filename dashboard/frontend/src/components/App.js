@@ -30,7 +30,7 @@ const drawerWidth = 240;
     this.state = {
       assets: null,
       selectedAssetKey: 0,
-      connections:{},
+      connections: {},
       ambient: 0,
       ambientRising: false,
       mainsStatus: 1,

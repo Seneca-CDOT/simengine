@@ -9,6 +9,7 @@ import colors from '../styles/colors';
 
 class Canvas extends Component {
 
+  // map asset types to react components
   assetMap = {
     'outlet': Socket,
     'staticasset': Socket,
@@ -20,7 +21,7 @@ class Canvas extends Component {
   };
 
   
-  drawAsset(ReactElement, asset) {
+  getAssetComponent(ReactElement, asset) {
     /**Render asset element (on of the components defined in 'assetMap') */
 
     // asset props
@@ -60,7 +61,7 @@ class Canvas extends Component {
     if (assets) {
       // Initialize HA system layout
       for (const key of Object.keys(assets)) {
-        systemLayout.push(this.drawAsset(this.assetMap[assets[key].type], assets[key]));
+        systemLayout.push(this.getAssetComponent(this.assetMap[assets[key].type], assets[key]));
       }
 
       // draw wires

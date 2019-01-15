@@ -1,21 +1,21 @@
 {
     "virtualDrive": {
-        "partiallyDegraded": {
-            "minNumPdOffline": -1,
-            "minMediaErrorCount": 5,
-            "minOtherErrorCount": 7
+        "Pdgd": {
+            "numPdOffline": -1,
+            "mediaErrorCount": 5,
+            "otherErrorCount": 7
         },
-        "degraded": {
-            "minNumPdOffline": 1,
-            "minMediaErrorCount": -1,
-            "minOtherErrorCount": -1
+        "Dgrd": {
+            "numPdOffline": 1,
+            "mediaErrorCount": -1,
+            "otherErrorCount": -1
         }
     },
     "controller": {
         "needsAttention": {
-            "minNumPdOffline": 1,
-            "minMemoryCorrectableErrors": 100,
-            "minMemoryUncorrectableErrors": 20
+            "numPdOffline": 1,
+            "memoryCorrectableErrors": 100,
+            "memoryUncorrectableErrors": 20
         }
     }
 }

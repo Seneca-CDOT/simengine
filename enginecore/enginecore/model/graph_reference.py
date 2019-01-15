@@ -1,6 +1,8 @@
 """DB driver (data-layer) that provides access to db sessions and contains commonly used queries """
 
 import os
+import json
+
 from neo4j.v1 import GraphDatabase, basic_auth
 from enginecore.state.utils import format_as_redis_key
 import enginecore.model.query_helpers as qh
@@ -634,8 +636,13 @@ class GraphReference():
         )
 
         record = results.single()
-        return dict(record.get('cli')) if record else None
+        storcli_details = {}
 
+        if record:
+            storcli_details = dict(record.get('cli'))
+            storcli_details['stateConfig'] = json.loads(storcli_details['stateConfig'])
+
+        return storcli_details
 
     @classmethod
     def get_controller_details(cls, session, server_key, controller):
