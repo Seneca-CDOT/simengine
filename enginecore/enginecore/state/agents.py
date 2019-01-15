@@ -228,40 +228,29 @@ class StorCLIEmulator():
 
         return optimal_state
 
-        
 
-    def _strcli_ctrl_virt_disk(self, controller_num):
-        """Display virtual disk details """
+    def _get_drives_tables(self, controller_num):
 
-        vd_file = os.path.join(self._storcli_dir, 'virtual_drive_data')
-        with open(vd_file) as templ_h, self._graph_ref.get_session() as session:
-            
+        drives = []
+
+        vd_state = {
+            'numPdOffline': 0,
+            'mediaErrorCount': 0,
+            'otherErrorCount': 0
+        }
+
+        with self._graph_ref.get_session() as session:
+
             vd_details = GraphReference.get_virtual_drive_details(session, self._server_key, controller_num)
 
-            vd_state = {
-                'numPdOffline': 0,
-                'mediaErrorCount': 0,
-                'otherErrorCount': 0
-            }
-
-            vd_output = []
-            template = Template(templ_h.read())
-
-            options = {
-                'controller': controller_num,
-                'virtual_drives_num': 0,
-                'physical_drives': '-',
-                'virtual_drives': '-'
-            }
-
+            # iterate over virtual drives
             for i, v_drive in enumerate(vd_details):
-                options['virtual_drives_num'] = i
 
                 # Add Virtual Drive output
                 v_drive['DG/VD'] = '0/' + str(i)
                 v_drive['Size'] = str(v_drive['Size']) + ' GB'
 
-                # Add physical drive output
+                # Add physical drive output (do some formatting plus check pd states)
                 for p_drive in v_drive['pd']:
                     p_drive['EID:Slt'] = '{}:{}'.format(p_drive['EID'], p_drive['slotNum'])
                     p_drive['Size'] = str(p_drive['Size']) + ' GB'
@@ -274,18 +263,31 @@ class StorCLIEmulator():
                     
                 v_drive['State'] = self._get_state_from_config('virtualDrive', vd_state, 'Optl')
 
-                p_header = [
+                pd_header = [
                     "EID:Slt", "DID", "State", "DG", "Size", "Intf", "Med", "SED", "PI", "SeSz", "Model", "Sp", "Type"
                 ]
 
-                options['physical_drives'] = self._format_as_table(p_header, v_drive['pd'])
-                options['virtual_drives'] = self._format_as_table(
-                    ["DG/VD", "TYPE", "State", "Access", "Consist", "Cache", "Cac", "sCC", "Size", "Name"], 
-                    [v_drive]
-                )
+                vd_header = ["DG/VD", "TYPE", "State", "Access", "Consist", "Cache", "Cac", "sCC", "Size", "Name"]
 
-                # format templated file
-                vd_output.append(template.substitute(options))
+                drives.append({
+                    'physical_drives': self._format_as_table(pd_header, v_drive['pd']),
+                    'virtual_drives': self._format_as_table(vd_header, [v_drive]),
+                    'virtual_drives_num': i
+                })
+
+            return drives
+
+    def _strcli_ctrl_virt_disk(self, controller_num):
+        """Display virtual disk details """
+
+        vd_file = os.path.join(self._storcli_dir, 'virtual_drive_data')
+        with open(vd_file) as templ_h:
+
+            template = Template(templ_h.read())
+
+            # get virtual & physical drive details
+            drives = self._get_drives_tables(controller_num)
+            vd_output = map(lambda d: template.substitute({**d, **{'controller': controller_num}}), drives)
 
             return self._strcli_header(controller_num) + '\n' + '\n'.join(vd_output)
         

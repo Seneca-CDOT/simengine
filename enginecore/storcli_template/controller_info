@@ -30,16 +30,12 @@ PDC=PD Cache|PI=Protection Info|SED=Self Encrypting Drive|Frgn=Foreign
 DS3=Dimmer Switch 3|dflt=Default|Msng=Missing|FSpace=Free Space Present
 TR=Transport Ready
 
-Virtual Drives = 1
+Virtual Drives = ${num_virt_drives}
 
 VD LIST :
 =======
 
----------------------------------------------------------------
-DG/VD TYPE  State Access Consist Cache Cac sCC       Size Name 
----------------------------------------------------------------
-0/0   RAID6 Optl  RW     Yes     RWBD  -   OFF 817.312 GB      
----------------------------------------------------------------
+${virtual_drives}
 
 Cac=CacheCade|Rec=Recovery|OfLn=OffLine|Pdgd=Partially Degraded|Dgrd=Degraded
 Optl=Optimal|RO=Read Only|RW=Read Write|HD=Hidden|TRANS=TransportReady|B=Blocked|
@@ -47,23 +43,12 @@ Consist=Consistent|R=Read Ahead Always|NR=No Read Ahead|WB=WriteBack|
 AWB=Always WriteBack|WT=WriteThrough|C=Cached IO|D=Direct IO|sCC=Scheduled
 Check Consistency
 
-Physical Drives = 8
+Physical Drives = ${num_phys_drives}
 
 PD LIST :
 =======
 
-------------------------------------------------------------------------------
-EID:Slt DID State DG       Size Intf Med SED PI SeSz Model            Sp Type 
-------------------------------------------------------------------------------
-252:0     9 Onln   0 136.218 GB SAS  HDD N   N  512B MK1401GRRB       U  -    
-252:1    10 Onln   0 136.218 GB SAS  HDD N   N  512B MK1401GRRB       U  -    
-252:2     8 Onln   0 136.218 GB SAS  HDD N   N  512B MK1401GRRB       U  -    
-252:3     7 Onln   0 136.218 GB SAS  HDD N   N  512B MK1401GRRB       U  -    
-252:4    11 Onln   0 136.218 GB SAS  HDD N   N  512B MK1401GRRB       U  -    
-252:5    14 Onln   0 136.218 GB SAS  HDD N   N  512B MK1401GRRB       U  -    
-252:6    12 Onln   0 136.218 GB SAS  HDD N   N  512B MK1401GRRB       U  -    
-252:7    13 Onln   0 136.218 GB SAS  HDD N   N  512B MK1401GRRB       U  -    
-------------------------------------------------------------------------------
+${physical_drives}
 
 EID-Enclosure Device ID|Slt-Slot No.|DID-Device ID|DG-DriveGroup
 DHS-Dedicated Hot Spare|UGood-Unconfigured Good|GHS-Global Hotspare
