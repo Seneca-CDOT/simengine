@@ -711,15 +711,16 @@ class GraphReference():
         
         return vd_details
 
-
+    
     @classmethod
-    def update_virt_drive_state_params(cls, session, server_key, controller, vd_opt):
-        """
+    def get_all_drives(cls, session, server_key, controller):
+        """Get both virtual & physical drives for a particular server/raid controller
         Args:
             session:  database session
             server_key(int): key of the server controller belongs to
-            controller(int): controller number of VDs 
-            vd_opt(dict): virt drive details (including id & props to be updated)
+            controller(int): controller num
+        Returns:
+            dict: containing list of virtual & physical drives
         """
 
         query = []
@@ -727,10 +728,14 @@ class GraphReference():
             "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})"
             .format(server_key, controller)
         )
-        
-        query.append(
-            "MATCH (ctrl)-[:HAS_VIRTUAL_DRIVE]->(vd:VirtualDrive {{ vdNum: {} }})"
-            .format(vd_opt['vd_num'])
-        )
+        query.append("MATCH (ctrl)-[:HAS_PHYSICAL_DRIVE]->(pd:PhysicalDrive)")
 
-        session.run("\n".join(query))
+        query.append("RETURN collect(pd) as pd")
+        
+        results = session.run("\n".join(query))
+        record = results.single()
+        
+        return {
+            "vd": cls.get_virtual_drive_details(session, server_key, controller), 
+            "pd": list(map(dict, list(record.get('pd'))))
+        }

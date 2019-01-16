@@ -22,6 +22,12 @@ from enginecore.model.query_helpers import to_camelcase
 class StorCLIEmulator():
     """Emulates storcli behaviour"""
 
+    pd_header = [
+        "EID:Slt", "DID", "State", "DG", "Size", "Intf", "Med", "SED", "PI", "SeSz", "Model", "Sp", "Type"
+    ]
+
+    vd_header = ["DG/VD", "TYPE", "State", "Access", "Consist", "Cache", "Cac", "sCC", "Size", "Name"]
+
     def __init__(self, asset_key, server_dir, socket_port):
         
         self._graph_ref = GraphReference()
@@ -164,9 +170,42 @@ class StorCLIEmulator():
             for key in ctrl_info_templ_keys:
                 entry_options[key] = ctrl_info[to_camelcase(key)]
 
+            drives = GraphReference.get_all_drives(session, self._server_key, controller_num)
+
+            for i, v_drive in enumerate(drives['vd']):
+
+                vd_state = {
+                    'numPdOffline': 0,
+                    'mediaErrorCount': 0,
+                    'otherErrorCount': 0
+                }
+
+                # Add Virtual Drive output
+                v_drive['DG/VD'] = '0/' + str(i)
+                v_drive['Size'] = str(v_drive['Size']) + ' GB'
+
+                # Add physical drive output (do some formatting plus check pd states)
+                for p_drive in v_drive['pd']:
+                    vd_state['mediaErrorCount'] += p_drive['mediaErrorCount']
+                    vd_state['otherErrorCount'] += p_drive['otherErrorCount']
+
+                    if p_drive['State'] == 'Offln':
+                        vd_state['numPdOffline'] += 1
+                    
+                v_drive['State'] = self._get_state_from_config('virtualDrive', vd_state, 'Optl')
+
+            # Add physical drive output (do some formatting plus check pd states)
+            for p_drive in drives['pd']:
+                p_drive['EID:Slt'] = '{}:{}'.format(p_drive['EID'], p_drive['slotNum'])
+                p_drive['Size'] = str(p_drive['Size']) + ' GB'
+
             info_options = {
                 'header': self._strcli_header(controller_num),
-                'controller_entry': Template(entry_h.read()).substitute(entry_options)
+                'controller_entry': Template(entry_h.read()).substitute(entry_options),
+                'num_virt_drives': len(drives['vd']),
+                'num_phys_drives': len(drives['pd']),
+                'virtual_drives': self._format_as_table(StorCLIEmulator.vd_header, drives['vd']),
+                'physical_drives': self._format_as_table(StorCLIEmulator.pd_header, drives['pd']),
             }
 
             info_template = Template(info_h.read())
@@ -229,15 +268,10 @@ class StorCLIEmulator():
         return optimal_state
 
 
-    def _get_drives_tables(self, controller_num):
+
+    def _get_virtual_drives(self, controller_num):
 
         drives = []
-
-        vd_state = {
-            'numPdOffline': 0,
-            'mediaErrorCount': 0,
-            'otherErrorCount': 0
-        }
 
         with self._graph_ref.get_session() as session:
 
@@ -245,6 +279,11 @@ class StorCLIEmulator():
 
             # iterate over virtual drives
             for i, v_drive in enumerate(vd_details):
+                vd_state = {
+                    'numPdOffline': 0,
+                    'mediaErrorCount': 0,
+                    'otherErrorCount': 0
+                }
 
                 # Add Virtual Drive output
                 v_drive['DG/VD'] = '0/' + str(i)
@@ -263,15 +302,9 @@ class StorCLIEmulator():
                     
                 v_drive['State'] = self._get_state_from_config('virtualDrive', vd_state, 'Optl')
 
-                pd_header = [
-                    "EID:Slt", "DID", "State", "DG", "Size", "Intf", "Med", "SED", "PI", "SeSz", "Model", "Sp", "Type"
-                ]
-
-                vd_header = ["DG/VD", "TYPE", "State", "Access", "Consist", "Cache", "Cac", "sCC", "Size", "Name"]
-
                 drives.append({
-                    'physical_drives': self._format_as_table(pd_header, v_drive['pd']),
-                    'virtual_drives': self._format_as_table(vd_header, [v_drive]),
+                    'physical_drives': self._format_as_table(StorCLIEmulator.pd_header, v_drive['pd']),
+                    'virtual_drives': self._format_as_table(StorCLIEmulator.vd_header, [v_drive]),
                     'virtual_drives_num': i
                 })
 
@@ -286,7 +319,7 @@ class StorCLIEmulator():
             template = Template(templ_h.read())
 
             # get virtual & physical drive details
-            drives = self._get_drives_tables(controller_num)
+            drives = self._get_virtual_drives(controller_num)
             vd_output = map(lambda d: template.substitute({**d, **{'controller': controller_num}}), drives)
 
             return self._strcli_header(controller_num) + '\n' + '\n'.join(vd_output)

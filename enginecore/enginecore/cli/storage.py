@@ -17,11 +17,6 @@ def storage_command(storage_group):
         help="Physical drive details and configurations"
     ))
 
-    vd_command(storage_subp.add_parser(
-        'vd', 
-        help="Virtual drive configurations"
-    ))
-
     controller_command(storage_subp.add_parser(
         'controller', 
         help="Update RAID controller related properties"
@@ -81,38 +76,6 @@ def pd_command(pd_group):
             args['asset_key'], args['controller'], args['drive_id'], args
         )
     )
-
-
-def vd_command(vd_group):
-    """Confgiguring virtual drive"""
-    vd_subp = vd_group.add_subparsers()
-
-    # group a few args into a common parent element
-    server_controller_parent = get_ctrl_storage_args()
-    
-    # CLI virtual drive setter
-    set_vd_action = vd_subp.add_parser(
-        'set', 
-        help="Configure a virtual drive (degraded state props)",
-        parents=[server_controller_parent]
-    )
-
-    set_vd_action.add_argument(
-        '-p', 
-        '--partially-degraded', 
-        help="Set state to partially degraded at this number of physical drive errors (accumulative)", 
-        type=int, 
-        required=False
-    )
-
-    set_vd_action.add_argument(
-        '-d', 
-        '--degraded', 
-        help="Set state to degraded at this number of physical drive errors (accumulative)", 
-        type=int, 
-        required=False
-    )
-
 
 
 
