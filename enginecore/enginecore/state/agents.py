@@ -172,13 +172,13 @@ class StorCLIEmulator():
 
             drives = GraphReference.get_all_drives(session, self._server_key, controller_num)
 
+            ctrl_state = self._storcli_details['stateConfig']['controller']['Optimal']
+            ctrl_state['memoryCorrectableErrors'] = ctrl_info['memoryCorrectableErrors']
+            ctrl_state['memoryUncorrectableErrors'] = ctrl_info['memoryUncorrectableErrors']
+
             for i, v_drive in enumerate(drives['vd']):
 
-                vd_state = {
-                    'numPdOffline': 0,
-                    'mediaErrorCount': 0,
-                    'otherErrorCount': 0
-                }
+                vd_state = self._storcli_details['stateConfig']['virtualDrive']['Optl']
 
                 # Add Virtual Drive output
                 v_drive['DG/VD'] = '0/' + str(i)
@@ -198,6 +198,11 @@ class StorCLIEmulator():
             for p_drive in drives['pd']:
                 p_drive['EID:Slt'] = '{}:{}'.format(p_drive['EID'], p_drive['slotNum'])
                 p_drive['Size'] = str(p_drive['Size']) + ' GB'
+                
+                if p_drive['State'] == 'Offln':
+                    ctrl_state['numPdOffline'] += 1
+
+            entry_options['status'] = self._get_state_from_config('controller', ctrl_state, 'Optimal')
 
             info_options = {
                 'header': self._strcli_header(controller_num),
@@ -279,11 +284,7 @@ class StorCLIEmulator():
 
             # iterate over virtual drives
             for i, v_drive in enumerate(vd_details):
-                vd_state = {
-                    'numPdOffline': 0,
-                    'mediaErrorCount': 0,
-                    'otherErrorCount': 0
-                }
+                vd_state = self._storcli_details['stateConfig']['virtualDrive']['Optl']
 
                 # Add Virtual Drive output
                 v_drive['DG/VD'] = '0/' + str(i)

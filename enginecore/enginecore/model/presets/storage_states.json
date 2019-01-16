@@ -1,5 +1,10 @@
 {
     "virtualDrive": {
+        "Optl": {
+            "numPdOffline": 0,
+            "mediaErrorCount": 0,
+            "otherErrorCount": 0
+        },
         "Pdgd": {
             "numPdOffline": -1,
             "mediaErrorCount": 5,
@@ -12,7 +17,12 @@
         }
     },
     "controller": {
-        "needsAttention": {
+        "Optimal": {
+            "numPdOffline": 0,
+            "memoryCorrectableErrors": 0,
+            "memoryUncorrectableErrors": 0
+        },
+        "Needs Attention": {
             "numPdOffline": 1,
             "memoryCorrectableErrors": 100,
             "memoryUncorrectableErrors": 20
