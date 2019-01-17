@@ -5,9 +5,9 @@ Cachevault_Info :
 --------------------
 Property    Value   
 --------------------
-Type        ${cachev_type}  
-Temperature ${cachev_temperature} C    
-State       ${cachev_state} 
+Type        ${model}  
+Temperature ${temperature} C    
+State       ${state} 
 --------------------
 
 
@@ -17,7 +17,7 @@ Firmware_Status :
 ---------------------------------------
 Property                         Value 
 ---------------------------------------
-Replacement required             No    
+Replacement required             ${replacement}    
 No space to cache offload        No    
 Module microcode update required No    
 ---------------------------------------

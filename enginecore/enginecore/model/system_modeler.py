@@ -270,8 +270,8 @@ def _add_storage(asset_key, preset_file, storage_state_file):
                 query.append("CREATE ({})-[:HAS_BBU]->(bbu:BBU {{ {} }})".format(ctrl_node, props_stm))
             elif "CacheVault" in controller and controller["CacheVault"]:
                 props_stm = qh.get_props_stm(
-                    controller["CacheVault"], 
-                    supported_attr=["model", "serialNumber", "type", "replacementNeeded", "state", "designCapacity"]
+                    {**controller["CacheVault"], **{'temperature': 0, "replacement": "No"}}, 
+                    supported_attr=["model", "replacement", "state", "temperature", "mfgDate"]
                 )
                 query.append(
                     "CREATE ({})-[:HAS_CACHEVAULT]->(cache:CacheVault {{ {} }})".format(ctrl_node, props_stm)
@@ -307,8 +307,7 @@ def _add_storage(asset_key, preset_file, storage_state_file):
                 vd_node = 'vd'+str(vidx)
 
                 s_attr = [
-                    "TYPE", "State", "Access", "Cac", "Cache", "Name", "Consist", "sCC", "Size", "vdNum",
-                    "Dgrd", 'Pdgd'
+                    "TYPE", "State", "Access", "Cac", "Cache", "Name", "Consist", "sCC", "Size", "vdNum"
                 ]
                 
                 props_stm = qh.get_props_stm({**virt_drive, **{'vdNum': vidx}}, supported_attr=s_attr)

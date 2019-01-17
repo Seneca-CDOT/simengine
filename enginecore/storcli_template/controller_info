@@ -62,11 +62,7 @@ CFShld-Configured shielded|Cpybck-CopyBack|CBShld-Copyback Shielded
 Cachevault_Info :
 ===============
 
-------------------------------------
-Model  State   Temp Mode MfgDate    
-------------------------------------
-CVPM02 Optimal 27C  -    2013/10/25 
-------------------------------------
+${cachevault}
 
 
 

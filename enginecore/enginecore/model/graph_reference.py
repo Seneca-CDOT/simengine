@@ -739,3 +739,25 @@ class GraphReference():
             "vd": cls.get_virtual_drive_details(session, server_key, controller), 
             "pd": list(map(dict, list(record.get('pd'))))
         }
+
+
+    @classmethod
+    def get_cachevault(cls, session, server_key, controller):
+        """Cachevault details
+        Args:
+            session:  database session
+            server_key(int): key of the server cachevault belongs to
+            controller(int): controller num
+        """
+        query = []
+        query.extend([
+            "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})"
+            .format(server_key, controller),
+            "MATCH (ctr)-[:HAS_CACHEVAULT]->(cv:CacheVault)",
+            "RETURN cv"
+        ])
+
+        results = session.run("\n".join(query))
+        record = results.single()
+
+        return dict(record.get('cv')) if record else None

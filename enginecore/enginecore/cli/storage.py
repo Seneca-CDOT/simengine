@@ -22,6 +22,12 @@ def storage_command(storage_group):
         help="Update RAID controller related properties"
     ))
 
+    cv_command(storage_subp.add_parser(
+        'cv', 
+        help="Configure cachevault properties"
+    ))
+
+
 
 def get_ctrl_storage_args():
     # group a few args into a common parent element
@@ -108,4 +114,16 @@ def controller_command(ctrl_group):
         func=lambda args: BMCServerStateManager.set_controller_prop(
             args['asset_key'], args['controller'], args
         )
+    )
+
+
+def cv_command(cv_group):
+    """Endpoints for CacheVault properties"""
+    cv_group = cv_group.add_subparsers()
+
+    # CLI PD setter
+    set_pd_action = cv_group.add_parser(
+        'set', 
+        help="Configure CacheVault",
+        parents=[get_ctrl_storage_args()]
     )

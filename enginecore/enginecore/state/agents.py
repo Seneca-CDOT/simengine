@@ -172,7 +172,7 @@ class StorCLIEmulator():
 
             drives = GraphReference.get_all_drives(session, self._server_key, controller_num)
 
-            ctrl_state = self._storcli_details['stateConfig']['controller']['Optimal']
+            ctrl_state = copy.deepcopy(self._storcli_details['stateConfig']['controller']['Optimal'])
             ctrl_state['memoryCorrectableErrors'] = ctrl_info['memoryCorrectableErrors']
             ctrl_state['memoryUncorrectableErrors'] = ctrl_info['memoryUncorrectableErrors']
 
@@ -203,6 +203,17 @@ class StorCLIEmulator():
                     ctrl_state['numPdOffline'] += 1
 
             entry_options['status'] = self._get_state_from_config('controller', ctrl_state, 'Optimal')
+            
+            # get cachevault details:
+            cv_info = GraphReference.get_cachevault(session, self._server_key, controller_num)
+            cv_table = {
+                "Model": cv_info['model'],
+                "State": cv_info['state'],
+                "Temp": str(cv_info['temperature']) + "C",
+                "Mode": "-",
+                "MfgDate": cv_info['mfgDate']
+            }
+
 
             info_options = {
                 'header': self._strcli_header(controller_num),
@@ -211,6 +222,7 @@ class StorCLIEmulator():
                 'num_phys_drives': len(drives['pd']),
                 'virtual_drives': self._format_as_table(StorCLIEmulator.vd_header, drives['vd']),
                 'physical_drives': self._format_as_table(StorCLIEmulator.pd_header, drives['pd']),
+                'cachevault': self._format_as_table(cv_table.keys(), [cv_table]) 
             }
 
             info_template = Template(info_h.read())
@@ -218,10 +230,15 @@ class StorCLIEmulator():
 
 
     def _strcli_ctrl_cachevault(self, controller_num):
-        with open(os.path.join(self._storcli_dir, 'cachevault_data')) as templ_h:
+
+        cv_f = os.path.join(self._storcli_dir, 'cachevault_data')
+        with open(os.path.join(self._storcli_dir, cv_f)) as templ_h, self._graph_ref.get_session() as session:
          
+            cv_info = GraphReference.get_cachevault(session, self._server_key, controller_num)
+
             options = {
-                'header': self._strcli_header(controller_num),
+                **{'header': self._strcli_header(controller_num)},
+                **cv_info
             }
 
             template = Template(templ_h.read())
