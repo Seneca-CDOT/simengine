@@ -13,7 +13,7 @@ import tempfile
 import json
 import socket
 import threading
-import stat
+import copy
 from string import Template
 
 from enginecore.model.graph_reference import GraphReference
@@ -263,14 +263,14 @@ class StorCLIEmulator():
         )
 
 
-    def _get_state_from_config(self, config_entry, current_state, optimal_state):
-        state_config = self._storcli_details['stateConfig'][config_entry]
-        for status in state_config:
+    def _get_state_from_config(self, config_entry, current_state, optimal):
+        s_conf = self._storcli_details['stateConfig'][config_entry]
+        for status in s_conf:
             for prop in current_state:
-                if current_state[prop] >= state_config[status][prop] and state_config[status][prop] != -1:
+                if current_state[prop] >= s_conf[status][prop] and s_conf[status][prop] != -1 and status != optimal:
                     return status
 
-        return optimal_state
+        return optimal
 
 
 
@@ -284,7 +284,7 @@ class StorCLIEmulator():
 
             # iterate over virtual drives
             for i, v_drive in enumerate(vd_details):
-                vd_state = self._storcli_details['stateConfig']['virtualDrive']['Optl']
+                vd_state = copy.deepcopy(self._storcli_details['stateConfig']['virtualDrive']['Optl'])
 
                 # Add Virtual Drive output
                 v_drive['DG/VD'] = '0/' + str(i)
@@ -300,7 +300,7 @@ class StorCLIEmulator():
 
                     if p_drive['State'] == 'Offln':
                         vd_state['numPdOffline'] += 1
-                    
+                
                 v_drive['State'] = self._get_state_from_config('virtualDrive', vd_state, 'Optl')
 
                 drives.append({
