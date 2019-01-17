@@ -748,6 +748,8 @@ class GraphReference():
             session:  database session
             server_key(int): key of the server cachevault belongs to
             controller(int): controller num
+        Returns:
+            dict: information about cachevault
         """
         query = []
         query.extend([
@@ -761,3 +763,25 @@ class GraphReference():
         record = results.single()
 
         return dict(record.get('cv')) if record else None
+
+    @classmethod
+    def set_cv_replacement(cls, session, server_key, controller, repl_status):
+        """Update cachevault replacement status
+        Args:
+            session:  database session
+            server_key(int): key of the server cachevault belongs to
+            controller(int): controller num
+        """
+
+        query = []
+        query.extend([
+            "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})"
+            .format(server_key, controller),
+            "MATCH (ctr)-[:HAS_CACHEVAULT]->(cv:CacheVault)",
+        ])
+
+
+        set_stm = qh.get_set_stm({"replacement": repl_status}, node_name="cv", supported_attr=['replacement'])
+        query.append('SET {}'.format(set_stm))
+
+        session.run("\n".join(query))

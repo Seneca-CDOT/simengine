@@ -18,7 +18,8 @@
             "CacheVault": {
                 "model": "CVPM02",
                 "state": "Optimal",
-                "mfgDate": "2013/10/25"
+                "mfgDate": "2013/10/25",
+                "serialNumber": "17703"
             },
             "BBU": {},
             "VD": [

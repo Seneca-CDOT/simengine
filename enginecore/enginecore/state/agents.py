@@ -235,7 +235,7 @@ class StorCLIEmulator():
         with open(os.path.join(self._storcli_dir, cv_f)) as templ_h, self._graph_ref.get_session() as session:
          
             cv_info = GraphReference.get_cachevault(session, self._server_key, controller_num)
-
+            cv_info['mfgDate'] = '/'.join(reversed(cv_info['mfgDate'].split('/'))) # dumb storcli (change date format)
             options = {
                 **{'header': self._strcli_header(controller_num)},
                 **cv_info

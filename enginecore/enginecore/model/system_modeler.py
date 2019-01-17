@@ -271,7 +271,7 @@ def _add_storage(asset_key, preset_file, storage_state_file):
             elif "CacheVault" in controller and controller["CacheVault"]:
                 props_stm = qh.get_props_stm(
                     {**controller["CacheVault"], **{'temperature': 0, "replacement": "No"}}, 
-                    supported_attr=["model", "replacement", "state", "temperature", "mfgDate"]
+                    supported_attr=["model", "replacement", "state", "temperature", "mfgDate", "serialNumber"]
                 )
                 query.append(
                     "CREATE ({})-[:HAS_CACHEVAULT]->(cache:CacheVault {{ {} }})".format(ctrl_node, props_stm)

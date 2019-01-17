@@ -904,6 +904,13 @@ class BMCServerStateManager(ServerStateManager):
             return GraphReference.set_controller_prop(session, asset_key, controller, properties)
 
 
+    @classmethod
+    def set_cv_replacement(cls, asset_key, controller, repl_status):
+        graph_ref = GraphReference()
+        with graph_ref.get_session() as session:
+            return GraphReference.set_cv_replacement(session, asset_key, controller, repl_status)
+
+
 class SimplePSUStateManager(StateManager):
     def __init__(self, asset_info, notify=False):
         StateManager.__init__(self, asset_info, notify)

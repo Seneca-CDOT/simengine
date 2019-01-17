@@ -41,8 +41,8 @@ Design_Info :
 ------------------------------------
 Property                 Value      
 ------------------------------------
-Date of Manufacture      25/10/2013 
-Serial Number            17703      
+Date of Manufacture      ${mfgDate}  
+Serial Number            ${serialNumber}      
 Manufacture Name         LSI        
 Design Capacity          283 J      
 Device Name              CVPM02     

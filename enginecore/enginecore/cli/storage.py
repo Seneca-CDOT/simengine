@@ -122,8 +122,22 @@ def cv_command(cv_group):
     cv_group = cv_group.add_subparsers()
 
     # CLI PD setter
-    set_pd_action = cv_group.add_parser(
+    set_cv_action = cv_group.add_parser(
         'set', 
         help="Configure CacheVault",
         parents=[get_ctrl_storage_args()]
+    )
+
+    set_cv_action.add_argument(
+        '-r', 
+        '--replacement-required', 
+        help="Correctable RAM errors on disk data", 
+        choices=["Yes", "No"],
+        required=True
+    )
+
+    set_cv_action.set_defaults(
+        func=lambda args: BMCServerStateManager.set_cv_replacement(
+            args['asset_key'], args['controller'], args['replacement_required']
+        )
     )
