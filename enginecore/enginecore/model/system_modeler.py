@@ -589,6 +589,29 @@ def delete_asset(key):
         DETACH DELETE a,s,oid,sd,b,sn,as,cp""", key=key)
 
 
+def set_thermal_storage_target(attr):
+
+    query = []
+
+    # find the source sensor & server asset
+    query.append(
+        'MATCH (source {{ name: "{}" }} )<-[:HAS_SENSOR]-(server:Asset {{ key: {} }})'
+        .format(attr['source_sensor'], attr['asset_key'])
+    )
+
+    query.append(
+        "MATCH (server)-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})"
+        .format(attr['controller'])
+    )
+
+    if attr['cache_vault']:
+        query.append("MATCH (ctrl)-[:HAS_CACHEVAULT]->(cv:CacheVault)")
+    elif attr['drive']:
+        query.append("MATCH (ctrl)-[:HAS_CACHEVAULT]->(cv:CacheVault)")
+
+
+
+
 def set_thermal_sensor_target(attr):
     """Set-up a new thermal relationship between 2 sensors or configure the existing one
     Returns:

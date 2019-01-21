@@ -359,7 +359,13 @@ class StorCLIEmulator():
                 if not data:
                     break
                 
-                received = json.loads(data) 
+                try:
+                    received = json.loads(data)
+                except json.decoder.JSONDecodeError as e:
+                    logging.info(data)
+                    logging.info('Invalid JSON: ')
+                    logging.info(e)
+
                 argv = received['argv']
 
                 logging.info('Data received: %s', str(received))

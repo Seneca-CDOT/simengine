@@ -869,6 +869,10 @@ class BMCServerStateManager(ServerStateManager):
             ) 
     
     @classmethod
+    def update_thermal_storage_target(cls, attr):
+        sys_modeler.set_thermal_storage_target(attr)
+
+    @classmethod
     def update_thermal_cpu_target(cls, attr):
         """Create new or update existing thermal relationship between CPU usage and sensor"""
         new_rel = sys_modeler.set_thermal_cpu_target(attr)

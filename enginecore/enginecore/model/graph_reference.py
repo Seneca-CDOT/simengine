@@ -777,7 +777,7 @@ class GraphReference():
         query.extend([
             "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})"
             .format(server_key, controller),
-            "MATCH (ctr)-[:HAS_CACHEVAULT]->(cv:CacheVault)",
+            "MATCH (ctrl)-[:HAS_CACHEVAULT]->(cv:CacheVault)",
         ])
 
 
