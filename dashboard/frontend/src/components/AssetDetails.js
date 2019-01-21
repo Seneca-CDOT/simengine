@@ -64,7 +64,7 @@ const AssetDetails = ({ classes, asset, changeStatus }) => {
       </Card>
     </div>
   );
-}
+};
 
 AssetDetails.propTypes = {
   classes: PropTypes.object.isRequired,

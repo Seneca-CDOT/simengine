@@ -37,10 +37,10 @@ class SettingsOption extends React.Component {
 
         {/* Sidebar menu */}
         <Drawer
-            open={drawerOpen}
-            onClose={this.handleDrawerClose}
-            classes={{paper: classes.drawerPaper,}}
-            anchor={'left'}
+          open={drawerOpen}
+          onClose={this.handleDrawerClose}
+          classes={{paper: classes.drawerPaper,}}
+          anchor={'left'}
         >
           <div className={classes.toolbar}/>
             <Divider/>

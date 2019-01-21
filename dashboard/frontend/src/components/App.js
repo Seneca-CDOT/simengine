@@ -1,11 +1,9 @@
 import React, { Component } from 'react';
 import { Stage } from 'react-konva';
-import gridBackground from '../images/grid.png';
 import PropTypes from 'prop-types';
 
 // Material
 import { withStyles } from '@material-ui/core/styles';
-import Snackbar from '@material-ui/core/Snackbar';
 
 // Local Components - Layout
 
@@ -13,14 +11,13 @@ import Snackbar from '@material-ui/core/Snackbar';
 import AssetDetails from './AssetDetails';
 import TopNav from './Navigation/TopNav';
 import Canvas from './Canvas';
+import Notifications from './Notifications';
 
 // few helpers
 import { onWheelScroll, onWheelDown } from './canvasEvents';
 import simengineSocketClient from './socketClient';
+import styles from './App.styles';
 
-
-
-const drawerWidth = 240;
 
 class App extends Component {
 
@@ -223,6 +220,9 @@ class App extends Component {
     if (this.ws.socketOnline()) {
       this.ws.sendData({request: 'layout', data });
       this.setState({ changesSaved: true });
+      setTimeout(() => { 
+        this.setState({ changesSaved: false }); 
+      }, 5000); 
     }
   }
 
@@ -235,7 +235,13 @@ class App extends Component {
     // currently selected asset
     const selectedAsset = assets ? this.getAssetByKey(this.state.selectedAssetKey) : null;
 
+    // configure app's notifications:
     const snackbarOrigin = {vertical: 'bottom', horizontal: 'left',};
+    const displayedSnackbars = {
+      socketOffline: this.state.socketOffline, 
+      changesSaved: this.state.changesSaved,
+      layoutEmpty: !this.state.socketOffline && !assets,
+    };
 
     return (
       <div className={classes.root}>
@@ -252,7 +258,7 @@ class App extends Component {
           />
 
           {/* Main Canvas */}
-          <main className={classes.content} style={{ backgroundImage: 'url('+gridBackground+')', backgroundRepeat: "repeat",  backgroundSize: "auto" }}>
+          <main className={classes.content}>
             <div className={classes.toolbar} />
 
             {/* Drawings */}
@@ -278,79 +284,17 @@ class App extends Component {
                 changeStatus={this.changeStatus.bind(this)}
               /> : ''
             }
-
-            {/* Display message if backend is not available */}
-            <Snackbar
-              anchorOrigin={snackbarOrigin}
-              open={this.state.socketOffline}
-              message={<span>Socket is unavailable: trying to reconnect...</span>}
-            />
-
-            {/* 'Changes Applied'/'Saved' Message */}
-            <Snackbar
-              anchorOrigin={snackbarOrigin}
-              open={this.state.changesSaved}
-              onClose={()=>this.setState({changesSaved: false})}
-              autoHideDuration={1500}
-              message={<span>Changes saved!</span>}
-            />
-            {/* The layout was not initialized -> display link to the documentation*/}
-            <Snackbar
-              anchorOrigin={snackbarOrigin}
-              open={!this.state.socketOffline && !assets}
-              message={
-                <span>
-                  The system toplology appears to be empty. <br/>
-                  Please, refer to the documentation (System Modelling
-                  <a href="https://simengine.readthedocs.io/en/latest/SystemModeling/">link</a>)
-                </span>
-              }
-            />
+            {/* Bottom-Left corner pop-ups */}
+            <Notifications anchorOrigin={snackbarOrigin} displayedSnackbars={displayedSnackbars}/>
           </main>
         </div>
       </div>
     );
   }
 }
-const styles = theme => ({
-  root: {
-    flexGrow: 1,
-  },
-  appFrame: {
-    zIndex: 1,
-    overflow: 'hidden',
-    position: 'relative',
-    display: 'flex',
-    width: '100%',
-  },
-  appBar: {
-    width: `100%`,
-  },
-  'appBar-left': {
-    backgroundColor: "#36454F",
-    marginLeft: drawerWidth,
-  },
-  drawerPaper: {
-    width: drawerWidth
-  },
-  toolbar: theme.mixins.toolbar,
-  content: {
-    flexGrow: 1,
-    backgroundColor: theme.palette.background.default,
-    padding: theme.spacing.unit * 3,
-  },
-  menuButton: {
-    marginLeft: -12,
-    marginRight: 20,
-  },
-  list: {
-    width: 250,
-  },
-});
-
 
 App.propTypes = {
-  classes: PropTypes.object, // stype
+  classes: PropTypes.object,
 };
 
 
