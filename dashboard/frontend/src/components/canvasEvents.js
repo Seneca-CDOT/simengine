@@ -10,16 +10,16 @@ const onWheelScroll = (stage) => {
     const oldScale = stage.scaleX();
 
     const mousePointTo = {
-        x: stage.getPointerPosition().x / oldScale - stage.x() / oldScale,
-        y: stage.getPointerPosition().y / oldScale - stage.y() / oldScale,
+      x: stage.getPointerPosition().x / oldScale - stage.x() / oldScale,
+      y: stage.getPointerPosition().y / oldScale - stage.y() / oldScale,
     };
 
     const newScale = e.deltaY > 0 ? oldScale * scaleBy : oldScale / scaleBy;
     stage.scale({ x: newScale, y: newScale });
 
     const newPos = {
-        x: -(mousePointTo.x - stage.getPointerPosition().x / newScale) * newScale,
-        y: -(mousePointTo.y - stage.getPointerPosition().y / newScale) * newScale
+      x: -(mousePointTo.x - stage.getPointerPosition().x / newScale) * newScale,
+      y: -(mousePointTo.y - stage.getPointerPosition().y / newScale) * newScale
     };
     stage.position(newPos);
     stage.batchDraw();
@@ -30,9 +30,9 @@ const onWheelScroll = (stage) => {
 const onWheelDown = (stage) => {
   const moveCanvas = (e) => {
     e.preventDefault();
-      const newPos = {
-        x: (stage.x() + e.movementX),
-        y: (stage.y() + e.movementY),
+    const newPos = {
+      x: (stage.x() + e.movementX),
+      y: (stage.y() + e.movementY),
     };
     stage.position(newPos);
     stage.batchDraw();

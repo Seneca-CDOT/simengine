@@ -142,7 +142,7 @@ class App extends Component {
     return newConn;
   }
 
-  getAssetByKey(key) {
+  getAssetByKey = (key) => {
     if (key && !this.state.assets[key]) {
       const parentKey = this._getParentKey(key);
       return this.state.assets[parentKey].children[key];
@@ -153,7 +153,7 @@ class App extends Component {
 
 
   /** Update connections between assets (wires) */
-  onPosChange(key, coord) {
+  onPosChange = (key, coord) => {
 
     const asset = this.getAssetByKey(key);
 
@@ -183,7 +183,7 @@ class App extends Component {
   }
 
   /** Handle Asset Selection (deselect on second click, select asset otherwise) */
-  onElementSelection(asset) {
+  onElementSelection = (asset) => {
     this.setState((oldState) => {
       return {
         selectedAssetKey: oldState.selectedAssetKey === asset.key ? 0 : asset.key,
@@ -193,14 +193,14 @@ class App extends Component {
   }
 
   /** Send a status change request */
-  changeStatus(asset) {
+  changeStatus = (asset) => {
     let data = {...asset};
     data.status = !data.status;
     this.ws.sendData({ request: 'power', key: asset.key, data });
   }
 
   /** Save assets' coordinates in db  */
-  saveLayout() {
+  saveLayout = () => {
     let data = {};
     const { assets } = this.state;
 
@@ -249,7 +249,7 @@ class App extends Component {
 
           {/* Top-Navigation component */}
           <TopNav
-            saveLayout={this.saveLayout.bind(this)}
+            saveLayout={this.saveLayout}
             ambient={this.state.ambient}
             ambientRising={this.state.ambientRising}
             mainsStatus={!!this.state.mainsStatus}
@@ -268,9 +268,9 @@ class App extends Component {
               ref="stage"
             >
               <Canvas
-                getAssetByKey={this.getAssetByKey.bind(this)}
-                onPosChange={this.onPosChange.bind(this)}
-                onElementSelection={this.onElementSelection.bind(this)}
+                getAssetByKey={this.getAssetByKey}
+                onPosChange={this.onPosChange}
+                onElementSelection={this.onElementSelection}
                 assets={assets}
                 connections={connections}
                 selectedAssetKey={this.state.selectedAssetKey}
@@ -278,11 +278,10 @@ class App extends Component {
             </Stage>
 
             {/* RightMost Card -> Display Element Details */}
-            {(this.state.selectedAssetKey) ?
-              <AssetDetails
-                asset={selectedAsset}
-                changeStatus={this.changeStatus.bind(this)}
-              /> : ''
+            {!!this.state.selectedAssetKey && 
+              <AssetDetails asset={selectedAsset}
+                changeStatus={this.changeStatus}
+              />
             }
             {/* Bottom-Left corner pop-ups */}
             <Notifications anchorOrigin={snackbarOrigin} displayedSnackbars={displayedSnackbars}/>

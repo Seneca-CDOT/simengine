@@ -6,9 +6,8 @@ import PropTypes from 'prop-types';
 
 const Notifications = ({ anchorOrigin, displayedSnackbars }) => {
 
-  const open = Object.keys(displayedSnackbars).find((k)=>displayedSnackbars[k]);
-
-  let snackbarMessage = {};
+  const open = !!Object.keys(displayedSnackbars).find((k)=>displayedSnackbars[k]);
+  let snackbarMessage = '';
   
   if (displayedSnackbars.socketOffline) {
     snackbarMessage = <span>Socket is unavailable: trying to reconnect...</span>;
@@ -20,7 +19,7 @@ const Notifications = ({ anchorOrigin, displayedSnackbars }) => {
     snackbarMessage = (
       <span>
         The system toplology appears to be empty. <br/>
-        Please, refer to the documentation (System Modelling
+        Please, refer to the documentation (System Modelling &nbsp;
         <a href="https://simengine.readthedocs.io/en/latest/System%20Modeling/">link</a>)
       </span>
     );
@@ -30,7 +29,7 @@ const Notifications = ({ anchorOrigin, displayedSnackbars }) => {
     <Snackbar
       anchorOrigin={anchorOrigin}
       open={open}
-      message={<span>{snackbarMessage}</span>}
+      message={snackbarMessage}
     />
   );
 };
