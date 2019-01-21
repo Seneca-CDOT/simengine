@@ -7,16 +7,16 @@ import { Card, CardContent, CardHeader, Divider, Typography } from '@material-ui
 import PowerSwitch from './common/PowerSwitch';
 
 
-function AssetDetails(props) {
-  const { classes, assetInfo, assetKey, changeStatus } = props;
+const AssetDetails = ({ classes, asset, changeStatus }) => {
+
   let children = [];
 
-  if(assetInfo.children) {
+  if(asset.children) {
     children.push(<div key={0}><h3> Connected Components </h3></div>);
 
-    const c = assetInfo.children;
+    const c = asset.children;
     for (const ckey of Object.keys(c)) {
-        const childStatus = c[ckey].status === 1?(<span style={{color: 'green'}}>on</span>):(<span style={{color: 'red'}}>off</span>)
+        const childStatus = c[ckey].status === 1?(<span style={{color: 'green'}}>on</span>):(<span style={{color: 'red'}}>off</span>);
         children.push(
           <div key={ckey}>
             <Typography variant="subheading" component="h5">
@@ -36,23 +36,23 @@ function AssetDetails(props) {
         />
         <CardContent>
           <Typography variant="headline" component="h2">
-            Asset: {assetKey}-{assetInfo.type}
+            Asset: {asset.key}-{asset.type}
           </Typography>
           <Typography variant="subheading" component="h5">
-            Status: {assetInfo.status === 1?<span style={{color: 'green'}}>on</span>:<span style={{color: 'red'}}>off</span>}
+            Status: {asset.status === 1?<span style={{color: 'green'}}>on</span>:<span style={{color: 'red'}}>off</span>}
           </Typography>
           <Typography variant="subheading" component="h5">
-            Name: {assetInfo.name}
+            Name: {asset.name}
           </Typography>
 
           <Typography variant="subheading" component="h5">
-            Current Load: {assetInfo.load ? assetInfo.load.toFixed(2): 0} Amp
+            Current Load: {asset.load ? asset.load.toFixed(2): 0} Amp
           </Typography>
           <Divider />
           {/* Turn off/on the component */}
           <PowerSwitch
-            checked={assetInfo.status === 1}
-            onChange={()=>changeStatus(assetKey, assetInfo)}
+            checked={asset.status === 1}
+            onChange={()=>changeStatus(asset)}
             label={<Typography variant="subheading" component="h5">Toggle Status</Typography>}
           />
           <Divider/>
@@ -68,8 +68,7 @@ function AssetDetails(props) {
 
 AssetDetails.propTypes = {
   classes: PropTypes.object.isRequired,
-  assetInfo: PropTypes.object.isRequired,
-  assetKey: PropTypes.string.isRequired,
+  asset: PropTypes.object.isRequired,
   changeStatus: PropTypes.func.isRequired, // Change asset state
 };
 

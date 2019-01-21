@@ -28,7 +28,6 @@ class Canvas extends Component {
     let elementProps = {
       onPosChange: this.props.onPosChange.bind(this),
       onElementSelection: this.props.onElementSelection.bind(this),
-      assetId: asset.key,
       key: asset.key,
       asset: asset,
       selected: this.props.selectedAssetKey === asset.key,

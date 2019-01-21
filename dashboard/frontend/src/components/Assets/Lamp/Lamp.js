@@ -32,7 +32,7 @@ class Lamp extends Asset {
   /** Load Lamp Image */
   componentDidMount() {
     Promise.all(this.loadImages({ lampImg: lampSource, lampOffImg: lampOffSource })).then(() => {
-      this.props.onPosChange(this.props.assetId, this.formatAssetCoordinates(this.props));
+      this.props.onPosChange(this.props.asset.key, this.formatAssetCoordinates(this.props));
     });
   }
   

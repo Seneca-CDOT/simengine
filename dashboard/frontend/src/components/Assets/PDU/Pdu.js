@@ -34,7 +34,7 @@ export default class Pdu extends OutputAsset {
     Promise.all(this.loadImages({ c14Img: c14Source }))
       .then(Socket.socketSize)
       .then((size) => this.setState({ socketSize: size }))
-      .then(() => this.props.onPosChange(this.props.assetId, this.formatAssetCoordinates(this.props)));
+      .then(() => this.props.onPosChange(this.props.asset.key, this.formatAssetCoordinates(this.props)));
   }
  
   getOutputCoordinates = (center=true) => {

@@ -39,7 +39,7 @@ class Socket extends Asset {
         this.setState({ backgroundImg });
       }
       
-      this.props.onPosChange(this.props.assetId, this.formatAssetCoordinates(this.props));
+      this.props.onPosChange(this.props.asset.key, this.formatAssetCoordinates(this.props));
     });
   }
   

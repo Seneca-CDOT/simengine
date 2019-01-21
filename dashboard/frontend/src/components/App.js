@@ -22,7 +22,7 @@ import simengineSocketClient from './socketClient';
 
 const drawerWidth = 240;
 
- class App extends Component {
+class App extends Component {
 
   constructor() {
     super();
@@ -147,8 +147,8 @@ const drawerWidth = 240;
 
   getAssetByKey(key) {
     if (key && !this.state.assets[key]) {
-      const parent_key = this._getParentKey(key);
-      return this.state.assets[parent_key].children[key];
+      const parentKey = this._getParentKey(key);
+      return this.state.assets[parentKey].children[key];
     } else {
       return this.state.assets[key];
     }
@@ -185,21 +185,21 @@ const drawerWidth = 240;
     this.setState({ assets, connections: {...connections, ...newConn, ...childConn }});
   }
 
-  /** Handle Asset Selection */
-  onElementSelection(assetKey, assetInfo) {
+  /** Handle Asset Selection (deselect on second click, select asset otherwise) */
+  onElementSelection(asset) {
     this.setState((oldState) => {
       return {
-        selectedAssetKey: oldState.selectedAssetKey === assetKey ? 0 : assetKey,
-        selectedAsset: assetInfo
+        selectedAssetKey: oldState.selectedAssetKey === asset.key ? 0 : asset.key,
+        selectedAsset: asset
       };
     });
   }
 
   /** Send a status change request */
-  changeStatus(assetKey, assetInfo) {
-    let data = {...assetInfo};
+  changeStatus(asset) {
+    let data = {...asset};
     data.status = !data.status;
-    this.ws.sendData({ request: 'power', key: assetKey, data });
+    this.ws.sendData({ request: 'power', key: asset.key, data });
   }
 
   /** Save assets' coordinates in db  */
@@ -274,8 +274,7 @@ const drawerWidth = 240;
             {/* RightMost Card -> Display Element Details */}
             {(this.state.selectedAssetKey) ?
               <AssetDetails
-                assetInfo={selectedAsset}
-                assetKey={this.state.selectedAssetKey}
+                asset={selectedAsset}
                 changeStatus={this.changeStatus.bind(this)}
               /> : ''
             }

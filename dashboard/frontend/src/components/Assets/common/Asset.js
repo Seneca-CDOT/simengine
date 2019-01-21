@@ -44,13 +44,13 @@ class Asset extends React.Component {
   /** Notify Parent of Selection */
   handleClick = () => {
     this.refs.asset.setZIndex(100);
-    this.props.onElementSelection(this.props.assetId, this.props.asset);
+    this.props.onElementSelection(this.props.asset);
   };
 
   /** returns global asset position (x, y), relative output & input outlet coordinates */
   updateAssetPos = (s) => {
     const coord = this.formatAssetCoordinates(s.target.attrs); 
-    this.props.onPosChange(this.props.assetId, coord);
+    this.props.onPosChange(this.props.asset.key, coord);
   }
 }
 
@@ -60,7 +60,6 @@ Asset.propTypes = {
   x: PropTypes.number, // X position of the asset
   y: PropTypes.number, // Y position of the asset
   asset: PropTypes.object.isRequired, // Asset Details
-  assetId: PropTypes.string.isRequired, // Asset Key
   
   selected: PropTypes.bool.isRequired, // Asset Selected by a user
   powered: PropTypes.bool.isRequired, // indicates if upstream power is present

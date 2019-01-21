@@ -6,11 +6,8 @@ from enginecore.state.state_managers import StateManager
 
 def handle_link(kwargs):
     """Power connections"""
-    if kwargs['remove']:
-        sys_modeler.remove_link(kwargs['source_key'], kwargs['dest_key'])
-    else:
-        sys_modeler.link_assets(kwargs['source_key'], kwargs['dest_key'])
-            
+    link_action = sys_modeler.remove_link if kwargs['remove'] else sys_modeler.link_assets
+    link_action(kwargs['source_key'], kwargs['dest_key'])
 
 ############# Validations
 
