@@ -21,11 +21,14 @@ import enginecore.model.system_modeler as sys_modeler
 from enginecore.state.utils import format_as_redis_key
 from enginecore.state.redis_channels import RedisChannels
 
+
+
 class StateManager():
     """Base class for all the state managers """
 
     redis_store = None
 
+    # TODO: replace 'notify' arg logic with a derived? class
     def __init__(self, asset_info, notify=False):
         self._graph_ref = GraphReference()
         self._asset_key = asset_info['key']
@@ -33,39 +36,48 @@ class StateManager():
 
         self._notify = notify
 
+
     @property
     def key(self):
         """Asset Key """
         return self._asset_key
     
+
     @property
     def redis_key(self):
         """Asset key in redis format as '{key}-{type}' """
         return "{}-{}".format(str(self.key), self.asset_type)
+
 
     @property
     def asset_type(self):
         """Asset Type """
         return self._asset_info['type']
 
+
     @property
     def power_usage(self):
         """Normal power usage in AMPS when powered up"""
         return 0
+
 
     @property
     def draw_percentage(self):
         """How much power the asset draws"""
         return self._asset_info['draw'] if 'draw' in self._asset_info else 1
 
+
     @property
     def load(self):
         """Get current load stored in redis (in AMPs)"""
         return float(StateManager.get_store().get(self.redis_key + ":load"))
 
+
     @property
     def wattage(self):
+        """Asset wattage (assumes power-source to be 120v)"""
         return self.load * 120
+
 
     @property
     def status(self):
@@ -75,6 +87,7 @@ class StateManager():
             int: 1 if on, 0 if off
         """
         return int(StateManager.get_store().get(self.redis_key))
+
 
     @property
     def agent(self):
@@ -116,6 +129,7 @@ class StateManager():
             self._set_state_off()
         return self.status
 
+
     def power_up(self):
         """Implements state logic for power up, sleeps for the pre-configured time & resets boot time
         
@@ -144,41 +158,59 @@ class StateManager():
 
 
     def get_config_off_delay(self):
+        """Delay for power-off operation 
+        (unlike 'hardware'-determined delay, this value can be configured by the user)
+        """
         return NotImplementedError
     
 
     def get_config_on_delay(self):
+        """Delay for power-on operation 
+        (unlike 'hardware'-determined delay, this value can be configured by the user)
+        """
         return NotImplementedError
 
 
+    def _sleep_delay(self, delay_type):
+        """Sleep for n number of ms determined by the delay_type"""
+        if delay_type in self._asset_info:
+            time.sleep(self._asset_info[delay_type] / 1000.0) # ms to sec
+
+
     def _sleep_shutdown(self):
-        if 'offDelay' in self._asset_info:
-            time.sleep(self._asset_info['offDelay'] / 1000.0) # ms to sec
+        """Hardware-specific shutdown delay"""
+        self._sleep_delay('offDelay')
 
 
     def _sleep_powerup(self):
-        if 'onDelay' in self._asset_info:
-            time.sleep(self._asset_info['onDelay'] / 1000.0) # ms to sec
+        """Hardware-specific powerup delay"""
+        self._sleep_delay('onDelay')
     
 
-    def _set_state_on(self):
-        StateManager.get_store().set(self.redis_key, '1')
+    def _set_redis_asset_state(self, state):
+        """Update redis value of the asset power status"""
+        StateManager.get_store().set(self.redis_key, state)
         if self._notify:
             self.publish_power()
+
+
+    def _set_state_on(self):
+        """Set state to online"""
+        self._set_redis_asset_state('1')
 
 
     def _set_state_off(self):
-        StateManager.get_store().set(self.redis_key, '0')
-        if self._notify:
-            self.publish_power()
+        """Set state to offline"""
+        self._set_redis_asset_state('0')
 
 
     def publish_power(self):
-        """ publish state changes """
+        """Publish state changes """
         StateManager.get_store().publish(RedisChannels.state_update_channel, self.redis_key)
 
+
     def _publish_load(self):
-        """ publish load changes """
+        """Publish load changes """
         StateManager.get_store().publish(RedisChannels.load_update_channel, self.redis_key)
 
 
@@ -199,6 +231,7 @@ class StateManager():
         
 
     def _get_oid_value(self, oid, key):
+        """Retrieve value for a specific OID """
         redis_store = StateManager.get_store() 
         rkey = format_as_redis_key(str(key), oid, key_formatted=False)
         return redis_store.get(rkey).decode().split('|')[1]
@@ -229,8 +262,8 @@ class StateManager():
         if pdown == len(keys):
             print(pdown_msg)
             return False
-        else:
-            return True
+
+        return True
 
 
     def _parents_available(self):
@@ -392,6 +425,7 @@ class StateManager():
             return supported_assets[asset_info['type']].StateManagerCls(asset_info, notify=notify)
 
 
+
 class UPSStateManager(StateManager):
     """Handles UPS state logic """
 
@@ -407,12 +441,11 @@ class UPSStateManager(StateManager):
         noTransfer = 1
         blackout = 2
         deepMomentarySag = 3
-          
+
+
     def __init__(self, asset_info, notify=False):
         super(UPSStateManager, self).__init__(asset_info, notify)
         self._max_battery_level = 1000#%
-        self._min_restore_charge_level = self._asset_info['minPowerOnBatteryLevel']
-        self._full_recharge_time = self._asset_info['fullRechargeTime']
 
 
     @property
@@ -426,32 +459,41 @@ class UPSStateManager(StateManager):
         """Max battery level"""
         return self._max_battery_level
 
+
     @property
     def wattage(self):
         return (self.load + self.idle_ups_amp) * self._asset_info['powerSource']
+
 
     @property
     def idle_ups_amp(self):
         """How much a UPS draws"""
         return self._asset_info['powerConsumption'] / self._asset_info['powerSource']
 
+
     @property
     def min_restore_charge_level(self):
         """min level of battery charge before UPS can be powered on"""
-        return self._min_restore_charge_level
-    
+        return self._asset_info['minPowerOnBatteryLevel']
+
+
     @property
     def full_recharge_time(self):
         """hours taken to recharge the battery when it's completely depleted"""
-        return self._full_recharge_time
+        return self._asset_info['fullRechargeTime']
+
 
     @property
     def output_capacity(self):
         """UPS rated capacity"""
         return self._asset_info['outputPowerCapacity']
 
+
     def update_temperature(self, temp):
-        self._update_battery_temp_oid(temp + StateManager.get_ambient())
+        """Set battery temperature of the device"""
+        oid_value = (temp + StateManager.get_ambient()) * 10
+        self._update_oid_by_name('HighPrecBatteryTemperature', snmp_data_types.Gauge32, oid_value)
+
 
     def update_battery(self, charge_level):
         """Updates battery level, checks for the charge level being in valid range, sets battery-related OIDs
@@ -478,7 +520,30 @@ class UPSStateManager(StateManager):
         if 'outputPowerCapacity' in self._asset_info:
             self._update_load_perc_oids(load)
             self._update_current_oids(load)
-    
+
+
+    def shut_down(self):
+        time.sleep(self.get_config_off_delay())
+        powered = super().shut_down()
+        return powered
+
+
+    def power_up(self):
+        print("Powering up {}".format(self._asset_key))
+
+        if self.battery_level and not self.status:
+            self._sleep_powerup()
+            time.sleep(self.get_config_on_delay())
+            # udpate machine start time & turn on
+            self.reset_boot_time()
+            self._set_state_on()
+        
+        powered = self.status
+        if powered:
+            self._reset_power_off_oid()
+
+        return powered
+
 
     def update_time_on_battery(self, timeticks):
         """Update OIDs associated with UPS time on battery
@@ -486,54 +551,97 @@ class UPSStateManager(StateManager):
         Args:
             timeticks(int): time-on battery (seconds*100)
         """
-        with self._graph_ref.get_session() as db_s:
-            oid, data_type, _ = GraphReference.get_asset_oid_by_name(
-                db_s, int(self._asset_key), 'TimeOnBattery'
-            )
+        self._update_oid_by_name('TimeOnBattery', snmp_data_types.TimeTicks, timeticks)
 
-            if oid:
-                self._update_oid_value(oid, data_type, snmp_data_types.TimeTicks(timeticks))
-    
 
     def update_time_left(self, timeticks):
-        """Update OIDs associated with UPS runtime (estimation)
+        """Update OIDs associated with UPS runtime (estimation of how long UPS will be operating)
         
         Args:
-            load(float): new load in AMPs
+            timeticks(int): time left
         """
-        with self._graph_ref.get_session() as db_s:
-            oid, data_type, _ = GraphReference.get_asset_oid_by_name(
-                db_s, int(self._asset_key), 'BatteryRunTimeRemaining'
-            )
+        self._update_oid_by_name('BatteryRunTimeRemaining', snmp_data_types.TimeTicks, timeticks)
 
-            if oid:
-                self._update_oid_value(oid, data_type, snmp_data_types.TimeTicks(timeticks))
 
     def update_ups_output_status(self, status):
-        with self._graph_ref.get_session() as db_s:
-            oid, data_type, oid_spec = GraphReference.get_asset_oid_by_name(
-                db_s, int(self._asset_key), 'BasicOutputStatus'
-            )
-            
-            if oid:
-                self._update_oid_value(oid, data_type, snmp_data_types.Integer(oid_spec[status.name]))
+        """Status for output -- either on, off or running on battery
+        Args:
+            status(OutputStatus): new output status
+        """
+        self._update_oid_by_name('BasicOutputStatus', snmp_data_types.Integer, status.name, use_spec=True)
+
 
     def update_transfer_reason(self, status):
+        """Update UPS transfer reason; UPS can switch its mode to 'on battery' for multiple reasons
+        (e.g. Voltage drop, upstream power failure etc.)
+        Args:
+            status(InputLineFailCause): new transfer cause
+        """
+        self._update_oid_by_name('InputLineFailCause', snmp_data_types.Integer, status.name, use_spec=True)
+
+
+    def get_config_off_delay(self):
+        with self._graph_ref.get_session() as db_s:
+            oid, _, _ = GraphReference.get_asset_oid_by_name(db_s, int(self._asset_key), 'AdvConfigShutoffDelay')
+            return int(self._get_oid_value(oid, key=self._asset_key))
+
+
+    def get_config_on_delay(self):
+        with self._graph_ref.get_session() as db_s:
+            oid, _, _ = GraphReference.get_asset_oid_by_name(db_s, int(self._asset_key), 'AdvConfigReturnDelay')
+            return int(self._get_oid_value(oid, key=self._asset_key))
+
+
+    def _update_battery_process_speed(self, process_channel, factor):
+        """Speed up/slow down battery related process"""
+        rkey = "{}|{}".format(self.redis_key, factor)
+        StateManager.get_store().publish(process_channel, rkey)
+
+
+    def set_drain_speed_factor(self, factor):
+        """Speed up/slow down UPS battery draining process
+        (note that this will produce 'unreal' behaviour)
+        """
+        self._update_battery_process_speed(RedisChannels.battery_conf_drain_channel, factor)
+    
+
+    def set_charge_speed_factor(self, factor):
+        """Speed up/slow down UPS battery charging
+        (note that this will produce 'unreal' behaviour)
+        """
+        self._update_battery_process_speed(RedisChannels.battery_conf_charge_channel, factor)
+
+
+    def _update_oid_by_name(self, oid_name, oid_type, value, use_spec=False):
+        """Update a specific oid
+        Args:
+            oid_name(str): oid name defined in device preset file
+            oid_type(rfc1902): oid type (rfc1902 specs)
+            value(str): oid value or spec parameter if use_spec is set to True
+            use_spec:
+        Returns:
+            bool: true if oid was successfully updated
+        """
+
         with self._graph_ref.get_session() as db_s:
             oid, data_type, oid_spec = GraphReference.get_asset_oid_by_name(
-                db_s, int(self._asset_key), 'InputLineFailCause'
+                db_s, int(self._asset_key), oid_name
             )
-            
+
             if oid:
-                self._update_oid_value(oid, data_type, snmp_data_types.Integer(oid_spec[status.name]))
-    
+                new_oid_value = oid_spec[value] if use_spec and oid_spec else value
+                self._update_oid_value(oid, data_type, oid_type(new_oid_value))
+                return True
+            
+            return False
+
+
     def _reset_power_off_oid(self):
         """Reset upsAdvControlUpsOff to 1 """
-        with self._graph_ref.get_session() as session:
-            oid, data_type, _ = GraphReference.get_asset_oid_by_name(session, int(self._asset_key), 'PowerOff')
-            if oid:
-                self._update_oid_value(oid, data_type, 1) # TODO: Can be something else
-    
+        # TODO different vendors may assign other values (not 1)
+        self._update_oid_by_name('PowerOff', snmp_data_types.Integer, 1)
+
+
     def _update_current_oids(self, load):
         """Update OIDs associated with UPS Output - Current in AMPs
         
@@ -555,6 +663,7 @@ class UPSStateManager(StateManager):
                 self._update_oid_value(oid_hp, dt_hp, snmp_data_types.Gauge32(load*10))
 
 
+    # TODO: refactor both _update_load_perc_oids & _update_battery_oids, functions seem quite similair
     def _update_load_perc_oids(self, load):
         """Update OIDs associated with UPS Output - % of the power capacity
         
@@ -562,7 +671,6 @@ class UPSStateManager(StateManager):
             load(float): new load in AMPs
         """
 
-        power_capacity = self.output_capacity
         with self._graph_ref.get_session() as db_s:
             # 100%
             oid_adv, dt_adv, _ = GraphReference.get_asset_oid_by_name(db_s, int(self._asset_key), 'AdvOutputLoad')
@@ -572,20 +680,14 @@ class UPSStateManager(StateManager):
                 db_s, int(self._asset_key), 'HighPrecOutputLoad'
             )
 
-            value_hp = (1000*(load*120)) / power_capacity
+            value_hp = (1000*(load*120)) / self.output_capacity
 
             if oid_adv:
                 self._update_oid_value(oid_adv, dt_adv, snmp_data_types.Gauge32(value_hp/10))
             if oid_hp:
                 self._update_oid_value(oid_hp, dt_hp, snmp_data_types.Gauge32(value_hp))
-            
-    def _update_battery_temp_oid(self, temp):
-        with self._graph_ref.get_session() as db_s:
-            oid_hp, oid_dt, _ = GraphReference.get_asset_oid_by_name(
-                db_s, int(self._asset_key), 'HighPrecBatteryTemperature'
-            )
 
-            self._update_oid_value(oid_hp, oid_dt, snmp_data_types.Gauge32(temp*10))
+
 
     def _update_battery_oids(self, charge_level, old_level):
         """Update OIDs associated with UPS Battery
@@ -619,63 +721,15 @@ class UPSStateManager(StateManager):
                     self._update_oid_value(oid_basic, dt_basic, snmp_data_types.Integer32(norm_bat_value))
 
 
-    def shut_down(self):
-        time.sleep(self.get_config_off_delay())
-        powered = super().shut_down()
-        return powered
-
-    def power_up(self):
-        print("Powering up {}".format(self._asset_key))
-
-        if self.battery_level and not self.status:
-            self._sleep_powerup()
-            time.sleep(self.get_config_on_delay())
-            # udpate machine start time & turn on
-            self.reset_boot_time()
-            self._set_state_on()
-        
-        powered = self.status
-        if powered:
-            self._reset_power_off_oid()
-
-        return powered
-
-
-    def get_config_off_delay(self):
-        with self._graph_ref.get_session() as db_s:
-            oid, _, _ = GraphReference.get_asset_oid_by_name(db_s, int(self._asset_key), 'AdvConfigShutoffDelay')
-            return int(self._get_oid_value(oid, key=self._asset_key))
-
-
-    def get_config_on_delay(self):
-        with self._graph_ref.get_session() as db_s:
-            oid, _, _ = GraphReference.get_asset_oid_by_name(db_s, int(self._asset_key), 'AdvConfigReturnDelay')
-            return int(self._get_oid_value(oid, key=self._asset_key))
-
-
     def _publish_battery(self):
         """Publish battery update"""
         StateManager.get_store().publish(RedisChannels.battery_update_channel, self.redis_key)
     
 
-    def set_drain_speed_factor(self, factor):
-        """Publish battery update"""
-        rkey = "{}|{}".format(self.redis_key, factor)
-        StateManager.get_store().publish(RedisChannels.battery_conf_drain_channel, rkey)
-    
-
-    def set_charge_speed_factor(self, factor):
-        """Publish battery update"""
-        rkey = "{}|{}".format(self.redis_key, factor)
-        StateManager.get_store().publish(RedisChannels.battery_conf_charge_channel, rkey)
 
 class PDUStateManager(StateManager):
     """Handles state logic for PDU asset """
-
-    def __init__(self, asset_info, notify=False):
-        super(PDUStateManager, self).__init__(asset_info, notify)
-        
-
+  
     def _update_current(self, load):
         """Update OID associated with the current amp value """
         with self._graph_ref.get_session() as session:
@@ -714,8 +768,6 @@ class OutletStateManager(StateManager):
         switchOff = 1
         switchOn = 2
 
-    def __init__(self, asset_info, notify=False):
-        super(OutletStateManager, self).__init__(asset_info, notify)
 
     def _get_oid_value_by_name(self, oid_name):
         """Get value under object id name"""
@@ -725,6 +777,7 @@ class OutletStateManager(StateManager):
                 oid = "{}.{}".format(oid, str(self.key)[-1])
                 return int(self._get_oid_value(oid, key=parent_key))
             return 0
+
 
     def set_parent_oid_states(self, state):
         """Bulk-set parent oid values 
@@ -744,6 +797,7 @@ class OutletStateManager(StateManager):
             
             StateManager.get_store().mset(parents_new_states)
 
+
     def get_config_off_delay(self):
         return self._get_oid_value_by_name("OutletConfigPowerOffTime")
 
@@ -754,9 +808,6 @@ class OutletStateManager(StateManager):
 
 class StaticDeviceStateManager(StateManager):
     """Dummy Device that doesn't do much except drawing power """
-
-    def __init__(self, asset_info, notify=False):
-        super(StaticDeviceStateManager, self).__init__(asset_info, notify)
 
 
     @property
@@ -782,8 +833,10 @@ class ServerStateManager(StaticDeviceStateManager):
 
 
     def vm_is_active(self):
+        """Check if vm is powered up"""
         return self._vm.isActive()
-    
+
+
     def shut_down(self):
         if self._vm.isActive():
             self._vm.destroy()
@@ -814,18 +867,6 @@ class BMCServerStateManager(ServerStateManager):
     def __init__(self, asset_info, notify=False):
         ServerStateManager.__init__(self, asset_info, notify)
 
-    def power_up(self):
-        powered = super().power_up()
-        return powered
-
-
-    def shut_down(self):
-        return super().shut_down()
-
-
-    def power_off(self):
-        return super().power_off()
-
 
     def get_cpu_stats(self):
         """Get VM cpu stats (user_time, cpu_time etc. (see libvirt api)) """
@@ -851,41 +892,50 @@ class BMCServerStateManager(ServerStateManager):
         with graph_ref.get_session() as session:
             return GraphReference.get_asset_sensors(session, asset_key)
 
+
     @classmethod
     def update_thermal_sensor_target(cls, attr):
         """Create new or update existing thermal relationship between 2 sensors"""
         new_rel = sys_modeler.set_thermal_sensor_target(attr)
-        if new_rel: 
-            StateManager.get_store().publish(
-                RedisChannels.sensor_conf_th_channel, 
-                json.dumps({
-                    'key': attr['asset_key'],
-                    'relationship': {
-                        'source': attr['source_sensor'],
-                        'target': attr['target_sensor'],
-                        'event': attr['event']
-                    }
-                })
-            ) 
+        if not new_rel: 
+            return
+
+        StateManager.get_store().publish(
+            RedisChannels.sensor_conf_th_channel,
+            json.dumps({
+                'key': attr['asset_key'],
+                'relationship': {
+                    'source': attr['source_sensor'],
+                    'target': attr['target_sensor'],
+                    'event': attr['event']
+                }
+            })
+        )
     
+
     @classmethod
     def update_thermal_storage_target(cls, attr):
+        """Add new storage entity affected by a sensor """
         sys_modeler.set_thermal_storage_target(attr)
+
 
     @classmethod
     def update_thermal_cpu_target(cls, attr):
         """Create new or update existing thermal relationship between CPU usage and sensor"""
         new_rel = sys_modeler.set_thermal_cpu_target(attr)
-        if new_rel: 
-            StateManager.get_store().publish(
-                RedisChannels.cpu_usg_conf_th_channel, 
-                json.dumps({
-                    'key': attr['asset_key'],
-                    'relationship': {
-                        'target': attr['target_sensor'],
-                    }
-                })
-            )  
+        if not new_rel: 
+            return
+
+        StateManager.get_store().publish(
+            RedisChannels.cpu_usg_conf_th_channel,
+            json.dumps({
+                'key': attr['asset_key'],
+                'relationship': {
+                    'target': attr['target_sensor'],
+                }
+            })
+        )
+
 
     @classmethod
     def get_thermal_cpu_details(cls, asset_key):
@@ -894,8 +944,10 @@ class BMCServerStateManager(ServerStateManager):
         with graph_ref.get_session() as session:
             return GraphReference.get_thermal_cpu_details(session, asset_key)
 
+
     @classmethod
     def set_physical_drive_prop(cls, asset_key, controller, did, properties):
+        """Update physical drive"""
         graph_ref = GraphReference()
         with graph_ref.get_session() as session:
             return GraphReference.set_physical_drive_prop(session, asset_key, controller, did, properties)
@@ -903,6 +955,7 @@ class BMCServerStateManager(ServerStateManager):
 
     @classmethod
     def set_controller_prop(cls, asset_key, controller, properties):
+        """Update RAID controller """
         graph_ref = GraphReference()
         with graph_ref.get_session() as session:
             return GraphReference.set_controller_prop(session, asset_key, controller, properties)
@@ -910,55 +963,16 @@ class BMCServerStateManager(ServerStateManager):
 
     @classmethod
     def set_cv_replacement(cls, asset_key, controller, repl_status):
+        """Update Cachevault details"""
         graph_ref = GraphReference()
         with graph_ref.get_session() as session:
             return GraphReference.set_cv_replacement(session, asset_key, controller, repl_status)
 
 
-class SimplePSUStateManager(StateManager):
-    def __init__(self, asset_info, notify=False):
-        StateManager.__init__(self, asset_info, notify)
-
-
 class PSUStateManager(StateManager):
-
+    """Power Supply"""
 
     def __init__(self, asset_info, notify=False):
         StateManager.__init__(self, asset_info, notify)
-        self._psu_number = int(repr(asset_info['key'])[-1])
+        # self._psu_number = int(repr(asset_info['key'])[-1])
         # self._sensor = SensorRepository(int(repr(asset_info['key'])[:-1])).get
-
-
-    def _update_current(self, load):
-        """Update current inside state file """
-        load = load if load >= 0 else 0
-        # super()._write_sensor_file(super()._get_psu_current_file(self._psu_number), load)
-    
-
-    def _update_wattage(self, wattage):
-        """Update wattage inside state file """        
-        wattage = wattage if wattage >= 0 else 0    
-        # super()._write_sensor_file(super()._get_psu_wattage_file(self._psu_number), wattage)
-
-
-    def _update_fan_speed(self, value):
-        """Speed In RPMs"""
-        value = value if value >= 0 else 0    
-        # super()._write_sensor_file(super()._get_psu_fan_file(self._psu_number), value)
-    
-        
-    def set_psu_status(self, value):
-        """0x08 indicates AC loss"""
-        pass
-        # if super().get_state_dir():
-            # super()._write_sensor_file(super()._get_psu_status_file(self._psu_number), value)
-    
-
-    def update_load(self, load):
-        super().update_load(load)
-        min_load = self._asset_info['powerConsumption'] / self._asset_info['powerSource']
-        
-        # if super().get_state_dir():
-        #     self._update_current(load + min_load)
-        #     self._update_waltage((load + min_load) * 10)
-        #     self._update_fan_speed(100 if load > 0 else 0)

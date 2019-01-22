@@ -133,7 +133,7 @@ class App extends Component {
 
     if(asset['parent']) {
       asset['parent'].forEach((p, idx) => {
-        newConn[p.key] = {...connections[p.key], destX:coord[idx].x, destY:coord[idx].y };
+        newConn[p.key] = { ...connections[p.key], destX:coord[idx].x, destY:coord[idx].y };
       });
     } else if (key in connections && coord[0]) {
       newConn[key] = { ...connections[key], sourceX:coord[0].x, sourceY:coord[0].y };
@@ -172,14 +172,14 @@ class App extends Component {
     if (asset.children) {
       for (const ckey of Object.keys(coord.outputConnections)) {
         const c = this._updateWiring(
-          this.getAssetByKey(ckey), ckey, [{x: coord.x + coord.outputConnections[ckey].x, y: coord.y + coord.outputConnections[ckey].y}]
+          this.getAssetByKey(ckey), ckey, [{ x: coord.x + coord.outputConnections[ckey].x, y: coord.y + coord.outputConnections[ckey].y }]
         );
 
         Object.assign(childConn, c);
       }
     }
 
-    this.setState({ assets, connections: {...connections, ...newConn, ...childConn }});
+    this.setState({ assets, connections: { ...connections, ...newConn, ...childConn } });
   }
 
   /** Handle Asset Selection (deselect on second click, select asset otherwise) */
@@ -215,14 +215,14 @@ class App extends Component {
     data['assets'] = {};
 
     // add asset layout info
-    Object.keys(assets).map((a) => ( data['assets'][a]={ x: assets[a].x, y: assets[a].y }));
+    Object.keys(assets).map((a) => ( data['assets'][a]={ x: assets[a].x, y: assets[a].y } ));
 
     if (this.ws.socketOnline()) {
       this.ws.sendData({request: 'layout', data });
       this.setState({ changesSaved: true });
-      setTimeout(() => { 
-        this.setState({ changesSaved: false }); 
-      }, 5000); 
+      setTimeout(() => {
+        this.setState({ changesSaved: false });
+      }, 5000);
     }
   }
 
@@ -236,9 +236,9 @@ class App extends Component {
     const selectedAsset = assets ? this.getAssetByKey(this.state.selectedAssetKey) : null;
 
     // configure app's notifications:
-    const snackbarOrigin = {vertical: 'bottom', horizontal: 'left',};
+    const snackbarOrigin = { vertical: 'bottom', horizontal: 'left', };
     const displayedSnackbars = {
-      socketOffline: this.state.socketOffline, 
+      socketOffline: this.state.socketOffline,
       changesSaved: this.state.changesSaved,
       layoutEmpty: !this.state.socketOffline && !assets,
     };
@@ -278,7 +278,7 @@ class App extends Component {
             </Stage>
 
             {/* RightMost Card -> Display Element Details */}
-            {!!this.state.selectedAssetKey && 
+            {!!this.state.selectedAssetKey &&
               <AssetDetails asset={selectedAsset}
                 changeStatus={this.changeStatus}
               />

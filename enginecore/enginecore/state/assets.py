@@ -124,22 +124,26 @@ class SystemEnvironment(Component):
 class Asset(Component):
     """Abstract Asset Class """
 
+
     def __init__(self, state):
         super(Asset, self).__init__()
         self._state = state
         self.state.reset_boot_time()
         self.state.update_load(0)
 
+
     @property
     def key(self):
         """ Get ID assigned to the asset """
         return self.state.key
+
 
     @property
     def state(self):
         """State manager instance"""
         return self._state
     
+
     def power_up(self):
         """Power up this asset 
         Returns: 
@@ -152,6 +156,7 @@ class Asset(Component):
             old_state=old_state,
             new_state=self.state.power_up()
         )
+
 
     def shut_down(self):
         """Shut down this asset 
@@ -166,6 +171,7 @@ class Asset(Component):
             new_state=self.state.shut_down()
         )
 
+
     def power_off(self):
         """Power down this asset 
         Returns: 
@@ -178,6 +184,7 @@ class Asset(Component):
             old_state=old_state,
             new_state=self.state.power_off()
         )
+
 
     def _update_load(self, load_change, arithmetic_op, msg=''):
         """React to load changes by updating asset load
@@ -206,6 +213,7 @@ class Asset(Component):
             asset_key=self.state.key
         )
 
+
     @handler("ChildAssetPowerUp", "ChildAssetLoadIncreased")
     def on_load_increase(self, event, *args, **kwargs):
         """Load is ramped up if child is powered up or child asset's load is increased
@@ -216,6 +224,7 @@ class Asset(Component):
         increased_by = kwargs['child_load']
         msg = 'Asset:[{}] - orig load {} was increased by "{}", new load will be set to "{}"'
         return self._update_load(increased_by, lambda old, change: old+change, msg)
+
 
     @handler("ChildAssetPowerDown", "ChildAssetLoadDecreased")
     def on_load_decrease(self, event, *args, **kwargs):
@@ -248,7 +257,8 @@ class Asset(Component):
 
 
 class SNMPSim():
-    
+    """Snmp simulator running snmpsim program"""
+
     def __init__(self, key, host, port):
         self._snmp_agent = SNMPAgent(key, host, port)
 
@@ -276,6 +286,7 @@ class PDU(Asset, SNMPSim):
     channel = "engine-pdu"
     StateManagerCls = sm.PDUStateManager
 
+
     def __init__(self, asset_info):
         Asset.__init__(self, PDU.StateManagerCls(asset_info))
         # Run snmpsim instance
@@ -293,6 +304,7 @@ class PDU(Asset, SNMPSim):
             logging.error('Asset:[%s] - agent process (%s) failed to start!', self.state.key, agent_info[0])
         else:
             logging.info('Asset:[%s] - agent process (%s) is up & running', self.state.key, agent_info[0])
+
 
     ##### React to any events of the connected components #####
     @handler("ParentAssetPowerDown")
@@ -519,7 +531,8 @@ class UPS(Asset, SNMPSim):
         event.success = e_result.new_state != e_result.old_state
 
         return e_result   
-    
+
+
     @handler("SignalDown")
     def on_signal_down_received(self, event, *args, **kwargs):
         """UPS can be powered down by snmp command"""
@@ -533,6 +546,7 @@ class UPS(Asset, SNMPSim):
         event.success = e_result.new_state != e_result.old_state
 
         return e_result  
+
 
     @handler("ButtonPowerUpPressed")
     def on_ups_signal_up(self):
@@ -563,23 +577,28 @@ class UPS(Asset, SNMPSim):
     def on_ambient_updated(self, event, *args, **kwargs):
         self._state.update_temperature(7)
 
+
     @property
     def charge_speed_factor(self):
         """Estimated charge/sec will be multiplied by this value"""
         return self._charge_speed_factor
 
+
     @charge_speed_factor.setter 
     def charge_speed_factor(self, speed):
         self._charge_speed_factor = speed
+
 
     @property
     def drain_speed_factor(self):
         """Estimated drain/sec will be multiplied by this value"""        
         return self._drain_speed_factor
 
+
     @drain_speed_factor.setter 
     def drain_speed_factor(self, speed):
         self._drain_speed_factor = speed
+
 
     def _update_load(self, load_change, arithmetic_op, msg=''):
         upd_result = super()._update_load(load_change, arithmetic_op, msg)
@@ -689,8 +708,8 @@ class Server(StaticAsset):
     def __init__(self, asset_info):
         super(Server, self).__init__(asset_info)
         self.state.power_up()
-    
-    
+
+
 @register_asset
 class ServerWithBMC(Server):
     """Asset controlling a VM with BMC/IPMI support """
@@ -740,7 +759,7 @@ class ServerWithBMC(Server):
 
 
     def _monitor_load(self):
-        """ """
+        """Sample cpu load every 5 seconds """
         
         cpu_time_1 = 0
         sample_rate = 5
@@ -816,24 +835,5 @@ class ServerWithBMC(Server):
 class PSU(StaticAsset):
     """PSU """
 
-
     channel = "engine-psu"
     StateManagerCls = sm.PSUStateManager
-
-    def __init__(self, asset_info):
-        if asset_info['variation'] == 'server':
-            PSU.StateManagerCls = sm.SimplePSUStateManager
-        self._var = asset_info['variation'] 
-        super(PSU, self).__init__(asset_info)
-
-
-    @handler("ButtonPowerDownPressed")
-    def on_asset_did_power_off(self):
-        if self._var != 'server':
-            self.state.set_psu_status(0x08)
-
-    
-    @handler("ButtonPowerUpPressed")
-    def on_asset_did_power_on(self):
-        if self._var != 'server':
-            self.state.set_psu_status(0x01)

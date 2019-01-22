@@ -317,6 +317,7 @@ def sensor_command(th_sensor_group):
         func=sys_modeler.delete_thermal_sensor_target # TODO: change sys_modeler to BMCServerStateManager
     )
 
+
 def handle_get_thermal_cpu(kwargs):
     """Display current cpu & sensor relationship"""
 
@@ -327,6 +328,7 @@ def handle_get_thermal_cpu(kwargs):
     else:
         th_cpu_fmt = lambda x: " --> t:[{}] using model '{}'".format(x['sensor']['name'], x['rel']['model'])
         print('\n'.join(["Server [{}]:".format(kwargs['asset_key'])] + list(map(th_cpu_fmt, th_cpu_details))))
+
 
 def handle_set_thermal_ambient(kwargs):
     """Configure thermal properties for room temperature"""
@@ -384,6 +386,7 @@ def handle_set_thermal_storage(kwargs):
         raise argparse.ArgumentTypeError("Must provide either target drive id or cachevault!")
 
     BMCServerStateManager.update_thermal_storage_target(kwargs)
+
 
 def handle_get_thermal_sensor(kwargs):
     """Display information about BMC sensors"""

@@ -375,7 +375,7 @@ def create_server(key, attr, server_variation=ServerVariations.Server):
             
             # if preset is provided -> use the user-defined file
             f_loc = os.path.dirname(__file__)
-            s_def_file = lambda p, j: os.path.expanduser(attr[p]) if attr[p] else os.path.join(f_loc, 'presets/' + j)
+            s_def_file = lambda p, j: os.path.expanduser(attr[p]) if p in attr and attr[p] else os.path.join(f_loc, 'presets/' + j)
 
             sensor_file = s_def_file('sensor_def', 'sensors.json')
             storage_def_file = s_def_file('storage_def', 'storage.json')

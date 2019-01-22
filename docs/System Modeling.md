@@ -74,7 +74,7 @@ Some properties can be configured later as in this example:
 
 SNMP OID configurations (oid mappings), PSU settings & outlet count cannot be updated after asset's creation; Howerver, you can delete the existing asset, add a new one and recreate its power connections; 
 
-See `simengine-cli model update {asset_type} -h` for the list of supported properties and [Assets Configurations](./Assets%20Configurations.md) page for more detailed documentation. 
+See `simengine-cli model update {asset_type} -h` for the list of supported properties and [Assets Configurations](./Assets%20Configurations) page for more detailed documentation. 
 
 *Note* that the main engine daemon will need to be reloaded before schema changes can take place.
 

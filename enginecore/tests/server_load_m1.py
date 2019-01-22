@@ -91,7 +91,7 @@ class ServerLoadTest(unittest.TestCase):
                 'domainName': 'an-a01n01', 
                 'powerConsumption': 480,
                 'powerSource': 120
-                }, 'serverwithbmc', notify=True)
+                }, notify=True)
 
             server.shut_down()
             thread.join()
@@ -110,7 +110,7 @@ class ServerLoadTest(unittest.TestCase):
 
 
     def test_static(self):
-        static = StaticDeviceStateManager({ 'key': 5, 'name': 'test', 'powerConsumption': 240,'powerSource': 120}, 'staticasset', notify=True)
+        static = StaticDeviceStateManager({ 'key': 5, 'name': 'test', 'powerConsumption': 240,'powerSource': 120}, notify=True)
         static_up = {'1-outlet': 4, '2-outlet':2, '3-pdu':4, '31-outlet':2, '33-outlet':2, '4-serverwithbmc':4, '5-staticasset':2, '41-psu':2, '42-psu':2}
         static_down = {'1-outlet': 2, '2-outlet':2, '3-pdu':2, '31-outlet':2, '33-outlet':0, '4-serverwithbmc':4, '5-staticasset':0, '41-psu':2, '42-psu':2}
 
@@ -135,8 +135,8 @@ class ServerLoadTest(unittest.TestCase):
     def test_server_psu(self):
 
         try:
-            psu_1 = StateManager({ 'key': 41 }, 'psu', notify=True)
-            psu_2 = StateManager({ 'key': 42 }, 'psu', notify=True)
+            psu_1 = StateManager({ 'key': 41 }, notify=True)
+            psu_2 = StateManager({ 'key': 42 }, notify=True)
             
 
             only_psu1_down = {'1-outlet': 2, '2-outlet':4, '3-pdu':2, '31-outlet':0, '33-outlet':2, '4-serverwithbmc':4, '41-psu':0, '42-psu':4}

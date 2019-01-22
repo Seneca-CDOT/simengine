@@ -73,8 +73,8 @@ class UpsSnmpTest(unittest.TestCase):
         all_up_state = {'1-outlet': 1, '3-ups':1, '35-outlet':1, '33-outlet':1, '31-outlet':1, '4-staticasset': 1, '5-staticasset': 1, '6-staticasset': 1}
         expected_state = all_up_state.copy()
 
-        sm_out_1 = StateManager({'key': 1}, 'outlet', notify=True)
-        sm_out_31 = StateManager({'key': 31}, 'outlet', notify=True)
+        sm_out_1 = StateManager({'key': 1}, notify=True)
+        sm_out_31 = StateManager({'key': 31}, notify=True)
         
         hp_battery_oid = '1.3.6.1.4.1.318.1.1.1.2.3.1.0' # Battery charge 100% * 10
         adv_battery_oid = '1.3.6.1.4.1.318.1.1.1.2.2.1.0' # Battery charge 100%

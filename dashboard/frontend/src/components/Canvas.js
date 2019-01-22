@@ -20,7 +20,7 @@ class Canvas extends Component {
     'lamp': Lamp,
   };
 
-  
+
   getAssetComponent(ReactElement, asset) {
     /**Render asset element (on of the components defined in 'assetMap') */
 
@@ -35,12 +35,13 @@ class Canvas extends Component {
       powered: false,
       x: asset.x,
       y: asset.y,
+      fontSize: 14,
     };
 
     // check if upstream power source is present
     const upstreamPowered = (x) => this.props.getAssetByKey(x.key).status != 0;
     elementProps['powered'] = asset.parent?(asset.parent.find(upstreamPowered) !== undefined):(true);
-  
+
     // select child elements
     if ('children' in asset) {
       elementProps['nestedComponentSelected'] = this.props.selectedAssetKey in asset.children;
@@ -80,9 +81,9 @@ class Canvas extends Component {
     }
 
     return (
-      <Layer> 
-        {systemLayout} 
-        {wireDrawing} 
+      <Layer>
+        {systemLayout}
+        {wireDrawing}
       </Layer>
     );
   }
@@ -91,7 +92,7 @@ class Canvas extends Component {
 Canvas.propTypes = {
   assets: PropTypes.object,
   connections: PropTypes.object,
-  selectedAssetKey: PropTypes.number, 
+  selectedAssetKey: PropTypes.number,
   onPosChange: PropTypes.func.isRequired, // called on element dragged
   onElementSelection: PropTypes.func.isRequired, // called when asset is selected
   getAssetByKey: PropTypes.func.isRequired, // retrieve asset props by key
