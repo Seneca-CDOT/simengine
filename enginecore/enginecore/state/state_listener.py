@@ -191,7 +191,6 @@ class StateListener(Component):
         self._notify_client(ClientRequests.ambient, {'ambient': new_temp, 'rising': new_temp > old_temp})
         for a_key in self._assets:
             self.fire(PowerEventManager.map_ambient_event(old_temp, new_temp), self._assets[a_key]) 
-
     
 
     def _handle_state_update(self, asset_key):

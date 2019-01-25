@@ -297,7 +297,7 @@ class PDU(Asset, SNMPSim):
             port=asset_info['port'] if 'port' in asset_info else 161
         )
 
-        self.state.agent = self._snmp_agent.pid
+        self.state.update_agent(self._snmp_agent.pid)
 
         agent_info = self.state.agent
         if not agent_info[1]:
@@ -351,7 +351,7 @@ class UPS(Asset, SNMPSim):
             port=asset_info['port'] if 'port' in asset_info else 161
         )
 
-        self.state.agent = self._snmp_agent.pid
+        self.state.update_agent(self._snmp_agent.pid)
 
         # Store known { wattage: time_remaining } key/value pairs (runtime graph)
         self._runtime_details = json.loads(asset_info['runtime'])
@@ -695,9 +695,6 @@ class Lamp(StaticAsset):
     """A simple demonstration type """
     channel = "engine-lamp"
 
-    def __init__(self, asset_info):
-        super(Lamp, self).__init__(asset_info)
-
 
 @register_asset
 class Server(StaticAsset):
@@ -732,7 +729,7 @@ class ServerWithBMC(Server):
         super(ServerWithBMC, self).__init__(asset_info)
         
 
-        self.state.agent = self._ipmi_agent.pid
+        self.state.update_agent(self._ipmi_agent.pid)
         
         agent_info = self.state.agent
         if not agent_info[1]:
@@ -740,7 +737,7 @@ class ServerWithBMC(Server):
         else:
             logging.info('Asset:[%s] - agent process (%s) is up & running', self.state.key, agent_info[0])
 
-        self.state.cpu_load = 0
+        self.state.update_cpu_load(0)
         self._cpu_load_t = None
         self._launch_monitor_cpu_load()
 
@@ -774,13 +771,13 @@ class ServerWithBMC(Server):
                 ns_to_sec = lambda x: x / 1e9
 
                 if cpu_time_1:
-                    self.state.cpu_load = 100 * abs(ns_to_sec(cpu_time_2) - ns_to_sec(cpu_time_1)) / sample_rate
+                    self.state.update_cpu_load(100 * abs(ns_to_sec(cpu_time_2) - ns_to_sec(cpu_time_1)) / sample_rate)
                     logging.info("New CPU load (percentage): %s%% for server[%s]", self.state.cpu_load, self.state.key)
             
                 cpu_time_1 = cpu_time_2
             else:
                 cpu_time_1 = 0
-                self.state.cpu_load = 0
+                self.state.update_cpu_load(0)
 
             time.sleep(sample_rate)
 
