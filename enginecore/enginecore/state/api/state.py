@@ -8,7 +8,8 @@ import redis
 from enginecore.model.graph_reference import GraphReference
 from enginecore.state.utils import format_as_redis_key
 from enginecore.state.redis_channels import RedisChannels
-  
+
+from enginecore.state.asset_definition import SUPPORTED_ASSETS
 
 
 class IStateManager():
@@ -180,8 +181,8 @@ class IStateManager():
         redis_store = IStateManager.get_store() 
         rkey = format_as_redis_key(str(key), oid, key_formatted=False)
         return redis_store.get(rkey).decode().split('|')[1]
-    
-   
+
+
     def _reset_boot_time(self):
         """Reset device start time (used to calculate uptime)"""
         IStateManager.get_store().set(str(self._asset_key) + ":start_time", int(time.time())) 
@@ -293,6 +294,7 @@ class IStateManager():
 
         return cls.redis_store
 
+
     @classmethod 
     def _get_assets_states(cls, assets, flatten=True): 
         """Query redis store and find states for each asset
@@ -312,9 +314,12 @@ class IStateManager():
         )
 
         for rkey, rvalue in zip(assets, asset_values):
-            asset_state = cls(assets[rkey]) if assets[rkey]['type'] != 'ups' else None #PSStateManager(assets[rkey])
+
+            asset_state = cls.get_state_manager_by_key(rkey, SUPPORTED_ASSETS)
+
             assets[rkey]['status'] = int(rvalue)
             assets[rkey]['load'] = asset_state.load
+            
             if assets[rkey]['type'] == 'ups':
                 assets[rkey]['battery'] = asset_state.battery_level
 
@@ -413,6 +418,6 @@ class IStateManager():
 
             asset_info = GraphReference.get_asset_and_components(session, key)
             sm_mro = supported_assets[asset_info['type']].StateManagerCls.mro()
+            
             module = 'enginecore.state.api'
-            print(next(filter(lambda x: x.__module__ .startswith(module), sm_mro)))
-            return next(filter(lambda x: x.__module__ .startswith(module), sm_mro))(asset_info)
+            return next(filter(lambda x: x.__module__.startswith(module), sm_mro))(asset_info)

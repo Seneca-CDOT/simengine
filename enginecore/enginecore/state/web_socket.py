@@ -77,7 +77,7 @@ class WebSocket(Component):
                 power_up = data['data']['status']
 
                 state_manager = IStateManager.get_state_manager_by_key(asset_key, SUPPORTED_ASSETS)
-                
+
                 if power_up:
                     state_manager.power_up()
                 else:

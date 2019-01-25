@@ -29,7 +29,6 @@ const onWheelScroll = (stage) => {
 /** Move canvas on middle mouse button down */
 const onWheelDown = (stage) => {
   const moveCanvas = (e) => {
-    e.preventDefault();
     const newPos = {
       x: (stage.x() + e.movementX),
       y: (stage.y() + e.movementY),
@@ -40,14 +39,12 @@ const onWheelDown = (stage) => {
 
   window.addEventListener("mousedown", (e) => {
     if (e.button == 1) {
-      e.preventDefault();
       window.addEventListener("mousemove", moveCanvas);
     }
   });
 
   window.addEventListener("mouseup", (e) => {
     if (e.button == 1) {
-      e.preventDefault();
       window.removeEventListener("mousemove", moveCanvas);
     }
   });
