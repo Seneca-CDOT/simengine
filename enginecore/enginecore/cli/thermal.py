@@ -160,6 +160,7 @@ def cpu_usage_command(th_cpu_usg_group):
         func=sys_modeler.delete_thermal_cpu_target
     )
 
+
 def get_thermal_args():
     # group a few args into a common parent element
     thermal_parent = argparse.ArgumentParser(add_help=False)

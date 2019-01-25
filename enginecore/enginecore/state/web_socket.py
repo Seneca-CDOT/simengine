@@ -6,7 +6,7 @@ from enum import Enum
 from circuits import handler, Component
 from circuits.net.events import write
 from enginecore.state.assets import SUPPORTED_ASSETS
-from enginecore.state.state_managers import StateManager
+from enginecore.state.api import IStateManager
 from enginecore.model.graph_reference import GraphReference
 
 
@@ -35,7 +35,7 @@ class WebSocket(Component):
         print("WebSocket Client Connected:", host, port)
         
         # Return assets and their states to the new client
-        assets = StateManager.get_system_status(flatten=False)
+        assets = IStateManager.get_system_status(flatten=False)
         graph_ref = GraphReference()
         with graph_ref.get_session() as session:
             
@@ -52,7 +52,7 @@ class WebSocket(Component):
         self.fire(write(sock, json.dumps({ 
             'request': ClientRequests.ambient.name, 
             'data': {
-                'ambient': StateManager.get_ambient(), 
+                'ambient': IStateManager.get_ambient(), 
                 'rising': False 
             }
         })))
@@ -60,7 +60,7 @@ class WebSocket(Component):
         self.fire(write(sock, json.dumps({ 
             'request': ClientRequests.mains.name, 
             'data': {
-                'mains': StateManager.mains_status()
+                'mains': IStateManager.mains_status()
             }
         })))
 
@@ -75,10 +75,8 @@ class WebSocket(Component):
             if data['request'] == 'power':
                 asset_key = data['key']
                 power_up = data['data']['status']
-                asset_type = data['data']['type']
-                            
-                asset_info = GraphReference.get_asset_and_components(session, asset_key)
-                state_manager = SUPPORTED_ASSETS[asset_type].StateManagerCls(asset_info, notify=True)
+
+                state_manager = IStateManager.get_state_manager_by_key(asset_key, SUPPORTED_ASSETS)
                 
                 if power_up:
                     state_manager.power_up()
@@ -88,9 +86,9 @@ class WebSocket(Component):
                 GraphReference.save_layout(session, data['data']['assets'], stage=data['data']['stage'])
             elif data['request'] == 'mains':
                 if data['mains'] == 0:
-                    StateManager.power_outage()
+                    IStateManager.power_outage()
                 else:
-                    StateManager.power_restore()
+                    IStateManager.power_restore()
 
 
     def disconnect(self, sock):

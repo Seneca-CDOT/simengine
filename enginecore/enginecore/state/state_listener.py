@@ -133,8 +133,11 @@ class StateListener(Component):
 
         # initialize load by dispatching load update
         for key in leaf_nodes:
+            print('LEAF LEAF: {}'.format(key))
             asset_key = int(key)
             new_load = self._assets[key].state.power_usage
+            print('NEW LOAD: {}'.format(new_load))
+
 
             # notify parents of load changes
             self._chain_load_update( 

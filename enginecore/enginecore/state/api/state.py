@@ -299,7 +299,6 @@ class IStateManager():
         
         Args:
             flatten(bool): If false, the returned assets in the dict will have their child-components nested
-        .
         Returns:
             dict: Current information on assets including their states, load etc.
         """
@@ -318,7 +317,7 @@ class IStateManager():
             assets[rkey]['load'] = asset_state.load
             if assets[rkey]['type'] == 'ups':
                 assets[rkey]['battery'] = asset_state.battery_level
-            
+
             if not flatten and 'children' in assets[rkey]:
                 # call recursively on children    
                 assets[rkey]['children'] = cls._get_assets_states(assets[rkey]['children'])
@@ -405,11 +404,15 @@ class IStateManager():
 
 
     @classmethod
-    def get_state_manager_by_key(cls, key, supported_assets, notify=True):
+    def get_state_manager_by_key(cls, key, supported_assets):
         """Infer asset manager from key"""
 
         graph_ref = GraphReference()
         
-        with graph_ref.get_session() as session:  
+        with graph_ref.get_session() as session:
+
             asset_info = GraphReference.get_asset_and_components(session, key)
-            return supported_assets[asset_info['type']].StateManagerCls(asset_info)
+            sm_mro = supported_assets[asset_info['type']].StateManagerCls.mro()
+            module = 'enginecore.state.api'
+            print(next(filter(lambda x: x.__module__ .startswith(module), sm_mro)))
+            return next(filter(lambda x: x.__module__ .startswith(module), sm_mro))(asset_info)

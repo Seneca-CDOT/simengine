@@ -5,6 +5,7 @@ State managers provide interface for manipulating assets' states
 Example: 
     a Server State Manager will contain server-specific logic for powering up/down a VM 
 """
+# pylint: disable=C0321
 
 from enum import Enum
 
@@ -16,6 +17,34 @@ import enginecore.state.api as state_api
 
 
 class StateManager(state_api.IStateManager):
+
+
+    @property
+    def key(self): return super().key
+
+    @property
+    def redis_key(self): return super().redis_key
+
+    @property
+    def asset_type(self): return super().asset_type
+ 
+    @property
+    def power_usage(self): return super().power_usage
+
+    @property
+    def draw_percentage(self): return super().draw_percentage
+
+    @property
+    def load(self): return super().load
+
+    @property
+    def wattage(self): return super().wattage
+
+    @property
+    def status(self): return super().status
+
+    @property
+    def agent(self): return super().agent
 
 
     def update_agent(self, pid):

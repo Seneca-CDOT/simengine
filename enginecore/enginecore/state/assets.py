@@ -245,14 +245,14 @@ class Asset(Component):
 
 
     @classmethod
-    def get_state_manager_by_key(cls, key, notify=True):
+    def get_state_manager_by_key(cls, key):
         """Get a state manager specific to the asset type
         Args:
             key(int): asset key
         Returns:
             StateManager: instance of the StateManager sub-class
         """
-        return sm.StateManager.get_state_manager_by_key(key, cls.get_supported_assets(), notify)
+        return sm.StateManager.get_state_manager_by_key(key, cls.get_supported_assets())
 
 
 

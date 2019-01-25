@@ -134,7 +134,7 @@ class IUPSStateManager(IStateManager):
         (note that this will produce 'unreal' behaviour)
         """
         self._update_battery_process_speed(RedisChannels.battery_conf_drain_channel, factor)
-    
+
 
     def set_charge_speed_factor(self, factor):
         """Speed up/slow down UPS battery charging
@@ -147,5 +147,3 @@ class IUPSStateManager(IStateManager):
         """Reset upsAdvControlUpsOff to 1 """
         # TODO different vendors may assign other values (not 1)
         self._update_oid_by_name('PowerOff', snmp_data_types.Integer, 1)
-
-
