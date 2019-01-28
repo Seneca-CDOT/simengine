@@ -724,6 +724,7 @@ class ServerWithBMC(Server):
         sensors = self.StateManagerCls.get_sensor_definitions(asset_info['key'])
         self._sensor_repo = SensorRepository(asset_info['key'], enable_thermal=True)
 
+        # TODO: pass sensor repo to IPMIAgent instead of kv
         self._ipmi_agent = IPMIAgent(asset_info['key'], ipmi_dir, ipmi_config=asset_info, sensors=sensors)
         self._storcli_emu = StorCLIEmulator(asset_info['key'], ipmi_dir, socket_port=asset_info['storcliPort'])
         super(ServerWithBMC, self).__init__(asset_info)
@@ -834,3 +835,9 @@ class PSU(StaticAsset):
 
     channel = "engine-psu"
     StateManagerCls = sm.PSUStateManager
+
+    def __init__(self, asset_info):
+        super(PSU, self).__init__(asset_info)
+        self._sensor_repo = SensorRepository(str(asset_info['key'])[:-1], enable_thermal=True)
+        logging.info('--------------------------------------------------------------')
+        logging.info(self._sensor_repo)

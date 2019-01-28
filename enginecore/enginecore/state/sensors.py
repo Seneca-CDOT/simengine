@@ -6,7 +6,6 @@ import logging
 import time
 import json
 import operator
-from random import randint
 
 import enginecore.state.state_managers as sm 
 from enginecore.model.graph_reference import GraphReference
@@ -205,7 +204,7 @@ class Sensor():
                     time.sleep(5)
 
 
-    
+
     def _target_sensor_impact(self, target, event):
         """Keep updating the target sensor based on the relationship between this sensor and the target;
         This function waits for the thermal event switch and exits when the connection between source & target
@@ -398,7 +397,7 @@ class SensorRepository():
             str(server_key),
             'sensor_dir'
         )
-        
+
         self._sensors = {}
 
         with self._graph_ref.get_session() as session:

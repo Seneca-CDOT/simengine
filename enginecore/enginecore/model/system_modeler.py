@@ -167,7 +167,7 @@ IPMI_LAN_DEFAULTS = {
 def _add_sensors(asset_key, preset_file):
     """Add sensors based on a preset file"""
 
-    with open(preset_file) as preset_handler, GRAPH_REF.get_session() as session:        
+    with open(preset_file) as preset_handler, GRAPH_REF.get_session() as session:
         query = []
 
         query.append("MATCH (server:Asset {{ key: {} }})".format(asset_key))
@@ -226,7 +226,7 @@ def _add_sensors(asset_key, preset_file):
 
 def _add_storage(asset_key, preset_file, storage_state_file):
     
-    with open(preset_file) as preset_h, open(storage_state_file) as state_h, GRAPH_REF.get_session() as session:        
+    with open(preset_file) as preset_h, open(storage_state_file) as state_h, GRAPH_REF.get_session() as session:
         query = []
 
         query.append("MATCH (server:Asset {{ key: {} }})".format(asset_key))
@@ -384,15 +384,24 @@ def create_server(key, attr, server_variation=ServerVariations.Server):
             _add_sensors(key, sensor_file)
             _add_storage(key, storage_def_file, storage_state_file)
 
-        # add PSUs to the model
-        for i in range(attr['psu_num']):
-            psu_attr = {
-                "power_consumption": attr['psu_power_consumption'], 
-                "power_source": attr['psu_power_source'],
-                "variation": server_variation.name.lower(),
-                "draw": attr['psu_load'][i] if attr['psu_load'] else 1
-            }
-            _add_psu(key, psu_index=i+1, attr=psu_attr)
+        if server_variation == ServerVariations.ServerWithBMC:
+            with open(sensor_file) as preset_handler, GRAPH_REF.get_session() as session:
+                data = json.load(preset_handler)
+                for psu in data['psu']:
+                    print(psu)
+                    _add_psu(key, psu_index=psu['id'], attr=psu)
+
+        
+        else:
+            # add PSUs to the model
+            for i in range(attr['psu_num']):
+                psu_attr = {
+                    "power_consumption": attr['psu_power_consumption'], 
+                    "power_source": attr['psu_power_source'],
+                    "variation": server_variation.name.lower(),
+                    "draw": attr['psu_load'][i] if attr['psu_load'] else 1
+                }
+                _add_psu(key, psu_index=i+1, attr=psu_attr)
 
 
 def create_ups(key, attr, preset_file=os.path.join(os.path.dirname(__file__), 'presets/apc_ups.json')):

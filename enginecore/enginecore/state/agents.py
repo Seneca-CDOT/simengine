@@ -485,7 +485,7 @@ class IPMIAgent(Agent):
         sensor_def = os.path.join(self._ipmi_dir, 'main.sdrs')
 
         lib_path = os.path.join(sysconfig.get_config_var('LIBDIR'), "simengine", 'haos_extend.so')
-        
+
         # Template options
         lan_conf_opt = {
             'asset_key': key, 
