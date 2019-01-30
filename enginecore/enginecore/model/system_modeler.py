@@ -204,7 +204,7 @@ def _add_sensors(asset_key, preset_file):
                     raise KeyError("Missing address for a seonsor {}".format(sensor_type))
 
                 s_attr = [
-                    "name", "defaultValue", "offValue", "group",
+                    "name", "defaultValue", "offValue", "group", "num",
                     "lnr", "lcr", "lnc", "unc", "ucr", "unr", 
                     "address", "index", "type", "eventReadingType"
                 ]
@@ -213,7 +213,7 @@ def _add_sensors(asset_key, preset_file):
                 props = {
                     **sensor['thresholds'], 
                     **sensor, **addr, **sensor_specs,
-                    **{'type': sensor_type}
+                    **{'type': sensor_type, "num": idx + 1}
                 }
 
                 props_stm = qh.get_props_stm(props, supported_attr=s_attr)
@@ -226,6 +226,7 @@ def _add_sensors(asset_key, preset_file):
                     ))
 
                 query.append("CREATE (server)-[:HAS_SENSOR]->(sensor{})".format(sensor_node))
+
 
         # print("\n".join(query))
         session.run("\n".join(query))
@@ -395,7 +396,6 @@ def create_server(key, attr, server_variation=ServerVariations.Server):
             with open(sensor_file) as preset_handler, GRAPH_REF.get_session() as session:
                 data = json.load(preset_handler)
                 for psu in data['psu']:
-                    print(psu)
                     _add_psu(key, psu_index=psu['id'], attr=psu)
 
         
@@ -406,7 +406,8 @@ def create_server(key, attr, server_variation=ServerVariations.Server):
                     "power_consumption": attr['psu_power_consumption'], 
                     "power_source": attr['psu_power_source'],
                     "variation": server_variation.name.lower(),
-                    "draw": attr['psu_load'][i] if attr['psu_load'] else 1
+                    "draw": attr['psu_load'][i] if attr['psu_load'] else 1,
+                    "id": i
                 }
                 _add_psu(key, psu_index=i+1, attr=psu_attr)
 

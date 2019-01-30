@@ -839,5 +839,7 @@ class PSU(StaticAsset):
     def __init__(self, asset_info):
         super(PSU, self).__init__(asset_info)
         self._sensor_repo = SensorRepository(str(asset_info['key'])[:-1], enable_thermal=True)
+        self._psu_sensor_names = self._state.get_psu_sensor_names()
+
         logging.info('--------------------------------------------------------------')
         logging.info(self._sensor_repo)

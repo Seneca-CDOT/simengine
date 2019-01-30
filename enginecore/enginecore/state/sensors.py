@@ -471,11 +471,11 @@ class SensorRepository():
                     new_sensor_value = old_sensor_value - old_ambient + new_ambient if old_sensor_value else new_ambient
 
                     logging.info(
-                        "Sensor:[%s] - value will be updated from %s° to %s° due to ambient changes (%s° -> %s°)", 
+                        "Sensor:[%s] - value will be updated from %s° to %s° due to ambient changes (%s° -> %s°)",
                         sensor.name,
                         old_sensor_value,
                         new_sensor_value,
-                        old_ambient, 
+                        old_ambient,
                         new_ambient
                     )
 

@@ -785,3 +785,26 @@ class GraphReference():
         query.append('SET {}'.format(set_stm))
 
         session.run("\n".join(query))
+
+
+    @classmethod
+    def get_psu_sensor_names(cls, session, server_key, psu_num):
+        """Retrieve server-specific psu sensor names
+        Args:
+            session:  database session
+            server_key(int): key of the server sensors belongs to
+            psu_num(int): psu num
+        """
+
+        query = []
+
+        sensor_match = "MATCH (:Asset {{ key: {} }})-[:HAS_SENSOR]->(sensor {{ num: {} }})"
+        label_match = map('sensor:{}'.format, ['psuCurrent', 'psuTemperature', 'psuStatus', 'psuPower'])
+
+        query.extend([
+            sensor_match.format(server_key, psu_num),
+            "WHERE {}".format(' or '.join(label_match)),
+            "RETURN sensor"
+        ])
+
+        session.run("\n".join(query))

@@ -306,5 +306,13 @@ class PSUStateManager(StateManager):
 
     def __init__(self, asset_info):
         StateManager.__init__(self, asset_info)
-        # self._psu_number = int(repr(asset_info['key'])[-1])
+        self._psu_number = int(repr(asset_info['key'])[-1])
         # self._sensor = SensorRepository(int(repr(asset_info['key'])[:-1])).get
+
+    def get_psu_sensor_names(self):
+        """Find out BMC-specific psu keys (voltage, status etc.)
+        Returns:
+            dict: key value pairs of sensor type / sensor name for the psu
+        """
+        with self._graph_ref.get_session() as db_s:
+            return GraphReference.get_psu_sensor_names(db_s, self.key, self._psu_number)
