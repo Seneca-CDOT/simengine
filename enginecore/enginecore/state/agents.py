@@ -18,6 +18,7 @@ from string import Template
 
 from enginecore.model.graph_reference import GraphReference
 from enginecore.model.query_helpers import to_camelcase
+from enginecore.model.supported_sensors import SUPPORTED_SENSORS
 
 class StorCLIEmulator():
     """Emulates storcli behaviour"""
@@ -52,6 +53,8 @@ class StorCLIEmulator():
 
 
     def _strcli_header(self, ctrl_num=0, status='Success'):
+        """Reusable header for storcli output"""
+
         with open(os.path.join(self._storcli_dir, 'header')) as templ_h:
             options = {
                 'cli_version': self._storcli_details['CLIVersion'],
@@ -81,6 +84,7 @@ class StorCLIEmulator():
             return template.substitute(options)
 
     def _strcli_ctrl_perf_mode(self, controller_num):
+        """Current performance mode (hardcoded)"""
         with open(os.path.join(self._storcli_dir, 'performance_mode')) as templ_h:
          
             options = {
@@ -111,6 +115,8 @@ class StorCLIEmulator():
 
 
     def _strcli_ctrl_bbu(self, controller_num):
+        """Battery backup unit output for storcli"""
+
         with open(os.path.join(self._storcli_dir, 'bbu_data')) as templ_h:
          
             options = {
@@ -230,6 +236,7 @@ class StorCLIEmulator():
 
 
     def _strcli_ctrl_cachevault(self, controller_num):
+        """Cachevault output for storcli"""
 
         cv_f = os.path.join(self._storcli_dir, 'cachevault_data')
         with open(os.path.join(self._storcli_dir, cv_f)) as templ_h, self._graph_ref.get_session() as session:
@@ -246,7 +253,13 @@ class StorCLIEmulator():
         
 
     def _format_as_table(self, headers, table_options):
-        """"""
+        """Formats data as storcli table
+        Args:
+            headers(list): table header
+            table_options(dict): table values
+        Returns:
+            str: storcli table populated with data
+        """
 
         value_rows = []
 
@@ -281,6 +294,7 @@ class StorCLIEmulator():
 
 
     def _get_state_from_config(self, config_entry, current_state, optimal):
+        """Configure state based on the configuration json file"""
         s_conf = self._storcli_details['stateConfig'][config_entry]
         for status in s_conf:
             for prop in current_state:
@@ -292,6 +306,7 @@ class StorCLIEmulator():
 
 
     def _get_virtual_drives(self, controller_num):
+        """Retrieve virtual drive data"""
 
         drives = []
 
@@ -344,6 +359,7 @@ class StorCLIEmulator():
         
 
     def _listen_cmds(self, socket_port):
+        """Start storcli websocket server """
 
         serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         serversocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -361,10 +377,10 @@ class StorCLIEmulator():
                 
                 try:
                     received = json.loads(data)
-                except json.decoder.JSONDecodeError as e:
+                except json.decoder.JSONDecodeError as parse_err:
                     logging.info(data)
                     logging.info('Invalid JSON: ')
-                    logging.info(e)
+                    logging.info(parse_err)
 
                 argv = received['argv']
 
@@ -453,18 +469,7 @@ class Agent():
 class IPMIAgent(Agent):
     """IPMIsim instance """
 
-    supported_sensors = {
-        'caseFan': '',
-        'psuStatus': '',
-        'psuVoltage': '',
-        'psuPower': '',
-        'psuCurrent': '',
-        'psuTemperature': '',
-        'memoryTemperature': '',
-        'Ambient': '',
-        'RAIDControllerTemperature': '',
-        'cpuTemperature': ''
-    }
+    supported_sensors = dict.fromkeys(SUPPORTED_SENSORS, "")
 
     def __init__(self, key, ipmi_dir, ipmi_config, sensors):
         super(IPMIAgent, self).__init__()

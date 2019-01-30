@@ -7,7 +7,10 @@ import os
 from enum import Enum
 
 import libvirt
+
 from enginecore.model.graph_reference import GraphReference
+from enginecore.model.supported_sensors import SUPPORTED_SENSORS
+
 import enginecore.model.query_helpers as qh
 
 GRAPH_REF = GraphReference()
@@ -175,6 +178,9 @@ def _add_sensors(asset_key, preset_file):
         
         for sensor_type, sensor_specs in data.items():
 
+            if sensor_type not in SUPPORTED_SENSORS:
+                continue
+
             address_space_exists = 'addressSpace' in sensor_specs and sensor_specs['addressSpace']
 
             if address_space_exists:
@@ -225,7 +231,8 @@ def _add_sensors(asset_key, preset_file):
         session.run("\n".join(query))
 
 def _add_storage(asset_key, preset_file, storage_state_file):
-    
+    """Add storage to the server with asset_key"""
+
     with open(preset_file) as preset_h, open(storage_state_file) as state_h, GRAPH_REF.get_session() as session:
         query = []
 
@@ -599,6 +606,7 @@ def delete_asset(key):
 
 
 def set_thermal_storage_target(attr):
+    
 
     query = []
 
