@@ -798,7 +798,7 @@ class GraphReference():
 
         query = []
 
-        sensor_match = "MATCH (:Asset {{ key: {} }})-[:HAS_SENSOR]->(sensor {{ num: {} }})"
+        sensor_match = "MATCH (:PSU {{ key: {} }})<-[:HAS_COMPONENT]-(:Asset)-[:HAS_SENSOR]->(sensor {{ num: {} }})"
         label_match = map('sensor:{}'.format, ['psuCurrent', 'psuTemperature', 'psuStatus', 'psuPower'])
 
         query.extend([
@@ -807,4 +807,11 @@ class GraphReference():
             "RETURN sensor"
         ])
 
-        session.run("\n".join(query))
+        results = session.run("\n".join(query))
+        
+        psu_names = {}
+        for record in results:
+            entry = dict(record.get('sensor'))
+            psu_names[entry['type']] = entry['name']
+
+        return psu_names

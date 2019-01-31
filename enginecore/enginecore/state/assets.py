@@ -841,5 +841,23 @@ class PSU(StaticAsset):
         self._sensor_repo = SensorRepository(str(asset_info['key'])[:-1], enable_thermal=True)
         self._psu_sensor_names = self._state.get_psu_sensor_names()
 
-        logging.info('--------------------------------------------------------------')
-        logging.info(self._sensor_repo)
+
+    def _set_psu_status(self, value):
+        """Update psu status if sensor is supported"""
+        if 'psuStatus' in self._psu_sensor_names:
+            psu_status = self._sensor_repo.get_sensor_by_name(self._psu_sensor_names['psuStatus'])
+            print(psu_status)
+            psu_status.sensor_value = value
+
+
+    @handler("ButtonPowerDownPressed")
+    def on_asset_did_power_off(self):
+        """PSU status was set to failed"""
+        self._set_psu_status('0x08')
+
+
+    @handler("ButtonPowerUpPressed")
+    def on_asset_did_power_on(self):
+        """PSU was brought back up"""
+        self._set_psu_status('0x01')
+
