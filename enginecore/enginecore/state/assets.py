@@ -798,7 +798,7 @@ class ServerWithBMC(Server):
     def on_ambient_updated(self, event, *args, **kwargs):
         """Update thermal sensor readings on ambient changes """ 
         self._sensor_repo.adjust_thermal_sensors(new_ambient=kwargs['new_value'], old_ambient=kwargs['old_value'])
-    
+
 
     @handler("ParentAssetPowerDown")
     def on_parent_asset_power_down(self, event, *args, **kwargs):
@@ -861,3 +861,34 @@ class PSU(StaticAsset):
         """PSU was brought back up"""
         self._set_psu_status('0x01')
 
+
+    def _update_load_sensors(self, load, arith_op):
+        """Update psu sensors associated with load
+        Args:
+            load: amperage change
+            arith_op(operator): operation on old & new load to be performed
+        """
+
+        if 'psuCurrent' in self._psu_sensor_names:
+            psu_current = self._sensor_repo.get_sensor_by_name(self._psu_sensor_names['psuCurrent'])
+
+            psu_current.sensor_value = int(arith_op(self._state.load, load))
+
+        if 'psuPower' in self._psu_sensor_names:
+            psu_current = self._sensor_repo.get_sensor_by_name(self._psu_sensor_names['psuPower'])
+
+            psu_current.sensor_value = int((arith_op(self._state.load, load)) * 10)
+
+
+    @handler("ChildAssetPowerUp", "ChildAssetLoadIncreased", priority=1)
+    def increase_load_sensors(self, event, *args, **kwargs):
+        """Load is ramped up if child is powered up or child asset's load is increased
+        """
+        self._update_load_sensors(kwargs['child_load'], operator.add)
+
+
+    @handler("ChildAssetPowerDown", "ChildAssetLoadDecreased", priority=1)
+    def decrease_load_sensors(self, event, *args, **kwargs):
+        """Load is ramped up if child is powered up or child asset's load is increased
+        """
+        self._update_load_sensors(kwargs['child_load'], operator.sub)
