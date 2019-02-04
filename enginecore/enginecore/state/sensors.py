@@ -491,4 +491,3 @@ class SensorRepository():
     def sensor_dir(self):
         """Get temp IPMI state dir"""
         return self._sensor_dir
-    

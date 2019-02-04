@@ -8,20 +8,7 @@ ${controller_entry}
 TOPOLOGY :
 ========
 
------------------------------------------------------------------------------
-DG Arr Row EID:Slot DID Type  State BT       Size PDC  PI SED DS3  FSpace TR 
------------------------------------------------------------------------------
- 0 -   -   -        -   RAID6 Optl  N  817.312 GB dsbl N  N   none N      N  
- 0 0   -   -        -   RAID6 Optl  N  817.312 GB dsbl N  N   none N      N  
- 0 0   0   252:0    9   DRIVE Onln  Y  136.218 GB dsbl N  N   none -      N  
- 0 0   1   252:1    10  DRIVE Onln  Y  136.218 GB dsbl N  N   none -      N  
- 0 0   2   252:2    8   DRIVE Onln  Y  136.218 GB dsbl N  N   none -      N  
- 0 0   3   252:3    7   DRIVE Onln  Y  136.218 GB dsbl N  N   none -      N  
- 0 0   4   252:4    11  DRIVE Onln  N  136.218 GB dsbl N  N   none -      N  
- 0 0   5   252:5    14  DRIVE Onln  N  136.218 GB dsbl N  N   none -      N  
- 0 0   6   252:6    12  DRIVE Onln  Y  136.218 GB dsbl N  N   none -      N  
- 0 0   7   252:7    13  DRIVE Onln  Y  136.218 GB dsbl N  N   none -      N  
------------------------------------------------------------------------------
+${topology}
 
 DG=Disk Group Index|Arr=Array Index|Row=Row Index|EID=Enclosure Device ID
 DID=Device ID|Type=Drive Type|Onln=Online|Rbld=Rebuild|Dgrd=Degraded

@@ -29,6 +29,24 @@ class StorCLIEmulator():
 
     vd_header = ["DG/VD", "TYPE", "State", "Access", "Consist", "Cache", "Cac", "sCC", "Size", "Name"]
 
+    topology_header = [
+        "DG", # disk group idx
+        "Arr", # array idx
+        "Row",
+        "EID:Slot", # enclosure device ID
+        "DID",
+        "Type",
+        "State",
+        "BT", # background task
+        "Size",
+        "PDC", # pd cache
+        "PI", # protection info
+        "SED", # self encrypting drive
+        "DS3", # Dimmer Switch 3
+        "FSpace", # free space present
+        "TR" # transport ready
+    ]
+
     def __init__(self, asset_key, server_dir, socket_port):
         
         self._graph_ref = GraphReference()
@@ -149,7 +167,7 @@ class StorCLIEmulator():
         
 
     def _strcli_ctrl_info(self, controller_num):
-        """Return aggregated information for a particular controller"""
+        """Return aggregated information for a particular controller (show all)"""
 
         ctrl_info_f = os.path.join(self._storcli_dir, 'controller_info')
         ctrl_entry_f = os.path.join(self._storcli_dir, 'controller_entry')
@@ -177,6 +195,7 @@ class StorCLIEmulator():
                 entry_options[key] = ctrl_info[to_camelcase(key)]
 
             drives = GraphReference.get_all_drives(session, self._server_key, controller_num)
+            topology = []
 
             ctrl_state = copy.deepcopy(self._storcli_details['stateConfig']['controller']['Optimal'])
             ctrl_state['memoryCorrectableErrors'] = ctrl_info['memoryCorrectableErrors']
@@ -199,8 +218,27 @@ class StorCLIEmulator():
                         vd_state['numPdOffline'] += 1
                     
                 v_drive['State'] = self._get_state_from_config('virtualDrive', vd_state, 'Optl')
+                
+                topology.append({
+                    'DG': 0,
+                    'Arr': '-',
+                    'Row': '-',
+                    'EID:Slot': '-',
+                    'DID': '-',
+                    'Type': v_drive['TYPE'],
+                    'State': v_drive['State'],
+                    'BT': 'N',
+                    'Size': v_drive['Size'],
+                    'PDC': 'disable',
+                    'PI': 'N',
+                    'SED': 'N',
+                    'DS3': 'none',
+                    'FSpace': 'N',
+                    'TR': 'N'
+                })
 
             # Add physical drive output (do some formatting plus check pd states)
+            p_topology = []
             for p_drive in drives['pd']:
                 p_drive['EID:Slt'] = '{}:{}'.format(p_drive['EID'], p_drive['slotNum'])
                 p_drive['Size'] = str(p_drive['Size']) + ' GB'
@@ -208,6 +246,26 @@ class StorCLIEmulator():
                 if p_drive['State'] == 'Offln':
                     ctrl_state['numPdOffline'] += 1
 
+                p_topology.append({
+                    'DG': 0,
+                    'Arr': 0,
+                    'Row': p_drive['slotNum'],
+                    'EID:Slot': p_drive['EID:Slt'],
+                    'DID': '-',
+                    'Type': 'DRIVE',
+                    'State': p_drive['State'],
+                    'BT': 'N',
+                    'Size': p_drive['Size'],
+                    'PDC': 'disable',
+                    'PI': 'N',
+                    'SED': 'N',
+                    'DS3': 'none',
+                    'FSpace': 'N',
+                    'TR': 'N'
+                })
+
+
+            topology.extend(sorted(p_topology, key=lambda k: k['Row']))
             entry_options['status'] = self._get_state_from_config('controller', ctrl_state, 'Optimal')
             
             # get cachevault details:
@@ -226,6 +284,7 @@ class StorCLIEmulator():
                 'controller_entry': Template(entry_h.read()).substitute(entry_options),
                 'num_virt_drives': len(drives['vd']),
                 'num_phys_drives': len(drives['pd']),
+                'topology': self._format_as_table(StorCLIEmulator.topology_header, topology),
                 'virtual_drives': self._format_as_table(StorCLIEmulator.vd_header, drives['vd']),
                 'physical_drives': self._format_as_table(StorCLIEmulator.pd_header, drives['pd']),
                 'cachevault': self._format_as_table(cv_table.keys(), [cv_table]) 
