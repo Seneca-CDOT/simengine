@@ -644,6 +644,7 @@ class GraphReference():
 
         return storcli_details
 
+
     @classmethod
     def get_controller_details(cls, session, server_key, controller):
         """Query controller specs
@@ -706,9 +707,9 @@ class GraphReference():
         query.append("ORDER BY pd.slotNum ASC")
         query.append("RETURN vd, collect(pd) as pd ORDER BY vd.vdNum ASC")
 
-        results = session.run("\n".join(query))        
+        results = session.run("\n".join(query))
         vd_details = [{**dict(r.get('vd')), **{'pd': list(map(dict, list(r.get('pd'))))}} for r in results]
-        
+
         return vd_details
 
     

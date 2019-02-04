@@ -1,0 +1,91 @@
+
+Drive ${drive_path} :
+=================
+
+${drive_table}
+
+EID-Enclosure Device ID|Slt-Slot No.|DID-Device ID|DG-DriveGroup
+DHS-Dedicated Hot Spare|UGood-Unconfigured Good|GHS-Global Hotspare
+UBad-Unconfigured Bad|Onln-Online|Offln-Offline|Intf-Interface
+Med-Media Type|SED-Self Encryptive Drive|PI-Protection Info
+SeSz-Sector Size|Sp-Spun|U-Up|D-Down/PowerSave|T-Transition|F-Foreign
+UGUnsp-Unsupported|UGShld-UnConfigured shielded|HSPShld-Hotspare shielded
+CFShld-Configured shielded|Cpybck-CopyBack|CBShld-Copyback Shielded
+
+
+Drive ${drive_path} - Detailed Information :
+========================================
+
+Drive ${drive_path} State :
+=======================
+Shield Counter = 0
+Media Error Count = ${media_error_count}
+Other Error Count = ${other_error_count}
+BBM Error Count = 0
+Drive Temperature =  ${drive_temp_c}C (${drive_temp_f} F)
+Predictive Failure Count = ${predictive_failure_count}
+S.M.A.R.T alert flagged by drive = No
+
+
+Drive ${drive_path} Device attributes :
+===================================
+SN = Y3D0A0FDFSR2
+Manufacturer Id = TOSHIBA 
+Model Number = ${drive_model}      
+NAND Vendor = NA
+WWN = 500003952819DBF9
+Firmware Revision = 5205
+Firmware Release Number = N/A
+Raw size = ${drive_size} [0x11177330 Sectors]
+Coerced size = ${drive_size} [0x11070000 Sectors]
+Non Coerced size = ${drive_size} [0x11077330 Sectors]
+Device Speed = 6.0Gb/s
+Link Speed = 6.0Gb/s
+Write Cache = N/A
+Logical Sector Size = 512B
+Physical Sector Size = 512B
+Connector Name = Port 0 - 3 x1
+
+
+Drive ${drive_path} Policies/Settings :
+===================================
+Drive position = DriveGroup:0, Span:0, Row:0
+Enclosure position = 1
+Connected Port Number = 3(path0) 
+Sequence Number = 2
+Commissioned Spare = No
+Emergency Spare = No
+Last Predictive Failure Event Sequence Number = 0
+Successful diagnostics completion on = N/A
+SED Capable = No
+SED Enabled = No
+Secured = No
+Cryptographic Erase Capable = No
+Locked = No
+Needs EKM Attention = No
+PI Eligible = No
+Certified = No
+Wide Port Capable = No
+
+Port Information :
+================
+
+-----------------------------------------
+Port Status Linkspeed SAS address        
+-----------------------------------------
+   0 Active 6.0Gb/s   0x500003952819dbfa 
+   1 Active 6.0Gb/s   0x0                
+-----------------------------------------
+
+
+Inquiry Data = 
+00 00 05 12 5b 00 10 02 54 4f 53 48 49 42 41 20 
+4d 4b 31 34 30 31 47 52 52 42 20 20 20 20 20 20 
+35 32 30 35 59 33 44 30 41 30 46 44 46 53 52 32 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+
+

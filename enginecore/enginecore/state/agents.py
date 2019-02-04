@@ -309,7 +309,49 @@ class StorCLIEmulator():
 
             template = Template(templ_h.read())
             return template.substitute(options)
-        
+
+
+    def _strcli_ctrl_phys_disks(self, controller_num):
+        """Storcli physical drive details"""
+
+        pd_info_f = os.path.join(self._storcli_dir, 'physical_disk_data')
+        pd_entry_f = os.path.join(self._storcli_dir, 'physical_disk_entry')
+        pd_output = []
+
+        info_options = {
+            'header': self._strcli_header(controller_num),
+            'physical_drives': ''
+        }
+
+        with open(pd_info_f) as info_h, open(pd_entry_f) as entry_h, self._graph_ref.get_session() as session:
+            drives = GraphReference.get_all_drives(session, self._server_key, controller_num)
+            pd_drives = sorted(drives['pd'], key=lambda k: k['slotNum'])
+            pd_template = entry_h.read()
+
+            for drive in pd_drives:
+
+                TEMP_drive_temp = 22
+                drive['EID:Slt'] = '{}:{}'.format(drive['EID'], drive['slotNum'])
+                drive['Size'] = str(drive['Size']) + ' GB'
+
+                entry_options = {
+                    'drive_path': '/c{}/e{}/s{}'.format(controller_num, drive['EID'], drive['slotNum']),
+                    'drive_table': self._format_as_table(StorCLIEmulator.pd_header, [drive]),
+                    'media_error_count': drive['mediaErrorCount'],
+                    'other_error_count': drive['otherErrorCount'],
+                    'predictive_failure_count': drive['predictiveErrorCount'],
+                    'drive_temp_c': TEMP_drive_temp,
+                    'drive_temp_f': (TEMP_drive_temp * 9/5) + 32,
+                    'drive_model': drive['Model'],
+                    'drive_size': drive['Size']
+                }
+
+                pd_output.append(Template(pd_template).substitute(entry_options))
+
+
+            info_options['physical_drives'] = '\n'.join(pd_output)
+            return  Template(info_h.read()).substitute(info_options)
+
 
     def _format_as_table(self, headers, table_options):
         """Formats data as storcli table
@@ -482,7 +524,7 @@ class StorCLIEmulator():
                         reply['stdout'] = self._strcli_ctrl_virt_disk(argv[1][-1])
                 elif len(argv) == 6 and argv[1].startswith("/c"):
                     if argv[2] == "/eall" and argv[3] == "/sall" and argv[4] == "show" and argv[5] == "all":
-                        pass
+                        reply['stdout'] = self._strcli_ctrl_phys_disks(argv[1][-1])
                 else:
                     reply = {"stdout": "", "stderr": "Usage: " + argv[0] +" --version", "status": 1}
 
