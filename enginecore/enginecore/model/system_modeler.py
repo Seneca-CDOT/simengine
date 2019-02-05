@@ -607,7 +607,10 @@ def delete_asset(key):
 
 
 def set_thermal_storage_target(attr):
-    
+    """Set up storage components as thermal targets for IPMI sensor
+    Returns:
+        bool: True if a new relationship was created
+    """
 
     query = []
 
@@ -623,11 +626,51 @@ def set_thermal_storage_target(attr):
     )
 
     if attr['cache_vault']:
-        query.append("MATCH (ctrl)-[:HAS_CACHEVAULT]->(cv:CacheVault)")
+        query.append(
+            "MATCH (ctrl)-[:HAS_CACHEVAULT]->(target:CacheVault {{ serialNumber: {} }})"
+            .format(attr['cache_vault'])
+        )
     elif attr['drive']:
-        query.append("MATCH (ctrl)-[:HAS_CACHEVAULT]->(cv:CacheVault)")
+        query.append(
+            "MATCH (ctrl)-[:HAS_PHYSICAL_DRIVE]->(target:PhysicalDrive {{ DID: {} }})"
+            .format(attr['drive'])
+        )
+    else:
+        raise KeyError('Must provide either target drive or cache_vault')
 
 
+    return _set_thermal_target(attr, query)
+
+
+def _set_thermal_target(attr, query):
+     # determine relationship type 
+    thermal_rel_type = ''
+    if attr['action'] == 'increase':
+        thermal_rel_type = 'HEATED_BY'
+    elif attr['action'] == 'decrease':
+        thermal_rel_type = 'COOLED_BY'
+    else:
+        raise KeyError('Unrecognized event type: {}'.format(attr['event']))
+
+    rel_query = [] 
+    rel_query.append("MATCH (source)<-[ex_rel:{}]-(target)".format(thermal_rel_type))
+    rel_query.append("RETURN ex_rel")
+
+    with GRAPH_REF.get_session() as session:
+
+        # fist check if the relationship already exists
+        result = session.run("\n".join(query + rel_query))
+        rel_exists = result.single()
+
+        # set the thermal relationship & relationship attributes
+        s_attr = ["pause_at", 'rate', 'event', 'degrees', 'jitter', 'action', 'model']
+        set_stm = qh.get_set_stm(attr, node_name="rel", supported_attr=s_attr)
+
+        query.append("MERGE (source)<-[rel:{}]-(target)".format(thermal_rel_type))
+        query.append("SET {}".format(set_stm))
+
+        session.run("\n".join(query))
+        return rel_exists is None
 
 
 def set_thermal_sensor_target(attr):
@@ -653,34 +696,7 @@ def set_thermal_sensor_target(attr):
         .format(attr['target_sensor'])
     )
 
-    # determine relationship type 
-    thermal_rel_type = ''
-    if attr['action'] == 'increase':
-        thermal_rel_type = 'HEATED_BY'
-    elif attr['action'] == 'decrease':
-        thermal_rel_type = 'COOLED_BY'
-    else:
-        raise KeyError('Unrecognized event type: {}'.format(attr['event']))
-
-
-    # set the thermal relationship & relationship attributes
-    s_attr = ["pause_at", 'rate', 'event', 'degrees', 'jitter', 'action', 'model']
-    set_stm = qh.get_set_stm(attr, node_name="rel", supported_attr=s_attr)
-
-    query.append("MERGE (source)<-[rel:{}]-(target)".format(thermal_rel_type))
-    query.append("SET {}".format(set_stm))
-
-    rel_query = [] 
-    rel_query.append("MATCH (source)<-[ex_rel:{}]-(target)".format(thermal_rel_type))
-    rel_query.append("RETURN ex_rel")
-
-    with GRAPH_REF.get_session() as session:
-        
-        result = session.run("\n".join(query[0:2] + rel_query))
-        rel_exists = result.single()
-
-        session.run("\n".join(query))
-        return rel_exists is None
+    return _set_thermal_target(attr, query)
 
 
 def set_thermal_cpu_target(attr):

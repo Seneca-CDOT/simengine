@@ -98,9 +98,11 @@ class StateListener(Component):
 
         # Thermal Channels
         self._thermal_pubsub.psubscribe(
-            RedisChannels.ambient_update_channel, # on ambient changes
-            RedisChannels.sensor_conf_th_channel, # new relationship
-            RedisChannels.cpu_usg_conf_th_channel, # new cpu-usage relationship
+            RedisChannels.ambient_update_channel,  # on ambient changes
+            RedisChannels.sensor_conf_th_channel,  # new sensor->sensor relationship
+            RedisChannels.cpu_usg_conf_th_channel, # new cpu_usage->sensor relationship
+            RedisChannels.str_cv_conf_th_channel,  # new sensor->cache_vault relationship
+            RedisChannels.str_drive_conf_th_channel # new sensor->phys_drive relationship
         )
 
 
@@ -181,7 +183,7 @@ class StateListener(Component):
 
         logging.info('oid changed:')
         logging.info(">" + oid + ": " + oid_value)
-        
+
 
     def _handle_ambient_update(self, new_temp, old_temp):
         """React to ambient update by notifying all the assets in the sys topology
@@ -193,7 +195,7 @@ class StateListener(Component):
         self._notify_client(ClientRequests.ambient, {'ambient': new_temp, 'rising': new_temp > old_temp})
         for a_key in self._assets:
             self.fire(PowerEventManager.map_ambient_event(old_temp, new_temp), self._assets[a_key]) 
-    
+
 
     def _handle_state_update(self, asset_key):
         """React to asset state updates in redis store 
@@ -245,7 +247,7 @@ class StateListener(Component):
 
                 parent_load_change = load_change * parent.state.draw_percentage
                 # logging.info(
-                #     "child [%s] load update: %s; updating %s load for [%s]", 
+                #     "child [%s] load update: %s; updating %s load for [%s]",
                 # child_key, load_change, parent.state.load, parent.key
                 # )
                
@@ -354,7 +356,7 @@ class StateListener(Component):
 
                     # logging.info('Child load : {}'.format(node_load))
                     if int(new_state) == 0:  
-                        alt_branch_event = PowerEventManager.map_load_increased_by(node_load, child_asset.key)             
+                        alt_branch_event = PowerEventManager.map_load_increased_by(node_load, child_asset.key)
                     else:
                         alt_branch_event = PowerEventManager.map_load_decreased_by(node_load, child_asset.key)
                     
@@ -499,6 +501,10 @@ class StateListener(Component):
             elif channel == RedisChannels.cpu_usg_conf_th_channel:
                 new_rel = json.loads(data)
                 self._assets[new_rel['key']].add_cpu_thermal_impact(**new_rel['relationship'])
+            elif channel == RedisChannels.str_cv_conf_th_channel:
+                print('str cv')
+            elif channel == RedisChannels.str_drive_conf_th_channel:
+                print('str drive')
 
         except KeyError as error:
             logging.error("Detected unregistered asset under key [%s]", error)
@@ -532,15 +538,15 @@ class StateListener(Component):
         self._load_success(event_result, increased=False)
         
     def ChildAssetPowerUp_success(self, evt, event_result):
-        """When child is powered up -> get the new load value of child asset"""       
+        """When child is powered up -> get the new load value of child asset"""
         self._load_success(event_result, increased=True)
 
     def ChildAssetLoadDecreased_success(self, evt, event_result):
-        """When load decreases down the power stream """       
+        """When load decreases down the power stream """
         self._load_success(event_result, increased=False)
 
     def ChildAssetLoadIncreased_success(self, evt, event_result):
-        """When load increases down the power stream """        
+        """When load increases down the power stream """
         self._load_success(event_result, increased=True)
 
 
@@ -579,7 +585,7 @@ class StateListener(Component):
             self._chain_power_update(e_result)
 
         self._notify_client(ClientRequests.asset, {
-            'key': e_result.asset_key, 
+            'key': e_result.asset_key,
             'status': e_result.new_state
         })
 

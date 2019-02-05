@@ -215,9 +215,11 @@ def get_thermal_args():
 
     return thermal_parent
 
+
 def storage_command(th_storage_group):
+    """configure thermal props of storage componenets"""
     th_storage_subp = th_storage_group.add_subparsers()
-    
+
     th_set_storage_action = th_storage_subp.add_parser(
         'set', 
         help="Update storage thermal settings", 
@@ -228,7 +230,6 @@ def storage_command(th_storage_group):
         '--drive',
         help="DID of the physical drive this sensor is affecting",
         type=str,
-        required=True
     )
 
 
@@ -236,10 +237,10 @@ def storage_command(th_storage_group):
         '--cache-vault',
         help="Serial number of CacheVault sensor is affecting",
         type=str,
-        required=True
     )
 
     th_set_storage_action.set_defaults(
+        validate=lambda attr: attr['drive'] or attr['cache_vault'],
         func=handle_set_thermal_storage
     )
 

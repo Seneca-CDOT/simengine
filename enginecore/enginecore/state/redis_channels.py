@@ -24,6 +24,8 @@ class RedisChannels():
     ambient_update_channel = 'ambient-upd'
     sensor_conf_th_channel = 'sensor-th-upd'
     cpu_usg_conf_th_channel = 'cpu-th-upd'
+    str_drive_conf_th_channel = 'drive-th-upd'
+    str_cv_conf_th_channel = 'cv-th-upd'
 
     # misc
     oid_update_channel = 'oid-upd' 

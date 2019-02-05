@@ -87,12 +87,36 @@ class IBMCServerStateManager(IServerStateManager):
                 }
             })
         )
-    
+
 
     @classmethod
     def update_thermal_storage_target(cls, attr):
-        """Add new storage entity affected by a sensor """
-        sys_modeler.set_thermal_storage_target(attr)
+        """Add new storage entity affected by a sensor 
+        Notify sensors if the relationship is new"""
+
+        new_rel = sys_modeler.set_thermal_storage_target(attr)
+        if not new_rel: 
+            return
+
+        target_data = {
+            'key': attr['asset_key'],
+            'relationship': {
+                'controller': attr['controller'],
+            }
+        }
+
+        if 'drive' in attr and attr['drive']:
+            channel = RedisChannels.str_drive_conf_th_channel
+            target_data['relationship']['drive'] = attr['drive']
+        else:
+            channel = RedisChannels.str_cv_conf_th_channel
+            target_data['relationship']['cv'] = attr['cache_vault']
+
+
+        IStateManager.get_store().publish(
+            channel,
+            json.dumps(target_data)
+        )
 
 
     @classmethod
