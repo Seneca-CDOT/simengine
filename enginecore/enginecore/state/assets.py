@@ -794,6 +794,23 @@ class ServerWithBMC(Server):
         self._sensor_repo.get_sensor_by_name(target).add_cpu_thermal_impact()
 
 
+    def add_storage_cv_thermal_impact(self, source, cv):
+        """Add new sensor & cachevault thermal relationship
+        Args:
+            source(str): name of the source sensor causing thermal changes
+            cv(str): serial number of the cachevault
+        """
+        pass
+
+
+    def add_storage_pd_thermal_impact(self, source):
+        """Add new  sensor & cachevault thermal relationship
+        Args:
+            source(str): name of the source sensor causing thermal changes
+            cv(str): serial number of the cachevault
+        """
+
+
     @handler("AmbientDecreased", "AmbientIncreased")
     def on_ambient_updated(self, event, *args, **kwargs):
         """Update thermal sensor readings on ambient changes """ 

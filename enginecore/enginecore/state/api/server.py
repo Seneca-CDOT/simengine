@@ -101,6 +101,7 @@ class IBMCServerStateManager(IServerStateManager):
         target_data = {
             'key': attr['asset_key'],
             'relationship': {
+                'source': attr['source_sensor'],
                 'controller': attr['controller'],
             }
         }
@@ -112,7 +113,6 @@ class IBMCServerStateManager(IServerStateManager):
             channel = RedisChannels.str_cv_conf_th_channel
             target_data['relationship']['cv'] = attr['cache_vault']
 
-
         IStateManager.get_store().publish(
             channel,
             json.dumps(target_data)
@@ -123,7 +123,7 @@ class IBMCServerStateManager(IServerStateManager):
     def update_thermal_cpu_target(cls, attr):
         """Create new or update existing thermal relationship between CPU usage and sensor"""
         new_rel = sys_modeler.set_thermal_cpu_target(attr)
-        if not new_rel: 
+        if not new_rel:
             return
 
         IStateManager.get_store().publish(

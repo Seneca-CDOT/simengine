@@ -74,7 +74,7 @@ class StateListener(Component):
         ### Register Assets ###
         self._subscribe_to_channels()
         self._reload_model(force_snmp_init)
-       
+
 
     def _subscribe_to_channels(self):
         """Subscribe to redis channels"""
@@ -141,7 +141,7 @@ class StateListener(Component):
 
 
             # notify parents of load changes
-            self._chain_load_update( 
+            self._chain_load_update(
                 LoadEventResult(
                     load_change=new_load,
                     new_load=new_load,
@@ -412,7 +412,7 @@ class StateListener(Component):
                 _, speed = data.split('|')
                 self._assets[int(asset_key)].drain_speed_factor = float(speed)
 
-
+        # TODO: this error is ttoo generic (doesn't apply to all the monitoring functions)
         except KeyError as error:
             logging.error("Detected unregistered asset under key [%s]", error)
 
@@ -502,9 +502,10 @@ class StateListener(Component):
                 new_rel = json.loads(data)
                 self._assets[new_rel['key']].add_cpu_thermal_impact(**new_rel['relationship'])
             elif channel == RedisChannels.str_cv_conf_th_channel:
-                print('str cv')
+                self._assets[new_rel['key']].add_storage_cv_thermal_impact(**new_rel['relationship'])
             elif channel == RedisChannels.str_drive_conf_th_channel:
-                print('str drive')
+                self._assets[new_rel['key']].add_storage_pd_thermal_impact(**new_rel['relationship'])
+
 
         except KeyError as error:
             logging.error("Detected unregistered asset under key [%s]", error)
