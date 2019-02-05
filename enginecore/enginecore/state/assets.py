@@ -803,11 +803,11 @@ class ServerWithBMC(Server):
         pass
 
 
-    def add_storage_pd_thermal_impact(self, source):
+    def add_storage_pd_thermal_impact(self, source, drive):
         """Add new  sensor & cachevault thermal relationship
         Args:
             source(str): name of the source sensor causing thermal changes
-            cv(str): serial number of the cachevault
+            drive(int): serial number of the cachevault
         """
 
 
