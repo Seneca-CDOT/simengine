@@ -5,7 +5,7 @@
 
 import argparse
 import enginecore.model.system_modeler as sys_modeler
-from enginecore.state.state_managers import StateManager, BMCServerStateManager
+from enginecore.state.api import IStateManager, IBMCServerStateManager
 from enginecore.state.sensors import SensorRepository
 from enginecore.cli.storage import get_ctrl_storage_args
 
@@ -153,7 +153,7 @@ def cpu_usage_command(th_cpu_usg_group):
     )
 
     th_set_cpu_usg_action.set_defaults(
-        func=BMCServerStateManager.update_thermal_cpu_target
+        func=IBMCServerStateManager.update_thermal_cpu_target
     )
 
     th_delete_cpu_usg_action.set_defaults(
@@ -161,7 +161,8 @@ def cpu_usage_command(th_cpu_usg_group):
     )
 
 
-def get_thermal_args():
+
+def get_thermal_add_args():
     # group a few args into a common parent element
     thermal_parent = argparse.ArgumentParser(add_help=False)
 
@@ -220,10 +221,11 @@ def storage_command(th_storage_group):
     """configure thermal props of storage componenets"""
     th_storage_subp = th_storage_group.add_subparsers()
 
+    # Add new relationship:
     th_set_storage_action = th_storage_subp.add_parser(
         'set', 
         help="Update storage thermal settings", 
-        parents=[get_ctrl_storage_args(), get_thermal_args()]
+        parents=[get_ctrl_storage_args(), get_thermal_add_args()]
     )
 
     th_set_storage_action.add_argument( 
@@ -244,6 +246,45 @@ def storage_command(th_storage_group):
         func=handle_set_thermal_storage
     )
 
+    # Delete existing:
+
+    th_delete_storage_action = th_storage_subp.add_parser(
+        'delete', 
+        help="Delete thermal connection between a sensor and a storage component (cv or physical drive)", 
+    )
+
+    th_delete_storage_action.add_argument(
+        '-k', '--asset-key', help="Key of the server sensor/storage component belongs to ", type=int, required=True
+    )
+    th_delete_storage_action.add_argument(
+        '-s', '--source-sensor', help="Name of the source sensor", type=str, required=True
+    )
+
+    th_delete_storage_action.add_argument(
+        '-c', '--controller', help="Controller number", type=int, required=True
+    )
+
+
+    th_delete_storage_action.add_argument( 
+        '--drive',
+        help="DID of the physical drive this sensor is affecting",
+        type=str,
+    )
+
+
+    th_delete_storage_action.add_argument(
+        '--cache-vault',
+        help="Serial number of CacheVault sensor is affecting",
+        type=str,
+    )
+
+    th_delete_storage_action.add_argument(
+        '-e', '--event', help="Event associated with the source sensor", choices=['up', 'down'], required=True
+    )
+
+    th_delete_storage_action.set_defaults(
+        func=IBMCServerStateManager.delete_thermal_storage_target
+    )
 
 
 def sensor_command(th_sensor_group):
@@ -256,7 +297,7 @@ def sensor_command(th_sensor_group):
     th_set_sensor_action = th_sensor_subp.add_parser(
         'set', 
         help="Update sensor thermal settings",
-        parents=[get_thermal_args()]
+        parents=[get_thermal_add_args()]
     )
     
     th_set_sensor_action.add_argument(
@@ -316,14 +357,14 @@ def sensor_command(th_sensor_group):
     th_get_sensor_action.set_defaults(func=handle_get_thermal_sensor)
     th_set_sensor_action.set_defaults(func=handle_set_thermal_sensor)
     th_delete_sensor_action.set_defaults(
-        func=sys_modeler.delete_thermal_sensor_target # TODO: change sys_modeler to BMCServerStateManager
+        func=sys_modeler.delete_thermal_sensor_target # TODO: change sys_modeler to IBMCServerStateManager
     )
 
 
 def handle_get_thermal_cpu(kwargs):
     """Display current cpu & sensor relationship"""
 
-    th_cpu_details = BMCServerStateManager.get_thermal_cpu_details(kwargs['asset_key'])
+    th_cpu_details = IBMCServerStateManager.get_thermal_cpu_details(kwargs['asset_key'])
 
     if not th_cpu_details:
         print("There are no cpu/sensor relationships for server {}".format(kwargs['asset_key']))
@@ -338,22 +379,22 @@ def handle_set_thermal_ambient(kwargs):
     del kwargs['func']
      
     if kwargs['event'] and kwargs['pause_at'] and kwargs['rate']:
-        StateManager.set_ambient_props(kwargs)
+        IStateManager.set_ambient_props(kwargs)
     elif kwargs['event'] or kwargs['pause_at'] or kwargs['rate']:
         raise argparse.ArgumentTypeError("Event, pause-at and rate must be supplied")
     else:
-        StateManager.set_ambient(kwargs['degrees'])
+        IStateManager.set_ambient(kwargs['degrees'])
 
 
 def handle_get_thermal_ambient(kwargs):
     """Print some general information about ambient configurations"""
 
     if kwargs['value_only']:
-        print(StateManager.get_ambient())
+        print(IStateManager.get_ambient())
     else:
-        print("Ambient: {}° ".format(StateManager.get_ambient()))
+        print("Ambient: {}° ".format(IStateManager.get_ambient()))
 
-        ambient_props = StateManager.get_ambient_props()
+        ambient_props = IStateManager.get_ambient_props()
         if not ambient_props:
             print('Ambient event properties are not configured yet!')
             return
@@ -379,7 +420,7 @@ def handle_set_thermal_sensor(kwargs):
     if kwargs['model']:
         kwargs['event'] = 'up'
     
-    BMCServerStateManager.update_thermal_sensor_target(kwargs)
+    IBMCServerStateManager.update_thermal_sensor_target(kwargs)
 
 
 def handle_set_thermal_storage(kwargs):
@@ -387,7 +428,7 @@ def handle_set_thermal_storage(kwargs):
     if not kwargs['cache_vault'] and not kwargs['drive']:
         raise argparse.ArgumentTypeError("Must provide either target drive id or cachevault!")
 
-    BMCServerStateManager.update_thermal_storage_target(kwargs)
+    IBMCServerStateManager.update_thermal_storage_target(kwargs)
 
 
 def handle_get_thermal_sensor(kwargs):

@@ -794,17 +794,17 @@ class ServerWithBMC(Server):
         self._sensor_repo.get_sensor_by_name(target).add_cpu_thermal_impact()
 
 
-    def add_storage_cv_thermal_impact(self, source, cv):
+    def add_storage_cv_thermal_impact(self, source, controller, cv, event):
         """Add new sensor & cachevault thermal relationship
         Args:
             source(str): name of the source sensor causing thermal changes
             cv(str): serial number of the cachevault
         """
-        self._sensor_repo.get_sensor_by_name(source).add_cv_thermal_impact(cv)
+        self._sensor_repo.get_sensor_by_name(source).add_cv_thermal_impact(controller, cv)
 
 
 
-    def add_storage_pd_thermal_impact(self, source, drive):
+    def add_storage_pd_thermal_impact(self, source, controller, drive, event):
         """Add new sensor & physical drive thermal relationship
         Args:
             source(str): name of the source sensor causing thermal changes

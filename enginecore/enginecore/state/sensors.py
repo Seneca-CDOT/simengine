@@ -149,8 +149,8 @@ class Sensor():
             )
         )
 
-        self._th_cpu_t.daemon = True
-        self._th_cpu_t.start()
+        self._th_cv_t[cv][event].daemon = True
+        self._th_cv_t[cv][event].start()
 
 
     def _init_thermal_impact(self): 
@@ -230,6 +230,7 @@ class Sensor():
         with self._graph_ref.get_session() as session:
             while True:
                 logging.info('storage')
+                time.sleep(5)
 
 
     def _target_sensor_impact(self, target, event):
@@ -320,9 +321,11 @@ class Sensor():
         return self.name
 
 
-    def add_cv_thermal_impact(self, cv):
+    def add_cv_thermal_impact(self, controller, cv):
         if cv in self._th_cv_t:
             raise ValueError('Thread already exists')
+
+        # self._launch_thermal_cv_thread(cv, 'event')
 
 
     def add_sensor_thermal_impact(self, target, event):
@@ -380,8 +383,8 @@ class Sensor():
         logging.info("Sensor:[%s] - initializing thermal processes", self._s_name)
         self._init_thermal_impact()
         self.enable_thermal_impact()
-        
-        
+
+
     def enable_thermal_impact(self):
         logging.info("Sensor:[%s] - enabling thermal impact", self._s_name)
         self._s_thermal_event.set()

@@ -102,6 +102,7 @@ class IBMCServerStateManager(IServerStateManager):
             'key': attr['asset_key'],
             'relationship': {
                 'source': attr['source_sensor'],
+                'event': attr['event'],
                 'controller': attr['controller'],
             }
         }
@@ -117,6 +118,12 @@ class IBMCServerStateManager(IServerStateManager):
             channel,
             json.dumps(target_data)
         )
+
+
+    @classmethod
+    def delete_thermal_storage_target(cls, attr):
+        """Remove existing relationship between a sensor and a storage element"""
+        return sys_modeler.delete_thermal_storage_target(attr)
 
 
     @classmethod

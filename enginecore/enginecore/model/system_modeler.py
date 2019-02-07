@@ -784,4 +784,39 @@ def delete_thermal_cpu_target(attr):
 
     with GRAPH_REF.get_session() as session:
         session.run("\n".join(query))
+
+
+def delete_thermal_storage_target(attr):
+    """Remove a connection between a sensor and storage component"""
+    query = []
     
+    # find the source sensor & server asset
+    query.append(
+        'MATCH (source {{ name: "{}" }} )<-[:HAS_SENSOR]-(server:Asset {{ key: {} }})'
+        .format(attr['source_sensor'], attr['asset_key'])
+    )
+
+    # find the destination or target
+    if 'cache_vault' in attr and attr['cache_vault']:
+        target_prop = ':CacheVault {{ serialNumber: "{}" }}'.format(attr['cv'])
+    elif 'drive' in attr and attr['drive']:
+        target_prop = ':PhysicalDrive {{ DID: "{}" }}'.format(attr['drive'])
+
+    query.append(
+        "MATCH (server)-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})"
+        .format(attr['controller'])
+    )
+
+    ctrl_str_element_rel = ":HAS_CACHEVAULT|:HAS_PHYSICAL_DRIVE"
+
+    # find either a physical drive or cachevault affected by the source sensor
+    # that belongs to certain controller
+    query.append(
+        'MATCH (source)<-[thermal_link {{ event: "{}" }}]-({})<-[{}]-(ctrl)'
+        .format(attr['event'], target_prop, ctrl_str_element_rel)
+    )
+
+    query.append('DELETE thermal_link') # delete the connection
+
+    with GRAPH_REF.get_session() as session:
+        session.run("\n".join(query))
