@@ -43,9 +43,13 @@ class Sensor():
         self._s_group = self._s_specs['group']
 
         self._th_sensor_t = {}
+        self._th_cv_t = {} # cachevault threads
+        self._th_pd_t = {} # physical drive targets
         self._th_cpu_t = None
 
         self._th_sensor_t_name_fmt = "({event})s:[{source}]->t:[{target}]"
+        self._th_storage_t_name_fmt = "({event})s:[{source}]->t:STORAGE:[{target}]"
+
         self._th_cpu_t_name_fmt = "s:[cpu_load]->t:[{target}]"
 
         self._graph_ref = GraphReference()
@@ -131,6 +135,24 @@ class Sensor():
         self._th_cpu_t.start()
 
 
+    def _launch_thermal_cv_thread(self, cv, event):
+
+        if cv not in self._th_cv_t:
+            self._th_cv_t[cv] = {}
+
+        self._th_cv_t[cv][event] = threading.Thread(
+            target=self._target_storage,
+            name=self._th_storage_t_name_fmt.format(
+                source=self._s_name,
+                target=cv,
+                event=event
+            )
+        )
+
+        self._th_cpu_t.daemon = True
+        self._th_cpu_t.start()
+
+
     def _init_thermal_impact(self): 
         """Initialize thermal imact based on the saved inter-connections"""
     
@@ -203,6 +225,11 @@ class Sensor():
                     cpu_impact_degrees_1 = cpu_impact_degrees_2
                     time.sleep(5)
 
+
+    def _target_storage(self, target, event):
+        with self._graph_ref.get_session() as session:
+            while True:
+                logging.info('storage')
 
 
     def _target_sensor_impact(self, target, event):
@@ -293,13 +320,18 @@ class Sensor():
         return self.name
 
 
+    def add_cv_thermal_impact(self, cv):
+        if cv in self._th_cv_t:
+            raise ValueError('Thread already exists')
+
+
     def add_sensor_thermal_impact(self, target, event):
         """Set a target sensor that will be affected by the current source sensor values
         Args:
             target(str): Name of the target sensor
             event(str): Source event causing the thermal impact to trigger
         """
-        if target in self._th_sensor_t and event in self._th_sensor_t:
+        if target in self._th_sensor_t and event in self._th_sensor_t[target]:
             raise ValueError('Thread already exists')
         
         with self._graph_ref.get_session() as session:

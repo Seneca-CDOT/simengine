@@ -502,8 +502,10 @@ class StateListener(Component):
                 new_rel = json.loads(data)
                 self._assets[new_rel['key']].add_cpu_thermal_impact(**new_rel['relationship'])
             elif channel == RedisChannels.str_cv_conf_th_channel:
+                new_rel = json.loads(data)
                 self._assets[new_rel['key']].add_storage_cv_thermal_impact(**new_rel['relationship'])
             elif channel == RedisChannels.str_drive_conf_th_channel:
+                new_rel = json.loads(data)
                 self._assets[new_rel['key']].add_storage_pd_thermal_impact(**new_rel['relationship'])
 
 
