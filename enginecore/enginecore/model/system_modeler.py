@@ -627,7 +627,7 @@ def set_thermal_storage_target(attr):
 
     if attr['cache_vault']:
         query.append(
-            "MATCH (ctrl)-[:HAS_CACHEVAULT]->(target:CacheVault {{ serialNumber: {} }})"
+            "MATCH (ctrl)-[:HAS_CACHEVAULT]->(target:CacheVault {{ serialNumber: \"{}\" }})"
             .format(attr['cache_vault'])
         )
     elif attr['drive']:
@@ -643,6 +643,14 @@ def set_thermal_storage_target(attr):
 
 
 def _set_thermal_target(attr, query):
+    """Set thermal relationship between 2 ndoes
+    Args:
+        attr(dict): relationship properties (such as rate, event, degrees etc. )
+        query(list): query that includes look up of the 'target' & 'source' nodes
+    Returns:
+        bool: True if the relationship is new
+    """
+
      # determine relationship type 
     thermal_rel_type = ''
     if attr['action'] == 'increase':
@@ -798,7 +806,7 @@ def delete_thermal_storage_target(attr):
 
     # find the destination or target
     if 'cache_vault' in attr and attr['cache_vault']:
-        target_prop = ':CacheVault {{ serialNumber: "{}" }}'.format(attr['cv'])
+        target_prop = ':CacheVault {{ serialNumber: "{}" }}'.format(attr['cache_vault'])
     elif 'drive' in attr and attr['drive']:
         target_prop = ':PhysicalDrive {{ DID: "{}" }}'.format(attr['drive'])
 
