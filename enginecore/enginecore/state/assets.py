@@ -800,8 +800,8 @@ class ServerWithBMC(Server):
             source(str): name of the source sensor causing thermal changes
             cv(str): serial number of the cachevault
         """
-        self._sensor_repo.get_sensor_by_name(source).add_cv_thermal_impact(controller, cv)
-
+        sensor = self._sensor_repo.get_sensor_by_name(source)
+        sensor.add_cv_thermal_impact(controller, cv, event)
 
 
     def add_storage_pd_thermal_impact(self, source, controller, drive, event):

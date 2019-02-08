@@ -48,7 +48,7 @@ class Sensor():
         self._th_cpu_t = None
 
         self._th_sensor_t_name_fmt = "({event})s:[{source}]->t:[{target}]"
-        self._th_storage_t_name_fmt = "({event})s:[{source}]->t:STORAGE:[{target}]"
+        self._th_storage_t_name_fmt = "({event})s:[{source}]->STORAGE:t:[{ctrl}/{target}]"
 
         self._th_cpu_t_name_fmt = "s:[cpu_load]->t:[{target}]"
 
@@ -135,14 +135,16 @@ class Sensor():
         self._th_cpu_t.start()
 
 
-    def _launch_thermal_cv_thread(self, cv, event):
+    def _launch_thermal_cv_thread(self, controller, cv, event):
 
         if cv not in self._th_cv_t:
             self._th_cv_t[cv] = {}
 
         self._th_cv_t[cv][event] = threading.Thread(
             target=self._target_storage,
+            args=(controller, cv, event,),
             name=self._th_storage_t_name_fmt.format(
+                ctrl=controller,
                 source=self._s_name,
                 target=cv,
                 event=event
@@ -226,10 +228,12 @@ class Sensor():
                     time.sleep(5)
 
 
-    def _target_storage(self, target, event):
+    def _target_storage(self, controller, target, event):
         with self._graph_ref.get_session() as session:
             while True:
-                logging.info('storage')
+                logging.info('\n\nstorage: s:{}, t:{}, e:{}\n\n'.format(
+                    controller, target, event    
+                ))
                 time.sleep(5)
 
 
@@ -245,7 +249,7 @@ class Sensor():
         with self._graph_ref.get_session() as session:
             while True:
 
-                self._s_thermal_event.wait()   
+                self._s_thermal_event.wait()
 
                 rel_details = GraphReference.get_sensor_thermal_rel(
                     session, self._server_key, relationship={'source': self.name, 'target': target, 'event': event}
@@ -321,11 +325,11 @@ class Sensor():
         return self.name
 
 
-    def add_cv_thermal_impact(self, controller, cv):
+    def add_cv_thermal_impact(self, controller, cv, event):
         if cv in self._th_cv_t:
             raise ValueError('Thread already exists')
 
-        # self._launch_thermal_cv_thread(cv, 'event')
+        self._launch_thermal_cv_thread(cv, controller, event)
 
 
     def add_sensor_thermal_impact(self, target, event):
