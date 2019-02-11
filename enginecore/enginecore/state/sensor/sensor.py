@@ -8,9 +8,15 @@ import logging
 import time
 import json
 import operator
+from enum import Enum
 
 import enginecore.state.state_managers as sm 
 from enginecore.model.graph_reference import GraphReference
+
+class HDComponents(Enum):
+    """Thermal storage target types""" 
+    CacheVault = 1
+    PhysicalDrive = 2
 
 
 class Sensor():
@@ -118,27 +124,31 @@ class Sensor():
         self._th_cpu_t.start()
 
 
-    def _launch_thermal_cv_thread(self, controller, cv, event):
+    def _launch_thermal_storage_thread(self, controller, hd_element, hd_type, event):
 
-        if cv not in self._th_storage_t:
-            self._th_storage_t[cv] = {}
+        thread_name = '{}-{}'.format(hd_type.name, hd_element)
+        if thread_name in self._th_storage_t and event in self._th_storage_t[thread_name]:
+            raise ValueError('Thread already exists')
 
-        self._th_storage_t[cv][event] = threading.Thread(
+        if hd_element not in self._th_storage_t:
+            self._th_storage_t[hd_element] = {}
+
+        self._th_storage_t[hd_element][event] = threading.Thread(
             target=self._target_storage,
-            args=(controller, cv, event,),
+            args=(controller, hd_element, hd_type, event,),
             name=self._th_storage_t_name_fmt.format(
                 ctrl=controller,
                 source=self._s_name,
-                target=cv,
+                target=hd_element,
                 event=event
             )
         )
 
-        self._th_storage_t[cv][event].daemon = True
-        self._th_storage_t[cv][event].start()
+        self._th_storage_t[hd_element][event].daemon = True
+        self._th_storage_t[hd_element][event].start()
 
 
-    def _init_thermal_impact(self): 
+    def _init_thermal_impact(self):
         """Initialize thermal imact based on the saved inter-connections"""
     
         with self._graph_ref.get_session() as session:
@@ -211,11 +221,19 @@ class Sensor():
                     time.sleep(5)
 
 
-    def _target_storage(self, controller, target, event):
+    def _target_storage(self, controller, target, hd_type, event):
         with self._graph_ref.get_session() as session:
             while True:
 
                 self._s_thermal_event.wait()
+
+                # target
+                if hd_type == HDComponents.CacheVault:
+                    target_attr = 'serialNumber'
+                elif hd_type == HDComponents.PhysicalDrive:
+                    target_attr = 'DID'
+                else:
+                    raise ValueError('Unknown hardware component!')
 
                 rel_details = GraphReference.get_sensor_thermal_rel(
                     session,
@@ -223,7 +241,7 @@ class Sensor():
                     relationship={
                         'source': self._s_name,
                         'target': {
-                            "attribute": 'serialNumber',
+                            "attribute": target_attr,
                             'value': target
                         },
                         'event': event
@@ -363,10 +381,10 @@ class Sensor():
 
 
     def add_cv_thermal_impact(self, controller, cv, event):
-        if cv in self._th_storage_t and event in self._th_storage_t[cv]:
-            raise ValueError('Thread already exists')
+        self._launch_thermal_storage_thread(controller, cv, HDComponents.CacheVault, event)
 
-        self._launch_thermal_cv_thread(controller, cv, event)
+    def add_pd_thermal_impact(self, controller, pd, event):
+        self._launch_thermal_storage_thread(controller, pd, HDComponents.PhysicalDrive, event)
 
 
     def add_sensor_thermal_impact(self, target, event):

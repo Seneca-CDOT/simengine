@@ -328,7 +328,6 @@ class StorCLIEmulator():
 
             for drive in pd_drives:
 
-                TEMP_drive_temp = 22
                 drive['EID:Slt'] = '{}:{}'.format(drive['EID'], drive['slotNum'])
                 drive['Size'] = str(drive['Size']) + ' GB'
 
@@ -338,8 +337,8 @@ class StorCLIEmulator():
                     'media_error_count': drive['mediaErrorCount'],
                     'other_error_count': drive['otherErrorCount'],
                     'predictive_failure_count': drive['predictiveErrorCount'],
-                    'drive_temp_c': TEMP_drive_temp,
-                    'drive_temp_f': (TEMP_drive_temp * 9/5) + 32,
+                    'drive_temp_c': drive['temperature'],
+                    'drive_temp_f': (drive['temperature'] * 9/5) + 32,
                     'drive_model': drive['Model'],
                     'drive_size': drive['Size']
                 }

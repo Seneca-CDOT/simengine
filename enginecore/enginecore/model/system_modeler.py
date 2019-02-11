@@ -294,14 +294,20 @@ def _add_storage(asset_key, preset_file, storage_state_file):
                 s_attr = [
                     "EID", "DID", "State", "DG", "Size",
                     "Intf", "Med", "SED", "PI", "SeSz",
-                    "Model", "Sp", "Type", "PDC", "slotNum",
+                    "Model", "Sp", "Type", "PDC", "slotNum", "temperature",
                     "mediaErrorCount", "otherErrorCount", "predictiveErrorCount"
                 ]
 
                 props_stm = qh.get_props_stm(
                     {   
                         **phys_drive, 
-                        **{'slotNum': pidx, 'mediaErrorCount': 0, 'otherErrorCount': 0, 'predictiveErrorCount': 0}
+                        **{
+                            'slotNum': pidx,
+                            'mediaErrorCount': 0,
+                            'otherErrorCount': 0,
+                            'predictiveErrorCount': 0,
+                            'temperature': 0
+                        }
                     }, 
                     supported_attr=s_attr
                 )

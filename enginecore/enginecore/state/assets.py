@@ -810,6 +810,8 @@ class ServerWithBMC(Server):
             source(str): name of the source sensor causing thermal changes
             drive(int): serial number of the cachevault
         """
+        sensor = self._sensor_repo.get_sensor_by_name(source)
+
 
 
     @handler("AmbientDecreased", "AmbientIncreased")
