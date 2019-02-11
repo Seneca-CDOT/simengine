@@ -1,16 +1,10 @@
+"""UPS asset interface """
 import time
-import os
-import tempfile
-import json
 from enum import Enum
 
-import redis
-import libvirt
 import pysnmp.proto.rfc1902 as snmp_data_types
 from enginecore.model.graph_reference import GraphReference
-import enginecore.model.system_modeler as sys_modeler
 
-from enginecore.state.utils import format_as_redis_key
 from enginecore.state.redis_channels import RedisChannels
 from enginecore.state.api.state import IStateManager
 

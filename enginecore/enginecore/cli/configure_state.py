@@ -2,7 +2,7 @@
 
 import argparse
 from enginecore.state.assets import Asset
-from enginecore.state.sensors import SensorRepository
+from enginecore.state.sensor.repository import SensorRepository
 
 def configure_command(configure_state_group):
     """Update some runtime values of the system components"""
@@ -45,10 +45,10 @@ def configure_command(configure_state_group):
 def configure_battery(key, kwargs):
     """Udpate runtime battery status"""
     if kwargs['drain_speed'] is not None:
-        state_manager = Asset.get_state_manager_by_key(key, notify=True)
+        state_manager = Asset.get_state_manager_by_key(key)
         state_manager.set_drain_speed_factor(kwargs['drain_speed'])
     if kwargs['charge_speed'] is not None:
-        state_manager = Asset.get_state_manager_by_key(key, notify=True)
+        state_manager = Asset.get_state_manager_by_key(key)
         state_manager.set_charge_speed_factor(kwargs['charge_speed'])
 
 

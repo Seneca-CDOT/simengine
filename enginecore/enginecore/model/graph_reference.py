@@ -743,7 +743,7 @@ class GraphReference():
 
 
     @classmethod
-    def get_cachevault(cls, session, server_key, controller):
+    def get_cachevault(cls, session, server_key, controller): #TODO: cachevault serial NUMBER!
         """Cachevault details
         Args:
             session:  database session
@@ -765,8 +765,9 @@ class GraphReference():
 
         return dict(record.get('cv')) if record else None
 
+
     @classmethod
-    def set_cv_replacement(cls, session, server_key, controller, repl_status):
+    def set_cv_replacement(cls, session, server_key, controller, repl_status): #TODO: cachevault serial NUMBER!
         """Update cachevault replacement status
         Args:
             session:  database session
@@ -786,6 +787,33 @@ class GraphReference():
         query.append('SET {}'.format(set_stm))
 
         session.run("\n".join(query))
+
+
+    @classmethod
+    def add_to_cv_temperature(cls, session, server_key, controller, cv, temp):
+        """Add to cv temperature sensor value
+        Args:
+            session:  database session
+            server_key(int): key of the server cachevault belongs to
+            controller(int): controller num
+            cv(str): cachevault serial number
+            temp(int): value to be added to the cachevault
+        """
+        query = []
+        query.extend([
+            "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})"
+            .format(server_key, controller),
+            "MATCH (ctr)-[:HAS_CACHEVAULT]->(cv:CacheVault {{ serialNumber: \"{}\" }})"
+            .format(cv),
+            "RETURN cv.temperature as temp"
+        ])
+
+
+        print("\n".join(query))
+        results = session.run("\n".join(query))
+        record = results.single()
+        print(record.get('temp'))
+        # return dict(record.get('temp')) if record else None
 
 
     @classmethod

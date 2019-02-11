@@ -6,7 +6,7 @@
 import argparse
 import enginecore.model.system_modeler as sys_modeler
 from enginecore.state.api import IStateManager, IBMCServerStateManager
-from enginecore.state.sensors import SensorRepository
+from enginecore.state.sensor.repository import SensorRepository
 from enginecore.cli.storage import get_ctrl_storage_args
 
 
