@@ -457,31 +457,35 @@ class GraphReference():
 
     @classmethod
     def get_sensor_thermal_rel(cls, session, server_key, relationship):
-        """Get thermal details about target sensor affected by the source sensor
+        """Get thermal details about thermal relationship
         Args:
             session: database session
-            server_key(int): key of the server sensors belong to
+            server_key(int): key of the server sensor(s) belong to
             relationship(dict): source, target and event 
         """
 
-        results = session.run(
-            """
-            MATCH (:ServerWithBMC { key: $server })-[:HAS_SENSOR]->(source:Sensor { name: $source })
-            MATCH (source)<-[rel]-(target:Sensor {name: $target})
-            WHERE rel.event = $event
-            RETURN source, target, rel
-            """, 
-            server=server_key,
-            source=relationship['source'],
-            target=relationship['target'],
-            event=relationship['event']
+        query = []
+        query.append(
+            'MATCH (:ServerWithBMC {{ key: {} }})-[:HAS_SENSOR]->(source:Sensor {{ name: "{}" }})'
+            .format(server_key, relationship['source'])
         )
 
+        query.append(
+            'MATCH (source)<-[rel :COOLED_BY|:HEATED_BY]-(target {{ {}: "{}" }})'
+            .format(relationship['target']['attribute'], relationship['target']['value'])
+        )
+
+        query.extend([
+            'WHERE rel.event = "{}"'.format(relationship['event']),
+            'RETURN source, target, rel'
+        ])
+
+        results = session.run("\n".join(query))
         record = results.single()
         return {
-            'source': dict(record.get('source')), 
-            'target': dict(record.get('target')), 
-            'rel': dict(record.get('rel')) 
+            'source': dict(record.get('source')),
+            'target': dict(record.get('target')),
+            'rel': dict(record.get('rel'))
         } if record else None
 
 
@@ -790,30 +794,48 @@ class GraphReference():
 
 
     @classmethod
-    def add_to_cv_temperature(cls, session, server_key, controller, cv, temp):
+    def add_to_cv_temperature(cls, session, cv_attr, temp_change, limit):
         """Add to cv temperature sensor value
         Args:
             session:  database session
-            server_key(int): key of the server cachevault belongs to
-            controller(int): controller num
-            cv(str): cachevault serial number
-            temp(int): value to be added to the cachevault
+            cv_attr(dict): cachevault attributes such as key of the server, controller & serial number
+            temp_change(int): value to be added to the cachevault
+            limit(dict): indicates that cv temp cannot go beyond this limit (upper & lower)
+        Returns:
+            tuple: True if the temp value was updated & current temp value (updated)
         """
         query = []
         query.extend([
             "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})"
-            .format(server_key, controller),
+            .format(cv_attr['server_key'], cv_attr['controller']),
             "MATCH (ctr)-[:HAS_CACHEVAULT]->(cv:CacheVault {{ serialNumber: \"{}\" }})"
-            .format(cv),
+            .format(cv_attr['cv_serial']),
             "RETURN cv.temperature as temp"
         ])
 
-
-        print("\n".join(query))
         results = session.run("\n".join(query))
         record = results.single()
-        print(record.get('temp'))
-        # return dict(record.get('temp')) if record else None
+        current_temp = record.get('temp')
+
+        new_temp = current_temp + temp_change
+        
+        new_temp = max(new_temp, limit['lower'])
+        
+        if 'upper' in limit and limit['upper']:
+            new_temp = min(new_temp, limit['upper'])
+
+        if new_temp == current_temp:
+            return False, current_temp
+
+        query = query[:2] # grab first 2 queries
+        query.append(
+            "SET cv.temperature={}".format(new_temp)
+        )
+
+        print("\n".join(query))
+        session.run("\n".join(query))
+
+        return True, new_temp
 
 
     @classmethod

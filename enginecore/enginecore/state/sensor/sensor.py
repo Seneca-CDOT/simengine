@@ -27,8 +27,7 @@ class Sensor():
         self._s_group = self._s_specs['group']
 
         self._th_sensor_t = {}
-        self._th_cv_t = {} # cachevault threads
-        self._th_pd_t = {} # physical drive targets
+        self._th_storage_t = {}
         self._th_cpu_t = None
 
         self._th_sensor_t_name_fmt = "({event})s:[{source}]->t:[{target}]"
@@ -96,7 +95,7 @@ class Sensor():
             self._th_sensor_t[target] = {}
 
         self._th_sensor_t[target][event] = threading.Thread(
-            target=self._target_sensor_impact,
+            target=self._target_sensor,
             args=(target, event, ),
             name=self._th_sensor_t_name_fmt.format(
                 source=self._s_name, target=target, event=event
@@ -121,10 +120,10 @@ class Sensor():
 
     def _launch_thermal_cv_thread(self, controller, cv, event):
 
-        if cv not in self._th_cv_t:
-            self._th_cv_t[cv] = {}
+        if cv not in self._th_storage_t:
+            self._th_storage_t[cv] = {}
 
-        self._th_cv_t[cv][event] = threading.Thread(
+        self._th_storage_t[cv][event] = threading.Thread(
             target=self._target_storage,
             args=(controller, cv, event,),
             name=self._th_storage_t_name_fmt.format(
@@ -135,8 +134,8 @@ class Sensor():
             )
         )
 
-        self._th_cv_t[cv][event].daemon = True
-        self._th_cv_t[cv][event].start()
+        self._th_storage_t[cv][event].daemon = True
+        self._th_storage_t[cv][event].start()
 
 
     def _init_thermal_impact(self): 
@@ -166,7 +165,7 @@ class Sensor():
 
 
     def _cpu_impact(self):
-        """Keep updating this sensor based on cpu load changes
+        """Keep updating *this sensor based on cpu load changes
         This function waits for the thermal event switch and exits when the connection between this sensor & cpu load
         is removed;
         """
@@ -215,14 +214,58 @@ class Sensor():
     def _target_storage(self, controller, target, event):
         with self._graph_ref.get_session() as session:
             while True:
-                logging.info('\n\nstorage: s:{}, t:{}, e:{}\n\n'.format(
-                    controller, target, event
-                ))
-                GraphReference.add_to_cv_temperature(session, self._server_key, controller, target, 0)
-                time.sleep(5)
+
+                self._s_thermal_event.wait()
+
+                rel_details = GraphReference.get_sensor_thermal_rel(
+                    session,
+                    self._server_key,
+                    relationship={
+                        'source': self._s_name,
+                        'target': {
+                            "attribute": 'serialNumber',
+                            'value': target
+                        },
+                        'event': event
+                    }
+                )
+                
+                if not rel_details:
+                    del self._th_storage_t[target][event]
+                    return
+
+                rel = rel_details['rel']
+                causes_heating = rel['action'] == 'increase'
+                source_sensor_status = operator.eq if rel['event'] == 'down' else operator.ne
+
+                # if model is specified -> use the runtime mappings
+                if 'model' in rel and rel['model']:
+                    rel['degrees'] = self._calc_approx_value(
+                        json.loads(rel['model']), int(self.sensor_value)*10
+                    )
+
+                    source_sensor_status = operator.ne
+
+                if source_sensor_status(int(self.sensor_value), 0):
+                    updated, new_temp = GraphReference.add_to_cv_temperature(
+                        session, 
+                        cv_attr={'server_key': self._server_key, 'controller': controller, 'cv_serial': target},
+                        temp_change=rel['degrees'] * 1 if causes_heating else -1,
+                        limit={
+                            'lower': sm.StateManager.get_ambient(),
+                            'upper': rel['pauseAt'] if causes_heating else None
+                        }
+                    )
+
+                    if updated:
+                        logging.info('\n\nstorage: s:{}, t:{}, e:{} new VALUE {} \n\n'.format(
+                            controller, target, event, new_temp
+                        ))
+
+                time.sleep(rel['rate'])
 
 
-    def _target_sensor_impact(self, target, event):
+    def _target_sensor(self, target, event):
         """Keep updating the target sensor based on the relationship between this sensor and the target;
         This function waits for the thermal event switch and exits when the connection between source & target
         is removed;
@@ -237,7 +280,16 @@ class Sensor():
                 self._s_thermal_event.wait()
 
                 rel_details = GraphReference.get_sensor_thermal_rel(
-                    session, self._server_key, relationship={'source': self.name, 'target': target, 'event': event}
+                    session,
+                    self._server_key,
+                    relationship={
+                        'source': self.name,
+                        'target': {
+                            'attribute': "name",
+                            'value': target
+                        },
+                        'event': event
+                    }
                 )
 
                 # shut down thread upon relationship removal
@@ -311,7 +363,7 @@ class Sensor():
 
 
     def add_cv_thermal_impact(self, controller, cv, event):
-        if cv in self._th_cv_t:
+        if cv in self._th_storage_t and event in self._th_storage_t[cv]:
             raise ValueError('Thread already exists')
 
         self._launch_thermal_cv_thread(controller, cv, event)
