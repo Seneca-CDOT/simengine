@@ -24,7 +24,7 @@ import datetime as dt
 from circuits import Component, handler
 import enginecore.state.state_managers as sm
 from enginecore.state.asset_definition import register_asset, SUPPORTED_ASSETS
-from enginecore.state.agents import IPMIAgent, SNMPAgent, StorCLIEmulator
+from enginecore.state.agent import IPMIAgent, SNMPAgent, StorCLIEmulator
 from enginecore.state.sensor.repository import SensorRepository
 
 PowerEventResult = namedtuple("PowerEventResult", "old_state new_state asset_key asset_type")
