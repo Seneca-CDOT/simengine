@@ -811,7 +811,7 @@ class ServerWithBMC(Server):
             drive(int): serial number of the cachevault
         """
         sensor = self._sensor_repo.get_sensor_by_name(source)
-
+        sensor.add_pd_thermal_impact(controller, drive, event)
 
 
     @handler("AmbientDecreased", "AmbientIncreased")

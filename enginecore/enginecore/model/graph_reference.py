@@ -794,23 +794,23 @@ class GraphReference():
 
 
     @classmethod
-    def add_to_cv_temperature(cls, session, cv_attr, temp_change, limit):
+    def add_to_hd_component_temperature(cls, session, target, temp_change, limit):
         """Add to cv temperature sensor value
         Args:
             session:  database session
-            cv_attr(dict): cachevault attributes such as key of the server, controller & serial number
-            temp_change(int): value to be added to the cachevault
-            limit(dict): indicates that cv temp cannot go beyond this limit (upper & lower)
+            target(dict): target attributes such as key of the server, controller & serial number
+            temp_change(int): value to be added to the target temperature
+            limit(dict): indicates that target temp cannot go beyond this limit (upper & lower)
         Returns:
             tuple: True if the temp value was updated & current temp value (updated)
         """
         query = []
         query.extend([
             "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})"
-            .format(cv_attr['server_key'], cv_attr['controller']),
-            "MATCH (ctr)-[:HAS_CACHEVAULT]->(cv:CacheVault {{ serialNumber: \"{}\" }})"
-            .format(cv_attr['cv_serial']),
-            "RETURN cv.temperature as temp"
+            .format(target['server_key'], target['controller']),
+            "MATCH (ctr)-[:HAS_CACHEVAULT|:HAS_PHYSICAL_DRIVE]->(hd_element:{} {{ {}: \"{}\" }})"
+            .format(target['hd_type'], target['attribute'], target['value']),
+            "RETURN hd_element.temperature as temp"
         ])
 
         results = session.run("\n".join(query))
@@ -829,7 +829,7 @@ class GraphReference():
 
         query = query[:2] # grab first 2 queries
         query.append(
-            "SET cv.temperature={}".format(new_temp)
+            "SET hd_element.temperature={}".format(new_temp)
         )
 
         print("\n".join(query))

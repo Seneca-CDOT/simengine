@@ -265,9 +265,15 @@ class Sensor():
                     source_sensor_status = operator.ne
 
                 if source_sensor_status(int(self.sensor_value), 0):
-                    updated, new_temp = GraphReference.add_to_cv_temperature(
+                    updated, new_temp = GraphReference.add_to_hd_component_temperature(
                         session, 
-                        cv_attr={'server_key': self._server_key, 'controller': controller, 'cv_serial': target},
+                        target={
+                            'server_key': self._server_key, 
+                            'controller': controller,                             
+                            "attribute": target_attr,
+                            'value': target,
+                            'hd_type': hd_type.name
+                        },
                         temp_change=rel['degrees'] * 1 if causes_heating else -1,
                         limit={
                             'lower': sm.StateManager.get_ambient(),

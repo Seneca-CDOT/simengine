@@ -644,7 +644,6 @@ def set_thermal_storage_target(attr):
     else:
         raise KeyError('Must provide either target drive or cache_vault')
 
-
     return _set_thermal_target(attr, query)
 
 
@@ -666,13 +665,14 @@ def _set_thermal_target(attr, query):
     else:
         raise KeyError('Unrecognized event type: {}'.format(attr['event']))
 
+    # fist check if the relationship already exists
     rel_query = [] 
     rel_query.append("MATCH (source)<-[ex_rel:{}]-(target)".format(thermal_rel_type))
     rel_query.append("RETURN ex_rel")
 
     with GRAPH_REF.get_session() as session:
 
-        # fist check if the relationship already exists
+        print("\n".join(query + rel_query))
         result = session.run("\n".join(query + rel_query))
         rel_exists = result.single()
 
@@ -814,7 +814,7 @@ def delete_thermal_storage_target(attr):
     if 'cache_vault' in attr and attr['cache_vault']:
         target_prop = ':CacheVault {{ serialNumber: "{}" }}'.format(attr['cache_vault'])
     elif 'drive' in attr and attr['drive']:
-        target_prop = ':PhysicalDrive {{ DID: "{}" }}'.format(attr['drive'])
+        target_prop = ':PhysicalDrive {{ DID: {} }}'.format(attr['drive'])
 
     query.append(
         "MATCH (server)-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})"
