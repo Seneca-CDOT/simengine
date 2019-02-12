@@ -129,7 +129,6 @@ class Sensor():
         thread_name = '{}-{}'.format(hd_type.name, hd_element)
         if thread_name in self._th_storage_t and event in self._th_storage_t[thread_name]:
             raise ValueError('Thread already exists')
-
         if hd_element not in self._th_storage_t:
             self._th_storage_t[hd_element] = {}
 
@@ -230,8 +229,10 @@ class Sensor():
                 # target
                 if hd_type == HDComponents.CacheVault:
                     target_attr = 'serialNumber'
+                    target_value = '"{}"'.format(target)
                 elif hd_type == HDComponents.PhysicalDrive:
                     target_attr = 'DID'
+                    target_value = target
                 else:
                     raise ValueError('Unknown hardware component!')
 
@@ -242,7 +243,7 @@ class Sensor():
                         'source': self._s_name,
                         'target': {
                             "attribute": target_attr,
-                            'value': target
+                            'value': target_value
                         },
                         'event': event
                     }
@@ -271,7 +272,7 @@ class Sensor():
                             'server_key': self._server_key, 
                             'controller': controller,                             
                             "attribute": target_attr,
-                            'value': target,
+                            'value': target_value,
                             'hd_type': hd_type.name
                         },
                         temp_change=rel['degrees'] * 1 if causes_heating else -1,

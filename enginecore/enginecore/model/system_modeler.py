@@ -672,7 +672,6 @@ def _set_thermal_target(attr, query):
 
     with GRAPH_REF.get_session() as session:
 
-        print("\n".join(query + rel_query))
         result = session.run("\n".join(query + rel_query))
         rel_exists = result.single()
 

@@ -471,7 +471,7 @@ class GraphReference():
         )
 
         query.append(
-            'MATCH (source)<-[rel :COOLED_BY|:HEATED_BY]-(target {{ {}: "{}" }})'
+            'MATCH (source)<-[rel :COOLED_BY|:HEATED_BY]-(target {{ {}: {} }})'
             .format(relationship['target']['attribute'], relationship['target']['value'])
         )
 
@@ -808,7 +808,7 @@ class GraphReference():
         query.extend([
             "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})"
             .format(target['server_key'], target['controller']),
-            "MATCH (ctr)-[:HAS_CACHEVAULT|:HAS_PHYSICAL_DRIVE]->(hd_element:{} {{ {}: \"{}\" }})"
+            "MATCH (ctr)-[:HAS_CACHEVAULT|:HAS_PHYSICAL_DRIVE]->(hd_element:{} {{ {}: {} }})"
             .format(target['hd_type'], target['attribute'], target['value']),
             "RETURN hd_element.temperature as temp"
         ])
@@ -832,7 +832,6 @@ class GraphReference():
             "SET hd_element.temperature={}".format(new_temp)
         )
 
-        print("\n".join(query))
         session.run("\n".join(query))
 
         return True, new_temp
