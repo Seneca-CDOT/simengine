@@ -151,12 +151,18 @@ class Sensor():
         """Initialize thermal imact based on the saved inter-connections"""
     
         with self._graph_ref.get_session() as session:
-            thermal_rel_details = GraphReference.get_affected_sensors(session, self._server_key, self._s_name)
+            thermal_sensor_rel_details = GraphReference.get_affected_sensors(session, self._server_key, self._s_name)
 
             # for each target & for each set of relationships with the target
-            for target in thermal_rel_details['targets']:
+            for target in thermal_sensor_rel_details['targets']:
                 for rel in target['rel']:
                     self._launch_thermal_sensor_thread(target['name'], rel['event'])
+
+            thermal_storage_rel_details = GraphReference.get_affected_sensors(session, self._server_key, self._s_name)
+            for target in thermal_storage_rel_details:
+                for rel in target['rel']:
+                    self._launch_thermal_storage_thread()
+            
 
         self._launch_thermal_cpu_thread()
 

@@ -386,7 +386,7 @@ class IStateManager():
     def set_ambient(cls, value):
         """Update ambient value"""
         old_temp = cls.get_ambient()
-        cls.get_store().set('ambient', str(value))
+        cls.get_store().set('ambient', str(int(value)))
         cls.get_store().publish(RedisChannels.ambient_update_channel, '{}-{}'.format(old_temp, value))  
     
     

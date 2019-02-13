@@ -421,6 +421,20 @@ class GraphReference():
             
 
     @classmethod
+    def format_target_elements(cls, results):
+        """Format neo4j results as target sensors"""
+        thermal_details = {'source': {}, 'targets': [],}
+
+        for record in results:
+            thermal_details['source'] = dict(record.get('source'))
+             
+            thermal_details['targets'].append(
+                {**dict(record.get('targets')), **{"rel": list(map(dict, record.get('rel')))}}
+            )
+
+        return thermal_details
+
+    @classmethod
     def get_affected_sensors(cls, session, server_key, source_name):
         """Get sensors affected by the source sensor
         
@@ -429,7 +443,7 @@ class GraphReference():
             server_key(int): key of the server sensors belong to
             source_name(str): name of the source sensor
         Returns:
-            dict: source and target sensor details    
+            dict: source and target sensor details
         """
         
         results = session.run(
@@ -441,24 +455,37 @@ class GraphReference():
             source=source_name
         )
 
-        thermal_details = {'source': {}, 'targets': [],}
+        return cls.format_target_elements(results)
 
-        for record in results:
-            thermal_details['source'] = dict(record.get('source'))
-             
-            thermal_details['targets'].append(
-                {**dict(record.get('targets')), **{"rel": list(map(dict, record.get('rel')))}}
-            )
+    @classmethod
+    def get_affected_hd_elements(cls, session, server_key, source_name):
+        """Get storage components affected by the source sensor
+        Args:
+            session: database session
+            server_key(int): key of the server sensor & hd elements belong to
+            source_name(str): name of the source sensor
+        Returns:
+            dict: source and target details
+        """
 
-        # print(source_name, thermal_details)
+        results = session.run(
+            """
+            MATCH (:ServerWithBMC { key: $server })-[:HAS_SENSOR]->(source:Sensor { name: $source })
+            MATCH (source)<-[rel]-(targets)
+            WHERE targets:PhysicalDrive or targets:CacheVault
+            return source, targets, collect(rel) as rel
+            """,
+            server=server_key,
+            source=source_name
+        )
 
-        return thermal_details
+        return cls.format_target_elements(results)
 
 
     @classmethod
     def get_sensor_thermal_rel(cls, session, server_key, relationship):
         """Get thermal details about thermal relationship
-        Args:
+        Args:e
             session: database session
             server_key(int): key of the server sensor(s) belong to
             relationship(dict): source, target and event 
