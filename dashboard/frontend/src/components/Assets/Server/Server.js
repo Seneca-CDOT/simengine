@@ -32,13 +32,13 @@ export default class Server extends Asset {
     Promise.all(this.loadImages({ serverPlaceholderImg: serverPlaceholderSource}))
       .then(PowerSupply.psuSize)
       .then((size) => { this.setState({ psuSize: size }); })
-      .then(() => this.props.onPosChange(this.props.assetId, this.formatAssetCoordinates(this.props)));
+      .then(() => this.props.onPosChange(this.props.asset.key, this.formatAssetCoordinates(this.props)));
   }
 
   /** Notify top-lvl Component that on of the PSUs was selected*/
   selectPSU = (ckey) => {
     this.setState({ selectedPsuKey: ckey });
-    this.props.onElementSelection(ckey, this.props.asset.children[ckey]);
+    this.props.onElementSelection(this.props.asset.children[ckey]);
   }
 
   getOutputCoordinates = () => { return {}; }
@@ -72,7 +72,6 @@ export default class Server extends Asset {
           onElementSelection={() => { this.selectPSU(ckey); }}
           draggable={false}
           asset={asset.children[ckey]}
-          assetId={ckey}
           selected={this.state.selectedPsuKey === ckey && this.props.nestedComponentSelected}
           powered={this.props.powered}
           parentSelected={this.props.selected}

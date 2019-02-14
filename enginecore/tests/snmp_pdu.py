@@ -146,7 +146,7 @@ class PduSnmpTest(unittest.TestCase):
 
         print("-> Test pdu load")
 
-        sm_out_1 = StateManager({'key': 31}, 'outlet', notify=True)
+        sm_out_1 = StateManager({'key': 31}, notify=True)
 
         amp_oid = '1.3.6.1.4.1.318.1.1.12.2.3.1.1.2.1'
         wattage_oid = '1.3.6.1.4.1.318.1.1.12.1.16.0'

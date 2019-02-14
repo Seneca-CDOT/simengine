@@ -36,7 +36,7 @@ export default class Ups extends OutputAsset {
     Promise.all(this.loadImages({ upsMonitorImg: upsMonitorSource, c14Img: c14Source }))
       .then(Socket.socketSize)
       .then((size) => { this.setState({ socketSize: size }); })
-      .then(() => this.props.onPosChange(this.props.assetId, this.formatAssetCoordinates(this.props)));
+      .then(() => this.props.onPosChange(this.props.asset.key, this.formatAssetCoordinates(this.props)));
   }
 
   getOutputCoordinates = (center=true) => {

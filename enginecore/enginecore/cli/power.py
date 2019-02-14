@@ -39,6 +39,6 @@ def manage_state(asset_key, mng_action):
         asset_key (int): supplied asset identifier
         mng_action (func): callable object (lambda/function etc) that identifies action
     """
-    state_manager = Asset.get_state_manager_by_key(asset_key, notify=True)
+    state_manager = Asset.get_state_manager_by_key(asset_key)
     mng_action(state_manager)
     

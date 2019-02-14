@@ -3,12 +3,16 @@
 # pylint: disable=C0103
 
 import argparse
+import sys
+
+import neo4j.exceptions as db_error
 
 from enginecore.cli.status import status_command
 from enginecore.cli.power import power_command
 from enginecore.cli.thermal import thermal_command
 from enginecore.cli.configure_state import configure_command
 from enginecore.cli.model import model_command
+from enginecore.cli.storage import storage_command
 
 
 ################ Define Command line options & arguments
@@ -30,6 +34,9 @@ power_command(
 thermal_command(
     subparsers.add_parser('thermal', help="Manage temperature/thermal settings of the system")
 )
+storage_command(
+    subparsers.add_parser('storage', help="Manage storage state of the system")
+)
 configure_command(
     subparsers.add_parser('configure-state', help="Update runtime state of the assets/sensors")
 )
@@ -48,5 +55,8 @@ try:
         options.func(vars(options))
     else:
         argparser.print_help()
+except db_error.ConstraintError as e:
+    print('Database constraint was violated: ')
+    print(e, file=sys.stderr)
 except argparse.ArgumentTypeError as e:
-    print(e)
+    print(e, file=sys.stderr)

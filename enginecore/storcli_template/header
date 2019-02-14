@@ -1,0 +1,4 @@
+CLI Version = ${cli_version}
+Operating system = ${op_sys}
+${controller_line}Status = ${status}
+Description = ${description}

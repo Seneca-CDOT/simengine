@@ -1,6 +1,8 @@
 """DB driver (data-layer) that provides access to db sessions and contains commonly used queries """
 
 import os
+import json
+
 from neo4j.v1 import GraphDatabase, basic_auth
 from enginecore.state.utils import format_as_redis_key
 import enginecore.model.query_helpers as qh
@@ -419,6 +421,20 @@ class GraphReference():
             
 
     @classmethod
+    def format_target_elements(cls, results, t_format=None):
+        """Format neo4j results as target sensors"""
+        thermal_details = {'source': {}, 'targets': [],}
+
+        for record in results:
+            thermal_details['source'] = dict(record.get('source'))
+
+            if not t_format:
+                t_format = lambda r: {**dict(r.get('targets')), **{"rel": list(map(dict, r.get('rel')))}}
+            thermal_details['targets'].append(t_format(record))
+
+        return thermal_details
+
+    @classmethod
     def get_affected_sensors(cls, session, server_key, source_name):
         """Get sensors affected by the source sensor
         
@@ -427,7 +443,7 @@ class GraphReference():
             server_key(int): key of the server sensors belong to
             source_name(str): name of the source sensor
         Returns:
-            dict: source and target sensor details    
+            dict: source and target sensor details
         """
         
         results = session.run(
@@ -439,47 +455,70 @@ class GraphReference():
             source=source_name
         )
 
-        thermal_details = {'source': {}, 'targets': [],}
-
-        for record in results:
-            thermal_details['source'] = dict(record.get('source'))
-             
-            thermal_details['targets'].append(
-                {**dict(record.get('targets')), **{"rel": list(map(dict, record.get('rel')))}}
-            )
-
-        # print(source_name, thermal_details)
-
-        return thermal_details
-
+        return cls.format_target_elements(results)
 
     @classmethod
-    def get_sensor_thermal_rel(cls, session, server_key, relationship):
-        """Get thermal details about target sensor affected by the source sensor
+    def get_affected_hd_elements(cls, session, server_key, source_name):
+        """Get storage components affected by the source sensor
         Args:
             session: database session
-            server_key(int): key of the server sensors belong to
-            relationship(dict): source, target and event 
+            server_key(int): key of the server sensor & hd elements belong to
+            source_name(str): name of the source sensor
+        Returns:
+            dict: source and target details
         """
 
         results = session.run(
             """
             MATCH (:ServerWithBMC { key: $server })-[:HAS_SENSOR]->(source:Sensor { name: $source })
-            MATCH (source)<-[rel]-(target:Sensor {name: $target})
-            WHERE rel.event = $event
-            RETURN source, target, rel
-            """, 
+            MATCH (source)<-[rel]-(targets)
+            MATCH (controller)-[:HAS_CACHEVAULT|:HAS_PHYSICAL_DRIVE]->(targets)
+            WHERE targets:PhysicalDrive or targets:CacheVault
+            return source, targets, collect(rel) as rel, controller
+            """,
             server=server_key,
-            source=relationship['source'],
-            target=relationship['target'],
-            event=relationship['event']
+            source=source_name
         )
 
+        output_format = lambda r: {
+            **dict(r.get('targets')), 
+            **{"rel": list(map(dict, r.get('rel')))},
+            **{"controller": dict(r.get('controller'))}
+        }
+        return cls.format_target_elements(results, t_format=output_format)
+
+
+    @classmethod
+    def get_sensor_thermal_rel(cls, session, server_key, relationship):
+        """Get thermal details about thermal relationship
+        Args:e
+            session: database session
+            server_key(int): key of the server sensor(s) belong to
+            relationship(dict): source, target and event 
+        """
+
+        query = []
+        query.append(
+            'MATCH (:ServerWithBMC {{ key: {} }})-[:HAS_SENSOR]->(source:Sensor {{ name: "{}" }})'
+            .format(server_key, relationship['source'])
+        )
+
+        query.append(
+            'MATCH (source)<-[rel :COOLED_BY|:HEATED_BY]-(target {{ {}: {} }})'
+            .format(relationship['target']['attribute'], relationship['target']['value'])
+        )
+
+        query.extend([
+            'WHERE rel.event = "{}"'.format(relationship['event']),
+            'RETURN source, target, rel'
+        ])
+
+        results = session.run("\n".join(query))
         record = results.single()
         return {
-            'source': dict(record.get('source')), 
-            'target': dict(record.get('target')), 
-            'rel': dict(record.get('rel')) 
+            'source': dict(record.get('source')),
+            'target': dict(record.get('target')),
+            'rel': dict(record.get('rel'))
         } if record else None
 
 
@@ -567,3 +606,320 @@ class GraphReference():
         
         return th_cpu_details
     
+
+    @classmethod
+    def set_physical_drive_prop(cls, session, server_key, controller, did, properties):
+        """Update physical drive properties (such as error counts or state)
+        Args:
+            session:  database session
+            server_key(int): key of the server physical drive belongs to
+            controller(int): controller number
+            did(int): drive id 
+            properties(dict): e.g. 'media_error_count', 'other_error_count', 'predictive_error_count' or 'state'
+        """
+        query = []
+
+        s_attr = ['media_error_count', 'other_error_count', 'predictive_error_count', 'State']
+
+        properties['State'] = properties['state']
+        
+        # query as (server)->(storage_controller)->(physical drive)
+        query.append("MATCH (server:Asset {{ key: {} }})".format(server_key))
+        query.append("MATCH (server)-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})".format(controller))
+        query.append("MATCH (ctrl)-[:HAS_PHYSICAL_DRIVE]->(pd:PhysicalDrive {{ DID: {} }})".format(did))
+
+        set_stm = qh.get_set_stm(properties, node_name="pd", supported_attr=s_attr)
+        query.append('SET {}'.format(set_stm))
+
+        session.run("\n".join(query))
+
+    
+    @classmethod
+    def set_controller_prop(cls, session, server_key, controller, properties):
+        """Update controller state
+        Args:
+            session:  database session
+            server_key(int): key of the server controller belongs to
+            controller(int): controller number
+            properties(dict): e.g. 'media_error_count', 'other_error_count', 'predictive_error_count' or 'state'
+        """
+        query = []
+
+        s_attr = ['memory_correctable_errors', 'memory_uncorrectable_errors', 'alarm_state']
+
+        # query as (server)->(storage_controller)
+        query.append("MATCH (server:Asset {{ key: {} }})".format(server_key))
+        query.append("MATCH (server)-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})".format(controller))
+
+        set_stm = qh.get_set_stm(properties, node_name="ctrl", supported_attr=s_attr)
+        query.append('SET {}'.format(set_stm))
+
+        session.run("\n".join(query))
+
+    
+    @classmethod
+    def get_storcli_details(cls, session, server_key):
+        """
+        Args:
+            session:  database session
+            server_key(int): key of the server controller belongs to
+        """
+
+        results = session.run( 
+            """
+            MATCH (:Asset { key: $key })-[:SUPPORTS_STORCLI]->(cli) RETURN cli
+            """,
+            key=server_key
+        )
+
+        record = results.single()
+        storcli_details = {}
+
+        if record:
+            storcli_details = dict(record.get('cli'))
+            storcli_details['stateConfig'] = json.loads(storcli_details['stateConfig'])
+
+        return storcli_details
+
+
+    @classmethod
+    def get_controller_details(cls, session, server_key, controller):
+        """Query controller specs
+        Args:
+            session:  database session
+            server_key(int): key of the server controller belongs to
+            controller(int): controller number
+        Returns:
+            dict: controller information 
+        """
+
+        query = "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }}) RETURN ctrl"
+        results = session.run(query.format(server_key, controller))
+        record = results.single()
+
+        return dict(record.get('ctrl')) if record else None
+
+
+    @classmethod
+    def get_controller_count(cls, session, server_key):
+        """Get number of controllers per server
+        Args:
+            session:  database session
+            server_key(int): key of the server controller belongs to
+        Returns:
+            int: controller count
+        """
+
+        results = session.run( 
+            """
+            MATCH (:Asset { key: $key })-[:HAS_CONTROLLER]->(ctrl:Controller) RETURN count(ctrl) as ctrl_count
+            """,
+            key=server_key
+        )
+
+        record = results.single()
+        return int(record.get('ctrl_count')) if record else None
+
+
+    @classmethod 
+    def get_virtual_drive_details(cls, session, server_key, controller):
+        """Get virtual drive details
+        Args:
+            session:  database session
+            server_key(int): key of the server controller belongs to
+            controller(int): controller number of VDs
+        Returns:
+            list: virtual drives
+        """
+
+        query = []
+        query.append(
+            "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})"
+            .format(server_key, controller)
+        )
+        
+        query.append("MATCH (ctrl)-[:HAS_VIRTUAL_DRIVE]->(vd:VirtualDrive)")
+        query.append("MATCH (vd)<-[:BELONGS_TO_VIRTUAL_SPACE]-(pd:PhysicalDrive)")
+        query.append("WITH vd, pd")
+        query.append("ORDER BY pd.slotNum ASC")
+        query.append("RETURN vd, collect(pd) as pd ORDER BY vd.vdNum ASC")
+
+        results = session.run("\n".join(query))
+        vd_details = [{**dict(r.get('vd')), **{'pd': list(map(dict, list(r.get('pd'))))}} for r in results]
+
+        return vd_details
+
+    
+    @classmethod
+    def get_all_drives(cls, session, server_key, controller):
+        """Get both virtual & physical drives for a particular server/raid controller
+        Args:
+            session:  database session
+            server_key(int): key of the server controller belongs to
+            controller(int): controller num
+        Returns:
+            dict: containing list of virtual & physical drives
+        """
+
+        query = []
+        query.append(
+            "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})"
+            .format(server_key, controller)
+        )
+        query.append("MATCH (ctrl)-[:HAS_PHYSICAL_DRIVE]->(pd:PhysicalDrive)")
+
+        query.append("RETURN collect(pd) as pd")
+        
+        results = session.run("\n".join(query))
+        record = results.single()
+        
+        return {
+            "vd": cls.get_virtual_drive_details(session, server_key, controller), 
+            "pd": list(map(dict, list(record.get('pd'))))
+        }
+
+
+    @classmethod
+    def get_cachevault(cls, session, server_key, controller): #TODO: cachevault serial NUMBER!
+        """Cachevault details
+        Args:
+            session:  database session
+            server_key(int): key of the server cachevault belongs to
+            controller(int): controller num
+        Returns:
+            dict: information about cachevault
+        """
+        query = []
+        query.extend([
+            "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})"
+            .format(server_key, controller),
+            "MATCH (ctr)-[:HAS_CACHEVAULT]->(cv:CacheVault)",
+            "RETURN cv"
+        ])
+
+        results = session.run("\n".join(query))
+        record = results.single()
+
+        return dict(record.get('cv')) if record else None
+
+
+    @classmethod
+    def set_cv_replacement(cls, session, server_key, controller, repl_status): #TODO: cachevault serial NUMBER!
+        """Update cachevault replacement status
+        Args:
+            session:  database session
+            server_key(int): key of the server cachevault belongs to
+            controller(int): controller num
+        """
+
+        query = []
+        query.extend([
+            "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})"
+            .format(server_key, controller),
+            "MATCH (ctrl)-[:HAS_CACHEVAULT]->(cv:CacheVault)",
+        ])
+
+
+        set_stm = qh.get_set_stm({"replacement": repl_status}, node_name="cv", supported_attr=['replacement'])
+        query.append('SET {}'.format(set_stm))
+
+        session.run("\n".join(query))
+
+
+    @classmethod
+    def add_to_hd_component_temperature(cls, session, target, temp_change, limit):
+        """Add to cv temperature sensor value
+        Args:
+            session:  database session
+            target(dict): target attributes such as key of the server, controller & serial number
+            temp_change(int): value to be added to the target temperature
+            limit(dict): indicates that target temp cannot go beyond this limit (upper & lower)
+        Returns:
+            tuple: True if the temp value was updated & current temp value (updated)
+        """
+        query = []
+        query.extend([
+            "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})"
+            .format(target['server_key'], target['controller']),
+            "MATCH (ctr)-[:HAS_CACHEVAULT|:HAS_PHYSICAL_DRIVE]->(hd_element:{} {{ {}: {} }})"
+            .format(target['hd_type'], target['attribute'], target['value']),
+            "RETURN hd_element.temperature as temp"
+        ])
+
+        results = session.run("\n".join(query))
+        record = results.single()
+        current_temp = record.get('temp')
+
+        new_temp = current_temp + temp_change
+        
+        new_temp = max(new_temp, limit['lower'])
+        
+        if 'upper' in limit and limit['upper']:
+            new_temp = min(new_temp, limit['upper'])
+
+        if new_temp == current_temp:
+            return False, current_temp
+
+        query = query[:2] # grab first 2 queries
+        query.append(
+            "SET hd_element.temperature={}".format(new_temp)
+        )
+
+        session.run("\n".join(query))
+
+        return True, new_temp
+
+
+    @classmethod
+    def get_all_hd_thermal_elements(cls, session, server_key):
+        """Retrieve all storage components that support temperature sensors"""
+
+        query = []
+        query.extend([
+            "MATCH (:ServerWithBMC {{ key: {} }})-[:HAS_CONTROLLER]->(controller:Controller)"
+            .format(server_key),
+            "MATCH (controller)-[:HAS_CACHEVAULT|:HAS_PHYSICAL_DRIVE]->(hd_component)",
+            "WHERE hd_component:PhysicalDrive or hd_component:CacheVault",
+            "RETURN controller, hd_component"
+        ])
+
+        results = session.run("\n".join(query))
+
+        hd_thermal_elements = []
+
+        for record in results:
+            hd_thermal_elements.append({
+                "controller": dict(record.get('controller')),
+                "component": dict(record.get('hd_component'))
+            })
+
+        return hd_thermal_elements
+
+    @classmethod
+    def get_psu_sensor_names(cls, session, server_key, psu_num):
+        """Retrieve server-specific psu sensor names
+        Args:
+            session:  database session
+            server_key(int): key of the server sensors belongs to
+            psu_num(int): psu num
+        """
+
+        query = []
+
+        sensor_match = "MATCH (:PSU {{ key: {} }})<-[:HAS_COMPONENT]-(:Asset)-[:HAS_SENSOR]->(sensor {{ num: {} }})"
+        label_match = map('sensor:{}'.format, ['psuCurrent', 'psuTemperature', 'psuStatus', 'psuPower'])
+
+        query.extend([
+            sensor_match.format(server_key, psu_num),
+            "WHERE {}".format(' or '.join(label_match)),
+            "RETURN sensor"
+        ])
+
+        results = session.run("\n".join(query))
+        
+        psu_names = {}
+        for record in results:
+            entry = dict(record.get('sensor'))
+            psu_names[entry['type']] = entry['name']
+
+        return psu_names

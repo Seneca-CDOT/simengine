@@ -1,0 +1,55 @@
+Generating detailed summary of the adapter, it may take a while to complete.
+
+${header}
+
+${controller_entry}
+
+
+TOPOLOGY :
+========
+
+${topology}
+
+DG=Disk Group Index|Arr=Array Index|Row=Row Index|EID=Enclosure Device ID
+DID=Device ID|Type=Drive Type|Onln=Online|Rbld=Rebuild|Dgrd=Degraded
+Pdgd=Partially degraded|Offln=Offline|BT=Background Task Active
+PDC=PD Cache|PI=Protection Info|SED=Self Encrypting Drive|Frgn=Foreign
+DS3=Dimmer Switch 3|dflt=Default|Msng=Missing|FSpace=Free Space Present
+TR=Transport Ready
+
+Virtual Drives = ${num_virt_drives}
+
+VD LIST :
+=======
+
+${virtual_drives}
+
+Cac=CacheCade|Rec=Recovery|OfLn=OffLine|Pdgd=Partially Degraded|Dgrd=Degraded
+Optl=Optimal|RO=Read Only|RW=Read Write|HD=Hidden|TRANS=TransportReady|B=Blocked|
+Consist=Consistent|R=Read Ahead Always|NR=No Read Ahead|WB=WriteBack|
+AWB=Always WriteBack|WT=WriteThrough|C=Cached IO|D=Direct IO|sCC=Scheduled
+Check Consistency
+
+Physical Drives = ${num_phys_drives}
+
+PD LIST :
+=======
+
+${physical_drives}
+
+EID-Enclosure Device ID|Slt-Slot No.|DID-Device ID|DG-DriveGroup
+DHS-Dedicated Hot Spare|UGood-Unconfigured Good|GHS-Global Hotspare
+UBad-Unconfigured Bad|Onln-Online|Offln-Offline|Intf-Interface
+Med-Media Type|SED-Self Encryptive Drive|PI-Protection Info
+SeSz-Sector Size|Sp-Spun|U-Up|D-Down/PowerSave|T-Transition|F-Foreign
+UGUnsp-Unsupported|UGShld-UnConfigured shielded|HSPShld-Hotspare shielded
+CFShld-Configured shielded|Cpybck-CopyBack|CBShld-Copyback Shielded
+
+
+Cachevault_Info :
+===============
+
+${cachevault}
+
+
+

@@ -1,0 +1,80 @@
+${header}
+Cachevault_Info :
+===============
+
+--------------------
+Property    Value   
+--------------------
+Type        ${model}  
+Temperature ${temperature} C    
+State       ${state} 
+--------------------
+
+
+Firmware_Status :
+===============
+
+---------------------------------------
+Property                         Value 
+---------------------------------------
+Replacement required             ${replacement}    
+No space to cache offload        No    
+Module microcode update required No    
+---------------------------------------
+
+
+GasGaugeStatus :
+==============
+
+------------------------------
+Property                Value 
+------------------------------
+Pack Energy             378 J 
+Capacitance             101 % 
+Remaining Reserve Space 91    
+------------------------------
+
+
+Design_Info :
+===========
+
+------------------------------------
+Property                 Value      
+------------------------------------
+Date of Manufacture      ${mfgDate}  
+Serial Number            ${serialNumber}      
+Manufacture Name         LSI        
+Design Capacity          283 J      
+Device Name              CVPM02     
+tmmFru                   N/A        
+CacheVault Flash Size    N/A        
+tmmBatversionNo          0x0        
+tmmSerialNo              0x69f4     
+tmm Date of Manufacture  24/10/2013 
+tmmPcbAssmNo             L22541903A 
+tmmPCBversionNo          0x03       
+tmmBatPackAssmNo         49571-02A  
+scapBatversionNo         0x0        
+scapSerialNo             0x4527     
+scap Date of Manufacture 25/10/2013 
+scapPcbAssmNo            1700054483 
+scapPCBversionNo          H         
+scapBatPackAssmNo        49571-02A  
+Module Version           25849-03   
+------------------------------------
+
+
+Properties :
+==========
+
+--------------------------------------------------------------
+Property             Value                                    
+--------------------------------------------------------------
+Auto Learn Period    28d (2419200 seconds)                    
+Next Learn time      2018/12/31  19:28:52 (599599732 seconds) 
+Learn Delay Interval 0 hour(s)                                
+Auto-Learn Mode      Transparent                              
+--------------------------------------------------------------
+
+
+

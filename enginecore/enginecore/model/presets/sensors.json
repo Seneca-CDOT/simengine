@@ -24,7 +24,7 @@
                     "ucr": 1200
                 },
                 "defaultValue": 400,
-                "offValue": 0,                
+                "offValue": 0,
                 "name": "Frnt_FAN{index}"
             },
             {
@@ -36,11 +36,25 @@
                 },
                 "defaultValue": 1000,
                 "name": "Frnt_FAN",
-                "offValue": 0,                
+                "offValue": 0,
                 "address": "0x79"
             }
         ]
     },
+    "psu": [
+        {
+            "id": 1,
+            "draw": 0.5,
+            "powerConsumption": 30,
+            "powerSource": 120
+        },
+        {
+            "id": 2,
+            "draw": 0.5,
+            "powerConsumption": 30,
+            "powerSource": 120
+        }
+    ], 
     "psuStatus": {
         "group": "psu",
         "addressSpace": "0x8",
@@ -49,7 +63,7 @@
             {
                 "thresholds": {},
                 "defaultValue": "0x01",
-                "offValue": "0x08",                
+                "offValue": "0x08",
                 "name": "PSU{index} status"
             },
             {
@@ -66,13 +80,13 @@
         "sensorDefinitions": [
             {
                 "thresholds": {},
-                "defaultValue": 2,
+                "defaultValue": 0,
                 "offValue": 0,
                 "name": "PSU{index} current"
             },
             {
                 "thresholds": {},
-                "defaultValue": 2,
+                "defaultValue": 0,
                 "offValue": 0,
                 "name": "PSU{index} current"
             }
@@ -102,13 +116,13 @@
         "sensorDefinitions": [
             {
                 "thresholds": {},
-                "defaultValue": 20,
+                "defaultValue": 0,
                 "offValue": 0,
                 "name": "PSU{index} power"
             },
             {
                 "thresholds": {},
-                "defaultValue": 20,
+                "defaultValue": 0,
                 "offValue": 0,
                 "name": "PSU{index} power"
             }

@@ -48,16 +48,19 @@ def configure_env(relative=False):
     if relative:
         static_path = os.path.abspath(os.path.join(os.pardir, "data"))
         ipmi_templ_path = os.path.abspath("ipmi_template")
+        storcli_templ_path = os.path.abspath("storcli_template")
         lua_script_path = os.path.join("script", "snmppub.lua")
     else:
         share_dir = os.path.join(os.sep, "usr", "share", "simengine")
-
         static_path = os.path.join(share_dir, "data")
         ipmi_templ_path = os.path.join(share_dir, "enginecore", "ipmi_template")
+        storcli_templ_path = os.path.abspath(share_dir, "enginecore", "storcli_template")
         lua_script_path = os.path.join(share_dir, "enginecore", "script", "snmppub.lua")
 
     os.environ['SIMENGINE_STATIC_DATA'] = os.environ.get('SIMENGINE_STATIC_DATA', static_path)
     os.environ['SIMENGINE_IPMI_TEMPL'] = os.environ.get('SIMENGINE_IPMI_TEMPL', ipmi_templ_path)
+    os.environ['SIMENGINE_STORCLI_TEMPL'] = os.environ.get('SIMENGINE_STORCLI_TEMPL', storcli_templ_path)
+
     os.environ['SIMENGINE_SNMP_SHA'] = os.environ.get(
         'SIMENGINE_SNMP_SHA',
         # str(os.popen('/usr/local/bin/redis-cli script load "$(cat {})"'.format(lua_script_path)).read())

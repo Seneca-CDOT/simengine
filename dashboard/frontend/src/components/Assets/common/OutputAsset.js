@@ -24,7 +24,7 @@ class OutputAsset extends Asset {
   /** Notify top-lvl Component that OUT-outlet was selected*/
   selectSocket = (ckey) => {
     this.setState({ selectedSocketKey: ckey });
-    this.props.onElementSelection(ckey, this.props.asset.children[ckey]);
+    this.props.onElementSelection(this.props.asset.children[ckey]);
   }
 
   getOutputSockets = (hideName=false) => {
@@ -39,7 +39,6 @@ class OutputAsset extends Asset {
           x={outputCoord[ckey].x}
           y={outputCoord[ckey].y}
           asset={this.props.asset.children[ckey]}
-          assetId={ckey}
           key={ckey}
 
           onElementSelection={() => { this.selectSocket(ckey); }}

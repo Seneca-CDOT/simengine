@@ -1,29 +1,25 @@
 import React, { Component } from 'react';
-import { Stage, Layer, Line } from 'react-konva';
-import gridBackground from '../images/grid.png';
+import { Stage } from 'react-konva';
 import PropTypes from 'prop-types';
 
 // Material
 import { withStyles } from '@material-ui/core/styles';
-import Snackbar from '@material-ui/core/Snackbar';
 
 // Local Components - Layout
-import { Server, Pdu, Ups, Socket, Lamp } from './Assets';
 
 // Text & info boxes
 import AssetDetails from './AssetDetails';
-import TopNav from './TopNav';
+import TopNav from './Navigation/TopNav';
+import Canvas from './Canvas';
+import Notifications from './Notifications';
 
 // few helpers
 import { onWheelScroll, onWheelDown } from './canvasEvents';
 import simengineSocketClient from './socketClient';
+import styles from './App.styles';
 
-import colors from '../styles/colors';
 
-
-const drawerWidth = 240;
-
- class App extends Component {
+class App extends Component {
 
   constructor() {
     super();
@@ -31,7 +27,7 @@ const drawerWidth = 240;
     this.state = {
       assets: null,
       selectedAssetKey: 0,
-      connections:{},
+      connections: {},
       ambient: 0,
       ambientRising: false,
       mainsStatus: 1,
@@ -92,7 +88,7 @@ const drawerWidth = 240;
         const isComponent = !this.state.assets[data.key];
 
         if (isComponent) {
-          const parentId = this._get_parent_key(data.key);
+          const parentId = this._getParentKey(data.key);
           let assetDetails = {...assets[parentId].children[data.key]};
           assets[parentId].children[data.key] = {...assetDetails, ...data};
         } else {
@@ -125,28 +121,19 @@ const drawerWidth = 240;
     });
   }
 
-  _get_parent_key(key) {
+  _getParentKey(key) {
     const strkey = (''+key);
     return strkey.substring(0, strkey.length===1?1:strkey.length-1);
   }
 
-  _get_asset_by_key(key) {
-    if (key && !this.state.assets[key]) {
-      const parent_key = this._get_parent_key(key);
-      return this.state.assets[parent_key].children[key];
-    } else {
-      return this.state.assets[key];
-    }
-  }
+  _updateWiring(asset, key, coord) {
 
-  _update_wiring(asset, key, coord) {
-    
     let newConn = {};
     const connections = this.state.connections;
 
     if(asset['parent']) {
       asset['parent'].forEach((p, idx) => {
-        newConn[p.key] = {...connections[p.key], destX:coord[idx].x, destY:coord[idx].y };
+        newConn[p.key] = { ...connections[p.key], destX:coord[idx].x, destY:coord[idx].y };
       });
     } else if (key in connections && coord[0]) {
       newConn[key] = { ...connections[key], sourceX:coord[0].x, sourceY:coord[0].y };
@@ -155,14 +142,24 @@ const drawerWidth = 240;
     return newConn;
   }
 
-  /** Update connections between assets (wires) */
-  onPosChange(key, coord) {
+  getAssetByKey = (key) => {
+    if (key && !this.state.assets[key]) {
+      const parentKey = this._getParentKey(key);
+      return this.state.assets[parentKey].children[key];
+    } else {
+      return this.state.assets[key];
+    }
+  }
 
-    const asset = this._get_asset_by_key(key);
+
+  /** Update connections between assets (wires) */
+  onPosChange = (key, coord) => {
+
+    const asset = this.getAssetByKey(key);
 
     // find all the incoming connections as well as output wiring
     const connections = this.state.connections;
-    let newConn = this._update_wiring(asset, key, coord.inputConnections.map((c)=>c={x: c.x+coord.x, y: c.y+coord.y}));
+    let newConn = this._updateWiring(asset, key, coord.inputConnections.map((c)=>c={x: c.x+coord.x, y: c.y+coord.y}));
     let childConn = {};
 
     let assets = {...this.state.assets};
@@ -174,36 +171,36 @@ const drawerWidth = 240;
     // output wiring
     if (asset.children) {
       for (const ckey of Object.keys(coord.outputConnections)) {
-        const c = this._update_wiring(
-          this._get_asset_by_key(ckey), ckey, [{x: coord.x + coord.outputConnections[ckey].x, y: coord.y + coord.outputConnections[ckey].y}]
+        const c = this._updateWiring(
+          this.getAssetByKey(ckey), ckey, [{ x: coord.x + coord.outputConnections[ckey].x, y: coord.y + coord.outputConnections[ckey].y }]
         );
 
         Object.assign(childConn, c);
       }
     }
 
-    this.setState({ assets, connections: {...connections, ...newConn, ...childConn }});
+    this.setState({ assets, connections: { ...connections, ...newConn, ...childConn } });
   }
 
-  /** Handle Asset Selection */
-  onElementSelection(assetKey, assetInfo) {
+  /** Handle Asset Selection (deselect on second click, select asset otherwise) */
+  onElementSelection = (asset) => {
     this.setState((oldState) => {
       return {
-        selectedAssetKey: oldState.selectedAssetKey === assetKey ? 0 : assetKey,
-        selectedAsset: assetInfo
+        selectedAssetKey: oldState.selectedAssetKey === asset.key ? 0 : asset.key,
+        selectedAsset: asset
       };
     });
   }
 
   /** Send a status change request */
-  changeStatus(assetKey, assetInfo) {
-    let data = {...assetInfo};
+  changeStatus = (asset) => {
+    let data = {...asset};
     data.status = !data.status;
-    this.ws.sendData({ request: 'power', key: assetKey, data });
+    this.ws.sendData({ request: 'power', key: asset.key, data });
   }
 
   /** Save assets' coordinates in db  */
-  saveLayout() {
+  saveLayout = () => {
     let data = {};
     const { assets } = this.state;
 
@@ -218,117 +215,15 @@ const drawerWidth = 240;
     data['assets'] = {};
 
     // add asset layout info
-    Object.keys(assets).map((a) => ( data['assets'][a]={ x: assets[a].x, y: assets[a].y }));
+    Object.keys(assets).map((a) => ( data['assets'][a]={ x: assets[a].x, y: assets[a].y } ));
 
     if (this.ws.socketOnline()) {
       this.ws.sendData({request: 'layout', data });
       this.setState({ changesSaved: true });
+      setTimeout(() => {
+        this.setState({ changesSaved: false });
+      }, 5000);
     }
-  }
-
-
-  /** Add Socket to the Layout */
-  drawSocket(key, asset) {
-    const powered = asset.parent?this._get_asset_by_key(asset.parent[0].key).status:true;
-    return (
-    <Socket
-      onPosChange={this.onPosChange.bind(this)}
-      onElementSelection={this.onElementSelection.bind(this)}
-      assetId={key}
-      key={key}
-      asset={asset}
-      selected={this.state.selectedAssetKey === key}
-      isComponent={false}
-      powered={powered !== 0}
-      x={asset.x}
-      y={asset.y}
-      fontSize={18}
-    />);
-  }
-
-
-  /** Add PDU to the Layout */
-  drawPdu(key, asset) {
-    const powered = asset.parent?this._get_asset_by_key(asset.parent[0].key).status:false;
-    return (
-    <Pdu
-      onPosChange={this.onPosChange.bind(this)}
-      onElementSelection={this.onElementSelection.bind(this)}
-      assetId={key}
-      key={key}
-      asset={asset}
-      selected={this.state.selectedAssetKey === key}
-      nestedComponentSelected={this.state.selectedAssetKey in asset.children}
-      powered={powered !== 0}
-      x={asset.x}
-      y={asset.y}
-    />);
-  }
-
-  /* Add Server to the layout */
-  drawServer(key, asset) {
-    let powered = false;
-    if (asset.parent) {
-      powered = asset.parent.find((x) => this._get_asset_by_key(x.key).status != 0) !== undefined;
-    }
-
-    return (
-    <Server
-      onPosChange={this.onPosChange.bind(this)}
-      onElementSelection={this.onElementSelection.bind(this)}
-      assetId={key}
-      key={key}
-      asset={asset}
-      selected={this.state.selectedAssetKey === key}
-      nestedComponentSelected={this.state.selectedAssetKey in asset.children}
-      powered={powered}
-      x={asset.x}
-      y={asset.y}
-    />);
-  }
-
-  /* Add Ups to the layout */
-  drawUps(key, asset) {
-    let powered = false;
-    if (asset.parent) {
-      powered = asset.parent.find((x) => this._get_asset_by_key(x.key).status != 0) !== undefined;
-    }
-
-    return (
-    <Ups
-      onPosChange={this.onPosChange.bind(this)}
-      onElementSelection={this.onElementSelection.bind(this)}
-      assetId={key}
-      key={key}
-      asset={asset}
-      selected={this.state.selectedAssetKey === key}
-      nestedComponentSelected={this.state.selectedAssetKey in asset.children}
-      powered={powered !== 0}
-      x={asset.x}
-      y={asset.y}
-    />);
-  }
-
-  drawLamp(key, asset) {
-
-    let powered = false;
-    if (asset.parent) {
-      powered = asset.parent.find((x) => this._get_asset_by_key(x.key).status != 0) !== undefined;
-    }
-
-    return (
-      <Lamp
-        onPosChange={this.onPosChange.bind(this)}
-        onElementSelection={this.onElementSelection.bind(this)}
-        assetId={key}
-        key={key}
-        asset={asset}
-        selected={this.state.selectedAssetKey === key}
-        powered={powered}
-        x={asset.x}
-        y={asset.y}
-      />
-    )
   }
 
 
@@ -338,45 +233,15 @@ const drawerWidth = 240;
     const { assets, connections } = this.state;
 
     // currently selected asset
-    const selectedAsset = assets ? this._get_asset_by_key(this.state.selectedAssetKey) : null;
+    const selectedAsset = assets ? this.getAssetByKey(this.state.selectedAssetKey) : null;
 
-    // asset drawings & their connections
-    let systemLayout = [];
-    let wireDrawing = [];
-
-    if (assets) {
-      // Initialize HA system layout
-      for (const key of Object.keys(assets)) {
-        if (assets[key].type == 'outlet' || assets[key].type === 'staticasset') {
-          systemLayout.push(this.drawSocket(key, assets[key]));
-        } else if (assets[key].type === 'pdu') {
-          systemLayout.push(this.drawPdu(key, assets[key]));
-        } else if (assets[key].type === 'server' || assets[key].type === 'serverwithbmc') {
-          systemLayout.push(this.drawServer(key, assets[key]));
-        } else if (assets[key].type === 'ups') {
-          systemLayout.push(this.drawUps(key, assets[key]));
-        } else if (assets[key].type === 'lamp') {
-          systemLayout.push(this.drawLamp(key, assets[key]));
-        }
-      }
-
-      // draw wires
-      for (const key of Object.keys(connections)) {
-        const asset = this._get_asset_by_key(key);
-        
-        wireDrawing.push(
-          <Line
-            points={Object.values(connections[key])}
-            stroke={asset.status===1?colors.green:"grey"}
-            strokeWidth={5}
-            zIndex={300}
-            key={`${key}${connections[key].destKey}`}
-          />
-        );
-      }
-    }
-
-    const snackbarOrigin = {vertical: 'bottom', horizontal: 'left',};
+    // configure app's notifications:
+    const snackbarOrigin = { vertical: 'bottom', horizontal: 'left', };
+    const displayedSnackbars = {
+      socketOffline: this.state.socketOffline,
+      changesSaved: this.state.changesSaved,
+      layoutEmpty: !this.state.socketOffline && !assets,
+    };
 
     return (
       <div className={classes.root}>
@@ -384,7 +249,7 @@ const drawerWidth = 240;
 
           {/* Top-Navigation component */}
           <TopNav
-            saveLayout={this.saveLayout.bind(this)}
+            saveLayout={this.saveLayout}
             ambient={this.state.ambient}
             ambientRising={this.state.ambientRising}
             mainsStatus={!!this.state.mainsStatus}
@@ -393,7 +258,7 @@ const drawerWidth = 240;
           />
 
           {/* Main Canvas */}
-          <main className={classes.content} style={{ backgroundImage: 'url('+gridBackground+')', backgroundRepeat: "repeat",  backgroundSize: "auto" }}>
+          <main className={classes.content}>
             <div className={classes.toolbar} />
 
             {/* Drawings */}
@@ -402,88 +267,33 @@ const drawerWidth = 240;
               height={window.innerHeight * 0.88}
               ref="stage"
             >
-              <Layer>
-                {systemLayout}
-                {wireDrawing}
-              </Layer>
+              <Canvas
+                getAssetByKey={this.getAssetByKey}
+                onPosChange={this.onPosChange}
+                onElementSelection={this.onElementSelection}
+                assets={assets}
+                connections={connections}
+                selectedAssetKey={this.state.selectedAssetKey}
+              />
             </Stage>
 
             {/* RightMost Card -> Display Element Details */}
-            {(this.state.selectedAssetKey) ?
-              <AssetDetails
-                assetInfo={selectedAsset}
-                assetKey={this.state.selectedAssetKey}
-                changeStatus={this.changeStatus.bind(this)}
-              /> : ''
+            {!!this.state.selectedAssetKey &&
+              <AssetDetails asset={selectedAsset}
+                changeStatus={this.changeStatus}
+              />
             }
-
-            {/* Display message if backend is not available */}
-            <Snackbar
-              anchorOrigin={snackbarOrigin}
-              open={this.state.socketOffline}
-              message={<span>Socket is unavailable: trying to reconnect...</span>}
-            />
-
-            {/* 'Changes Applied'/'Saved' Message */}
-            <Snackbar
-              anchorOrigin={snackbarOrigin}
-              open={this.state.changesSaved}
-              onClose={()=>this.setState({changesSaved: false})}
-              autoHideDuration={1500}
-              message={<span>Changes saved!</span>}
-            />
-            {/* The layout was not initialized -> display link to the documentation*/}
-            <Snackbar
-              anchorOrigin={snackbarOrigin}
-              open={!this.state.socketOffline && !assets}
-              message={<span>The system toplology appears to be empty. <br/> Please, refer to the documentation
-                (System Modelling <a href="https://simengine.readthedocs.io/en/latest/SystemModeling/">link</a>)</span>}
-            />
+            {/* Bottom-Left corner pop-ups */}
+            <Notifications anchorOrigin={snackbarOrigin} displayedSnackbars={displayedSnackbars}/>
           </main>
         </div>
       </div>
     );
   }
 }
-const styles = theme => ({
-  root: {
-    flexGrow: 1,
-  },
-  appFrame: {
-    zIndex: 1,
-    overflow: 'hidden',
-    position: 'relative',
-    display: 'flex',
-    width: '100%',
-  },
-  appBar: {
-    width: `100%`,
-  },
-  'appBar-left': {
-    backgroundColor: "#36454F",
-    marginLeft: drawerWidth,
-  },
-  drawerPaper: {
-    width: drawerWidth
-  },
-  toolbar: theme.mixins.toolbar,
-  content: {
-    flexGrow: 1,
-    backgroundColor: theme.palette.background.default,
-    padding: theme.spacing.unit * 3,
-  },
-  menuButton: {
-    marginLeft: -12,
-    marginRight: 20,
-  },
-  list: {
-    width: 250,
-  },
-});
-
 
 App.propTypes = {
-  classes: PropTypes.object, // stype
+  classes: PropTypes.object,
 };
 
 

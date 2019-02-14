@@ -1,0 +1,12 @@
+${header}
+Controller Properties :
+=====================
+
+----------------
+Ctrl_Prop Value 
+----------------
+CC Rate   ${cc_rate}%   
+----------------
+
+
+

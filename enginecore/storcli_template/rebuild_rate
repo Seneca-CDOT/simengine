@@ -1,0 +1,12 @@
+${header}
+Controller Properties :
+=====================
+
+------------------
+Ctrl_Prop   Value 
+------------------
+Rebuildrate ${rebuild_rate}%   
+------------------
+
+
+

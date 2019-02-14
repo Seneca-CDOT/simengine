@@ -6,11 +6,8 @@ from enginecore.state.state_managers import StateManager
 
 def handle_link(kwargs):
     """Power connections"""
-    if kwargs['remove']:
-        sys_modeler.remove_link(kwargs['source_key'], kwargs['dest_key'])
-    else:
-        sys_modeler.link_assets(kwargs['source_key'], kwargs['dest_key'])
-            
+    link_action = sys_modeler.remove_link if kwargs['remove'] else sys_modeler.link_assets
+    link_action(kwargs['source_key'], kwargs['dest_key'])
 
 ############# Validations
 
@@ -23,11 +20,6 @@ def validate_server(kwargs):
     """Server-specific validation"""
     if kwargs['psu_num'] > 1 and (not kwargs['psu_load'] or len(kwargs['psu_load']) != kwargs['psu_num']):
         raise argparse.ArgumentTypeError("psu-load is required for server(-bmc) type when there're multiple PSUs")
-    if not kwargs['domain_name']:
-        raise argparse.ArgumentTypeError("domain-name is required for server(-bmc) type")
-    if not kwargs['power_consumption']:
-        raise argparse.ArgumentTypeError("power-consumption is required for server(-bmc) type")
-        
 
 
 def model_command(asset_group):
@@ -57,7 +49,10 @@ def model_command(asset_group):
     power_asset_action.add_argument(
         '-s', '--source-key', type=int, required=True, help="Key of an asset that POWERS dest. asset"
     )
-    power_asset_action.add_argument('-d', '--dest-key', type=int, required=True, help="Key of an powered by the source-key")
+    power_asset_action.add_argument(
+        '-d', '--dest-key', type=int, required=True, help="Key of the asset powered by the source-key"
+    )
+
     power_asset_action.add_argument('-r', '--remove', action='store_true', help="Delete power conneciton if exists")
 
     reload_asset_action.set_defaults(
@@ -100,12 +95,12 @@ def update_command(update_asset_group):
 
     # server group 
     update_server_parent = argparse.ArgumentParser(add_help=False)
-    update_server_parent.add_argument('--domain-name', help="VM domain name")
+    update_server_parent.add_argument('--domain-name', help="VM domain name", required=True)
 
     # power consuming assets group
     update_power_parent = argparse.ArgumentParser(add_help=False)
     update_power_parent.add_argument('--power-source', type=int)
-    update_power_parent.add_argument('--power-consumption', type=int, help="Power consumption in Watts")
+    update_power_parent.add_argument('--power-consumption', type=int, help="Power consumption in Watts", required=True)
 
     update_subp = update_asset_group.add_subparsers()
 
@@ -337,36 +332,32 @@ def create_command(create_asset_group):
     )
 
     create_server_bmc_action.add_argument(
-        '--psu-num', type=int, default=1, help="Number of PSUs installed in the server"
-    )
-    create_server_bmc_action.add_argument(
-        '--psu-load', 
-        nargs='+',
-        type=float,
-        help="""PSU(s) load distribution (the downstream power is multiplied by the value, e.g. 
-        for 2 PSUs if '--psu-load 0.5 0.5', load is divivided equally) \n"""
+        '--storcli-port', 
+        type=int, 
+        default=50000, 
+        help="Storcli websocket port used to establish a connection with a vm"
     )
 
-    create_server_bmc_action.add_argument(
-        '--psu-power-consumption', 
-        nargs='+',
-        type=int,
-        default=6,
-        help="""Power consumption of idle PSU \n"""
-    )
-
-    create_server_bmc_action.add_argument(
-        '--psu-power-source', 
-        nargs='+',
-        type=int,
-        default=120,
-        help="""PSU Voltage \n"""
-    )
 
     create_server_bmc_action.add_argument(
         '--sensor-def', 
         type=str,
-        help="File containing sensor definitions (defaults to presets.json file in enginecore/enginecore/model/presets)"
+        help="File containing sensor definitions (defaults to sensors.json file in enginecore/enginecore/model/presets)"
+    )
+
+    create_server_bmc_action.add_argument(
+        '--storage-def', 
+        type=str,
+        help="""File containing storage definitions 
+        (defaults to storage.json file in enginecore/enginecore/model/presets)
+        """
+    )
+
+    create_server_bmc_action.add_argument(
+        '--storage-states', 
+        type=str,
+        help="""File containing storage state mappings (.JSON)
+        """
     )
 
     ## STATIC 
@@ -407,7 +398,7 @@ def create_command(create_asset_group):
     )
 
     create_server_bmc_action.set_defaults(
-        validate=lambda args: [validate_key(args['asset_key']), validate_server(args)],
+        validate=lambda args: [validate_key(args['asset_key'])],
         func=lambda args: sys_modeler.create_server(
             args['asset_key'],
             args, 

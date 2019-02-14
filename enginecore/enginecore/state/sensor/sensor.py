@@ -1,4 +1,6 @@
-"""Aggregates sensor management tools """
+"""Sensor provides access to ipmi/bmc sensors & manages thermal relationships between
+sensors & sensors, sensors & storage components, cpu & sensors
+"""
 
 import os
 import threading
@@ -6,28 +8,15 @@ import logging
 import time
 import json
 import operator
-from random import randint
+from enum import Enum
 
 import enginecore.state.state_managers as sm 
 from enginecore.model.graph_reference import GraphReference
 
-
-class SensorFileLocks():
-    """File locks for sensor files for safe access"""
-
-    def __init__(self):
-        self._s_file_locks = {}
-
-    def __str__(self):
-        return str(self._s_file_locks)
-
-    def add_sensor_file_lock(self, sensor_name):
-        """Add new lock"""
-        self._s_file_locks[sensor_name] = threading.Lock()
-
-    def get_lock(self, sensor_name):
-        """Get file lock by sensor name"""
-        return self._s_file_locks[sensor_name]
+class HDComponents(Enum):
+    """Thermal storage target types""" 
+    CacheVault = 1
+    PhysicalDrive = 2
 
 
 class Sensor():
@@ -44,9 +33,12 @@ class Sensor():
         self._s_group = self._s_specs['group']
 
         self._th_sensor_t = {}
+        self._th_storage_t = {}
         self._th_cpu_t = None
 
         self._th_sensor_t_name_fmt = "({event})s:[{source}]->t:[{target}]"
+        self._th_storage_t_name_fmt = "({event})s:[{source}]->STORAGE:t:[c{ctrl}/{target}]"
+
         self._th_cpu_t_name_fmt = "s:[cpu_load]->t:[{target}]"
 
         self._graph_ref = GraphReference()
@@ -62,7 +54,7 @@ class Sensor():
         self._s_file_locks = s_locks
         self._s_thermal_event = threading.Event()
 
-  
+
 
     def __str__(self):
         with self._graph_ref.get_session() as session:
@@ -109,7 +101,7 @@ class Sensor():
             self._th_sensor_t[target] = {}
 
         self._th_sensor_t[target][event] = threading.Thread(
-            target=self._target_sensor_impact,
+            target=self._target_sensor,
             args=(target, event, ),
             name=self._th_sensor_t_name_fmt.format(
                 source=self._s_name, target=target, event=event
@@ -132,16 +124,57 @@ class Sensor():
         self._th_cpu_t.start()
 
 
-    def _init_thermal_impact(self): 
+    def _launch_thermal_storage_thread(self, controller, hd_element, hd_type, event):
+
+        thread_name = '{}-{}'.format(hd_type.name, hd_element)
+        if thread_name in self._th_storage_t and event in self._th_storage_t[thread_name]:
+            raise ValueError('Thread already exists')
+        if hd_element not in self._th_storage_t:
+            self._th_storage_t[hd_element] = {}
+
+        self._th_storage_t[hd_element][event] = threading.Thread(
+            target=self._target_storage,
+            args=(controller, hd_element, hd_type, event,),
+            name=self._th_storage_t_name_fmt.format(
+                ctrl=controller,
+                source=self._s_name,
+                target=hd_element,
+                event=event
+            )
+        )
+
+        self._th_storage_t[hd_element][event].daemon = True
+        self._th_storage_t[hd_element][event].start()
+
+
+    def _init_thermal_impact(self):
         """Initialize thermal imact based on the saved inter-connections"""
     
         with self._graph_ref.get_session() as session:
-            thermal_rel_details = GraphReference.get_affected_sensors(session, self._server_key, self._s_name)
+            thermal_sensor_rel_details = GraphReference.get_affected_sensors(session, self._server_key, self._s_name)
 
             # for each target & for each set of relationships with the target
-            for target in thermal_rel_details['targets']:
+            for target in thermal_sensor_rel_details['targets']:
                 for rel in target['rel']:
                     self._launch_thermal_sensor_thread(target['name'], rel['event'])
+
+            thermal_storage_rel_details = GraphReference.get_affected_hd_elements(
+                session, self._server_key, self._s_name
+            )
+
+            for target in thermal_storage_rel_details['targets']:
+                if 'DID' in target and target['DID']:
+                    hd_type = HDComponents.PhysicalDrive
+                    hd_element = target['DID']
+                else:
+                    hd_type = HDComponents.CacheVault
+                    hd_element = target['serialNumber']
+
+                for rel in target['rel']:
+                    self._launch_thermal_storage_thread(
+                        target['controller']['controllerNum'], hd_element, hd_type, rel['event']
+                    )
+
 
         self._launch_thermal_cpu_thread()
 
@@ -159,7 +192,7 @@ class Sensor():
 
 
     def _cpu_impact(self):
-        """Keep updating this sensor based on cpu load changes
+        """Keep updating *this sensor based on cpu load changes
         This function waits for the thermal event switch and exits when the connection between this sensor & cpu load
         is removed;
         """
@@ -205,8 +238,75 @@ class Sensor():
                     time.sleep(5)
 
 
+    def _target_storage(self, controller, target, hd_type, event):
+        with self._graph_ref.get_session() as session:
+            while True:
+
+                self._s_thermal_event.wait()
+
+                # target
+                if hd_type == HDComponents.CacheVault:
+                    target_attr = 'serialNumber'
+                    target_value = '"{}"'.format(target)
+                elif hd_type == HDComponents.PhysicalDrive:
+                    target_attr = 'DID'
+                    target_value = target
+                else:
+                    raise ValueError('Unknown hardware component!')
+
+                rel_details = GraphReference.get_sensor_thermal_rel(
+                    session,
+                    self._server_key,
+                    relationship={
+                        'source': self._s_name,
+                        'target': {
+                            "attribute": target_attr,
+                            'value': target_value
+                        },
+                        'event': event
+                    }
+                )
+                
+                if not rel_details:
+                    del self._th_storage_t[target][event]
+                    return
+
+                rel = rel_details['rel']
+                causes_heating = rel['action'] == 'increase'
+                source_sensor_status = operator.eq if rel['event'] == 'down' else operator.ne
+
+                # if model is specified -> use the runtime mappings
+                if 'model' in rel and rel['model']:
+                    rel['degrees'] = self._calc_approx_value(
+                        json.loads(rel['model']), int(self.sensor_value)*10
+                    )
+
+                    source_sensor_status = operator.ne
+
+                if source_sensor_status(int(self.sensor_value), 0):
+                    updated, new_temp = GraphReference.add_to_hd_component_temperature(
+                        session, 
+                        target={
+                            'server_key': self._server_key,
+                            'controller': controller,
+                            "attribute": target_attr,
+                            'value': target_value,
+                            'hd_type': hd_type.name
+                        },
+                        temp_change=rel['degrees'] * 1 if causes_heating else -1,
+                        limit={
+                            'lower': sm.StateManager.get_ambient(),
+                            'upper': rel['pauseAt'] if causes_heating else None
+                        }
+                    )
+
+                    if updated:
+                        logging.info('temperature sensor was updated to %s°', new_temp)
     
-    def _target_sensor_impact(self, target, event):
+                time.sleep(rel['rate'])
+
+
+    def _target_sensor(self, target, event):
         """Keep updating the target sensor based on the relationship between this sensor and the target;
         This function waits for the thermal event switch and exits when the connection between source & target
         is removed;
@@ -218,10 +318,19 @@ class Sensor():
         with self._graph_ref.get_session() as session:
             while True:
 
-                self._s_thermal_event.wait()   
+                self._s_thermal_event.wait()
 
                 rel_details = GraphReference.get_sensor_thermal_rel(
-                    session, self._server_key, relationship={'source': self.name, 'target': target, 'event': event}
+                    session,
+                    self._server_key,
+                    relationship={
+                        'source': self.name,
+                        'target': {
+                            'attribute': "name",
+                            'value': target
+                        },
+                        'event': event
+                    }
                 )
 
                 # shut down thread upon relationship removal
@@ -279,8 +388,6 @@ class Sensor():
                             sf_handler.truncate()
                             sf_handler.write(str(new_sensor_value))
 
-
-
                 time.sleep(int(rel['rate']))
 
 
@@ -294,13 +401,21 @@ class Sensor():
         return self.name
 
 
+    def add_cv_thermal_impact(self, controller, cv, event):
+        self._launch_thermal_storage_thread(controller, cv, HDComponents.CacheVault, event)
+
+
+    def add_pd_thermal_impact(self, controller, pd, event):
+        self._launch_thermal_storage_thread(controller, pd, HDComponents.PhysicalDrive, event)
+
+
     def add_sensor_thermal_impact(self, target, event):
         """Set a target sensor that will be affected by the current source sensor values
         Args:
             target(str): Name of the target sensor
             event(str): Source event causing the thermal impact to trigger
         """
-        if target in self._th_sensor_t and event in self._th_sensor_t:
+        if target in self._th_sensor_t and event in self._th_sensor_t[target]:
             raise ValueError('Thread already exists')
         
         with self._graph_ref.get_session() as session:
@@ -349,8 +464,8 @@ class Sensor():
         logging.info("Sensor:[%s] - initializing thermal processes", self._s_name)
         self._init_thermal_impact()
         self.enable_thermal_impact()
-        
-        
+
+
     def enable_thermal_impact(self):
         logging.info("Sensor:[%s] - enabling thermal impact", self._s_name)
         self._s_thermal_event.set()
@@ -381,115 +496,3 @@ class Sensor():
             
             off_value = self._s_specs['offValue'] if 'offValue' in self._s_specs else 0
             filein.write(str(default_value if 'defaultValue' in self._s_specs else off_value))
-
-   
-
-class SensorRepository():
-    """A sensor repository for a particular IPMI device"""
-
-    def __init__(self, server_key, enable_thermal=False):
-        self._server_key = server_key
-        
-        self._graph_ref = GraphReference()
-        self._sensor_file_locks = SensorFileLocks()
-
-        self._sensor_dir = os.path.join(
-            sm.StateManager.get_temp_workplace_dir(),
-            str(server_key),
-            'sensor_dir'
-        )
-        
-        self._sensors = {}
-
-        with self._graph_ref.get_session() as session:
-            sensors = GraphReference.get_asset_sensors(session, server_key)
-            for sensor_info in sensors:
-                sensor = Sensor(self._sensor_dir, server_key, sensor_info, self._sensor_file_locks)
-                self._sensors[sensor.name] = sensor
-
-        if enable_thermal:
-            self._load_thermal = True
- 
-            if not os.path.isdir(self._sensor_dir):
-                os.mkdir(self._sensor_dir)
-
-            for s_name in self._sensors:
-                self._sensors[s_name].set_to_defaults()
-
-
-    def __str__(self):
-        
-        repo_str = []
-        repo_str.append("Sensor Repository for Server {}".format(self._server_key))
-        repo_str.append(" - files for sensor readings are located at '{}'".format(self._sensor_dir))
-
-        return '\n\n'.join(repo_str + list(map(lambda sn: str(self._sensors[sn]), self._sensors)))
-
-
-    def enable_thermal_impact(self):
-        """Set thermal event switch """
-        list(map(lambda sn: self._sensors[sn].enable_thermal_impact(), self._sensors))
-
-
-    def disable_thermal_impact(self):
-        """Clear thermal event switch"""
-        list(map(lambda sn: self._sensors[sn].disable_thermal_impact(), self._sensors))
-
-
-    def shut_down_sensors(self):
-        """Set all sensors to offline"""
-        for s_name in self._sensors:
-            sensor = self._sensors[s_name]
-            if sensor.group != 'temperature':
-                sensor.set_to_off()
-
-        self.disable_thermal_impact()
-        
-
-    def power_up_sensors(self):
-        """Set all sensors to online"""
-        for s_name in self._sensors:
-            sensor = self._sensors[s_name]
-            if sensor.group != 'temperature':
-                sensor.set_to_defaults()
-        self.enable_thermal_impact()
-
-
-    def get_sensor_by_name(self, name):
-        """Get a specific sensor by name"""
-        return self._sensors[name]
-
-
-    def adjust_thermal_sensors(self, old_ambient, new_ambient):
-        """Indicate an ambient update"""
-        
-        for s_name in self._sensors:
-            sensor = self._sensors[s_name]
-            if sensor.group == 'temperature':
-                with self._sensor_file_locks.get_lock(sensor.name):
-                    
-                    old_sensor_value = int(sensor.sensor_value)
-                    new_sensor_value = old_sensor_value - old_ambient + new_ambient if old_sensor_value else new_ambient
-
-                    logging.info(
-                        "Sensor:[%s] - value will be updated from %s° to %s° due to ambient changes (%s° -> %s°)", 
-                        sensor.name,
-                        old_sensor_value,
-                        new_sensor_value,
-                        old_ambient, 
-                        new_ambient
-                    )
-
-                    sensor.sensor_value = int(new_sensor_value)
-
-        if self._load_thermal is True:
-            self._load_thermal = False
-
-            for s_name in self._sensors:
-                self._sensors[s_name].start_thermal_impact()
-
-    @property
-    def sensor_dir(self):
-        """Get temp IPMI state dir"""
-        return self._sensor_dir
-    

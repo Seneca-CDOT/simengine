@@ -7,9 +7,10 @@ import PropTypes from 'prop-types';
  * */
 class Asset extends React.Component {
 
-  /** Load images into state (returns array of promises) */
+
   loadImages = (assetImages) => {
-  
+    /** Load images into state (returns array of promises) */
+
     let imagePromises = [];
 
     for (const [imageName, imageSource] of Object.entries(assetImages)) {
@@ -32,22 +33,24 @@ class Asset extends React.Component {
   getInputCoordinates = () => []
 
   formatAssetCoordinates = ({x, y}) => ({
-    x: x,
-    y: y,
-    inputConnections: this.getInputCoordinates(),
-    outputConnections: this.getOutputCoordinates(),
+    x: x, // asset position -> x 
+    y: y, // asset position -> y
+
+    // i/o coordinates are relative to the asset { x, y } coordinates
+    inputConnections: this.getInputCoordinates(),   // input power position { x, y }
+    outputConnections: this.getOutputCoordinates(), // output power position { x, y } (if supported)
   });
 
   /** Notify Parent of Selection */
   handleClick = () => {
     this.refs.asset.setZIndex(100);
-    this.props.onElementSelection(this.props.assetId, this.props.asset);
+    this.props.onElementSelection(this.props.asset);
   };
 
   /** returns global asset position (x, y), relative output & input outlet coordinates */
   updateAssetPos = (s) => {
     const coord = this.formatAssetCoordinates(s.target.attrs); 
-    this.props.onPosChange(this.props.assetId, coord);
+    this.props.onPosChange(this.props.asset.key, coord);
   }
 }
 
@@ -57,7 +60,6 @@ Asset.propTypes = {
   x: PropTypes.number, // X position of the asset
   y: PropTypes.number, // Y position of the asset
   asset: PropTypes.object.isRequired, // Asset Details
-  assetId: PropTypes.string.isRequired, // Asset Key
   
   selected: PropTypes.bool.isRequired, // Asset Selected by a user
   powered: PropTypes.bool.isRequired, // indicates if upstream power is present

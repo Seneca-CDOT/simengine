@@ -1,0 +1,49 @@
+/c${controller}/v${virtual_drives_num} :
+======
+
+${virtual_drives}
+
+Cac=CacheCade|Rec=Recovery|OfLn=OffLine|Pdgd=Partially Degraded|Dgrd=Degraded
+Optl=Optimal|RO=Read Only|RW=Read Write|HD=Hidden|TRANS=TransportReady|B=Blocked|
+Consist=Consistent|R=Read Ahead Always|NR=No Read Ahead|WB=WriteBack|
+AWB=Always WriteBack|WT=WriteThrough|C=Cached IO|D=Direct IO|sCC=Scheduled
+Check Consistency
+
+
+PDs for VD ${virtual_drives_num} :
+============
+
+${physical_drives}
+
+EID-Enclosure Device ID|Slt-Slot No.|DID-Device ID|DG-DriveGroup
+DHS-Dedicated Hot Spare|UGood-Unconfigured Good|GHS-Global Hotspare
+UBad-Unconfigured Bad|Onln-Online|Offln-Offline|Intf-Interface
+Med-Media Type|SED-Self Encryptive Drive|PI-Protection Info
+SeSz-Sector Size|Sp-Spun|U-Up|D-Down/PowerSave|T-Transition|F-Foreign
+UGUnsp-Unsupported|UGShld-UnConfigured shielded|HSPShld-Hotspare shielded
+CFShld-Configured shielded|Cpybck-CopyBack|CBShld-Copyback Shielded
+
+
+VD${virtual_drives_num} Properties :
+==============
+Strip Size = 64 KB
+Number of Blocks = 1714028544
+VD has Emulated PD = No
+Span Depth = 1
+Number of Drives Per Span = 8
+Write Cache(initial setting) = WriteBack
+Disk Cache Policy = Disabled
+Encryption = None
+Data Protection = Disabled
+Active Operations = None
+Exposed to OS = Yes
+OS Drive Name = /dev/sda
+Creation Date = 15-11-2018
+Creation Time = 04:00:22 AM
+Emulation type = default
+Is LD Ready for OS Requests = Yes
+SCSI NAA Id = 60030057013c6550237fabd6107d475d
+SCSI Unmap = No
+
+
+
