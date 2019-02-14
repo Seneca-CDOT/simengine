@@ -421,16 +421,16 @@ class GraphReference():
             
 
     @classmethod
-    def format_target_elements(cls, results):
+    def format_target_elements(cls, results, t_format=None):
         """Format neo4j results as target sensors"""
         thermal_details = {'source': {}, 'targets': [],}
 
         for record in results:
             thermal_details['source'] = dict(record.get('source'))
-             
-            thermal_details['targets'].append(
-                {**dict(record.get('targets')), **{"rel": list(map(dict, record.get('rel')))}}
-            )
+
+            if not t_format:
+                t_format = lambda r: {**dict(r.get('targets')), **{"rel": list(map(dict, r.get('rel')))}}
+            thermal_details['targets'].append(t_format(record))
 
         return thermal_details
 
@@ -472,14 +472,20 @@ class GraphReference():
             """
             MATCH (:ServerWithBMC { key: $server })-[:HAS_SENSOR]->(source:Sensor { name: $source })
             MATCH (source)<-[rel]-(targets)
+            MATCH (controller)-[:HAS_CACHEVAULT|:HAS_PHYSICAL_DRIVE]->(targets)
             WHERE targets:PhysicalDrive or targets:CacheVault
-            return source, targets, collect(rel) as rel
+            return source, targets, collect(rel) as rel, controller
             """,
             server=server_key,
             source=source_name
         )
 
-        return cls.format_target_elements(results)
+        output_format = lambda r: {
+            **dict(r.get('targets')), 
+            **{"rel": list(map(dict, r.get('rel')))},
+            **{"controller": dict(r.get('controller'))}
+        }
+        return cls.format_target_elements(results, t_format=output_format)
 
 
     @classmethod

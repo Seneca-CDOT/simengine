@@ -158,11 +158,24 @@ class Sensor():
                 for rel in target['rel']:
                     self._launch_thermal_sensor_thread(target['name'], rel['event'])
 
-            thermal_storage_rel_details = GraphReference.get_affected_sensors(session, self._server_key, self._s_name)
-            for target in thermal_storage_rel_details:
+            thermal_storage_rel_details = GraphReference.get_affected_hd_elements(
+                session, self._server_key, self._s_name
+            )
+
+            for target in thermal_storage_rel_details['targets']:
+                print(target)
+                if 'DID' in target and target['DID']:
+                    hd_type = HDComponents.PhysicalDrive
+                    hd_element = target['DID']
+                else:
+                    hd_type = HDComponents.CacheVault
+                    hd_element = target['serialNumber']
+
                 for rel in target['rel']:
-                    self._launch_thermal_storage_thread()
-            
+                    self._launch_thermal_storage_thread(
+                        target['controller']['controllerNum'], hd_element, hd_type, rel['event']
+                    )
+
 
         self._launch_thermal_cpu_thread()
 
