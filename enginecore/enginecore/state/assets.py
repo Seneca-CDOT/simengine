@@ -818,6 +818,7 @@ class ServerWithBMC(Server):
     def on_ambient_updated(self, event, *args, **kwargs):
         """Update thermal sensor readings on ambient changes """ 
         self._sensor_repo.adjust_thermal_sensors(new_ambient=kwargs['new_value'], old_ambient=kwargs['old_value'])
+        self.state.update_storage_temperature(new_ambient=kwargs['new_value'], old_ambient=kwargs['old_value'])
 
 
     @handler("ParentAssetPowerDown")

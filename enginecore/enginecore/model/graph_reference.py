@@ -871,6 +871,31 @@ class GraphReference():
 
 
     @classmethod
+    def get_all_hd_thermal_elements(cls, session, server_key):
+        """Retrieve all storage components that support temperature sensors"""
+
+        query = []
+        query.extend([
+            "MATCH (:ServerWithBMC {{ key: {} }})-[:HAS_CONTROLLER]->(controller:Controller)"
+            .format(server_key),
+            "MATCH (controller)-[:HAS_CACHEVAULT|:HAS_PHYSICAL_DRIVE]->(hd_component)",
+            "WHERE hd_component:PhysicalDrive or hd_component:CacheVault",
+            "RETURN controller, hd_component"
+        ])
+
+        results = session.run("\n".join(query))
+
+        hd_thermal_elements = []
+
+        for record in results:
+            hd_thermal_elements.append({
+                "controller": dict(record.get('controller')),
+                "component": dict(record.get('hd_component'))
+            })
+
+        return hd_thermal_elements
+
+    @classmethod
     def get_psu_sensor_names(cls, session, server_key, psu_num):
         """Retrieve server-specific psu sensor names
         Args:

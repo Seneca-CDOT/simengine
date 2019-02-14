@@ -300,6 +300,38 @@ class BMCServerStateManager(state_api.IBMCServerStateManager, ServerStateManager
         StateManager.get_store().set(self.redis_key + ":cpu_load", str(int(value)))
 
 
+    def update_storage_temperature(self, old_ambient, new_ambient):
+
+        with self._graph_ref.get_session() as db_s:
+
+            hd_elements = GraphReference.get_all_hd_thermal_elements(db_s, self.key)
+
+            for hd_e in hd_elements:
+
+                if 'DID' in hd_e['component']:
+                    target_attr = 'DID'
+                    target_value = hd_e['component']['DID']
+                    target_type = 'PhysicalDrive'
+                else:
+                    target_attr = 'serialNumber'
+                    target_value = '"{}"'.format(hd_e['component']['serialNumber'])
+                    target_type = 'CacheVault'
+
+                updated, new_temp = GraphReference.add_to_hd_component_temperature(
+                    db_s, 
+                    target={
+                        'server_key': self.key,
+                        'controller': hd_e['controller']['controllerNum'],
+                        "attribute": target_attr,
+                        'value': target_value,
+                        'hd_type': target_type
+                    },
+                    temp_change=new_ambient - old_ambient,
+                    limit={
+                        'lower': new_ambient,
+                        'upper': None
+                    }
+                )
 
 class PSUStateManager(StateManager):
     """Power Supply"""

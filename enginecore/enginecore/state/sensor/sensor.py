@@ -163,7 +163,6 @@ class Sensor():
             )
 
             for target in thermal_storage_rel_details['targets']:
-                print(target)
                 if 'DID' in target and target['DID']:
                     hd_type = HDComponents.PhysicalDrive
                     hd_element = target['DID']
@@ -288,8 +287,8 @@ class Sensor():
                     updated, new_temp = GraphReference.add_to_hd_component_temperature(
                         session, 
                         target={
-                            'server_key': self._server_key, 
-                            'controller': controller,                             
+                            'server_key': self._server_key,
+                            'controller': controller,
                             "attribute": target_attr,
                             'value': target_value,
                             'hd_type': hd_type.name
@@ -302,10 +301,8 @@ class Sensor():
                     )
 
                     if updated:
-                        logging.info('\n\nstorage: s:{}, t:{}, e:{} new VALUE {} \n\n'.format(
-                            controller, target, event, new_temp
-                        ))
-
+                        logging.info('temperature sensor was updated to %s°', new_temp)
+    
                 time.sleep(rel['rate'])
 
 
@@ -391,8 +388,6 @@ class Sensor():
                             sf_handler.truncate()
                             sf_handler.write(str(new_sensor_value))
 
-
-
                 time.sleep(int(rel['rate']))
 
 
@@ -408,6 +403,7 @@ class Sensor():
 
     def add_cv_thermal_impact(self, controller, cv, event):
         self._launch_thermal_storage_thread(controller, cv, HDComponents.CacheVault, event)
+
 
     def add_pd_thermal_impact(self, controller, pd, event):
         self._launch_thermal_storage_thread(controller, pd, HDComponents.PhysicalDrive, event)
