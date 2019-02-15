@@ -1,4 +1,4 @@
-# Release - RPM
+## Release - RPM
 
 Simengine project is packaged as RPM. You can retrieve the project specs by downloading the repo details from the project repository:
 
@@ -11,9 +11,9 @@ Install app's core components:
 `dnf install simengine-database simengine-core simengine-dashboard`
 
 
-# Development Version
+## Development Version
 
-## DNF Dependencies 
+### DNF Dependencies 
 
 Simengine uses OpenIPMI lanserv simulator for its BMC emulations and libvirt for virtualization.
 
@@ -23,13 +23,13 @@ dnf install gcc redis -y
 dnf install ipmitool -y #for testing
 ```
 
-## Neo4J
+### Neo4J
 
 For Neo4J installation, see this official [page](https://neo4j.com/docs/operations-manual/current/installation/linux/rpm/)
 
 You will need to create a `simengine` user (see [link](https://neo4j.com/docs/operations-manual/current/reference/user-management-community-edition/)).
 
-## ipmi_sim
+### ipmi_sim
 
 `hoas_extend` is a plugin built for `ipmi_sim`.
 
@@ -45,7 +45,7 @@ Move to lib folder (may be arch-dependent):
 
 `sudo cp ./haos_extend.so  /usr/lib64/simengine`
 
-## enginecore
+### enginecore
 
 Change location to `enginecore`
 
@@ -57,13 +57,13 @@ Install `snmpsimd` (python2 version):
 
 `pip install snmpsim`
 
-## Frontend
+### Frontend
 
 Change location to `dashboard/fronend`
 
 Run `npm install` and then `npm start`
 
-## MIBs
+### MIBs
 
 Vendor-specific mibs may need to be installed for the testing purposes.
 
@@ -86,7 +86,7 @@ mibdirs /usr/share/snmp/mibs:/usr/share/snmp/mibs/apc
 mibs ALL
 ```
 
-## Running
+### Running
 
 `simengine-cli` will need to be put into `$PATH` as `export PATH="$PATH:/path/to/simengine/enginecore"`
 

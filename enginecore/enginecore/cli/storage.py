@@ -136,8 +136,18 @@ def cv_command(cv_group):
         required=True
     )
 
+    set_cv_action.add_argument(
+        '-w', 
+        '--write-through-fail', 
+        help="Virtual drive endpoint will fail to report its cache mode as WT (WriteThrough)", 
+        action='store_false'
+    )
+
     set_cv_action.set_defaults(
         func=lambda args: BMCServerStateManager.set_cv_replacement(
-            args['asset_key'], args['controller'], args['replacement_required']
+            args['asset_key'],
+            args['controller'],
+            args['replacement_required'],
+            args['write_through_fail']
         )
     )

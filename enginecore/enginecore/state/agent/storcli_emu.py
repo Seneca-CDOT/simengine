@@ -84,7 +84,6 @@ class StorCLIEmulator():
             return template.substitute(options)
 
 
-
     def _strcli_ctrlcount(self):
         """Number of adapters per server """
 
@@ -98,6 +97,7 @@ class StorCLIEmulator():
 
             template = Template(templ_h.read())
             return template.substitute(options)
+
 
     def _strcli_ctrl_perf_mode(self, controller_num):
         """Current performance mode (hardcoded)"""
@@ -411,6 +411,7 @@ class StorCLIEmulator():
         with self._graph_ref.get_session() as session:
 
             vd_details = GraphReference.get_virtual_drive_details(session, self._server_key, controller_num)
+            cv_info = GraphReference.get_cachevault(session, self._server_key, controller_num)
 
             # iterate over virtual drives
             for i, v_drive in enumerate(vd_details):
@@ -419,6 +420,9 @@ class StorCLIEmulator():
                 # Add Virtual Drive output
                 v_drive['DG/VD'] = '0/' + str(i)
                 v_drive['Size'] = str(v_drive['Size']) + ' GB'
+
+                if cv_info['replacement'] == 'Yes' and cv_info['writeThrough']:
+                    v_drive['Cache'] = 'RWTD'
 
                 # Add physical drive output (do some formatting plus check pd states)
                 for p_drive in v_drive['pd']:
