@@ -278,8 +278,10 @@ def _add_storage(asset_key, preset_file, storage_state_file):
                 query.append("CREATE ({})-[:HAS_BBU]->(bbu:BBU {{ {} }})".format(ctrl_node, props_stm))
             elif "CacheVault" in controller and controller["CacheVault"]:
                 props_stm = qh.get_props_stm(
-                    {**controller["CacheVault"], **{'temperature': 0, "replacement": "No"}}, 
-                    supported_attr=["model", "replacement", "state", "temperature", "mfgDate", "serialNumber"]
+                    {**controller["CacheVault"], **{'temperature': 0, "replacement": "No", "writeThrough": True}}, 
+                    supported_attr=[
+                        "model", "replacement", "state", "temperature", "mfgDate", "serialNumber", "writeThrough"
+                    ]
                 )
                 query.append(
                     "CREATE ({})-[:HAS_CACHEVAULT]->(cache:CacheVault {{ {} }})".format(ctrl_node, props_stm)

@@ -804,7 +804,7 @@ class GraphReference():
 
 
     @classmethod
-    def set_cv_replacement(cls, session, server_key, controller, repl_status): #TODO: cachevault serial NUMBER!
+    def set_cv_replacement(cls, session, server_key, controller, repl_status, wt_on_fail): #TODO: cachevault serial NUMBER!
         """Update cachevault replacement status
         Args:
             session:  database session
@@ -820,7 +820,12 @@ class GraphReference():
         ])
 
 
-        set_stm = qh.get_set_stm({"replacement": repl_status}, node_name="cv", supported_attr=['replacement'])
+        set_stm = qh.get_set_stm(
+            {"replacement": repl_status, "writeThrough": wt_on_fail},
+            node_name="cv", 
+            supported_attr=['replacement', 'writeThrough']
+        )
+
         query.append('SET {}'.format(set_stm))
 
         session.run("\n".join(query))
