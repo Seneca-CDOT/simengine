@@ -1,4 +1,4 @@
-# Power Management
+## Power Management
 
 Power can be managed though either UI or `simengine-cli`, for example:
 
@@ -35,7 +35,7 @@ You can also use `ipmitool` to communicate commands to the ipmi simulator instan
 
 `ipmitool -H localhost -p 9001 -U ipmiusr -P test power cycle`
 
-## Wall Power
+### Wall Power
 
 You can control the mains with the following commands: 
 
@@ -46,12 +46,12 @@ You can control the mains with the following commands:
 Running this will power down all the electrical outlets and switch off AC.
 
 
-# Thermal Simulation
+## Thermal Simulation
 
 Simengine can emulate thermal conditions such as room temperature & AC, internal server heating/cooling behaviour. ‘Out-of-the-box’ system will be defaulted to a rather limited state so some advance thermal operations (e.g. sensor interrelationship) will need to be configured by the simengine user.
 
 
-## Ambient
+### Ambient
 
 Ambient is affected by the virtual AC configurations and can rise/fall depending on the wall power state. 
 
@@ -81,8 +81,6 @@ AC is affected by the mains state (power outage or restoration), for instance, r
 
 `simengine-cli power outage` 
 
-
-##  IPMI/BMC Sensors
 
 ### Sensor Interrelationship
 

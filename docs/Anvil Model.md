@@ -23,8 +23,6 @@ This table summarises the general layout of the `simengine`  system model we are
 ![](https://d2mxuefqeaa7sj.cloudfront.net/s_C5C75BF29B870479D1EC95201C69BB583A74A130BB1FC9890A125939ED904715_1534526372651_Screenshot+from+2018-08-17+13-15-48.png)
 
 
-
-# Setup
 ## Network Configuration
 
 We will need to allocate IP addresses for the SNMP simulators on the host machine (machine that will run  `simengine`). In this example, we will temporarily add IP addresses to the existing `enp4s0` interface:
@@ -88,7 +86,8 @@ Change the top-level tag to `<domain type='kvm' xmlns:qemu='http://libvirt.org/s
         <qemu:arg value='-serial'/>
         <qemu:arg value='mon:tcp::9012,server,telnet,nowait'/>
     </qemu:commandline>
-# System Model
+
+## System Model
 
 At this stage, we should be ready to model our HA topology. You will need to drop the existing model in case the data store is not empty:
 
@@ -166,7 +165,7 @@ Click on gear ⚙️ icon & choose ‘Save Layout’;
 
 ![](https://d2mxuefqeaa7sj.cloudfront.net/s_C5C75BF29B870479D1EC95201C69BB583A74A130BB1FC9890A125939ED904715_1534526478583_s.png)
 
-# Management
+## Management
 
 **UPS**
 

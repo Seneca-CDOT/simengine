@@ -7,7 +7,7 @@ The engine can reconstruct behaviour of system’s core components such as PDUs,
 
 The project exposes core assets’ functionalities through both GUI and UI though limited to the power component at the moment. Some management tools can be utilised through the Redis `pub/sub` based communication as well.
 
-You can model your own set-up (see [System Modelling](./System%20Modeling)) and automate/perform power-related tasks (see [Power Management](./Power%20Management)).
+You can model your own set-up (see [System Modelling](./System%20Modeling)) and automate/perform power-related tasks (see [Power Management](./Asset%20Management)).
 
 See [Anvil Model](./Anvil%20Model) for a real-world high-availability system example;
 
