@@ -12,7 +12,7 @@ import AssetDetails from './AssetDetails';
 import TopNav from './Navigation/TopNav';
 import Canvas from './Canvas';
 import Notifications from './Notifications';
-import Progress from './Progress';
+// import Progress from './Progress';
 
 // few helpers
 import { onWheelScroll, onWheelDown } from './canvasEvents';
@@ -80,8 +80,6 @@ class App extends Component {
           stage.position({ x: stageLayout.x, y: stageLayout.y });
           stage.scale({ x: stageLayout.scale, y: stageLayout.scale });
         }
-
-        console.log(assets, connections)
 
         this.setState({ assets, connections });
       },
@@ -163,8 +161,6 @@ class App extends Component {
       return;
     }
 
-    console.log(coord)
-
     const asset = this.getAssetByKey(key);
 
     // find all the incoming connections as well as output wiring
@@ -193,7 +189,7 @@ class App extends Component {
 
     if (loadedConnections < Object.keys(newState.connections).length) {
       newState['loadedConnections'] = loadedConnections + 1;
-    } 
+    }
 
     this.setState(newState);
   }
@@ -246,11 +242,11 @@ class App extends Component {
   render() {
 
     const { classes } = this.props;
-    const { assets, connections, loadedConnections } = this.state;
+    const { assets, connections } = this.state;
 
     // currently selected asset
     const selectedAsset = assets ? this.getAssetByKey(this.state.selectedAssetKey) : null;
-    const progress = (loadedConnections * 100) / Object.keys(connections).length;
+    // const progress = (loadedConnections * 100) / Object.keys(connections).length;
 
     // configure app's notifications:
     const snackbarOrigin = { vertical: 'bottom', horizontal: 'left', };
@@ -277,7 +273,6 @@ class App extends Component {
           {/* Main Canvas */}
           <main className={classes.content}>
             <div className={classes.toolbar} />
-            <Progress completed={progress}/>
 
             {/* Drawings */}
             <Stage

@@ -867,7 +867,6 @@ class PSU(StaticAsset):
         """Update psu status if sensor is supported"""
         if 'psuStatus' in self._psu_sensor_names:
             psu_status = self._sensor_repo.get_sensor_by_name(self._psu_sensor_names['psuStatus'])
-            print(psu_status)
             psu_status.sensor_value = value
 
 
