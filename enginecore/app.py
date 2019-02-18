@@ -29,7 +29,7 @@ def configure_logger(develop=False):
 
         root.addHandler(stdout_h)
     else:
-        log_path = os.path.join("var", "log", "simengine", "info.log")
+        log_path = os.path.join(os.sep, "var", "log", "simengine", "info.log")
 
 
     logfile_h = logging.FileHandler(log_path)
@@ -54,7 +54,7 @@ def configure_env(relative=False):
         share_dir = os.path.join(os.sep, "usr", "share", "simengine")
         static_path = os.path.join(share_dir, "data")
         ipmi_templ_path = os.path.join(share_dir, "enginecore", "ipmi_template")
-        storcli_templ_path = os.path.abspath(share_dir, "enginecore", "storcli_template")
+        storcli_templ_path = os.path.join(share_dir, "enginecore", "storcli_template")
         lua_script_path = os.path.join(share_dir, "enginecore", "script", "snmppub.lua")
 
     os.environ['SIMENGINE_STATIC_DATA'] = os.environ.get('SIMENGINE_STATIC_DATA', static_path)
