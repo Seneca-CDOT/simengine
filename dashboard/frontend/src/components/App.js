@@ -100,7 +100,7 @@ class App extends Component {
           );
 
         } else {
-          assets = update( assets, { [data.key]: { $merge: data } });
+          assets = update(assets, { [data.key]: { $merge: data } });
         }
         
         this.setState({ assets });

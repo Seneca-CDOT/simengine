@@ -49,7 +49,7 @@ class Asset extends React.Component {
 
   /** returns global asset position (x, y), relative output & input outlet coordinates */
   updateAssetPos = (s) => {
-    const coord = this.formatAssetCoordinates(s.target.attrs); 
+    const coord = this.formatAssetCoordinates(s.target.attrs);
     this.props.onPosChange(this.props.asset.key, coord);
   }
 }

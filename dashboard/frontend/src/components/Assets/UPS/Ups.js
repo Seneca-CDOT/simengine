@@ -20,7 +20,7 @@ export default class Ups extends OutputAsset {
   constructor(props) {
     super(props);
     this.state = {
-      socketSize: { x:0, y:0 },
+      socketSize: { width: 0, height: 0 },
       upsMonitorImg: null,
       c14Img: null,
     };
@@ -37,6 +37,10 @@ export default class Ups extends OutputAsset {
       .then(Socket.socketSize)
       .then((size) => { this.setState({ socketSize: size }); })
       .then(() => this.props.onPosChange(this.props.asset.key, this.formatAssetCoordinates(this.props)));
+  }
+
+  shouldComponentUpdate(nextProps, nextState) {
+    return !!(nextState.socketSize.width && nextState.socketSize.height);
   }
 
   getOutputCoordinates = (center=true) => {
