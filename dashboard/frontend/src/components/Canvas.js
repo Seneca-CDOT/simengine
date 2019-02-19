@@ -20,7 +20,6 @@ class Canvas extends Component {
     'lamp': Lamp,
   };
 
-
   getAssetComponent(ReactElement, asset) {
     /**Render asset element (on of the components defined in 'assetMap') */
 
@@ -70,7 +69,7 @@ class Canvas extends Component {
 
         wireDrawing.push(
           <Line
-            points={Object.values(connections[key])}
+            points={Object.values(connections[key]).filter(n => typeof n === 'number')}
             stroke={asset.status===1?colors.green:"grey"}
             strokeWidth={5}
             zIndex={300}
