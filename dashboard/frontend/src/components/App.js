@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { Stage } from 'react-konva';
 import PropTypes from 'prop-types';
+import update from 'immutability-helper';
 
 // Material
 import { withStyles } from '@material-ui/core/styles';
@@ -86,17 +87,22 @@ class App extends Component {
 
       /** asset updates (power, load, battery etc... )  */
       onAssetReceived: (data) => {
-        let assets = {...this.state.assets};
+        let assets = this.state.assets;
         const isComponent = !this.state.assets[data.key];
 
         if (isComponent) {
           const parentId = this._getParentKey(data.key);
-          let assetDetails = {...assets[parentId].children[data.key]};
-          assets[parentId].children[data.key] = {...assetDetails, ...data};
-        } else {
-          assets[data.key] = {...assets[data.key], ...data};
-        }
+          assets = update(
+            assets,
+            { 
+              [parentId]: { children: { [data.key]: { $merge: data } } }
+            }
+          );
 
+        } else {
+          assets = update( assets, { [data.key]: { $merge: data } });
+        }
+        
         this.setState({ assets });
       },
 
@@ -128,17 +134,17 @@ class App extends Component {
     return strkey.substring(0, strkey.length===1?1:strkey.length-1);
   }
 
-  _updateWiring(asset, key, coord) {
+  _updateWiring(asset, coord) {
 
     let newConn = {};
     const connections = this.state.connections;
 
     if(asset['parent']) {
-      asset['parent'].forEach((p, idx) => {
-        newConn[p.key] = { ...connections[p.key], destX:coord[idx].x, destY:coord[idx].y };
+      asset['parent'].forEach((parent, idx) => {
+        newConn[parent['key']] = { ...connections[parent['key']], destX:coord[idx].x, destY:coord[idx].y };
       });
-    } else if (key in connections && coord[0]) {
-      newConn[key] = { ...connections[key], sourceX:coord[0].x, sourceY:coord[0].y };
+    } else if (asset['key'] in connections && coord[0]) {
+      newConn[asset['key']] = { ...connections[asset['key']], sourceX:coord[0].x, sourceY:coord[0].y };
     }
 
     return newConn;
@@ -154,38 +160,49 @@ class App extends Component {
   }
 
 
-  /** Update connections between assets (wires) */
+  /** Update connections between assets (wires) & asset position */
   onPosChange = (key, coord) => {
 
-    if (!coord.x || !coord.y) {
-      return;
-    }
+    if (!coord.x || !coord.y) { return; }
 
     const asset = this.getAssetByKey(key);
-
+    let { connections, assets, loadedConnections } = this.state;
+    
     // find all the incoming connections as well as output wiring
-    const { connections, loadedConnections } = this.state;
-    let newConn = this._updateWiring(asset, key, coord.inputConnections.map((c)=>c={x: c.x+coord.x, y: c.y+coord.y}));
-    let childConn = {};
+    // (connections are relative to the asset position)
 
-    let assets = {...this.state.assets};
-    if (assets[key]) {
-      let assetDetails = {...assets[key]};
-      assets[key] = {...assetDetails, ...{x: coord.x, y: coord.y }};
-    }
+    // input connections
+    connections = update(
+      connections, 
+      {
+        $merge: this._updateWiring(asset, coord.inputConnections.map((c)=>c={x: c.x+coord.x, y: c.y+coord.y}))
+      }
+    );
 
-    // output wiring
+    // update output wirings
     if (asset.children) {
       for (const ckey of Object.keys(coord.outputConnections)) {
-        const c = this._updateWiring(
-          this.getAssetByKey(ckey), ckey, [{ x: coord.x + coord.outputConnections[ckey].x, y: coord.y + coord.outputConnections[ckey].y }]
+        const outCoord = [{ x: coord.x + coord.outputConnections[ckey].x, y: coord.y + coord.outputConnections[ckey].y }];
+        connections = update(
+          connections, 
+          {
+            $merge: this._updateWiring(this.getAssetByKey(ckey), outCoord)
+          }
         );
-
-        Object.assign(childConn, c);
       }
     }
 
-    let newState = { assets, connections: { ...connections, ...newConn, ...childConn } };
+    // update asset position
+    if (assets[key]) {
+      assets = update(assets, { 
+        [key]: {
+          x: { $set: coord.x },
+          y: { $set: coord.y }
+        } 
+      });
+    }
+
+    let newState = { assets, connections };
 
     if (loadedConnections < Object.keys(newState.connections).length) {
       newState['loadedConnections'] = loadedConnections + 1;
@@ -206,7 +223,7 @@ class App extends Component {
 
   /** Send a status change request */
   changeStatus = (asset) => {
-    let data = {...asset};
+    let data = { ...asset };
     data.status = !data.status;
     this.ws.sendData({ request: 'power', key: asset.key, data });
   }
@@ -230,7 +247,7 @@ class App extends Component {
     Object.keys(assets).map((a) => ( data['assets'][a]={ x: assets[a].x, y: assets[a].y } ));
 
     if (this.ws.socketOnline()) {
-      this.ws.sendData({request: 'layout', data });
+      this.ws.sendData({ request: 'layout', data });
       this.setState({ changesSaved: true });
       setTimeout(() => {
         this.setState({ changesSaved: false });

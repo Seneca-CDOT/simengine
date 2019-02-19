@@ -35,6 +35,7 @@ export default class Server extends Asset {
       .then(() => this.props.onPosChange(this.props.asset.key, this.formatAssetCoordinates(this.props)));
   }
 
+
   /** Notify top-lvl Component that on of the PSUs was selected*/
   selectPSU = (ckey) => {
     this.setState({ selectedPsuKey: ckey });
@@ -89,7 +90,7 @@ export default class Server extends Asset {
     const { serverPlaceholderImg } = this.state;
     
     return (
-      <Group x={this.props.x} y={this.props.y} ref="asset" draggable="true" onDragMove={this.updateAssetPos.bind(this)}>
+      <Group x={this.props.asset.x} y={this.props.asset.y} ref="asset" draggable="true" onDragMove={this.updateAssetPos.bind(this)}>
 
         {/* Draw Server as SVG path */}
         <AssetOutline path={paths.server} onClick={this.handleClick.bind(this)} selected={this.props.selected} />
