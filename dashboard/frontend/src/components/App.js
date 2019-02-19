@@ -13,7 +13,7 @@ import AssetDetails from './AssetDetails';
 import TopNav from './Navigation/TopNav';
 import Canvas from './Canvas';
 import Notifications from './Notifications';
-// import Progress from './Progress';
+import Progress from './Progress';
 
 // few helpers
 import { onWheelScroll, onWheelDown } from './canvasEvents';
@@ -191,6 +191,10 @@ class App extends Component {
         );
       }
     }
+    
+    if (loadedConnections < Object.keys(connections).length && asset['parent']) {
+      loadedConnections += asset['parent'].length;
+    }
 
     // update asset position
     if (assets[key]) {
@@ -202,13 +206,7 @@ class App extends Component {
       });
     }
 
-    let newState = { assets, connections };
-
-    if (loadedConnections < Object.keys(newState.connections).length) {
-      newState['loadedConnections'] = loadedConnections + 1;
-    }
-
-    this.setState(newState);
+    this.setState({ assets, connections, loadedConnections });
   }
 
   /** Handle Asset Selection (deselect on second click, select asset otherwise) */
@@ -259,11 +257,11 @@ class App extends Component {
   render() {
 
     const { classes } = this.props;
-    const { assets, connections } = this.state;
+    const { assets, connections, loadedConnections } = this.state;
 
     // currently selected asset
     const selectedAsset = assets ? this.getAssetByKey(this.state.selectedAssetKey) : null;
-    // const progress = (loadedConnections * 100) / Object.keys(connections).length;
+    const progress = (loadedConnections * 100) / (Object.keys(connections).length || 100);
 
     // configure app's notifications:
     const snackbarOrigin = { vertical: 'bottom', horizontal: 'left', };
@@ -290,6 +288,7 @@ class App extends Component {
           {/* Main Canvas */}
           <main className={classes.content}>
             <div className={classes.toolbar} />
+            <Progress completed={progress}/>
 
             {/* Drawings */}
             <Stage

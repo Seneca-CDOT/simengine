@@ -8,8 +8,6 @@ import Asset from '../common/Asset';
 import lampSource from '../../../images/lamp.svg';
 import lampOffSource from '../../../images/lamp_off.svg';
 
-// import colors from '../../../styles/colors';
-
 
 /**
  * Outlet Graphics
@@ -43,7 +41,6 @@ class Lamp extends Asset {
   render() {
 
     const { lampImg, lampOffImg } = this.state;
-    // const strokeColor = (this.props.selected) ? colors.selectedAsset: colors.deselectedAsset;
 
     return(
       <Group x={this.props.x} y={this.props.y} ref="asset" draggable="true" onDragMove={this.updateAssetPos.bind(this)}>

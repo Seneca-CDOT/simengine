@@ -25,12 +25,12 @@ const styles = theme => ({
   },
   toolbar: theme.mixins.toolbar,
   content: {
+    position: 'relative',
     flexGrow: 1,
     backgroundColor: theme.palette.background.default,
     backgroundImage: 'url('+gridBackground+')', 
-    backgroundRepeat: "repeat",  
+    backgroundRepeat: "repeat",
     backgroundSize: "auto",
-    padding: theme.spacing.unit * 3,
   },
   menuButton: {
     marginLeft: -12,
