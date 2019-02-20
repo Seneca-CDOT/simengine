@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 
 /** 
- * Asset - aggregates some shared asset behaviour (selection & translation) 
+ * Asset - aggregates some shared asset behaviour (selection & translation)
  * */
 class Asset extends React.Component {
 
@@ -54,18 +54,23 @@ class Asset extends React.Component {
   }
 }
 
-Asset.defaultProps = { x:0, y: 0 };
+Asset.defaultProps = { x: 0, y: 0, powered: false, isComponent: false };
 
 Asset.propTypes = {
-  x: PropTypes.number, // X position of the asset
-  y: PropTypes.number, // Y position of the asset
-  asset: PropTypes.object.isRequired, // Asset Details
-  
-  selected: PropTypes.bool.isRequired, // Asset Selected by a user
-  powered: PropTypes.bool.isRequired, // indicates if upstream power is present
-
-  onPosChange: PropTypes.func.isRequired, // called on Asset position change
-  onElementSelection: PropTypes.func.isRequired, // Notify parent component of selection
+  /** X position of the asset */
+  x: PropTypes.number,
+  /** Y position of the asset */
+  y: PropTypes.number,
+  /** asset setails (status, key etc.) */
+  asset: PropTypes.object.isRequired,
+  /** indicates if asset is currently selected */
+  selected: PropTypes.bool.isRequired,
+  /** indicates if upstream power is present */
+  powered: PropTypes.bool.isRequired,
+  /** called upon asset translation */
+  onPosChange: PropTypes.func.isRequired,
+  /** notify parent component of asset selection */
+  onElementSelection: PropTypes.func.isRequired,
 };
 
 

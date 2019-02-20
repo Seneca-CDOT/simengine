@@ -163,8 +163,6 @@ class App extends Component {
   /** Update connections between assets (wires) & asset position */
   onPosChange = (key, coord) => {
 
-    if (!coord.x || !coord.y) { return; }
-
     const asset = this.getAssetByKey(key);
     let { connections, assets, loadedConnections } = this.state;
     
@@ -198,7 +196,7 @@ class App extends Component {
 
     // update asset position
     if (assets[key]) {
-      assets = update(assets, { 
+      assets = update(assets, {
         [key]: {
           x: { $set: coord.x },
           y: { $set: coord.y }

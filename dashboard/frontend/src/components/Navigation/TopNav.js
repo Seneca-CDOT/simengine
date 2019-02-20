@@ -71,7 +71,7 @@ class TopNav extends React.Component {
               HAos Simulation Engine
             </Typography>
             {/* Gear openning a drawer */}
-            <div style={styles.grow}>
+            <div className={classes.grow}>
               <SettingsOption saveLayout={this.props.saveLayout} classes={this.props.classes}/>
             </div>
 

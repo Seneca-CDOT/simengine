@@ -98,7 +98,7 @@ Socket.socketSize = () => {
   });
 };
 
-Socket.defaultProps = { fontSize: 14, isComponent: true };
+Socket.defaultProps = { fontSize: 14, isComponent: false };
 
 Socket.propTypes = {
   isComponent: PropTypes.bool, // Indicates if the outlet can be dragged
