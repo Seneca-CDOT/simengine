@@ -286,7 +286,7 @@ class App extends Component {
           {/* Main Canvas */}
           <main className={classes.content}>
             <div className={classes.toolbar} />
-            <Progress completed={progress}/>
+            {Object.keys(connections).length !== 0 && <Progress completed={progress}/>}
 
             {/* Drawings */}
             <Stage
