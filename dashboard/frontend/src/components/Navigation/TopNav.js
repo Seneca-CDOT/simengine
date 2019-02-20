@@ -83,6 +83,7 @@ class TopNav extends React.Component {
                 ambient={this.props.ambient}
                 flash={this.state.flash}
                 ambientRising={this.state.ambientRising}
+                classes={classes}
               />
             </div>
           </Toolbar>

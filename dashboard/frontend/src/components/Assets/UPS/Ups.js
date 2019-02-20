@@ -88,7 +88,7 @@ export default class Ups extends OutputAsset {
         <AssetOutline path={paths.ups} onClick={this.handleClick.bind(this)} selected={this.props.selected} />
 
         {/* UPS Label */}
-        <Text x={230} y={-125} text={this.props.asset.name} fontSize={18}  fontFamily={'Helvetica'} />
+        <Text x={230} y={-125} text={this.props.asset.name} fontSize={this.props.fontSize} fontFamily={'Helvetica'} />
 
         {/* UPS Display */}
         <LEDDisplay x={345} y={-50} battery={this.props.asset.battery} status={!!this.props.asset.status} upsMonitorImg={upsMonitorImg}/>

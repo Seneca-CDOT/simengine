@@ -34,7 +34,7 @@ class Canvas extends Component {
       selected: this.props.selectedAssetKey === asset.key,
       x: asset.x,
       y: asset.y,
-      fontSize: this.props.fontSize,
+      fontSize: this.props.labelFontSize,
     };
 
     // check if upstream power source is present
@@ -75,6 +75,7 @@ class Canvas extends Component {
             strokeWidth={wireWidth}
             zIndex={wireZIndex}
             key={`${key}${connections[key].destKey}`}
+            shadowBlur={3}
           />
         );
       }
@@ -97,7 +98,7 @@ Canvas.propTypes = {
   /** key of the selected asset */
   selectedAssetKey: PropTypes.number,
   /** font size for asset labels */
-  fontSize: PropTypes.number,
+  labelFontSize: PropTypes.number,
   /** width of the wiring (in px) */
   wireWidth: PropTypes.number,
   /** z-index of the wirings */
@@ -111,7 +112,7 @@ Canvas.propTypes = {
 };
 
 Canvas.defaultProps = {
-  fontSize: 14,
+  labelFontSize: 18,
   wireWidth: 5,
   wireZIndex: 300
 };

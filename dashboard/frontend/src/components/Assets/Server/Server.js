@@ -97,7 +97,7 @@ export default class Server extends Asset {
 
         {/* Draw Server as SVG path */}
         <AssetOutline path={paths.server} onClick={this.handleClick.bind(this)} selected={this.props.selected} />
-        <Text y={-100} text={this.props.asset.name} fontSize={18}  fontFamily={'Helvetica'}/>
+        <Text y={-100} text={this.props.asset.name} fontSize={this.props.fontSize} fontFamily={'Helvetica'}/>
         
         {/* Draw Power Supplies */}
         {psus}

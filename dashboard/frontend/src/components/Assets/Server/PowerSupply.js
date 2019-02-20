@@ -39,7 +39,7 @@ export default class PowerSupply extends Asset {
 
         {/* LED & label*/}
         <Led socketOn={this.props.asset.status} powered={this.props.powered} />
-        <Text text={this.props.asset && this.props.asset.name ? this.props.asset.name :'psu'}  y={105} />
+        <Text text={this.props.asset.name}  y={104} fontSize={14}/>
         
       </Group>
     );

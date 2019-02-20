@@ -54,7 +54,7 @@ class Socket extends Asset {
     // Selected when either parent element (e.g. PDU outlet belongs to) is selected
     // or the socket was selected
     const strokeColor = (this.props.selected || this.props.parentSelected) ? colors.selectedAsset: colors.deselectedAsset;
-
+    
     return(
       <Group 
         x={this.props.x} 
@@ -103,8 +103,7 @@ Socket.defaultProps = { fontSize: 14, isComponent: false };
 Socket.propTypes = {
   isComponent: PropTypes.bool, // Indicates if the outlet can be dragged
   parentSelected: PropTypes.bool, // Used when an outlet belongs to an asset
-  hideName: PropTypes.bool, // Display outlet name
-  fontSize: PropTypes.number, // Asset name font
+  hideName: PropTypes.bool
 };
 
 export default Socket;

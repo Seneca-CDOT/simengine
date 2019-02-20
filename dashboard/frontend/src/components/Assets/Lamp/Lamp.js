@@ -51,7 +51,4 @@ class Lamp extends Asset {
   }
 }
 
-
-
-Lamp.defaultProps = { fontSize: 14, isComponent: true };
 export default Lamp;

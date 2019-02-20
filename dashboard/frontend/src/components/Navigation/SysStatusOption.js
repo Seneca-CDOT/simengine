@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 
 import { AcUnit, PowerSettingsNew, ArrowDownward, ArrowUpward } from "@material-ui/icons";
 import { Grid, Typography, Fade } from '@material-ui/core';
+import { withStyles } from '@material-ui/core/styles';
 
 // local imports
 import PowerSwitch from '../common/PowerSwitch';
@@ -11,20 +12,20 @@ import colors from '../../styles/colors';
 /**
  * Top-Right Nav options
  */
-const SysStatusOption = ({ mainsStatus, ambient, ambientRising, flash, togglePower }) => {
+const SysStatusOption = ({ mainsStatus, ambient, ambientRising, flash, togglePower, classes }) => {
+  
   return (
     <Grid container>
-
       {/* Wall power status */}
       <Grid item>
         <PowerSwitch
           checked={mainsStatus}
           onChange={()=>togglePower(!mainsStatus)}
           label={
-            <Typography variant="title" style={{color: 'white'}}>
-              <PowerSettingsNew style={styles.inlineIcon} />
+            <Typography variant="title" className={classes.title}>
+              <PowerSettingsNew className={classes.inlineIcon} />
                 The Mains:
-                <span  style={mainsStatus?styles.online:styles.heating}>
+                <span className={mainsStatus?classes.online:classes.heating}>
                   {" "}{mainsStatus?"online":"offline"}
                 </span>
             </Typography>
@@ -33,14 +34,14 @@ const SysStatusOption = ({ mainsStatus, ambient, ambientRising, flash, togglePow
       </Grid>
 
       {/* Ambient Temperature */}
-      <Grid item style={{...styles.menuOptions, ...styles.tempGauge}}>
+      <Grid item className={[classes.menuOptions, classes.tempGauge]}>
         <Typography variant="title" color="inherit" >
-          <AcUnit style={styles.inlineIcon}/>
-          <span style={(ambient>27)?styles.heating:styles.cooling}>{ambient}°
+          <AcUnit className={classes.inlineIcon}/>
+          <span className={(ambient>27)?classes.heating:classes.cooling}>{ambient}°
             <Fade in={flash}>
               {ambientRising
-                ? <ArrowUpward style={styles.inlineIcon}/>
-                : <ArrowDownward style={styles.inlineIcon}/>
+                ? <ArrowUpward className={classes.inlineIcon}/>
+                : <ArrowDownward className={classes.inlineIcon}/>
               }
             </Fade>
           </span>
@@ -56,6 +57,9 @@ const styles = {
     marginBottom: '-0.2em',
     fontSize: 22
   },
+  title: {
+    color: '#fff',
+  },
   cooling: {
     color: colors.blue
   },
@@ -69,7 +73,7 @@ const styles = {
     padding: '0.7em',
   },
   tempGauge: {
-    borderColor:"white",
+    borderColor: '#fff',
     borderLeftStyle: 'solid',
   }
 };
@@ -84,4 +88,5 @@ SysStatusOption.propTypes = {
   flash: PropTypes.bool.isRequired, // indicates if temp arrow should be flashing
 };
 
-export default SysStatusOption;
+
+export default withStyles(styles)(SysStatusOption);

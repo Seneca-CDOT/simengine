@@ -21,11 +21,10 @@ const AssetDetails = ({ classes, asset, changeStatus }) => {
 
     const c = asset.children;
     for (const ckey of Object.keys(c)) {
-        const childStatus = assetStateSpan[c[ckey].status];
         children.push(
           <div key={ckey}>
             <Typography variant="subheading" component="h5">
-              {ckey}-{c[ckey].type} is {childStatus}
+              {ckey}-{c[ckey].type} is {assetStateSpan[c[ckey].status]}
             </Typography>
           </div>
         );

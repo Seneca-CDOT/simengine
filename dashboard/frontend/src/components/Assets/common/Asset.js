@@ -61,6 +61,8 @@ Asset.propTypes = {
   x: PropTypes.number,
   /** Y position of the asset */
   y: PropTypes.number,
+  /** font size of the label */
+  fontSize: PropTypes.number,
   /** asset setails (status, key etc.) */
   asset: PropTypes.object.isRequired,
   /** indicates if asset is currently selected */
