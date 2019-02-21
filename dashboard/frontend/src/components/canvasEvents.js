@@ -9,6 +9,10 @@ const onWheelScroll = (stage) => {
 
     const oldScale = stage.scaleX();
 
+    if (!stage.getPointerPosition()) {
+      return;
+    }
+
     const mousePointTo = {
       x: stage.getPointerPosition().x / oldScale - stage.x() / oldScale,
       y: stage.getPointerPosition().y / oldScale - stage.y() / oldScale,
