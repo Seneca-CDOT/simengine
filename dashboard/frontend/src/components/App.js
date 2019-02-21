@@ -16,7 +16,7 @@ import Notifications from './Notifications';
 import Progress from './Progress';
 
 // few helpers
-import { onWheelScroll, onWheelDown } from './canvasEvents';
+import { onWheelScroll, onWheelDown, fitStageIntoParent } from './canvasEvents';
 import simengineSocketClient from './socketClient';
 import styles from './App.styles';
 
@@ -47,6 +47,7 @@ class App extends Component {
     // scale on wheel scroll, and move canvas on middle button click
     onWheelScroll(stage);
     onWheelDown(stage);
+    fitStageIntoParent(stage);
   }
 
   connectToSocket() {
@@ -290,8 +291,6 @@ class App extends Component {
 
             {/* Drawings */}
             <Stage
-              width={window.innerWidth}
-              height={window.innerHeight * 0.88}
               ref="stage"
             >
               <Canvas

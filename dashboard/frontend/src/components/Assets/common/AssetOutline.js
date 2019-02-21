@@ -40,7 +40,7 @@ AssetOutline.propTypes = {
   /** scale of the path */
   scale: PropTypes.object.isRequired,
   /** components to be encosed in the asset outline (non-selectable items) */
-  children: PropTypes.object,
+  children: PropTypes.array,
 };
 
 export default AssetOutline;

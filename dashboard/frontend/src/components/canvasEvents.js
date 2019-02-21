@@ -50,4 +50,17 @@ const onWheelDown = (stage) => {
   });
 };
 
-export { onWheelScroll, onWheelDown, };
+/** Resize canvas/stage on window changes */
+const fitStageIntoParent = (stage) => {
+
+  const fitStage = () => {
+    stage.width(window.innerWidth);
+    stage.height(window.innerHeight  * 0.92);
+    stage.batchDraw();
+  };
+  
+  fitStage();
+  window.addEventListener('resize', fitStage);
+};
+
+export { onWheelScroll, onWheelDown, fitStageIntoParent, };
