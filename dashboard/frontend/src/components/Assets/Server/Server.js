@@ -95,19 +95,16 @@ export default class Server extends Asset {
     return (
       <Group x={this.props.x} y={this.props.y} ref="asset" draggable="true" onDragMove={this.updateAssetPos.bind(this)}>
 
-        {/* Draw Server as SVG path */}
-        <AssetOutline path={paths.server} onClick={this.handleClick.bind(this)} selected={this.props.selected} />
         <Text y={-100} text={this.props.asset.name} fontSize={this.props.fontSize} fontFamily={'Helvetica'}/>
+
+        {/* svg path, server placeholder image & led */}
+        <AssetOutline path={paths.server} onClick={this.handleClick.bind(this)} selected={this.props.selected}>
+          <Image x={550} y={-20} image={serverPlaceholderImg} onClick={this.handleClick}/>
+          <Led socketOn={this.props.asset.status} powered={this.props.powered}/>
+        </AssetOutline>
         
         {/* Draw Power Supplies */}
-        {psus}
-
-        {/* Draw some placeholder server-stuff */}
-        <Image x={550} y={-20} image={serverPlaceholderImg} onClick={this.handleClick}/>
-
-        {/* Machine status */}
-        <Led socketOn={this.props.asset.status} powered={this.props.powered}/>
-        
+        {psus}      
       </Group>
     );
   }

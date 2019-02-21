@@ -84,18 +84,14 @@ export default class Ups extends OutputAsset {
     return (
       <Group x={this.props.x} y={this.props.y} ref="asset" draggable="true" onDragMove={this.updateAssetPos.bind(this)}>
 
-        {/* Draw Ups as SVG path */}
-        <AssetOutline path={paths.ups} onClick={this.handleClick.bind(this)} selected={this.props.selected} />
-
-        {/* UPS Label */}
         <Text x={230} y={-125} text={this.props.asset.name} fontSize={this.props.fontSize} fontFamily={'Helvetica'} />
-
-        {/* UPS Display */}
-        <LEDDisplay x={345} y={-50} battery={this.props.asset.battery} status={!!this.props.asset.status} upsMonitorImg={upsMonitorImg}/>
         
-        {/* IO Sockets */}
+        <AssetOutline path={paths.ups} onClick={this.handleClick.bind(this)} selected={this.props.selected}>
+          <LEDDisplay x={345} y={-50} battery={this.props.asset.battery} status={!!this.props.asset.status} upsMonitorImg={upsMonitorImg}/>
+          {inputSocket}
+        </AssetOutline>
+
         {outputSockets}
-        {inputSocket}
 
       </Group>
     );

@@ -69,17 +69,15 @@ export default class Pdu extends OutputAsset {
     return (
       <Group x={this.props.x} y={this.props.y} ref="asset" draggable="true" onDragMove={this.updateAssetPos.bind(this)}>
 
-        {/* Draw PDU - SVG Path */}
-        <AssetOutline path={paths.pdu} onClick={this.handleClick.bind(this)} selected={this.props.selected} />
-
-        {/* PDU label */}
         <Text y={-85} text={this.props.asset.name} fontSize={this.props.fontSize}  fontFamily={'Helvetica'}/>
 
-        {/* LED display (load) */}
-        <LEDDisplay load={Math.round(this.props.asset.load)} y={15} x={845} status={!!this.props.asset.status}/>
+        {/* Draw PDU - SVG Path */}
+        <AssetOutline path={paths.pdu} onClick={this.handleClick.bind(this)} selected={this.props.selected}>
+          {/* PDU label & load LED */}
+          <LEDDisplay load={Math.round(this.props.asset.load)} y={15} x={845} status={!!this.props.asset.status}/>
+          {inputSocket}
+        </AssetOutline>
 
-        {/* Draw Sockets (input connector and output outlets) */}
-        {inputSocket}
         {outputSockets}
 
       </Group>
