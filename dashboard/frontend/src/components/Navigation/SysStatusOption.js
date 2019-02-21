@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import classNames from 'classnames';
 
 import { AcUnit, PowerSettingsNew, ArrowDownward, ArrowUpward } from "@material-ui/icons";
 import { Grid, Typography, Fade } from '@material-ui/core';
@@ -34,7 +35,7 @@ const SysStatusOption = ({ mainsStatus, ambient, ambientRising, flash, togglePow
       </Grid>
 
       {/* Ambient Temperature */}
-      <Grid item className={[classes.menuOptions, classes.tempGauge]}>
+      <Grid item className={classNames(classes.menuOptions, classes.tempGauge)}>
         <Typography variant="title" color="inherit" >
           <AcUnit className={classes.inlineIcon}/>
           <span className={(ambient>27)?classes.heating:classes.cooling}>{ambient}°

@@ -281,7 +281,6 @@ class App extends Component {
             ambientRising={this.state.ambientRising}
             mainsStatus={!!this.state.mainsStatus}
             togglePower={(status) => this.ws.sendData({ request: 'mains', mains: status })}
-            classes={classes}
           />
 
           {/* Main Canvas */}

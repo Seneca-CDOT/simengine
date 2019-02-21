@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 
 import { Settings } from "@material-ui/icons";
 import { IconButton, Divider, Drawer, List, ListItem, ListItemText } from '@material-ui/core';
+import { withStyles } from '@material-ui/core/styles';
 
 /**
  * Drawer option/settings
@@ -67,10 +68,16 @@ class SettingsOption extends React.Component {
   }
 }
 
+const styles = theme => ({
+  toolbar: theme.mixins.toolbar,
+  drawerPaper: {
+    width: 240
+  },
+});
 
 SettingsOption.propTypes = {
   classes: PropTypes.object, // styling
   saveLayout: PropTypes.func.isRequired, // drawer Save Layout callback
 };
 
-export default SettingsOption;
+export default withStyles(styles)(SettingsOption);

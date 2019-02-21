@@ -72,7 +72,7 @@ class TopNav extends React.Component {
             </Typography>
             {/* Gear openning a drawer */}
             <div className={classes.grow}>
-              <SettingsOption saveLayout={this.props.saveLayout} classes={this.props.classes}/>
+              <SettingsOption saveLayout={this.props.saveLayout}/>
             </div>
 
             {/* Top-right nav options*/}
@@ -83,7 +83,6 @@ class TopNav extends React.Component {
                 ambient={this.props.ambient}
                 flash={this.state.flash}
                 ambientRising={this.state.ambientRising}
-                classes={classes}
               />
             </div>
           </Toolbar>
@@ -97,6 +96,13 @@ const styles = {
   grow: {
     flexGrow: 1,
   },
+  appBar: {
+    width: `100%`,
+  },
+  'appBar-left': {
+    backgroundColor: "#36454F",
+    marginLeft: 240,
+  }
 };
 
 TopNav.propTypes = {
