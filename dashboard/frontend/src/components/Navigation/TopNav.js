@@ -71,8 +71,8 @@ class TopNav extends React.Component {
               HAos Simulation Engine
             </Typography>
             {/* Gear openning a drawer */}
-            <div style={styles.grow}>
-              <SettingsOption saveLayout={this.props.saveLayout} classes={this.props.classes}/>
+            <div className={classes.grow}>
+              <SettingsOption saveLayout={this.props.saveLayout}/>
             </div>
 
             {/* Top-right nav options*/}
@@ -96,6 +96,13 @@ const styles = {
   grow: {
     flexGrow: 1,
   },
+  appBar: {
+    width: `100%`,
+  },
+  'appBar-left': {
+    backgroundColor: "#36454F",
+    marginLeft: 240,
+  }
 };
 
 TopNav.propTypes = {

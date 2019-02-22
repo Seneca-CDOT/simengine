@@ -1,7 +1,5 @@
 import gridBackground from '../images/grid.png';
 
-const drawerWidth = 240;
-
 const styles = theme => ({
   root: {
     flexGrow: 1,
@@ -13,24 +11,14 @@ const styles = theme => ({
     display: 'flex',
     width: '100%',
   },
-  appBar: {
-    width: `100%`,
-  },
-  'appBar-left': {
-    backgroundColor: "#36454F",
-    marginLeft: drawerWidth,
-  },
-  drawerPaper: {
-    width: drawerWidth
-  },
   toolbar: theme.mixins.toolbar,
   content: {
+    position: 'relative',
     flexGrow: 1,
     backgroundColor: theme.palette.background.default,
     backgroundImage: 'url('+gridBackground+')', 
-    backgroundRepeat: "repeat",  
+    backgroundRepeat: "repeat",
     backgroundSize: "auto",
-    padding: theme.spacing.unit * 3,
   },
   menuButton: {
     marginLeft: -12,

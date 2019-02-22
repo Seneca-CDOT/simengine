@@ -2,21 +2,21 @@
 
 class simengineSocketClient {
 
-  constructor ({onTopologyReceived, onAmbientReceived, onAssetReceived, onMainsReceived}) {
+  constructor ({ onTopologyReceived, onAmbientReceived, onAssetReceived, onMainsReceived }) {
 
     // set up endpoint URL
-    let new_uri = '';
+    let newUri = '';
     const loc = window.location;
 
     if (loc.protocol === "https:") {
-      new_uri = "wss:";
+      newUri = "wss:";
     } else {
-      new_uri = "ws:";
+      newUri = "ws:";
     }
     
-    new_uri += "//" + loc.hostname + ':8000/simengine';
+    newUri += "//" + loc.hostname + ':8000/simengine';
 
-    this.ws = new WebSocket(new_uri);
+    this.ws = new WebSocket(newUri);
 
     this.ws.onmessage = ((evt) =>
     {

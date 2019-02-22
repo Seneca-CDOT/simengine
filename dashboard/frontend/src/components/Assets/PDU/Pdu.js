@@ -20,7 +20,7 @@ export default class Pdu extends OutputAsset {
   constructor(props) {
     super(props);
     this.state = {
-      socketSize: {x:0, y:0},
+      socketSize: { width: 0, height: 0 },
       // graphics
       c14Img: null,
     };
@@ -35,6 +35,10 @@ export default class Pdu extends OutputAsset {
       .then(Socket.socketSize)
       .then((size) => this.setState({ socketSize: size }))
       .then(() => this.props.onPosChange(this.props.asset.key, this.formatAssetCoordinates(this.props)));
+  }
+
+  shouldComponentUpdate(nextProps, nextState) {
+    return !!(nextState.socketSize.width && nextState.socketSize.height);
   }
  
   getOutputCoordinates = (center=true) => {
@@ -65,17 +69,15 @@ export default class Pdu extends OutputAsset {
     return (
       <Group x={this.props.x} y={this.props.y} ref="asset" draggable="true" onDragMove={this.updateAssetPos.bind(this)}>
 
+        <Text y={-85} text={this.props.asset.name} fontSize={this.props.fontSize}  fontFamily={'Helvetica'}/>
+
         {/* Draw PDU - SVG Path */}
-        <AssetOutline path={paths.pdu} onClick={this.handleClick.bind(this)} selected={this.props.selected} />
+        <AssetOutline path={paths.pdu} onClick={this.handleClick.bind(this)} selected={this.props.selected}>
+          {/* PDU label & load LED */}
+          <LEDDisplay load={Math.round(this.props.asset.load)} y={15} x={845} status={!!this.props.asset.status}/>
+          {inputSocket}
+        </AssetOutline>
 
-        {/* PDU label */}
-        <Text y={-85} text={this.props.asset.name} fontSize={18}  fontFamily={'Helvetica'}/>
-
-        {/* LED display (load) */}
-        <LEDDisplay load={Math.round(this.props.asset.load)} y={15} x={845} status={!!this.props.asset.status}/>
-
-        {/* Draw Sockets (input connector and output outlets) */}
-        {inputSocket}
         {outputSockets}
 
       </Group>

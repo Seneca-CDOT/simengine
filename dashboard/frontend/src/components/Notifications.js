@@ -3,7 +3,9 @@ import React from 'react';
 import Snackbar from '@material-ui/core/Snackbar';
 import PropTypes from 'prop-types';
 
-
+/**
+ * Aggregates various notification pop-ups (e.g. on backend going offline)
+ */
 const Notifications = ({ anchorOrigin, displayedSnackbars }) => {
 
   const open = !!Object.keys(displayedSnackbars).find((k)=>displayedSnackbars[k]);
@@ -35,8 +37,14 @@ const Notifications = ({ anchorOrigin, displayedSnackbars }) => {
 };
 
 Notifications.propTypes = {
-  anchorOrigin: PropTypes.object.isRequired, // notification position
-  displayedSnackbars: PropTypes.object.isRequired, // indicates what snackbar message
+  /** notification position */
+  anchorOrigin: PropTypes.object.isRequired,
+  /** indicates which snackbar message to display */
+  displayedSnackbars: PropTypes.shape({
+    socketOffline: PropTypes.bool,
+    changesSaved: PropTypes.bool,
+    layoutEmpty: PropTypes.bool
+  }).isRequired,
 };
 
 export default Notifications;

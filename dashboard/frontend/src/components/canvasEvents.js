@@ -9,6 +9,10 @@ const onWheelScroll = (stage) => {
 
     const oldScale = stage.scaleX();
 
+    if (!stage.getPointerPosition()) {
+      return;
+    }
+
     const mousePointTo = {
       x: stage.getPointerPosition().x / oldScale - stage.x() / oldScale,
       y: stage.getPointerPosition().y / oldScale - stage.y() / oldScale,
@@ -50,4 +54,17 @@ const onWheelDown = (stage) => {
   });
 };
 
-export { onWheelScroll, onWheelDown, };
+/** Resize canvas/stage on window changes */
+const fitStageIntoParent = (stage) => {
+
+  const fitStage = () => {
+    stage.width(window.innerWidth);
+    stage.height(window.innerHeight  * 0.92);
+    stage.batchDraw();
+  };
+  
+  fitStage();
+  window.addEventListener('resize', fitStage);
+};
+
+export { onWheelScroll, onWheelDown, fitStageIntoParent, };

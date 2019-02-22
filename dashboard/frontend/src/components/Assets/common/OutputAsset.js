@@ -44,6 +44,7 @@ class OutputAsset extends Asset {
           onElementSelection={() => { this.selectSocket(ckey); }}
           onPosChange={this.props.onPosChange}
           hideName={hideName}
+          isComponent={true}
           
           selected={this.state.selectedSocketKey === ckey && this.props.nestedComponentSelected}
           powered={this.props.asset.status !== 0}

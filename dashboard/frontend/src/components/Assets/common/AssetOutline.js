@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Fragment } from 'react';
 import { Path } from 'react-konva';
 import PropTypes from 'prop-types';
 
@@ -7,15 +7,23 @@ import colors from '../../../styles/colors';
 /**
  * AssetOutline (.svg outline of the asset)
  */
-const AssetOutline = ({ path, selected, onClick, scale }) => (
-  <Path data={path}
-    strokeWidth={0.4}
-    stroke={selected ? colors.selectedAsset : colors.deselectedAsset}
-    fill={colors.backgroundAssetColor}
-    scale={scale}
-    y={-575 /*?!...*/} 
-    onClick={onClick}
-  />
+const AssetOutline = ({ path, selected, onClick, scale, children }) => (
+  <Fragment>
+    <Path data={path}
+      fill={colors.backgroundAssetColor}
+      scale={scale}
+      y={-575} 
+    />
+    {children}
+    <Path data={path}
+      strokeWidth={0.4}
+      stroke={selected ? colors.selectedAsset : colors.deselectedAsset}
+      fill={null}
+      scale={scale}
+      y={-575 /*?!...*/} 
+      onClick={onClick}
+    />
+  </Fragment>
 );
 
 AssetOutline.defaultProps = {
@@ -23,10 +31,16 @@ AssetOutline.defaultProps = {
 };
 
 AssetOutline.propTypes = {
-  path: PropTypes.string.isRequired, // .svg path
-  onClick: PropTypes.func.isRequired, // Y position of the asset
-  selected: PropTypes.bool.isRequired, // indicates if the asset is selected
+  /** svg path */
+  path: PropTypes.string.isRequired,
+  /** on path selection */
+  onClick: PropTypes.func,
+  /** indicates if the asset is selected */
+  selected: PropTypes.bool.isRequired,
+  /** scale of the path */
   scale: PropTypes.object.isRequired,
+  /** components to be encosed in the asset outline (non-selectable items) */
+  children: PropTypes.array,
 };
 
 export default AssetOutline;

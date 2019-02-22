@@ -6,7 +6,9 @@ import { Server, Pdu, Ups, Socket, Lamp } from './Assets';
 
 import colors from '../styles/colors';
 
-
+/**
+ * Displays hardware components (assets) as well as their connections
+ */
 class Canvas extends Component {
 
   // map asset types to react components
@@ -20,7 +22,6 @@ class Canvas extends Component {
     'lamp': Lamp,
   };
 
-
   getAssetComponent(ReactElement, asset) {
     /**Render asset element (on of the components defined in 'assetMap') */
 
@@ -31,11 +32,9 @@ class Canvas extends Component {
       key: asset.key,
       asset: asset,
       selected: this.props.selectedAssetKey === asset.key,
-      isComponent: false,
-      powered: false,
       x: asset.x,
       y: asset.y,
-      fontSize: 14,
+      fontSize: this.props.labelFontSize,
     };
 
     // check if upstream power source is present
@@ -52,7 +51,7 @@ class Canvas extends Component {
 
 
   render() {
-    const { assets, connections } = this.props;
+    const { assets, connections, wireWidth, wireZIndex } = this.props;
 
     // asset drawings & their connections
     let systemLayout = [];
@@ -67,14 +66,16 @@ class Canvas extends Component {
       // draw wires
       for (const key of Object.keys(connections)) {
         const asset = this.props.getAssetByKey(key);
+        const linePoints = Object.values(connections[key]).filter(n => typeof n === 'number');
 
         wireDrawing.push(
           <Line
-            points={Object.values(connections[key])}
-            stroke={asset.status===1?colors.green:"grey"}
-            strokeWidth={5}
-            zIndex={300}
+            points={linePoints}
+            stroke={asset.status===1?colors.green:colors.grey}
+            strokeWidth={wireWidth}
+            zIndex={wireZIndex}
             key={`${key}${connections[key].destKey}`}
+            shadowBlur={3}
           />
         );
       }
@@ -90,12 +91,30 @@ class Canvas extends Component {
 }
 
 Canvas.propTypes = {
+  /** hardware components of the layout */
   assets: PropTypes.object,
+  /** represents wirings between assets */
   connections: PropTypes.object,
+  /** key of the selected asset */
   selectedAssetKey: PropTypes.number,
-  onPosChange: PropTypes.func.isRequired, // called on element dragged
-  onElementSelection: PropTypes.func.isRequired, // called when asset is selected
-  getAssetByKey: PropTypes.func.isRequired, // retrieve asset props by key
+  /** font size for asset labels */
+  labelFontSize: PropTypes.number,
+  /** width of the wiring (in px) */
+  wireWidth: PropTypes.number,
+  /** z-index of the wirings */
+  wireZIndex: PropTypes.number,
+  /** called when any of the assets is moved/dragged */
+  onPosChange: PropTypes.func.isRequired,
+  /** called when any of the assets is selected */
+  onElementSelection: PropTypes.func.isRequired,
+  /** retrieve asset props by key */
+  getAssetByKey: PropTypes.func.isRequired,
+};
+
+Canvas.defaultProps = {
+  labelFontSize: 18,
+  wireWidth: 5,
+  wireZIndex: 300
 };
 
 export default Canvas;
