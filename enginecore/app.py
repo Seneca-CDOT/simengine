@@ -5,6 +5,7 @@ import argparse
 import os
 import sys
 import logging
+from logging import handlers
 
 from enginecore.state.state_listener import StateListener
 
@@ -32,7 +33,12 @@ def configure_logger(develop=False):
         log_path = os.path.join(os.sep, "var", "log", "simengine", "info.log")
 
 
-    logfile_h = logging.FileHandler(log_path)
+    logfile_h = handlers.RotatingFileHandler(
+        log_path,
+        maxBytes=10*1024*1024,
+        backupCount=5,
+    )
+
     logfile_h.setFormatter(formatter)
     root.addHandler(logfile_h)
 
