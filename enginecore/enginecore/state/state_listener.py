@@ -450,16 +450,18 @@ class StateListener(Component):
           
                     new_state = int(data)
 
-                    self._notify_client(ClientRequests.mains, {'mains': new_state})     
+                    self._notify_client(ClientRequests.mains, {'mains': new_state})
                     self.fire(PowerEventManager.map_mains_event(data), self._sys_environ)
 
                     for _, outlet in mains_out.items():
-                        if new_state == 0:
-                            outlet.state.shut_down() 
-                        else:
-                            outlet.state.power_up()
 
-                        outlet.state.publish_power()
+                        if new_state == 0 and outlet.state.status != 0:
+                            outlet.state.shut_down()
+                            outlet.state.publish_power()
+                        elif new_state == 1 and outlet.state.status != 1:
+                            outlet.state.power_up()
+                            outlet.state.publish_power()
+
 
             elif channel == RedisChannels.oid_update_channel:
                 value = (self._redis_store.get(data)).decode()
@@ -519,8 +521,8 @@ class StateListener(Component):
         """
         logging.info('Initializing pub/sub event handlers...')
         Timer(0.5, Event.create("monitor_state"), persist=True).register(self)
-        Timer(1, Event.create("monitor_battery"), persist=True).register(self)
-        Timer(1, Event.create("monitor_thermal"), persist=True).register(self)
+        Timer(0.5, Event.create("monitor_battery"), persist=True).register(self)
+        Timer(0.5, Event.create("monitor_thermal"), persist=True).register(self)
 
 
     # **Events are camel-case

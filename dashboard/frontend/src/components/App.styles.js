@@ -11,7 +11,6 @@ const styles = theme => ({
     display: 'flex',
     width: '100%',
   },
-  toolbar: theme.mixins.toolbar,
   content: {
     position: 'relative',
     flexGrow: 1,

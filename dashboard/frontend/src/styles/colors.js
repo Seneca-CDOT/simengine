@@ -3,7 +3,7 @@ export default {
     greenDark: '#17703c',
     red: '#e74c3c',
     blue: '#3498db',
-    grey: '#666',
+    grey: '#ddd',
 
     ledText: 'yellow',
     ledTextWhite: 'white',

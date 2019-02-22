@@ -154,7 +154,7 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
                 db_s, int(self._asset_key), 'HighPrecOutputLoad'
             )
 
-            value_hp = (1000*(load*120)) / self.output_capacity
+            value_hp = abs((1000*(load*120)) / self.output_capacity)
 
             if oid_adv:
                 self._update_oid_value(oid_adv, dt_adv, snmp_data_types.Gauge32(value_hp/10))
