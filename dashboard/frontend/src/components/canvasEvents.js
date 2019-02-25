@@ -59,7 +59,7 @@ const fitStageIntoParent = (stage) => {
 
   const fitStage = () => {
     stage.width(window.innerWidth);
-    stage.height(window.innerHeight  * 0.92);
+    stage.height(window.innerHeight  * 0.99);
     stage.batchDraw();
   };
   
