@@ -55,8 +55,7 @@ class SNMPAgent(Agent):
         """Logic for starting up the agent """
 
         log_file = os.path.join(self._snmp_rec_dir, "snmpsimd.log")
-        
-        # start a new one
+
         cmd = ["snmpsimd.py", 
                "--agent-udpv4-endpoint={}".format(self._host),
                "--variation-module-options=redis:host:127.0.0.1,port:6379,db:0,key-spaces-id:"+str(self._key_space_id),
