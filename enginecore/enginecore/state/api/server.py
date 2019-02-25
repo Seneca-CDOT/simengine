@@ -174,9 +174,9 @@ class IBMCServerStateManager(IServerStateManager):
 
         with graph_ref.get_session() as session:
             return GraphReference.set_cv_replacement(
-                session, 
-                asset_key, 
-                controller, 
+                session,
+                asset_key,
+                controller,
                 repl_status,
                 wt_on_fail
             )

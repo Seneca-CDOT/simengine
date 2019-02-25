@@ -201,7 +201,7 @@ class StorCLIEmulator():
 
             for i, v_drive in enumerate(drives['vd']):
 
-                vd_state = self._storcli_details['stateConfig']['virtualDrive']['Optl']
+                vd_state = copy.deepcopy(self._storcli_details['stateConfig']['virtualDrive']['Optl'])
 
                 # Add Virtual Drive output
                 v_drive['DG/VD'] = '0/' + str(i)
@@ -211,11 +211,14 @@ class StorCLIEmulator():
                 for p_drive in v_drive['pd']:
                     vd_state['mediaErrorCount'] += p_drive['mediaErrorCount']
                     vd_state['otherErrorCount'] += p_drive['otherErrorCount']
+                    vd_state['predictiveErrorCount'] += p_drive['predictiveErrorCount']
 
                     if p_drive['State'] == 'Offln':
                         vd_state['numPdOffline'] += 1
                     
                 v_drive['State'] = self._get_state_from_config('virtualDrive', vd_state, 'Optl')
+                if v_drive['State'] != 'Optl':
+                    ctrl_state['vdDgd'] += 1
                 
                 topology.append({
                     'DG': 0,
@@ -240,9 +243,6 @@ class StorCLIEmulator():
             for p_drive in drives['pd']:
                 p_drive['EID:Slt'] = '{}:{}'.format(p_drive['EID'], p_drive['slotNum'])
                 p_drive['Size'] = str(p_drive['Size']) + ' GB'
-                
-                if p_drive['State'] == 'Offln':
-                    ctrl_state['numPdOffline'] += 1
 
                 p_topology.append({
                     'DG': 0,
@@ -391,16 +391,21 @@ class StorCLIEmulator():
         )
 
 
-    def _get_state_from_config(self, config_entry, current_state, optimal):
-        """Configure state based on the configuration json file"""
-        s_conf = self._storcli_details['stateConfig'][config_entry]
-        for status in s_conf:
-            for prop in current_state:
-                if current_state[prop] >= s_conf[status][prop] and s_conf[status][prop] != -1 and status != optimal:
-                    return status
+    def _get_state_from_config(self, config_entry, state_map, optimal):
+        """Configure state based on the configuration json"""
 
-        return optimal
+        config = self._storcli_details['stateConfig'][config_entry]
+        state = optimal
 
+        for cnf_state in config:
+            if cnf_state == optimal:
+                continue
+
+            for hd_prop in state_map:
+                if state_map[hd_prop] >= config[cnf_state][hd_prop] and config[cnf_state][hd_prop] != -1:
+                    state = cnf_state
+
+        return state
 
 
     def _get_virtual_drives(self, controller_num):
@@ -431,6 +436,7 @@ class StorCLIEmulator():
 
                     vd_state['mediaErrorCount'] += p_drive['mediaErrorCount']
                     vd_state['otherErrorCount'] += p_drive['otherErrorCount']
+                    vd_state['predictiveErrorCount'] += p_drive['predictiveErrorCount']
 
                     if p_drive['State'] == 'Offln':
                         vd_state['numPdOffline'] += 1

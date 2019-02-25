@@ -2,30 +2,36 @@
     "virtualDrive": {
         "Optl": {
             "numPdOffline": 0,
-            "mediaErrorCount": 0,
-            "otherErrorCount": 0
+            "numPdRebuilding": -1,
+            "mediaErrorCount": -1,
+            "otherErrorCount": -1,
+            "predictiveErrorCount": -1
         },
         "Pdgd": {
-            "numPdOffline": -1,
-            "mediaErrorCount": 5,
-            "otherErrorCount": 7
+            "numPdOffline": 1,
+            "numPdRebuilding": 1,
+            "mediaErrorCount": -1,
+            "otherErrorCount": -1,
+            "predictiveErrorCount": -1
         },
         "Dgrd": {
-            "numPdOffline": 1,
+            "numPdOffline": 2,
+            "numPdRebuilding": 1,
             "mediaErrorCount": -1,
-            "otherErrorCount": -1
+            "otherErrorCount": -1,
+            "predictiveErrorCount": 10
         }
     },
     "controller": {
         "Optimal": {
-            "numPdOffline": 0,
-            "memoryCorrectableErrors": 0,
-            "memoryUncorrectableErrors": 0
+            "vdDgd": 0,
+            "memoryCorrectableErrors": -1,
+            "memoryUncorrectableErrors": -1
         },
         "Needs Attention": {
-            "numPdOffline": 1,
-            "memoryCorrectableErrors": 100,
-            "memoryUncorrectableErrors": 20
+            "vdDgd": 1,
+            "memoryCorrectableErrors": -1,
+            "memoryUncorrectableErrors": -1
         }
     }
 }
