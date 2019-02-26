@@ -622,7 +622,7 @@ class GraphReference():
 
         s_attr = [
             'media_error_count', 'other_error_count', 'predictive_error_count',
-            'State', 'timeStamp', 'rebuildTime'
+            'State', 'time_stamp', 'rebuild_time'
         ]
 
         properties['State'] = properties['state']
@@ -634,7 +634,7 @@ class GraphReference():
 
         # record uptime so that the rebuilding process gets simulated
         if properties['State'] and properties['State'] == 'Onln':
-            properties['timeStamp'] = time.time()
+            properties['time_stamp'] = time.time()
 
         set_stm = qh.get_set_stm(properties, node_name="pd", supported_attr=s_attr)
         query.append('SET {}'.format(set_stm))

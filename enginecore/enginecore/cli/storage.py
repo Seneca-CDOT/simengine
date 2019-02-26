@@ -1,8 +1,5 @@
-"""
-simengine-cli storage set pd --asset-key=5 --controller=0 --drive-id=12 --media-error-count=2
-simengine-cli storage set pd --asset-key=5 --controller=0 --drive-id=12 --other-error-count=2
-simengine-cli storage set pd --asset-key=5 --controller=0 --drive-id=12 --predictive-error-count=2
-
+"""Storage commands including physical drive status updates, error counter setters for both
+controller and cachevault
 """
 import argparse
 from enginecore.state.state_managers import BMCServerStateManager
