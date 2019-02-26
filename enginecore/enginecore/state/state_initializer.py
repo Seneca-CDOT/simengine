@@ -76,7 +76,7 @@ def initialize(force_snmp_init=False):
 
                 redis_store.sort(temp_ordering_key, store=formatted_key + '-oids_ordering', alpha=True)
                 redis_store.delete(temp_ordering_key)
-                redis_store.rpush(asset_key, formatted_key)            
+                redis_store.rpush(asset_key, formatted_key)
 
         except StopIteration:
             print('Detected asset that is not supported')

@@ -1,8 +1,5 @@
-"""
-simengine-cli storage set pd --asset-key=5 --controller=0 --drive-id=12 --media-error-count=2
-simengine-cli storage set pd --asset-key=5 --controller=0 --drive-id=12 --other-error-count=2
-simengine-cli storage set pd --asset-key=5 --controller=0 --drive-id=12 --predictive-error-count=2
-
+"""Storage commands including physical drive status updates, error counter setters for both
+controller and cachevault
 """
 import argparse
 from enginecore.state.state_managers import BMCServerStateManager
@@ -62,19 +59,26 @@ def pd_command(pd_group):
     )
 
     set_pd_action.add_argument(
-        '-m', '--media-error-count', help="Update media error count for the drive", type=int, required=False
+        '-m', '--media-error-count', help="Update media error count for the drive", type=int
     )
 
     set_pd_action.add_argument(
-        '-o', '--other-error-count', help="Update other error count for the drive", type=int, required=False
+        '-o', '--other-error-count', help="Update other error count for the drive", type=int
     )
 
     set_pd_action.add_argument(
-        '-p', '--predictive-error-count', help="Update error prediction value for the drive", type=int, required=False
+        '-p', '--predictive-error-count', help="Update error prediction value for the drive", type=int
     )
 
     set_pd_action.add_argument(
-        '-s', '--state', help="Update state if the physical drive", choices=["Onln", "Offln"], required=False
+        '-r', 
+        '--rebuild-time', 
+        help="Time (in seconds) required to complete rebuild process for a drive", 
+        type=int, 
+    )
+
+    set_pd_action.add_argument(
+        '-s', '--state', help="Update state if the physical drive", choices=["Onln", "Offln"]
     )
 
     set_pd_action.set_defaults(

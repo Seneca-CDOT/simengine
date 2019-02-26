@@ -3,8 +3,8 @@ This module provides high-level control over system model.
 """
 import json
 import os
-
 from enum import Enum
+import time
 
 import libvirt
 
@@ -297,7 +297,8 @@ def _add_storage(asset_key, preset_file, storage_state_file):
                     "EID", "DID", "State", "DG", "Size",
                     "Intf", "Med", "SED", "PI", "SeSz",
                     "Model", "Sp", "Type", "PDC", "slotNum", "temperature",
-                    "mediaErrorCount", "otherErrorCount", "predictiveErrorCount"
+                    "mediaErrorCount", "otherErrorCount", "predictiveErrorCount",
+                    "rebuildTime", "timeStamp"
                 ]
 
                 props_stm = qh.get_props_stm(
@@ -308,7 +309,8 @@ def _add_storage(asset_key, preset_file, storage_state_file):
                             'mediaErrorCount': 0,
                             'otherErrorCount': 0,
                             'predictiveErrorCount': 0,
-                            'temperature': 0
+                            'temperature': 0,
+                            'timeStamp': time.time()
                         }
                     }, 
                     supported_attr=s_attr

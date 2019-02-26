@@ -51,7 +51,8 @@
                     "Model": "MK1401GRRB",
                     "Sp": "U",
                     "Type": "-",
-                    "PDC": "dsbl"
+                    "PDC": "dsbl",
+                    "rebuildTime": 120
                 },
                 {
                     "EID": 252,
@@ -67,7 +68,8 @@
                     "Model": "MK1401GRRB",
                     "Sp": "U",
                     "Type": "-",
-                    "PDC": "dsbl"
+                    "PDC": "dsbl",
+                    "rebuildTime": 120
                 },
                 {
                     "EID": 252,
@@ -83,7 +85,8 @@
                     "Model": "MK1401GRRB",
                     "Sp": "U",
                     "Type": "-",
-                    "PDC": "dsbl"
+                    "PDC": "dsbl",
+                    "rebuildTime": 120
                 },
                 {
                     "EID": 252,
@@ -99,7 +102,8 @@
                     "Model": "MK1401GRRB",
                     "Sp": "U",
                     "Type": "-",
-                    "PDC": "dsbl"
+                    "PDC": "dsbl",
+                    "rebuildTime": 120
                 },
                 {
                     "EID": 252,
@@ -115,7 +119,8 @@
                     "Model": "MK1401GRRB",
                     "Sp": "U",
                     "Type": "-",
-                    "PDC": "dsbl"
+                    "PDC": "dsbl",
+                    "rebuildTime": 120
                 },
                 {
                     "EID": 252,
@@ -131,7 +136,8 @@
                     "Model": "MK1401GRRB",
                     "Sp": "U",
                     "Type": "-",
-                    "PDC": "dsbl"
+                    "PDC": "dsbl",
+                    "rebuildTime": 120
                 },
                 {
                     "EID": 252,
@@ -147,7 +153,8 @@
                     "Model": "MK1401GRRB",
                     "Sp": "U",
                     "Type": "-",
-                    "PDC": "dsbl"
+                    "PDC": "dsbl",
+                    "rebuildTime": 120
                 },
                 {
                     "EID": 252,
@@ -163,7 +170,8 @@
                     "Model": "MK1401GRRB",
                     "Sp": "U",
                     "Type": "-",
-                    "PDC": "dsbl"
+                    "PDC": "dsbl",
+                    "rebuildTime": 120
                 }
             ]
         }

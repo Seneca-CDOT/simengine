@@ -545,7 +545,7 @@ class UPS(Asset, SNMPSim):
         
         event.success = e_result.new_state != e_result.old_state
 
-        return e_result  
+        return e_result
 
 
     @handler("ButtonPowerUpPressed")
