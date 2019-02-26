@@ -4,6 +4,7 @@
 
 import os
 import logging
+import time
 from distutils import dir_util
 
 import json
@@ -164,6 +165,31 @@ class StorCLIEmulator():
             return template.substitute(options)
         
 
+    def _check_vd_state(self, vd_state, physical_drives):
+        """Determine status of the virtual drive based on the physical drives' states
+        Args:
+            vd_state(dict): virtual drive state properties such as error counts & physical drive status
+            physical_drives(dict): physical drive details
+        """
+
+        # Add physical drive output (do some formatting plus check pd states)
+        for p_drive in physical_drives:
+            vd_state['mediaErrorCount'] += p_drive['mediaErrorCount']
+            vd_state['otherErrorCount'] += p_drive['otherErrorCount']
+            vd_state['predictiveErrorCount'] += p_drive['predictiveErrorCount']
+
+            p_drive_rebuilding = (time.time() - p_drive['timeStamp']) < p_drive['rebuildTime']
+
+            if p_drive['State'] == 'Offln' or p_drive_rebuilding:
+                vd_state['numPdOffline'] += 1
+
+    def _format_pd_for_output(self, physical_drives):
+        """Update a table of physical drives so it is formatted as storcli output """
+
+        for p_drive in physical_drives:
+            p_drive['EID:Slt'] = '{}:{}'.format(p_drive['EID'], p_drive['slotNum'])
+            p_drive['Size'] = str(p_drive['Size']) + ' GB'
+
     def _strcli_ctrl_info(self, controller_num):
         """Return aggregated information for a particular controller (show all)"""
 
@@ -174,13 +200,28 @@ class StorCLIEmulator():
             
             ctrl_info = GraphReference.get_controller_details(session, self._server_key, controller_num)
 
+            topology_defaults = {
+                'DG': 0,
+                'Arr': '-',
+                'Row': '-',
+                'EID:Slot': '-',
+                'DID': '-',
+                'BT': 'N',
+                'PDC': 'dsbl',
+                'PI': 'N',
+                'SED': 'N',
+                'DS3': 'none',
+                'FSpace': 'N',
+                'TR': 'N'
+            }
+
+            # templated keys
             ctrl_info_templ_keys = [
                 'serial_number', 'model', 'serial_number', 'mfg_date',
                 'SAS_address', 'PCI_address', 'rework_date',
                 'memory_correctable_errors', 'memory_uncorrectable_errors',
                 'rebuild_rate', 'pr_rate', 'bgi_rate', 'cc_rate'
             ]
-            
 
             entry_options = {
                 'controller_num': controller_num,
@@ -189,16 +230,19 @@ class StorCLIEmulator():
                 'status': 'Optimal',
             }
 
+            # copy over controller details
             for key in ctrl_info_templ_keys:
                 entry_options[key] = ctrl_info[to_camelcase(key)]
 
-            drives = GraphReference.get_all_drives(session, self._server_key, controller_num)
-            topology = []
-
+            # keep track of the issues associated with the controller
             ctrl_state = copy.deepcopy(self._storcli_details['stateConfig']['controller']['Optimal'])
             ctrl_state['memoryCorrectableErrors'] = ctrl_info['memoryCorrectableErrors']
             ctrl_state['memoryUncorrectableErrors'] = ctrl_info['memoryUncorrectableErrors']
 
+            drives = GraphReference.get_all_drives(session, self._server_key, controller_num)
+            topology = []
+
+            # analyze and format virtual drive output
             for i, v_drive in enumerate(drives['vd']):
 
                 vd_state = copy.deepcopy(self._storcli_details['stateConfig']['virtualDrive']['Optl'])
@@ -207,65 +251,47 @@ class StorCLIEmulator():
                 v_drive['DG/VD'] = '0/' + str(i)
                 v_drive['Size'] = str(v_drive['Size']) + ' GB'
 
-                # Add physical drive output (do some formatting plus check pd states)
-                for p_drive in v_drive['pd']:
-                    vd_state['mediaErrorCount'] += p_drive['mediaErrorCount']
-                    vd_state['otherErrorCount'] += p_drive['otherErrorCount']
-                    vd_state['predictiveErrorCount'] += p_drive['predictiveErrorCount']
-
-                    if p_drive['State'] == 'Offln':
-                        vd_state['numPdOffline'] += 1
-                    
+                # check pd states & determine virtual drive health status
+                self._check_vd_state(vd_state, drives['pd'])
                 v_drive['State'] = self._get_state_from_config('virtualDrive', vd_state, 'Optl')
+
                 if v_drive['State'] != 'Optl':
                     ctrl_state['vdDgd'] += 1
                 
                 topology.append({
-                    'DG': 0,
-                    'Arr': '-',
-                    'Row': '-',
-                    'EID:Slot': '-',
-                    'DID': '-',
-                    'Type': v_drive['TYPE'],
-                    'State': v_drive['State'],
-                    'BT': 'N',
-                    'Size': v_drive['Size'],
-                    'PDC': 'disable',
-                    'PI': 'N',
-                    'SED': 'N',
-                    'DS3': 'none',
-                    'FSpace': 'N',
-                    'TR': 'N'
+                    **topology_defaults, 
+                    **{
+                        'Type': v_drive['TYPE'],
+                        'State': v_drive['State'],
+                        'Size': v_drive['Size'], 
+                    }
                 })
 
             # Add physical drive output (do some formatting plus check pd states)
-            p_topology = []
-            for p_drive in drives['pd']:
-                p_drive['EID:Slt'] = '{}:{}'.format(p_drive['EID'], p_drive['slotNum'])
-                p_drive['Size'] = str(p_drive['Size']) + ' GB'
+            drives['pd'].sort(key=lambda k: k['slotNum'])
+            self._format_pd_for_output(drives['pd'])
 
-                p_topology.append({
-                    'DG': 0,
-                    'Arr': 0,
-                    'Row': p_drive['slotNum'],
-                    'EID:Slot': p_drive['EID:Slt'],
-                    'DID': '-',
-                    'Type': 'DRIVE',
-                    'State': p_drive['State'],
-                    'BT': 'N',
-                    'Size': p_drive['Size'],
-                    'PDC': 'disable',
-                    'PI': 'N',
-                    'SED': 'N',
-                    'DS3': 'none',
-                    'FSpace': 'N',
-                    'TR': 'N'
-                })
+            topology.extend(map(
+                lambda pd: {
+                    **topology_defaults,
+                    **{
+                        'Arr': 0,
+                        'Row': pd['slotNum'],
+                        'EID:Slot': pd['EID:Slt'],
+                        'DID': pd['DID'],
+                        'Type': 'DRIVE',
+                        'State': pd['State'],
+                        'Size': pd['Size'],
+                        'FSpace': '-'
+                    }
+                },
+                drives['pd']
+            ))
 
 
-            topology.extend(sorted(p_topology, key=lambda k: k['Row']))
+            # determine overall controller status
             entry_options['status'] = self._get_state_from_config('controller', ctrl_state, 'Optimal')
-            
+
             # get cachevault details:
             cv_info = GraphReference.get_cachevault(session, self._server_key, controller_num)
             cv_table = {
@@ -276,8 +302,7 @@ class StorCLIEmulator():
                 "MfgDate": cv_info['mfgDate']
             }
 
-
-            info_options = {
+            return Template(info_h.read()).substitute({
                 'header': self._strcli_header(controller_num),
                 'controller_entry': Template(entry_h.read()).substitute(entry_options),
                 'num_virt_drives': len(drives['vd']),
@@ -286,10 +311,7 @@ class StorCLIEmulator():
                 'virtual_drives': self._format_as_table(StorCLIEmulator.vd_header, drives['vd']),
                 'physical_drives': self._format_as_table(StorCLIEmulator.pd_header, drives['pd']),
                 'cachevault': self._format_as_table(cv_table.keys(), [cv_table]) 
-            }
-
-            info_template = Template(info_h.read())
-            return info_template.substitute(info_options)
+            })
 
 
     def _strcli_ctrl_cachevault(self, controller_num):
@@ -323,28 +345,27 @@ class StorCLIEmulator():
 
         with open(pd_info_f) as info_h, open(pd_entry_f) as entry_h, self._graph_ref.get_session() as session:
             drives = GraphReference.get_all_drives(session, self._server_key, controller_num)
-            pd_drives = sorted(drives['pd'], key=lambda k: k['slotNum'])
             pd_template = entry_h.read()
+            
+            pd_drives = sorted(drives['pd'], key=lambda k: k['slotNum'])
+            self._format_pd_for_output(pd_drives)
 
-            for drive in pd_drives:
+            pd_drive_table = map(
+                lambda pd: {
+                    'drive_path': '/c{}/e{}/s{}'.format(controller_num, pd['EID'], pd['slotNum']),
+                    'drive_table': self._format_as_table(StorCLIEmulator.pd_header, [pd]),
+                    'media_error_count': pd['mediaErrorCount'],
+                    'other_error_count': pd['otherErrorCount'],
+                    'predictive_failure_count': pd['predictiveErrorCount'],
+                    'drive_temp_c': pd['temperature'],
+                    'drive_temp_f': (pd['temperature'] * 9/5) + 32,
+                    'drive_model': pd['Model'],
+                    'drive_size': pd['Size']
+                },
+                pd_drives
+            )
 
-                drive['EID:Slt'] = '{}:{}'.format(drive['EID'], drive['slotNum'])
-                drive['Size'] = str(drive['Size']) + ' GB'
-
-                entry_options = {
-                    'drive_path': '/c{}/e{}/s{}'.format(controller_num, drive['EID'], drive['slotNum']),
-                    'drive_table': self._format_as_table(StorCLIEmulator.pd_header, [drive]),
-                    'media_error_count': drive['mediaErrorCount'],
-                    'other_error_count': drive['otherErrorCount'],
-                    'predictive_failure_count': drive['predictiveErrorCount'],
-                    'drive_temp_c': drive['temperature'],
-                    'drive_temp_f': (drive['temperature'] * 9/5) + 32,
-                    'drive_model': drive['Model'],
-                    'drive_size': drive['Size']
-                }
-
-                pd_output.append(Template(pd_template).substitute(entry_options))
-
+            pd_output = map(Template(pd_template).substitute, pd_drive_table)
 
             info_options['physical_drives'] = '\n'.join(pd_output)
             return  Template(info_h.read()).substitute(info_options)
@@ -430,17 +451,9 @@ class StorCLIEmulator():
                     v_drive['Cache'] = 'RWTD'
 
                 # Add physical drive output (do some formatting plus check pd states)
-                for p_drive in v_drive['pd']:
-                    p_drive['EID:Slt'] = '{}:{}'.format(p_drive['EID'], p_drive['slotNum'])
-                    p_drive['Size'] = str(p_drive['Size']) + ' GB'
+                self._format_pd_for_output(v_drive['pd'])
+                self._check_vd_state(vd_state, v_drive['pd'])
 
-                    vd_state['mediaErrorCount'] += p_drive['mediaErrorCount']
-                    vd_state['otherErrorCount'] += p_drive['otherErrorCount']
-                    vd_state['predictiveErrorCount'] += p_drive['predictiveErrorCount']
-
-                    if p_drive['State'] == 'Offln':
-                        vd_state['numPdOffline'] += 1
-                
                 v_drive['State'] = self._get_state_from_config('virtualDrive', vd_state, 'Optl')
 
                 drives.append({

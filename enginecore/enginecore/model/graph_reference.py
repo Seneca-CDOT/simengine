@@ -2,6 +2,7 @@
 
 import os
 import json
+import time
 
 from neo4j.v1 import GraphDatabase, basic_auth
 from enginecore.state.utils import format_as_redis_key
@@ -619,14 +620,21 @@ class GraphReference():
         """
         query = []
 
-        s_attr = ['media_error_count', 'other_error_count', 'predictive_error_count', 'State']
+        s_attr = [
+            'media_error_count', 'other_error_count', 'predictive_error_count',
+            'State', 'timeStamp', 'rebuildTime'
+        ]
 
         properties['State'] = properties['state']
-        
+
         # query as (server)->(storage_controller)->(physical drive)
         query.append("MATCH (server:Asset {{ key: {} }})".format(server_key))
         query.append("MATCH (server)-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})".format(controller))
         query.append("MATCH (ctrl)-[:HAS_PHYSICAL_DRIVE]->(pd:PhysicalDrive {{ DID: {} }})".format(did))
+
+        # record uptime so that the rebuilding process gets simulated
+        if properties['State'] and properties['State'] == 'Onln':
+            properties['timeStamp'] = time.time()
 
         set_stm = qh.get_set_stm(properties, node_name="pd", supported_attr=s_attr)
         query.append('SET {}'.format(set_stm))
