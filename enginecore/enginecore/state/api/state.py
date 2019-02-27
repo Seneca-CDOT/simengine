@@ -406,6 +406,34 @@ class IStateManager():
 
 
     @classmethod
+    def set_play_path(cls, path):
+        """Update play folder containing scripts"""
+
+        graph_ref = GraphReference()
+        with graph_ref.get_session() as session: 
+            GraphReference.set_play_path(session, path)
+
+
+    @classmethod
+    def plays(cls):
+        """Get plays available for execution
+        Returns:
+            tuple: list of bash files as well as python scripts
+        """
+
+        graph_ref = GraphReference()
+        with graph_ref.get_session() as session:
+
+            play_path = GraphReference.get_play_path(session)
+            play_files = [f for f in os.listdir(play_path) if os.path.isfile(os.path.join(play_path, f))]
+
+            return(
+                [os.path.splitext(f)[0] for f in play_files if os.path.splitext(f)[1] != '.py'],
+                [os.path.splitext(f)[0] for f in play_files if os.path.splitext(f)[1] == '.py']
+            )
+
+
+    @classmethod
     def get_state_manager_by_key(cls, key, supported_assets):
         """Infer asset manager from key"""
 

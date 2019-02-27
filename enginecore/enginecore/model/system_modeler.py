@@ -837,12 +837,3 @@ def delete_thermal_storage_target(attr):
 
     with GRAPH_REF.get_session() as session:
         session.run("\n".join(query))
-
-def set_play_path(path):
-    """Update path to the folder containing playbooks"""
-
-    with GRAPH_REF.get_session() as session:
-        session.run(
-            "MERGE (n:Playback { sref: 1 }) SET n.path=$path",
-            path=path
-        )
