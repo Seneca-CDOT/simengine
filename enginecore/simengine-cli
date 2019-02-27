@@ -13,6 +13,7 @@ from enginecore.cli.thermal import thermal_command
 from enginecore.cli.configure_state import configure_command
 from enginecore.cli.model import model_command
 from enginecore.cli.storage import storage_command
+from enginecore.cli.play import play_command
 
 
 ################ Define Command line options & arguments
@@ -42,6 +43,9 @@ configure_command(
 )
 model_command(
     subparsers.add_parser('model', help="Manage system model: create new/update existing asset etc.")
+)
+play_command(
+    subparsers.add_parser('play', help="Manage and execute playback scenarios")
 )
 
 try:

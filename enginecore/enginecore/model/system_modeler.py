@@ -23,7 +23,7 @@ SIMENGINE_NODE_LABELS.extend(["Asset", "StageLayout", "SystemEnvironment", "EnvP
 SIMENGINE_NODE_LABELS.extend(["OID", "OIDDesc", "Sensor", "AddressSpace"])
 SIMENGINE_NODE_LABELS.extend(["CPU", "Battery"])
 SIMENGINE_NODE_LABELS.extend(["Controller", "Storcli", "BBU", "CacheVault", "VirtualDrive", "PhysicalDrive"])
-
+SIMENGINE_NODE_LABELS.extend(['Playback'])
 
 def _add_psu(key, psu_index, attr):
     """Add a PSU to an existing server
@@ -837,3 +837,12 @@ def delete_thermal_storage_target(attr):
 
     with GRAPH_REF.get_session() as session:
         session.run("\n".join(query))
+
+def set_play_path(path):
+    """Update path to the folder containing playbooks"""
+
+    with GRAPH_REF.get_session() as session:
+        session.run(
+            "MERGE (n:Playback { sref: 1 }) SET n.path=$path",
+            path=path
+        )
