@@ -2,7 +2,7 @@
 
 class simengineSocketClient {
 
-  constructor ({ onTopologyReceived, onAmbientReceived, onAssetReceived, onMainsReceived }) {
+  constructor (dataCallback) {
 
     // set up endpoint URL
     let newUri = '';
@@ -13,7 +13,7 @@ class simengineSocketClient {
     } else {
       newUri = "ws:";
     }
-    
+
     newUri += "//" + loc.hostname + ':8000/simengine';
 
     this.ws = new WebSocket(newUri);
@@ -21,18 +21,26 @@ class simengineSocketClient {
     this.ws.onmessage = ((evt) =>
     {
       const data = JSON.parse(evt.data);
-      
+
       console.log("Server sent data: ");
       console.log(data);
 
-      if (data.request === 'topology') {
-        onTopologyReceived(data.data);
-      } else if (data.request === 'ambient') {
-        onAmbientReceived(data.data);
-      } else if (data.request === 'asset') {
-        onAssetReceived(data.data);
-      } else if (data.request === 'mains') {
-        onMainsReceived(data.data);
+      switch(data.request) {
+        case 'topology':
+          dataCallback.onTopologyReceived(data.data);
+          break;
+        case 'ambient':
+          dataCallback.onAmbientReceived(data.data);
+          break;
+        case 'asset':
+          dataCallback.onAssetReceived(data.data);
+          break;
+        case 'mains':
+          dataCallback.onMainsReceived(data.data);
+          break;
+        case 'plays':
+          dataCallback.onPlaylistReceived(data.data);
+          break;
       }
     });
   }

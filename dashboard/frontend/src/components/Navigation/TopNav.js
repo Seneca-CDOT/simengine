@@ -72,7 +72,11 @@ class TopNav extends React.Component {
             </Typography>
             {/* Gear openning a drawer */}
             <div className={classes.grow}>
-              <SettingsOption saveLayout={this.props.saveLayout}/>
+              <SettingsOption
+                saveLayout={this.props.saveLayout}
+                executePlay={this.props.executePlay}
+                plays={this.props.plays}
+              />
             </div>
 
             {/* Top-right nav options*/}
@@ -106,12 +110,22 @@ const styles = {
 };
 
 TopNav.propTypes = {
-  classes: PropTypes.object, // styling
-  saveLayout: PropTypes.func.isRequired, // drawer Save Layout callback
-  ambient: PropTypes.number.isRequired, // room temp
-  ambientRising: PropTypes.bool.isRequired, // is room temp going up?
-  mainsStatus: PropTypes.bool.isRequired, // mains power source status
+  /** styling */
+  classes: PropTypes.object,
+  /** current room temp */
+  ambient: PropTypes.number.isRequired,
+  /** indicates if room temp is going up */
+  ambientRising: PropTypes.bool.isRequired,
+  /** mains power source status */
+  mainsStatus: PropTypes.bool.isRequired,
+  /** collection of executable scripts */
+  plays: PropTypes.array,
+  /** mains toggle callback */
   togglePower: PropTypes.func.isRequired,
+  /** drawer Save Layout callback */
+  saveLayout: PropTypes.func.isRequired,
+  /** execute playbook callback */
+  executePlay: PropTypes.func.isRequired,
 };
 
 export default withStyles(styles)(TopNav);

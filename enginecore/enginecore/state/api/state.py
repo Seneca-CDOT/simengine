@@ -2,6 +2,7 @@
 import time
 import os
 import tempfile
+import subprocess
 
 import redis
 
@@ -403,6 +404,62 @@ class IStateManager():
         graph_ref = GraphReference()
         with graph_ref.get_session() as session: 
             GraphReference.set_ambient_props(session, props)
+
+
+    @classmethod
+    def set_play_path(cls, path):
+        """Update play folder containing scripts"""
+
+        graph_ref = GraphReference()
+        with graph_ref.get_session() as session: 
+            GraphReference.set_play_path(session, path)
+
+
+    @classmethod
+    def plays(cls):
+        """Get plays available for execution
+        Returns:
+            tuple: list of bash files as well as python scripts
+        """
+
+        graph_ref = GraphReference()
+        with graph_ref.get_session() as session:
+
+            play_path = GraphReference.get_play_path(session)
+            if not play_path:
+                return ([], [])
+
+            play_files = [f for f in os.listdir(play_path) if os.path.isfile(os.path.join(play_path, f))]
+
+            return(
+                [os.path.splitext(f)[0] for f in play_files if os.path.splitext(f)[1] != '.py'],
+                [os.path.splitext(f)[0] for f in play_files if os.path.splitext(f)[1] == '.py']
+            )
+
+
+    @classmethod
+    def execute_play(cls, play_name):
+        """Execute a specific play
+        Args:
+            play_name(str): playbook name
+        """
+
+        graph_ref = GraphReference()
+        with graph_ref.get_session() as session:
+
+            play_path = GraphReference.get_play_path(session)
+            if not play_path:
+                return
+
+            file_filter = lambda f: os.path.isfile(os.path.join(play_path, f)) and os.path.splitext(f)[0] == play_name
+
+            play_file = [
+                f for f in os.listdir(play_path) if file_filter(f)
+            ][0]
+
+            subprocess.Popen(
+                os.path.join(play_path, play_file), stderr=subprocess.DEVNULL, close_fds=True
+            )
 
 
     @classmethod

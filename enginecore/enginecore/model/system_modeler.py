@@ -23,7 +23,7 @@ SIMENGINE_NODE_LABELS.extend(["Asset", "StageLayout", "SystemEnvironment", "EnvP
 SIMENGINE_NODE_LABELS.extend(["OID", "OIDDesc", "Sensor", "AddressSpace"])
 SIMENGINE_NODE_LABELS.extend(["CPU", "Battery"])
 SIMENGINE_NODE_LABELS.extend(["Controller", "Storcli", "BBU", "CacheVault", "VirtualDrive", "PhysicalDrive"])
-
+SIMENGINE_NODE_LABELS.extend(['Playback'])
 
 def _add_psu(key, psu_index, attr):
     """Add a PSU to an existing server

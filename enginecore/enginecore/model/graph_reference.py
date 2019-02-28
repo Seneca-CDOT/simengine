@@ -912,7 +912,7 @@ class GraphReference():
     def get_psu_sensor_names(cls, session, server_key, psu_num):
         """Retrieve server-specific psu sensor names
         Args:
-            session:  database session
+            session: database session
             server_key(int): key of the server sensors belongs to
             psu_num(int): psu num
         """
@@ -936,3 +936,33 @@ class GraphReference():
             psu_names[entry['type']] = entry['name']
 
         return psu_names
+
+    @classmethod
+    def set_play_path(cls, session, path):
+        """Update path to the folder containing playbooks
+        Args:
+            session: database session
+            path(str): absolute path to the script folder
+        """
+        
+        session.run("MERGE (n:Playback { sref: 1 }) SET n.path=$path", path=path)
+
+
+    @classmethod
+    def get_play_path(cls, session):
+        """Get play folder
+        Args:
+            session: database session
+        Returns:
+            str: path to the plays/scripts
+        """
+        
+        results = session.run("MATCH (n:Playback { sref: 1 }) RETURN n.path as path")
+        record = results.single()
+        play_folder = ''
+
+        if record:
+            play_folder = record.get('path')
+
+        return play_folder
+    

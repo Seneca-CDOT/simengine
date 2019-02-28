@@ -2,7 +2,7 @@ import React, { Fragment } from 'react';
 import PropTypes from 'prop-types';
 
 import { Settings } from "@material-ui/icons";
-import { IconButton, Divider, Drawer, List, ListItem, ListItemText } from '@material-ui/core';
+import { IconButton, Divider, Drawer, List, ListItem, ListItemText, } from '@material-ui/core';
 import { withStyles } from '@material-ui/core/styles';
 
 /**
@@ -20,10 +20,19 @@ class SettingsOption extends React.Component {
 
   render() {
 
-    const { classes } = this.props;
+    const { classes, plays, executePlay, saveLayout } = this.props;
 
     const { drawerAnchor } = this.state;
     const drawerOpen = Boolean(drawerAnchor);
+
+    let playList = [];
+    for (const playName of plays) {
+      playList.push(
+        <ListItem button key={playName} onClick={() => executePlay(playName)}>
+          <ListItemText primary={playName} />
+        </ListItem>
+      );
+    }
 
     return (
       <Fragment>
@@ -54,12 +63,18 @@ class SettingsOption extends React.Component {
             >
               {/* Sidebar options */}
               <List>
-                <ListItem button onClick={this.props.saveLayout.bind(this)}>
+                <ListItem button onClick={saveLayout}>
                   <ListItemText primary="Save Layout" />
                 </ListItem>
                 <ListItem button onClick={()=>window.open('https://simengine.readthedocs.io/en/latest/')}>
                   <ListItemText primary="View Documentation" />
                 </ListItem>
+                {!!plays.length &&
+                  <ListItem key={'title'}>
+                    <h3>Scenarios</h3>
+                  </ListItem>
+                }
+                {playList}
               </List>
           </div>
         </Drawer>
@@ -78,6 +93,8 @@ const styles = theme => ({
 SettingsOption.propTypes = {
   classes: PropTypes.object, // styling
   saveLayout: PropTypes.func.isRequired, // drawer Save Layout callback
+  plays: PropTypes.array,
+  executePlay: PropTypes.func.isRequired,
 };
 
 export default withStyles(styles)(SettingsOption);
