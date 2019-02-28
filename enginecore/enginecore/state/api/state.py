@@ -432,6 +432,25 @@ class IStateManager():
                 [os.path.splitext(f)[0] for f in play_files if os.path.splitext(f)[1] == '.py']
             )
 
+    @classmethod
+    def execute_play(cls, play_name):
+        """Execute a specific play
+        Args:
+            play_name(str): playbook name
+        """
+
+        graph_ref = GraphReference()
+        with graph_ref.get_session() as session:
+
+            play_path = GraphReference.get_play_path(session)
+            file_filter = lambda f: os.path.isfile(os.path.join(play_path, f)) and os.path.splitext(f)[0] == play_name
+
+            play_file = [
+                f for f in os.listdir(play_path) if file_filter(f)
+            ][0]
+
+            os.system(os.path.join(play_path, play_file))
+
 
     @classmethod
     def get_state_manager_by_key(cls, key, supported_assets):
