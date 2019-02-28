@@ -426,6 +426,9 @@ class IStateManager():
         with graph_ref.get_session() as session:
 
             play_path = GraphReference.get_play_path(session)
+            if not play_path:
+                return ([], [])
+
             play_files = [f for f in os.listdir(play_path) if os.path.isfile(os.path.join(play_path, f))]
 
             return(
@@ -445,6 +448,9 @@ class IStateManager():
         with graph_ref.get_session() as session:
 
             play_path = GraphReference.get_play_path(session)
+            if not play_path:
+                return
+
             file_filter = lambda f: os.path.isfile(os.path.join(play_path, f)) and os.path.splitext(f)[0] == play_name
 
             play_file = [
