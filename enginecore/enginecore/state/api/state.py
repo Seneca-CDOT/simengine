@@ -2,6 +2,7 @@
 import time
 import os
 import tempfile
+import subprocess
 
 import redis
 
@@ -432,6 +433,7 @@ class IStateManager():
                 [os.path.splitext(f)[0] for f in play_files if os.path.splitext(f)[1] == '.py']
             )
 
+
     @classmethod
     def execute_play(cls, play_name):
         """Execute a specific play
@@ -449,7 +451,9 @@ class IStateManager():
                 f for f in os.listdir(play_path) if file_filter(f)
             ][0]
 
-            os.system(os.path.join(play_path, play_file))
+            subprocess.Popen(
+                os.path.join(play_path, play_file), stderr=subprocess.DEVNULL, close_fds=True
+            )
 
 
     @classmethod

@@ -2,6 +2,7 @@
 
 import json
 from enum import Enum
+import itertools
 
 from circuits import handler, Component
 from circuits.net.events import write
@@ -16,6 +17,7 @@ class ClientRequests(Enum):
     ambient = 2
     topology = 3
     mains = 4
+    plays = 5
 
 
 class WebSocket(Component):
@@ -38,30 +40,32 @@ class WebSocket(Component):
         assets = IStateManager.get_system_status(flatten=False)
         graph_ref = GraphReference()
         with graph_ref.get_session() as session:
-            
+
             stage_layout = GraphReference.get_stage_layout(session)
-            # self.fire(write(sock, json.dumps({'assets': assets, 'stageLayout': stage_layout}))) 
-            self.fire(write(sock, json.dumps({ 
-                'request': ClientRequests.topology.name, 
-                'data': {
-                    'assets': assets, 
-                    'stageLayout': stage_layout 
-                }
-            }))) 
 
-        self.fire(write(sock, json.dumps({ 
-            'request': ClientRequests.ambient.name, 
-            'data': {
-                'ambient': IStateManager.get_ambient(), 
-                'rising': False 
-            }
-        })))
+            self._write_data(sock, ClientRequests.topology, {
+                'assets': assets, 
+                'stageLayout': stage_layout 
+            })
 
-        self.fire(write(sock, json.dumps({ 
-            'request': ClientRequests.mains.name, 
-            'data': {
-                'mains': IStateManager.mains_status()
-            }
+        self._write_data(sock, ClientRequests.ambient, {
+            'ambient': IStateManager.get_ambient(),
+            'rising': False
+        })
+
+        self._write_data(sock, ClientRequests.plays, {
+            'plays': list(itertools.chain(*IStateManager.plays()))
+        })
+
+        self._write_data(sock, ClientRequests.mains, {'mains': IStateManager.mains_status()})
+
+
+    def _write_data(self, sock, request, data):
+        """Send response to the socket client"""
+
+        self.fire(write(sock, json.dumps({
+            'request': request.name,
+            'data': data
         })))
 
 
@@ -89,7 +93,8 @@ class WebSocket(Component):
                     IStateManager.power_outage()
                 else:
                     IStateManager.power_restore()
-
+            elif data['request'] == 'play':
+                IStateManager.execute_play(data['data']['name'])
 
     def disconnect(self, sock):
         """A client has disconnected """

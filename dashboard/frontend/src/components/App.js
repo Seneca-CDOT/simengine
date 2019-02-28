@@ -36,6 +36,7 @@ class App extends Component {
       socketOffline: true,
       changesSaved: false,
       loadedConnections: 0,
+      plays: [],
     };
 
     // establish client-server connection
@@ -95,7 +96,7 @@ class App extends Component {
           const parentId = this._getParentKey(data.key);
           assets = update(
             assets,
-            { 
+            {
               [parentId]: { children: { [data.key]: { $merge: data } } }
             }
           );
@@ -103,7 +104,7 @@ class App extends Component {
         } else {
           assets = update(assets, { [data.key]: { $merge: data } });
         }
-        
+
         this.setState({ assets });
       },
 
@@ -115,6 +116,11 @@ class App extends Component {
       /** main power update */
       onMainsReceived: (data) => {
         this.setState({ mainsStatus: data.mains });
+      },
+
+      /** scripts that can be executed */
+      onPlaylistReceived: (data) => {
+        this.setState({ plays: data.plays });
       }
     });
 
@@ -166,13 +172,13 @@ class App extends Component {
 
     const asset = this.getAssetByKey(key);
     let { connections, assets, loadedConnections } = this.state;
-    
+
     // find all the incoming connections as well as output wiring
     // (connections are relative to the asset position)
 
     // input connections
     connections = update(
-      connections, 
+      connections,
       {
         $merge: this._updateWiring(asset, coord.inputConnections.map((c)=>c={x: c.x+coord.x, y: c.y+coord.y}))
       }
@@ -183,14 +189,14 @@ class App extends Component {
       for (const ckey of Object.keys(coord.outputConnections)) {
         const outCoord = [{ x: coord.x + coord.outputConnections[ckey].x, y: coord.y + coord.outputConnections[ckey].y }];
         connections = update(
-          connections, 
+          connections,
           {
             $merge: this._updateWiring(this.getAssetByKey(ckey), outCoord)
           }
         );
       }
     }
-    
+
     if (loadedConnections < Object.keys(connections).length && asset['parent']) {
       loadedConnections += asset['parent'].length;
     }
@@ -201,7 +207,7 @@ class App extends Component {
         [key]: {
           x: { $set: coord.x },
           y: { $set: coord.y }
-        } 
+        }
       });
     }
 
@@ -224,6 +230,8 @@ class App extends Component {
     data.status = !data.status;
     this.ws.sendData({ request: 'power', key: asset.key, data });
   }
+
+  executePlay = (name) => this.ws.sendData({ request: 'play', data: { name } });
 
   /** Save assets' coordinates in db  */
   saveLayout = () => {
@@ -279,6 +287,8 @@ class App extends Component {
             saveLayout={this.saveLayout}
             ambient={this.state.ambient}
             ambientRising={this.state.ambientRising}
+            plays={this.state.plays}
+            executePlay={this.executePlay}
             mainsStatus={!!this.state.mainsStatus}
             togglePower={(status) => this.ws.sendData({ request: 'mains', mains: status })}
           />
