@@ -30,7 +30,7 @@ def play_command(power_group):
 
     # cli actions/callbacks
     folder_action.set_defaults(
-        func=lambda args: IStateManager.set_play_path(os.path.abspath(args['path']))
+        func=lambda args: IStateManager.set_play_path(os.path.abspath(os.path.expanduser(args['path'])))
     )
 
     list_action.set_defaults(
