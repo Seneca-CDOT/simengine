@@ -1,11 +1,11 @@
 Name:      simengine-core
-Version:   1
+Version:   3.7
 Release:   2
 Summary:   SimEngine - Core
 URL:       https://github.com/Seneca-CDOT/simengine
 License:   GPLv3+
 
-%global gittag 1
+%global gittag 3.7
 
 Source0: https://github.com/Seneca-CDOT/simengine/archive/%{gittag}/simengine-%{version}.tar.gz  
 
@@ -18,7 +18,7 @@ Core files for SimEngine.
 %global debug_package %{nil}
 
 %pre
-pip3 install circuits
+#pip3 install circuits
 
 %prep
 %autosetup -n simengine-%{version}
