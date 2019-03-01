@@ -1,0 +1,17 @@
+#!/bin/bash
+#
+# buildall :: builds the specfiles in the current dir
+#
+# Assumes a Fedora system
+#
+
+sudo dnf install -y "@RPM Development Tools"
+rpmdev-setuptree 2>/dev/null
+for X in *.spec
+do
+	echo ================== $X
+	spectool -g -R $X
+	sudo yum-builddeps -y $X
+	rpmbuild -ba $X || (echo "$(basename $0): Build of $X failed" >&2 ; exit 1)
+done
+

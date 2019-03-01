@@ -1,6 +1,6 @@
 Name:      simengine-dashboard
 Version:   3.7
-Release:   2
+Release:   3
 Summary:   SimEngine - Dashboard
 URL:       https://github.com/Seneca-CDOT/simengine
 License:   GPLv3+
@@ -54,5 +54,8 @@ cp -fpr * %{buildroot}%{_localstatedir}/www/html
 systemctl enable httpd.service --now
 
 %changelog
+* Fri Mar 01 2019 Chris Tyler <chris.tyler@senecacollege.ca> - 3.7-3
+- Updated for simengine 3.7
+
 * Thu Aug 16 2018 Chris Johnson <chris.johnson@senecacollege.ca>
 - Initial alpha test file
