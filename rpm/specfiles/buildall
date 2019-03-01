@@ -14,4 +14,7 @@ do
 	sudo yum-builddeps -y $X
 	rpmbuild -ba $X || (echo "$(basename $0): Build of $X failed" >&2 ; exit 1)
 done
+echo
+echo "Output RPMS will be in $(rpm --eval "%{_topdir}/RPMS")"
+echo "Output SRPMS will be in $(rpm --eval "%{_topdir}/SRPMS")"
 
