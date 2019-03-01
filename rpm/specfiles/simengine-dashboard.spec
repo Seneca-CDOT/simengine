@@ -1,11 +1,13 @@
 Name:      simengine-dashboard
-Version:   1
+Version:   3.7
 Release:   2
 Summary:   SimEngine - Dashboard
 URL:       https://github.com/Seneca-CDOT/simengine
 License:   GPLv3+
 
-Source0:   %{name}-%{version}.tar.gz
+%global gittag %{version}
+
+Source0:   https://github.com/Seneca-CDOT/simengine/archive/%{gittag}/simengine-%{version}.tar.gz
 
 Requires: simengine-database, simengine-core, httpd
 
@@ -21,17 +23,19 @@ Dashboard front-end website files for SimEngine.
 
 %install
 mkdir -p %{buildroot}%{_localstatedir}/www/html/
-cp -fRp images %{buildroot}%{_localstatedir}/www/html/
-cp -fp vendors.js %{buildroot}%{_localstatedir}/www/html/
-cp -fp main.js %{buildroot}%{_localstatedir}/www/html/
-cp -fp main.css %{buildroot}%{_localstatedir}/www/html/
-cp -fp vendors.css %{buildroot}%{_localstatedir}/www/html/
-cp -fp vendors.js.map %{buildroot}%{_localstatedir}/www/html/
-cp -fp vendors.css.map %{buildroot}%{_localstatedir}/www/html/
-cp -fp main.js.map %{buildroot}%{_localstatedir}/www/html/
-cp -fp main.css.map %{buildroot}%{_localstatedir}/www/html/
-cp -fp favicon.ico %{buildroot}%{_localstatedir}/www/html/
-cp -fp index.html %{buildroot}%{_localstatedir}/www/html/
+cd simengine-%{version}/dashboard/prebuild
+#cp -fRp images %{buildroot}%{_localstatedir}/www/html/
+#cp -fp vendors.js %{buildroot}%{_localstatedir}/www/html/
+#cp -fp main.js %{buildroot}%{_localstatedir}/www/html/
+#cp -fp main.css %{buildroot}%{_localstatedir}/www/html/
+#cp -fp vendors.css %{buildroot}%{_localstatedir}/www/html/
+#cp -fp vendors.js.map %{buildroot}%{_localstatedir}/www/html/
+#cp -fp vendors.css.map %{buildroot}%{_localstatedir}/www/html/
+#cp -fp main.js.map %{buildroot}%{_localstatedir}/www/html/
+#cp -fp main.css.map %{buildroot}%{_localstatedir}/www/html/
+#cp -fp favicon.ico %{buildroot}%{_localstatedir}/www/html/
+#cp -fp index.html %{buildroot}%{_localstatedir}/www/html/
+cp -fpr * %{buildroot}%{_localstatedir}/www/html
 
 %files
 %{_localstatedir}/www/html/images

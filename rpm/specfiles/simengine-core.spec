@@ -5,7 +5,7 @@ Summary:   SimEngine - Core
 URL:       https://github.com/Seneca-CDOT/simengine
 License:   GPLv3+
 
-%global gittag 3.7
+%global gittag %{version}
 
 Source0: https://github.com/Seneca-CDOT/simengine/archive/%{gittag}/simengine-%{version}.tar.gz  
 

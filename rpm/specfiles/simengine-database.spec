@@ -1,11 +1,13 @@
 Name:      simengine-database
-Version:   1
+Version:   3.7
 Release:   2
 Summary:   SimEngine - Databases
 URL:       https://github.com/Seneca-CDOT/simengine
 License:   GPLv3+
 
-Source0:   %{name}-%{version}.tar.gz
+%global gittag %{version}
+
+Source0: https://github.com/Seneca-CDOT/simengine/archive/%{gittag}/simengine-%{version}.tar.gz
 BuildArch: noarch
 
 Requires:  neo4j, cypher-shell, redis, python-neo4j-driver, python-redis
@@ -23,7 +25,7 @@ systemctl stop neo4j
 
 %install
 mkdir -p %{buildroot}%{_sharedstatedir}/neo4j/data/dbms/
-cp -fp auth %{buildroot}%{_sharedstatedir}/neo4j/data/dbms/
+cp -fp simengine-%{version}/database/auth %{buildroot}%{_sharedstatedir}/neo4j/data/dbms/
 
 %files
 %attr(0644, neo4j, neo4j) %{_sharedstatedir}/neo4j/data/dbms/auth
