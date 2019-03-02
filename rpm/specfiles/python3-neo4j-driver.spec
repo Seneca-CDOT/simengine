@@ -3,7 +3,7 @@
 
 Name:           python-%{pypi_name}
 Version:        1.6.1
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Neo4j Bolt driver for Python
 
 License:        Apache License, Version 2.0
@@ -54,5 +54,8 @@ rm -rf %{pypi_name}.egg-info
 %{python3_sitearch}/neo4j_driver-%{version}-py?.?.egg-info
 
 %changelog
+* Fri Mar 01 2019 Chris Tyler <chris.tyler@senecacollege.ca> - 1.6.1-2
+- Updated for simengine 3.7
+
 * Fri Aug 17 2018 Chris Johnson <christopher.johnson@senecacollege.ca> - 1.6.1-1
 - Initial package.

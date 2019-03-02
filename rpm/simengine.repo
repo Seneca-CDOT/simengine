@@ -1,5 +1,0 @@
-[simengine]
-name=SimEngine Repository
-baseurl=http://ehl.cdot.systems/repos/simengine/27
-enabled=1
-gpgcheck=0

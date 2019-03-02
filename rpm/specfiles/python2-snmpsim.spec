@@ -3,7 +3,7 @@
 
 Name:           python-%{pypi_name}
 Version:        0.4.4
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        SNMP Agents simulator
 
 License:        BSD
@@ -73,5 +73,8 @@ exit 0
 %license docs/source/license.rst LICENSE.txt
 
 %changelog
+* Fri Mar 01 2019 Chris Tyler <chris.tyler@senecacollege.ca> - 0.4.4-2
+- Updated for simengine 3.7
+
 * Fri Aug 17 2018 Chris Johnson <christopher.johnson@senecacollege.ca> - 0.4.4-1
 - Initial package.
