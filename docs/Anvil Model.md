@@ -39,11 +39,21 @@ We will need to allocate IP addresses for the SNMP simulators on the host machin
 
 4 VMs will be managed by the simulation engine —  `an-a01n01` & `an-a01n02` will be running  Fedora 28 and striker dashboards (`an-striker01` & `an-striker02`) will be hosted on CentOS-based system.
 
+
+    [root@narnia enginecore]# virsh list --all
+    Id    Name                           State
+    ----------------------------------------------------
+    -     an-a01n01                      shut off
+    -     an-a01n02                      shut off
+    -     an-striker01                   shut off
+    -     an-striker02                   shut off
+
+
 The installation of the VMs plus minor setup need to be performed prior to the system modelling stage.
 
-**BMC**
+**BMC and storcli64**
 
-Since 2 VMs ( `an-a01n01` & `an-a01n02` ) will support BMC/IPMI interface, we will need to have lanplus interface and qemu options configured;
+Since 2 VMs ( `an-a01n01` & `an-a01n02` ) will support BMC/IPMI interface and storcli64, we will need to have lanplus interface and qemu options configured;
 
 Once you install the target operating systems, shut down the VMs and configure `.xml` args as following:
 
@@ -65,6 +75,12 @@ You will need to change the top-level tag to `<domain type='kvm' xmlns:qemu='htt
         <qemu:arg value='isa-ipmi-bt,bmc=bmc0'/>
         <qemu:arg value='-serial'/>
         <qemu:arg value='mon:tcp::9012,server,telnet,nowait'/>
+        <qemu:arg value='-chardev'/>
+        <qemu:arg value='socket,id=simengine-storage-tcp,host=localhost,port=50000,reconnect=2'/>
+        <qemu:arg value='-device'/>
+        <qemu:arg value='virtio-serial'/>
+        <qemu:arg value='-device'/>
+        <qemu:arg value='virtserialport,chardev=simengine-storage-tcp,name=systems.cdot.simengine.storage.net'/>
     </qemu:commandline>
 
 **an-a01n02**
@@ -85,6 +101,12 @@ Change the top-level tag to `<domain type='kvm' xmlns:qemu='http://libvirt.org/s
         <qemu:arg value='isa-ipmi-bt,bmc=bmc0'/>
         <qemu:arg value='-serial'/>
         <qemu:arg value='mon:tcp::9012,server,telnet,nowait'/>
+        <qemu:arg value='-chardev'/>
+        <qemu:arg value='socket,id=simengine-storage-tcp,host=localhost,port=50001,reconnect=2'/>
+        <qemu:arg value='-device'/>
+        <qemu:arg value='virtio-serial'/>
+        <qemu:arg value='-device'/>
+        <qemu:arg value='virtserialport,chardev=simengine-storage-tcp,name=systems.cdot.simengine.storage.net'/>
     </qemu:commandline>
 
 ## System Model
@@ -114,8 +136,8 @@ Running the source code below should re-create the Anvil topology; `model create
     simengine-cli model create pdu -k=6 -n=an-pdu02 --host=192.168.124.6 --port=161
     
     # Add 2 Servers
-    simengine-cli model create server-bmc -k=7 --domain-name=an-a01n01 --power-consumption=360 --psu-num=2 --psu-load 0.5 0.5
-    simengine-cli model create server-bmc -k=8 --domain-name=an-a01n02 --power-consumption=360 --psu-num=2 --psu-load 0.5 0.5 --port=9101 --vmport=9102
+    simengine-cli model create server-bmc -k=7 --domain-name=an-a01n01 --power-consumption=360
+    simengine-cli model create server-bmc -k=8 --domain-name=an-a01n02 --power-consumption=360 --port=9101 --vmport=9102 --storcli-port=50001
     
     # Add 2 Striker Servers
     simengine-cli model create server -k=9 --domain-name=an-striker01 --power-consumption=240 --psu-num=1
