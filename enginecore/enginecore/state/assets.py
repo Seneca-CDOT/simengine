@@ -859,8 +859,16 @@ class PSU(StaticAsset):
 
     def __init__(self, asset_info):
         super(PSU, self).__init__(asset_info)
-        self._sensor_repo = SensorRepository(str(asset_info['key'])[:-1], enable_thermal=True)
-        self._psu_sensor_names = self._state.get_psu_sensor_names()
+
+        # only ServerWithBmc needs to handle events (in order to update sensors)
+        if 'Server' in asset_info['children'][0].labels:
+            self.removeHandler(self.on_asset_did_power_off)
+            self.removeHandler(self.on_asset_did_power_on)
+            self.removeHandler(self.increase_load_sensors)
+            self.removeHandler(self.decrease_load_sensors)
+        else:
+            self._sensor_repo = SensorRepository(str(asset_info['key'])[:-1], enable_thermal=True)
+            self._psu_sensor_names = self._state.get_psu_sensor_names()
 
 
     def _set_psu_status(self, value):
