@@ -1,11 +1,11 @@
 Name:      simengine-core
-Version:   1
-Release:   2
+Version:   3.7
+Release:   3
 Summary:   SimEngine - Core
 URL:       https://github.com/Seneca-CDOT/simengine
 License:   GPLv3+
 
-%global gittag 1
+%global gittag %{version}
 
 Source0: https://github.com/Seneca-CDOT/simengine/archive/%{gittag}/simengine-%{version}.tar.gz  
 
@@ -18,7 +18,7 @@ Core files for SimEngine.
 %global debug_package %{nil}
 
 %pre
-pip3 install circuits
+#pip3 install circuits
 
 %prep
 %autosetup -n simengine-%{version}
@@ -36,6 +36,7 @@ cp -fRp enginecore %{buildroot}%{_datadir}/simengine/
 cp -fRp data %{buildroot}%{_datadir}/simengine/
 cp -fp services/simengine-core.service %{buildroot}/usr/lib/systemd/system/
 ln -s /usr/share/simengine/enginecore/simengine-cli %{buildroot}%{_bindir}/simengine-cli
+mkdir -p %{buildroot}%{_localstatedir}/log/simengine
 exit 0
 
 %files
@@ -44,12 +45,17 @@ exit 0
 %{_datadir}/simengine/data
 /usr/lib/systemd/system/simengine-core.service
 %{_bindir}/simengine-cli
+%{_localstatedir}/log/simengine
+%ghost %{_localstatedir}/log/simengine/*
 
 %post
 systemctl daemon-reload
 systemctl enable simengine-core.service --now
 
 %changelog
+* Fri Mar 01 2019 Chris Tyler <chris.tyler@senecacollege.ca> - 3.7-3
+- Updated for simengine 3.7
+
 * Thu Aug 23 2018 Chris Johnson <chris.johnson@senecacollege.ca>
 - Converted paths to macros where applicable
 - Changed source to GitHub URL using gittag release version

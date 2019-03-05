@@ -3,7 +3,7 @@
 
 Name:           python-%{pypi_name}
 Version:        3.2
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Asynchronous Component based Event Application Framework
 
 License:        MIT
@@ -43,19 +43,19 @@ rm -rf %{pypi_name}.egg-info
 
 %install
 %py3_install
-
+mv %{buildroot}%{_bindir}/htpasswd %{buildroot}%{_bindir}/htpasswd-circuits
 #%check
 #%{__python3} setup.py test
 
 %files -n python3-%{pypi_name}
 %license LICENSE
 %doc README.rst
-%{_bindir}/circuits.bench
-%{_bindir}/circuits.web
-%config%{_bindir}/htpasswd
-%{python3_sitelib}/%{pypi_name}
-%{python3_sitelib}/%{pypi_name}-%{version}-py?.?.egg-info
+%{_bindir}/*
+%{python3_sitelib}/*
 
 %changelog
+* Fri Mar 01 2019 Chris Tyler <chris.tyler@senecacollege.ca> - 3.2-2
+- Updated for simengine 3.7
+
 * Fri Aug 17 2018 Chris Johnson <christopher.johnson@senecacollege.ca> - 3.2-1
 - Initial package.

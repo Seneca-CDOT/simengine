@@ -1,13 +1,13 @@
 Name:      simengine-dashboard
-Version:   1
+Version:   3.7
 Release:   2
 Summary:   SimEngine - Dashboard
 URL:       https://github.com/Seneca-CDOT/simengine
 License:   GPLv3+
 
-%global gittag 1
+%global gittag %{version}
 
-Source0:   https://github.com/Seneca-CDOT/simengine/archive/{gittag}/simengine-%{version}.tar.gz
+Source0: https://github.com/Seneca-CDOT/simengine/archive/%{gittag}/simengine-%{version}.tar.gz  
 Source1:   http://registry.npmjs.org/babel-cli/-/babel-cli-6.26.0.tgz
 Source2:   http://registry.npmjs.org/babel-core/-/babel-core-6.26.3.tgz
 Source3:   http://registry.npmjs.org/babel-eslint/-/babel-eslint-8.2.3.tgz

@@ -1,0 +1,26 @@
+#!/bin/bash
+#
+# buildall :: builds the specfiles in the current dir
+#
+# Assumes a Fedora system
+#
+
+sudo dnf install -y "@RPM Development Tools"
+rpmdev-setuptree 2>/dev/null
+for X in *.spec
+do
+	echo ================== $X
+	spectool -g -R $X
+	sudo dnf builddep -y $X
+	if rpmbuild -ba $X 
+	then
+		echo "$(basename $0): Build of $X completed"
+	else
+		echo "$(basename $0): Build of $X failed" >&2
+		exit 1
+	fi
+done
+echo
+echo "Output RPMS will be in $(rpm --eval "%{_topdir}/RPMS")"
+echo "Output SRPMS will be in $(rpm --eval "%{_topdir}/SRPMS")"
+
