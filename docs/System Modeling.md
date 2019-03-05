@@ -1,6 +1,6 @@
 # System Modelling
 
-`simengine-cli` provides interface for making your own system model (run `simengine-cli model --help` for more information). You can also define the system topology directly through `cypher`  & `neo4j` (see examples in `topologies` folder).
+`simengine-cli` provides interface for making your own system model (run `simengine-cli model --help` for more information).
 There're 6 supported asset types at the moment: Outlet, PDU, UPS, Server, Server with BMC (IPMI interface) and Static Device (dummy asset). The CLI type options can be found under `simengine-cli model create -h`.
 
 *Note* that the main engine daemon will need to be reloaded before schema changes can take place (any `simengine model` commands require `simengine-core` restart).
