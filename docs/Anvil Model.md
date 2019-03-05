@@ -20,8 +20,6 @@ This table summarises the general layout of the `simengine`  system model we are
 4 VMs will be running so the host machine should preferably have more than 4 cores.
 
 
-![](https://d2mxuefqeaa7sj.cloudfront.net/s_C5C75BF29B870479D1EC95201C69BB583A74A130BB1FC9890A125939ED904715_1534526372651_Screenshot+from+2018-08-17+13-15-48.png)
-
 
 ## Network Configuration
 
@@ -51,7 +49,7 @@ We will need to allocate IP addresses for the SNMP simulators on the host machin
 
 The installation of the VMs plus minor setup need to be performed prior to the system modelling stage.
 
-**BMC and storcli64**
+### BMC and storcli64
 
 Since 2 VMs ( `an-a01n01` & `an-a01n02` ) will support BMC/IPMI interface and storcli64, we will need to have lanplus interface and qemu options configured;
 
@@ -85,7 +83,7 @@ You will need to change the top-level tag to `<domain type='kvm' xmlns:qemu='htt
 
 **an-a01n02**
 
-Almost identical steps need to be performed for the second VM (note that ipmi socket is assigned a different port this time `port=9102` which we will later pass as one of the command line arguments to `simengine-cli`).
+Almost identical steps need to be performed for the second VM (note that ipmi socket is assigned a different port this time (`port=9102`) which we will later pass as one of the command line arguments to `simengine-cli`).
 
 `sudo virsh edit an-a01n02`
 
@@ -109,6 +107,13 @@ Change the top-level tag to `<domain type='kvm' xmlns:qemu='http://libvirt.org/s
         <qemu:arg value='virtserialport,chardev=simengine-storage-tcp,name=systems.cdot.simengine.storage.net'/>
     </qemu:commandline>
 
+
+**storcli64**
+
+You will need to upload `storcli64` binary to the target vms (`an-a01n01` and `an-a01n02`) bin folder `/usr/bin` and make them executable by running `chmod +x /usr/bin/storcli64`.
+
+The binary can be found in simengine repo: [link]('https://github.com/Seneca-CDOT/simengine/blob/master/storage-emulation-tests/guest/storcli64')
+
 ## System Model
 
 At this stage, we should be ready to model our HA topology. You will need to drop the existing model in case the data store is not empty:
@@ -124,24 +129,24 @@ Running the source code below should re-create the Anvil topology; `model create
 
     
     # Create 2 outlets, one powers 'an-ups01' another one powers 'an-ups02'
-    simengine-cli model create outlet --asset-key=1
-    simengine-cli model create outlet -k2
+    simengine-cli model create outlet --asset-key=1 -x=-861 -y=-171
+    simengine-cli model create outlet -k2 -x=-861 -y=351
     
     # Add 2 UPSs
-    simengine-cli model create ups -k=3 --name=an-ups01 --host=192.168.124.3 --port=161
-    simengine-cli model create ups -k=4 --name=an-ups02 --host=192.168.124.4 --port=161
+    simengine-cli model create ups -k=3 --name=an-ups01 --host=192.168.124.3 --port=161 -x=-895 -y=-182
+    simengine-cli model create ups -k=4 --name=an-ups02 --host=192.168.124.4 --port=161 -x=-895 -y=347
     
     # Create 2 PDUs
-    simengine-cli model create pdu -k=5 -n=an-pdu01 --host=192.168.124.5 --port=161
-    simengine-cli model create pdu -k=6 -n=an-pdu02 --host=192.168.124.6 --port=161
+    simengine-cli model create pdu -k=5 -n=an-pdu01 --host=192.168.124.5 --port=161 -x=-36 -y=-161
+    simengine-cli model create pdu -k=6 -n=an-pdu02 --host=192.168.124.6 --port=161 -x=-36 -y=567
     
     # Add 2 Servers
-    simengine-cli model create server-bmc -k=7 --domain-name=an-a01n01 --power-consumption=360
-    simengine-cli model create server-bmc -k=8 --domain-name=an-a01n02 --power-consumption=360 --port=9101 --vmport=9102 --storcli-port=50001
+    simengine-cli model create server-bmc -k=7 --domain-name=an-a01n01 --power-consumption=360 -x=-162 -y=320
+    simengine-cli model create server-bmc -k=8 --domain-name=an-a01n02 --power-consumption=360 --port=9101 --vmport=9102 --storcli-port=50001 -x=-171 -y=86
     
     # Add 2 Striker Servers
-    simengine-cli model create server -k=9 --domain-name=an-striker01 --power-consumption=240 --psu-num=1
-    simengine-cli model create server -k=10 --domain-name=an-striker02 --power-consumption=240 --psu-num=1
+    simengine-cli model create server -k=9 --domain-name=an-striker01 --power-consumption=240 --psu-num=1 -x=738 -y=101
+    simengine-cli model create server -k=10 --domain-name=an-striker02 --power-consumption=240 --psu-num=1 -x=734 -y=326
     
     ### Power Components
     # connect outlets & UPSs
@@ -169,6 +174,7 @@ Re-start the daemon:
 `sudo systemctl start simengine-core` 
 
 You can verify that the simulators are running by issuing:
+
 `ps aux | grep snmpsimd # should show 4 instances` 
 
 `ps aux | grep ipmi_sim # should show 2 instances` 
@@ -176,16 +182,15 @@ You can verify that the simulators are running by issuing:
 
 ## First Run
 
-The front-end web-page will display assets overlaid on top of each other. You will need to position the assets in the preferred way and save their coordinates.
+The front-end web-page will display assets in the following arrangement:
 
-Here’s one way to arrange the assets (sandwich arrangement):
-
-![](https://d2mxuefqeaa7sj.cloudfront.net/s_C5C75BF29B870479D1EC95201C69BB583A74A130BB1FC9890A125939ED904715_1534526372651_Screenshot+from+2018-08-17+13-15-48.png)
+![](./anvil.png)
 
 
-Click on gear ⚙️ icon & choose ‘Save Layout’;
+You can customize the layout by positioning the assets in the preferred way. Click on gear ⚙️ icon & choose ‘Save Layout’ to save new asset coordinates;
 
 ![](https://d2mxuefqeaa7sj.cloudfront.net/s_C5C75BF29B870479D1EC95201C69BB583A74A130BB1FC9890A125939ED904715_1534526478583_s.png)
+
 
 ## Management
 
@@ -226,6 +231,13 @@ VM:
 
 `sudo ipmitool sdr list`
 
+
+**storcli64**
+
+You can test `storcli64` from one of the vms (`an-a01n01` or `an-a01n02`) by running:
+
+`storcli64 /c0 show all`
+
 **Power Management**
 
 
@@ -237,7 +249,7 @@ And power them up/down:
 
 `simengine-cli power down -k1 # out-1 is down`
 
-More docs can be found here: [link](https://simengine.readthedocs.io/en/latest/PowerManagement/), see `simengine-cli status -h` and `simengine-cli power -h`
+More information on asset management including storage and thermal relationships can be found here: [link](./Asset%20Management);
 
 
 **Model Updates**
