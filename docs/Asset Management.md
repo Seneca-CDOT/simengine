@@ -1,3 +1,9 @@
+## Agents 
+
+You can check if ipmi/snmp simulators are up & running by issuing status command:
+
+`simengine-cli status --asset-key={key} --agent`
+
 ## Power Management
 
 Power can be managed though either UI or `simengine-cli`, for example:

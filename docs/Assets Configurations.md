@@ -1,12 +1,6 @@
 
 # Asset Configurations
 
-## Agents 
-
-You can check if ipmi/snmp simulators are up & running by issuing status command:
-
-`simengine-cli status --asset-key={key} --agent`
-
 ## UPS
 
 ### SNMP Configurations
@@ -130,60 +124,139 @@ OID JSON structure:
 
 ## Server Type
 
-Server asset can manage VMs state and control its power. It supports up to 2 PSUs at the moment and requires power consumption and valid VM domain name specified (`--domain-name={my_vm}` argument).
+SimEngine supports 2 types of servers: `server` and `server-bmc`. Asset of type `server` is a simpler variation of `server-bmc` that manages a VM but does not support `IPMI/BMC` or `storcli64` interfaces. Both server types allow up to 2 PSUs at the moment and require power consumption and valid VM domain name specified (`--domain-name={my_vm}` argument).
 
-Server with IPMI_SIM interface (`server-bmc`) requires specific `.xml` configurations for qemu VM. You can edit `libvirt` config file 
-by issuing this command:
+### BMC Server
+
+Server with IPMI_SIM interface (`server-bmc`) requires specific `.xml` configurations for qemu VM and some manual VM setup for `storcli64`. You can edit `libvirt` config file by issuing this command:
 
 `virsh edit {domain name}`
 
-You will need to change the top-level tag to `<domain type='kvm' xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'>` and also add `qemu` command line arguments (after `</devices>`) as following:
+You will need to change the top-level tag to `<domain type='kvm' xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'>` and also add `qemu` command line arguments (after `</devices>`).
 
+For instance, this CLI-defined server model:
+
+    simengine-cli model create server-bmc --asset-key=8 \
+                                          --domain-name=an-a01n02 \
+                                          --power-consumption=360 \
+                                          --port=9101 \
+                                          --vmport=9102 \
+                                          --storcli-port=50001
+
+Will require the following .xml configurations: 
 
     <qemu:commandline>
         <qemu:arg value='-chardev'/>
-        <qemu:arg value='socket,id=ipmi0,host=localhost,port=9002,reconnect=10'/>
+        <qemu:arg value='socket,id=ipmi0,host=localhost,port=9102,reconnect=10'/>
         <qemu:arg value='-device'/>
         <qemu:arg value='ipmi-bmc-extern,id=bmc0,chardev=ipmi0'/>
         <qemu:arg value='-device'/>
         <qemu:arg value='isa-ipmi-bt,bmc=bmc0'/>
         <qemu:arg value='-serial'/>
         <qemu:arg value='mon:tcp::9012,server,telnet,nowait'/>
+        <qemu:arg value='-chardev'/>
+        <qemu:arg value='socket,id=simengine-storage-tcp,host=localhost,port=50001,reconnect=2'/>
+        <qemu:arg value='-device'/>
+        <qemu:arg value='virtio-serial'/>
+        <qemu:arg value='-device'/>
+        <qemu:arg value='virtserialport,chardev=simengine-storage-tcp,name=systems.cdot.simengine.storage.net'/>
     </qemu:commandline>
 
 
+Storage emulation features require `storcli64` executable to be uploaded to the managed vm bin directory.
+The binary can be found in simengine repo: [link]('https://github.com/Seneca-CDOT/simengine/blob/master/storage-emulation-tests/guest/storcli64')
 
-Here's a sample model consisting of 2 outlets, 1 PDU, microwave and a server (controlling a VM named `fedora27`):
+Here is a breakdown of `server-bmc` command line parameters and some corresponding .xml configurations:
 
-    # Create 2 outlets, one powers PDU another one powers PSU2
-    simengine-cli model create outlet --asset-key=1
-    simengine-cli model create outlet --asset-key=2
+**IPMI Interface** 
 
-    # Add a PDU 
-    simengine-cli model create pdu --asset-key=3 --port=1024
-   
-    # Add one useless microwave
-    simengine-cli model create static --asset-key=4 --name='Panasonic' --img-url=http://z3central.cdot.systems/docs/microwave-159076_640.png --power-source=120 --power-consumption=120
+| Argument   | Description |
+| ---------- | -------------------------------------------------------------------------------------------------------- |
+| `port`     | IPMI/BMC interface port (used on the host machine): <br> `ipmitool -H localhost -p {port} -U {user}` |
+| `user`     | admin user: <br>`ipmitool -H localhost -p {port} -U {user}`                              |
+| `password` | admin user password                                                                                      |
 
-    # Add server that supports BMC & IPMI
-    simengine-cli model create server-bmc -k=5 --domain-name=fedora27 --power-consumption=480 --psu-num=2 --psu-load 0.5 0.5
+**VM Configurations**
 
-    # Power up the components
-    simengine-cli model power-link --source-key=1 --dest-key=3
-    simengine-cli model power-link --source-key=31 --dest-key=4
-    simengine-cli model power-link --source-key=35 --dest-key=51
-    simengine-cli model power-link --source-key=2 --dest-key=52
+| Argument   | Description |
+| ---------- | -------------------------------------------------------------------------------------------------------- |
+| `vmport` | Simengine will use this port internally to connect to the VM, <br>this value needs to be configured in libvirt `.xml` definition as: `<qemu:arg value='socket,id=ipmi0,host=localhost,port={vmport},reconnect=10'/>` |
+| `storcli-port` | `storcli64` binary will connect to this StorCLI websocket server port on guest OS. <br>The port value needs to be configured in libvirt `.xml` definition as: <br>`<qemu:arg value='socket,id=simengine-storage-tcp,host=localhost,port=50001,reconnect=2'/>` |
 
 
-The IPMI interface can be queried as:
+**Sensor Model**
 
-`ipmitool -H localhost -p 9001 -U ipmiusr -P test sdr list`
+SimEngine defaults its IPMI/BMC sensor definitions to the following [model](https://github.com/Seneca-CDOT/simengine/blob/master/enginecore/enginecore/model/presets/sensors.json). Custom configurations can be passed to the `cli` system modelling tool with the `--sensor-def=/path/to/my_specs.json` option. 
 
-`ipmitool -H localhost -p 9001 -U ipmiusr -P test power status`
+Engine supports a limited number of sensor [types](https://github.com/Seneca-CDOT/simengine/blob/master/enginecore/enginecore/model/supported_sensors.py) and each sensor definition must provide `defaultValue`, `offValue` and `name` as well as `address` if `addressSpace` is not provided. You can also specify any number of thresholds (or none).
 
-SNMP interface can be queried as:
+    "caseFan": {
+        "group": "fan",
+        "addressSpace": "0x6f",
+        "sensorDefinitions": [
+            {
+                "thresholds": {
+                    "lnr": 0,    // Lower Non-Recoverable 
+                    "lcr": 200,  // Lower Critical
+                    "lnc": 300,  // Lower Non-Critical
+                    "unc": 1000, // Upper Non-Critical
+                    "ucr": 1200, // Upper Critical
+                    "unr": 1500, // Upper Non-Recoverable
+                },
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "Frnt_FAN{index}"
+            }
+        ]
+    }
 
-`snmpget -c public -v 1 127.0.0.1:1024  1.3.6.1.4.1.318.1.1.12.3.3.1.1.4.3`
 
-`snmpwalk -c public -v 1 127.0.0.1:1024`
+**Storage Model**
 
+SimEngine uses the following storage topology: [storage.json](https://github.com/Seneca-CDOT/simengine/blob/master/enginecore/enginecore/model/presets/storage.json). Custom configurations can be passed to the `cli` system modelling tool with the `--storage-def=/path/to/my_specs.json` option. You can specify any number of controllers and each controller can include definitions of cache vault (`CacheVault`),  virtual and physical drives (`VD` & `PD`).
+
+
+    {
+        // ..storcli64 details
+        "controllers": [
+            {
+                // ..controller 0 details
+                "CacheVault": { ... },
+                "VD": [
+                    {
+                        // ..virtual drive 0 details
+                        // IDs of the physical drives belonging to the virtual drive
+                        "DID": [9, 10, 8]  
+                    }, { ... }
+                ],
+                "PD": [
+                    { ... },
+                    { ... }
+                ]
+            }, { ... }
+        ]
+     }
+
+
+**Storage States**
+
+Storage states file defines how the storage emulator will behave depending on current system states. For example, virtual drive will be set to partially degraded state — `Pdgd` when one of the physical drives is either offline or rebuilding:
+
+
+    {
+        "virtualDrive": {
+            "Optl": { ... }
+            "Pdgd": {
+                "numPdOffline": 1,    // set VD state to Pdgd if true
+                "numPdRebuilding": 1, // set VD state to Pdgd if true
+                "mediaErrorCount": -1,
+                "otherErrorCount": -1,
+                "predictiveErrorCount": -1
+            },
+            "Dgrd": { ... }
+        },
+        "controller": { ... }
+    }
+    
+
+Custom spec file can be passed to the `cli` system modelling tool with the `--storage-states=/path/to/my_specs.json` parameter.
