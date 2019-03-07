@@ -10,6 +10,25 @@ Install app's core components:
 
 `dnf install simengine-database simengine-core simengine-dashboard`
 
+## Python API
+
+Some SimEngine functionalities, including power management, storage and thermal settings, can be utilized through python api:
+
+```
+from enginecore.state.api import IStateManager as State
+from enginecore.state.assets import SUPPORTED_ASSETS
+
+# get pdu 4 and power it down
+pdu_4_sm = State.get_state_manager_by_key(4, SUPPORTED_ASSETS)
+pdu_4_sm.shut_down()
+```
+
+### Installation
+
+The easiest way to install package is to download it from PyPI:
+
+`python3 -m pip install simengine`
+
 
 ## Development Version
 
