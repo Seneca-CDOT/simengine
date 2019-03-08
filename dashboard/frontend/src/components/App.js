@@ -225,11 +225,13 @@ class App extends Component {
   }
 
   /** Send a status change request */
-  changeStatus = (asset) => {
+  changeAssetStatus = (asset) => {
     let payload = { ...asset };
     payload.status = !payload.status;
     this.ws.sendData({ request: 'power', payload });
   }
+
+  changeWallpowerStatus = (status) => this.ws.sendData({ request: 'mains', payload: { mains: status }})
 
   executePlay = (name) => this.ws.sendData({ request: 'play', payload: { name } });
 
@@ -290,7 +292,7 @@ class App extends Component {
             plays={this.state.plays}
             executePlay={this.executePlay}
             mainsStatus={!!this.state.mainsStatus}
-            togglePower={(status) => this.ws.sendData({ request: 'mains', mains: status })}
+            togglePower={this.changeWallpowerStatus}
           />
 
           {/* Main Canvas */}
@@ -314,7 +316,7 @@ class App extends Component {
             {/* RightMost Card -> Display Element Details */}
             {!!this.state.selectedAssetKey &&
               <AssetDetails asset={selectedAsset}
-                changeStatus={this.changeStatus}
+                changeStatus={this.changeAssetStatus}
               />
             }
             {/* Bottom-Left corner pop-ups */}
