@@ -226,16 +226,16 @@ class App extends Component {
 
   /** Send a status change request */
   changeStatus = (asset) => {
-    let data = { ...asset };
-    data.status = !data.status;
-    this.ws.sendData({ request: 'power', key: asset.key, data });
+    let payload = { ...asset };
+    payload.status = !payload.status;
+    this.ws.sendData({ request: 'power', payload });
   }
 
-  executePlay = (name) => this.ws.sendData({ request: 'play', data: { name } });
+  executePlay = (name) => this.ws.sendData({ request: 'play', payload: { name } });
 
   /** Save assets' coordinates in db  */
   saveLayout = () => {
-    let data = {};
+    let payload = {};
     const { assets } = this.state;
 
     const stage = this.refs.stage.getStage();
@@ -245,14 +245,14 @@ class App extends Component {
       y: stage.y()
     };
 
-    data['stage'] = stageLayout;
-    data['assets'] = {};
+    payload['stage'] = stageLayout;
+    payload['assets'] = {};
 
     // add asset layout info
-    Object.keys(assets).map((a) => ( data['assets'][a]={ x: assets[a].x, y: assets[a].y } ));
+    Object.keys(assets).map((a) => ( payload['assets'][a]={ x: assets[a].x, y: assets[a].y } ));
 
     if (this.ws.socketOnline()) {
-      this.ws.sendData({ request: 'layout', data });
+      this.ws.sendData({ request: 'layout', payload });
       this.setState({ changesSaved: true });
       setTimeout(() => {
         this.setState({ changesSaved: false });

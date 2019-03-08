@@ -3,6 +3,7 @@
 import json
 from enum import Enum
 import itertools
+import logging
 
 from circuits import handler, Component
 from circuits.net.events import write
@@ -69,32 +70,68 @@ class WebSocket(Component):
         })))
 
 
+    def _handle_bad_request(self, request):
+        """Handle bad request"""
+        logging.error("Bad request !")
+        logging.error(request)
+        def process_payload(payload):
+            logging.error(payload)
+        return process_payload
+
+    def _handle_power_request(self, payload):
+        pass
+    
+    def _handle_layout_request(self, payload):
+        pass
+
+    def _handle_mains_request(self, payload):
+        pass
+
+    def _handle_play_request(self, payload):
+        pass
+
     def read(self, _, data):
-        """Client has sent some request """
+        """Read client request
+        all requests are sent in a format:
+            {
+                "request": "request_name",
+                "payload": "request_data"
+            }
+        """
 
-        data = json.loads(data)
+        client_data = json.loads(data)
 
-        graph_ref = GraphReference()
-        with graph_ref.get_session() as session:
-            if data['request'] == 'power':
-                asset_key = data['key']
-                power_up = data['data']['status']
+        {
+            'power': self._handle_power_request,
+            'layout': self._handle_layout_request,
+            'mains': self._handle_mains_request,
+            'play': self._handle_play_request
+        }.get(
+            client_data['request'],
+            self._handle_bad_request(client_data['request'])
+        )(client_data['payload'])
 
-                state_manager = IStateManager.get_state_manager_by_key(asset_key, SUPPORTED_ASSETS)
+        # graph_ref = GraphReference()
+        # with graph_ref.get_session() as session:
+        #     if client_data['request'] == 'power':
+        #         asset_key = client_data['key']
+        #         power_up = client_data['payload']['status']
 
-                if power_up:
-                    state_manager.power_up()
-                else:
-                    state_manager.shut_down()
-            elif data['request'] == 'layout':
-                GraphReference.save_layout(session, data['data']['assets'], stage=data['data']['stage'])
-            elif data['request'] == 'mains':
-                if data['mains'] == 0:
-                    IStateManager.power_outage()
-                else:
-                    IStateManager.power_restore()
-            elif data['request'] == 'play':
-                IStateManager.execute_play(data['data']['name'])
+        #         state_manager = IStateManager.get_state_manager_by_key(asset_key, SUPPORTED_ASSETS)
+
+        #         if power_up:
+        #             state_manager.power_up()
+        #         else:
+        #             state_manager.shut_down()
+        #     elif client_data['request'] == 'layout':
+        #         GraphReference.save_layout(session, client_data['payload']['assets'], stage=client_data['payload']['stage'])
+        #     elif client_data['request'] == 'mains':
+        #         if client_data['mains'] == 0:
+        #             IStateManager.power_outage()
+        #         else:
+        #             IStateManager.power_restore()
+        #     elif client_data['request'] == 'play':
+        #         IStateManager.execute_play(client_data['payload']['name'])
 
     def disconnect(self, sock):
         """A client has disconnected """
