@@ -2,7 +2,7 @@
 controller and cachevault
 """
 import argparse
-from enginecore.state.state_managers import BMCServerStateManager
+from enginecore.state.api import IBMCServerStateManager
 
 def storage_command(storage_group):
     """Manage server storage space"""
@@ -82,7 +82,7 @@ def pd_command(pd_group):
     )
 
     set_pd_action.set_defaults(
-        func=lambda args: BMCServerStateManager.set_physical_drive_prop(
+        func=lambda args: IBMCServerStateManager.set_physical_drive_prop(
             args['asset_key'], args['controller'], args['drive_id'], args
         )
     )
@@ -115,7 +115,7 @@ def controller_command(ctrl_group):
     )
 
     set_ctrl_action.set_defaults(
-        func=lambda args: BMCServerStateManager.set_controller_prop(
+        func=lambda args: IBMCServerStateManager.set_controller_prop(
             args['asset_key'], args['controller'], args
         )
     )
@@ -148,7 +148,7 @@ def cv_command(cv_group):
     )
 
     set_cv_action.set_defaults(
-        func=lambda args: BMCServerStateManager.set_cv_replacement(
+        func=lambda args: IBMCServerStateManager.set_cv_replacement(
             args['asset_key'],
             args['controller'],
             args['replacement_required'],

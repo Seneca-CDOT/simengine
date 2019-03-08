@@ -4,7 +4,7 @@ import json
 import time
 import curses
 from enginecore.state.assets import Asset
-from enginecore.state.state_managers import StateManager
+from enginecore.state.api import IStateManager
 
 
 def status_command(status_group):
@@ -110,7 +110,7 @@ def get_status(**kwargs):
         return
 
     ##### list states #####
-    assets = StateManager.get_system_status()
+    assets = IStateManager.get_system_status()
 
     # json format
     if kwargs['json']: 
@@ -131,7 +131,7 @@ def get_status(**kwargs):
             while True:
                 status_table_format(assets, stdscr)
                 time.sleep(kwargs['watch_rate'])
-                assets = StateManager.get_system_status()
+                assets = IStateManager.get_system_status()
         except KeyboardInterrupt:
             pass
         finally:

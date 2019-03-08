@@ -2,7 +2,7 @@
 
 import argparse
 import enginecore.model.system_modeler as sys_modeler
-from enginecore.state.state_managers import StateManager
+from enginecore.state.api import IStateManager
 
 def handle_link(kwargs):
     """Power connections"""
@@ -56,7 +56,7 @@ def model_command(asset_group):
     power_asset_action.add_argument('-r', '--remove', action='store_true', help="Delete power conneciton if exists")
 
     reload_asset_action.set_defaults(
-        func=lambda args: StateManager.reload_model() 
+        func=lambda args: IStateManager.reload_model() 
     )
 
     delete_asset_action.set_defaults(
