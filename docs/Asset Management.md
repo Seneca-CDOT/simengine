@@ -251,3 +251,16 @@ SimEngine supports a built-in `storcli64` simulator that can reconstruct core st
 | `storcli64 /c0 /vall show all`       | Display virtual drives<br><br>Virtual drive states will change depending on [storage_state.json](https://github.com/Seneca-CDOT/simengine/blob/master/enginecore/enginecore/model/presets/storage_states.json) definition file and current status of physical drives or other storage components.<br><br>For example with out-of-the-box settings, virtual drive state will be set to `Pdgd` (partially degraded) if one of the physical drives belonging to the virtual space is set offline:<br><br>`simengine-cli storage pd set --asset-key=5 --controller=0 --drive-id=7 --state=Offln` |
 | `storcli64 /c0 /eall /sall show all` | Display physical drives<br><br>Error counts, such as `Media Error Count`, `Other Error Count` and `Predictive Error Count` are settable (see `simengine-cli storage pd set -h`)<br><br>Drive state can be set to either `Onln` or `Offln`:<br>`simengine-cli storage pd set --asset-key=5 --controller=0 --drive-id=7 --state=Offln` |
 
+##  Playback Scenarios 
+
+You can register your own scripts with `simengine-cli` and execute them through either `cli` or SimEngine dashboard:
+
+
+    # Provide a folder SimEngine would register scripts from 
+    simengine-cli play folder --path='~/dev/plays'
+    ls ~/dev/plays
+          outlet_test.sh   # bash (simengine-cli)
+          pdu_test.py      # using python api
+    
+    # execute a script
+    simengine-cli play execute outlet_test
