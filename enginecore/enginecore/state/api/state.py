@@ -3,6 +3,8 @@ import time
 import os
 import tempfile
 import subprocess
+import json
+from websocket import create_connection
 
 import redis
 
@@ -11,6 +13,7 @@ from enginecore.state.utils import format_as_redis_key
 from enginecore.state.redis_channels import RedisChannels
 
 from enginecore.state.asset_definition import SUPPORTED_ASSETS
+
 
 
 class IStateManager():
@@ -28,7 +31,7 @@ class IStateManager():
     def key(self):
         """Asset Key """
         return self._asset_key
-    
+
 
     @property
     def redis_key(self):
@@ -475,3 +478,52 @@ class IStateManager():
             
             module = 'enginecore.state.api'
             return next(filter(lambda x: x.__module__.startswith(module), sm_mro))(asset_info)
+
+
+class StateClient():
+    """A web-socket client responsible for state"""
+
+    socket_conf = {
+        'host': os.environ.get('SIMENGINE_SOCKET_HOST', "0.0.0.0"),
+        'port': os.environ.get('SIMENGINE_SOCKET_PORT', int(8000))
+    }
+
+
+    def __init__(self, key):
+        self._asset_key = key
+        self._ws_client = StateClient.get_ws_client()
+
+
+    @classmethod
+    def get_ws_client(cls):
+        return create_connection("ws://{host}:{port}/simengine".format(**StateClient.socket_conf))
+
+
+    @classmethod
+    def send_request(cls, request, data, ws_client=None):
+        if not ws_client:
+            ws_client = StateClient.get_ws_client()
+
+        ws_client.send(json.dumps({"request": request, "payload": data}))
+
+
+    def power_up(self):
+        StateClient.send_request("power", {"status": 1, "key": self._asset_key}, self._ws_client)
+
+
+    def shut_down(self):
+        StateClient.send_request("power", {"status": 0, "key": self._asset_key}, self._ws_client)
+
+
+    @classmethod
+    def power_outage(cls):
+        """Simulate complete power outage/restoration"""
+        StateClient.send_request("mains", {"mains": 0})
+
+
+    @classmethod
+    def power_restore(cls):
+        """Simulate complete power restoration"""
+        StateClient.send_request("mains", {"mains": 1})
+
+

@@ -1,6 +1,6 @@
 """Power management commands for assets and the system in general"""
 
-from enginecore.state.api import IStateManager
+from enginecore.state.api.state import StateClient
 from enginecore.state.assets import Asset
 
 
@@ -22,8 +22,8 @@ def power_command(power_group):
 
     power_outage_action = power_subp.add_parser('outage', help="Simulate complete power loss")
     power_restore_action = power_subp.add_parser('restore', help="Restore mains power after outage")
-    power_outage_action.set_defaults(func=lambda _: IStateManager.power_outage())
-    power_restore_action.set_defaults(func=lambda _: IStateManager.power_restore())
+    power_outage_action.set_defaults(func=lambda _: StateClient.power_outage())
+    power_restore_action.set_defaults(func=lambda _: StateClient.power_restore())
     power_up_action.set_defaults(
         func=lambda args: manage_state(args['asset_key'], lambda a: a.power_up())
     )
@@ -39,6 +39,5 @@ def manage_state(asset_key, mng_action):
         asset_key (int): supplied asset identifier
         mng_action (func): callable object (lambda/function etc) that identifies action
     """
-    state_manager = Asset.get_state_manager_by_key(asset_key)
+    state_manager = StateClient(asset_key)
     mng_action(state_manager)
-    

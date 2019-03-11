@@ -131,6 +131,7 @@ class WebSocket(Component):
         """
 
         client_data = json.loads(data)
+        logging.info(client_data)
 
         # map request names to functions, report 'bad' request on error
         {
