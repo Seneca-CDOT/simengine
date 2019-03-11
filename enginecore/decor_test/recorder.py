@@ -5,6 +5,7 @@ from itertools import zip_longest
 from datetime import datetime as dt
 import time
 
+recorder = Recorder()
 
 
 class Recorder:
@@ -38,33 +39,3 @@ class Recorder:
                 time.sleep((next_action['timestamp'] - action['timestamp']).seconds)
 
 
-recorder = Recorder()
-
-class Server:
-
-    @recorder
-    def power_down(self):
-        print('powering down')
-
-    @recorder
-    def power_up(self):
-        print('powering up')
-
-    @recorder
-    def destroy_fan(self, fan_index):
-        print('nuking fan #{}'.format(fan_index))
-
-
-server = Server()
-server.power_down() # <-takes 1 second
-
-time.sleep(5)
-server.power_up()
-server.destroy_fan(3)
-
-
-print('== Replaying actions: ==')
-# recorder.replay_all()
-
-play_last_2 = slice(-2, None)
-recorder.replay_range(play_last_2)
