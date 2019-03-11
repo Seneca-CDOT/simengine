@@ -1,0 +1,20 @@
+#!/bin/bash
+#
+# newtag :: bump the release and tag it
+#
+oldtag="$(git tag --sort=version:refname|tail -n 1)"
+oldminor="$(sed "s/^.*\.//" <<<$oldtag)"
+newminor=$((oldminor+1))
+newtag="$(sed "s/\..*$/.$newminor/" <<<$oldtag)"
+
+echo "oldtag:   $oldtag"
+echo "newtag:   $newtag"
+
+git tag "$newtag"
+for X in simengine*.spec
+do
+	rpmdev-bumpspec --new "$newtag" $X
+done
+
+git commit -am "Bumped tag $oldtag -> $newtag"
+
