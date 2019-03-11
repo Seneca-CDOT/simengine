@@ -1,5 +1,5 @@
 Name:      simengine-dashboard
-Version:   3.10
+Version:   3.11
 Release:   1%{?dist}
 Summary:   SimEngine - Dashboard
 URL:       https://github.com/Seneca-CDOT/simengine
@@ -26,7 +26,8 @@ npm run build
 
 %install
 mkdir -p %{buildroot}%{_localstatedir}/www/html/
-cd public
+pwd
+cd simengine-%{version}/dashboard/frontend/public
 #cp -fRp images %{buildroot}%{_localstatedir}/www/html/
 #cp -fp vendors.js %{buildroot}%{_localstatedir}/www/html/
 #cp -fp main.js %{buildroot}%{_localstatedir}/www/html/
@@ -41,22 +42,26 @@ cd public
 cp -fpr * %{buildroot}%{_localstatedir}/www/html
 
 %files
-%{_localstatedir}/www/html/images
-%{_localstatedir}/www/html/vendors.js
-%{_localstatedir}/www/html/main.js
-%{_localstatedir}/www/html/main.css
-%{_localstatedir}/www/html/vendors.css
-%{_localstatedir}/www/html/vendors.js.map
-%{_localstatedir}/www/html/vendors.css.map
-%{_localstatedir}/www/html/main.js.map
-%{_localstatedir}/www/html/main.css.map
-%{_localstatedir}/www/html/favicon.ico
-%{_localstatedir}/www/html/index.html
+#%{_localstatedir}/www/html/images
+#%{_localstatedir}/www/html/vendors.js
+#%{_localstatedir}/www/html/main.js
+#%{_localstatedir}/www/html/main.css
+#%{_localstatedir}/www/html/vendors.css
+#%{_localstatedir}/www/html/vendors.js.map
+#%{_localstatedir}/www/html/vendors.css.map
+#%{_localstatedir}/www/html/main.js.map
+#%{_localstatedir}/www/html/main.css.map
+#%{_localstatedir}/www/html/favicon.ico
+#%{_localstatedir}/www/html/index.html
+%{_localstatedir}/www/html/*
 
 %post
 systemctl enable httpd.service --now
 
 %changelog
+* Mon Mar 11 2019 Chris Tyler - 3.11-1
+- new version
+
 * Mon Mar 11 2019 Chris Tyler <ctyler.fedora@gmail.com> - 3.10-1
 - new version
 
