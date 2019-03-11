@@ -8,6 +8,7 @@ handled by individual assets.
 """
 import json
 import logging
+import os
 
 from circuits import Component, Event, Timer, Worker, Debugger, task
 import redis
@@ -23,7 +24,6 @@ from enginecore.state.redis_channels import RedisChannels
 from enginecore.model.graph_reference import GraphReference
 from enginecore.state.state_initializer import initialize, clear_temp
 
-SOCKET_CONF = {'host': "0.0.0.0", 'port': 8000}
 
 class NotifyClient(Event):
     """Notify websocket clients of any data updates"""
@@ -56,10 +56,18 @@ class StateListener(Component):
         # init graph db instance
         logging.info('Initializing neo4j connection...')
         self._graph_ref = GraphReference()
-        
+
         # set up a web socket server
-        logging.info('Initializing websocket server at %s:%s ...', SOCKET_CONF['host'], SOCKET_CONF['port'])
-        self._server = Server((SOCKET_CONF['host'], SOCKET_CONF['port'])).register(self)  
+        socket_conf = {
+            'host': os.environ.get('SIMENGINE_SOCKET_HOST'),
+            'port': int(os.environ.get('SIMENGINE_SOCKET_PORT'))
+        }
+
+        logging.info('Initializing websocket server at %s:%s ...', socket_conf['host'], socket_conf['port'])
+        self._server = Server((
+            socket_conf['host'],
+            socket_conf['port']
+        )).register(self)
 
         Worker(process=False).register(self)
         Static().register(self._server)

@@ -66,6 +66,8 @@ def configure_env(relative=False):
     os.environ['SIMENGINE_STATIC_DATA'] = os.environ.get('SIMENGINE_STATIC_DATA', static_path)
     os.environ['SIMENGINE_IPMI_TEMPL'] = os.environ.get('SIMENGINE_IPMI_TEMPL', ipmi_templ_path)
     os.environ['SIMENGINE_STORCLI_TEMPL'] = os.environ.get('SIMENGINE_STORCLI_TEMPL', storcli_templ_path)
+    os.environ['SIMENGINE_SOCKET_HOST'] = os.environ.get('SIMENGINE_SOCKET_HOST', "0.0.0.0")
+    os.environ['SIMENGINE_SOCKET_PORT'] = os.environ.get('SIMENGINE_SOCKET_PORT', str(8000))
 
     os.environ['SIMENGINE_SNMP_SHA'] = os.environ.get(
         'SIMENGINE_SNMP_SHA',

@@ -42,4 +42,4 @@ def get_asset_type(labels):
     )
 
     return next(iter(asset_label)).lower()
-    
+
