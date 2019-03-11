@@ -378,7 +378,7 @@ class StateListener(Component):
 
         self.fire(NotifyClient({
             'request': client_request.name,
-            'data': data
+            'payload': data
         }), self._ws)
 
 

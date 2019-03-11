@@ -127,6 +127,9 @@ class App extends Component {
     // when websocket is connected
     this.ws.onOpen(() => {
       this.setState({ socketOffline: false });
+
+      this.ws.sendData({ request: 'status', payload: {}});
+      this.ws.sendData({ request: 'subscribe', payload: {}});
     });
 
     // websocket is closed. try to reconnect every 5 seconds

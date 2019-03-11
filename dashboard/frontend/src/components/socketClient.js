@@ -27,19 +27,19 @@ class simengineSocketClient {
 
       switch(data.request) {
         case 'topology':
-          dataCallback.onTopologyReceived(data.data);
+          dataCallback.onTopologyReceived(data.payload);
           break;
         case 'ambient':
-          dataCallback.onAmbientReceived(data.data);
+          dataCallback.onAmbientReceived(data.payload);
           break;
         case 'asset':
-          dataCallback.onAssetReceived(data.data);
+          dataCallback.onAssetReceived(data.payload);
           break;
         case 'mains':
-          dataCallback.onMainsReceived(data.data);
+          dataCallback.onMainsReceived(data.payload);
           break;
         case 'plays':
-          dataCallback.onPlaylistReceived(data.data);
+          dataCallback.onPlaylistReceived(data.payload);
           break;
       }
     });
