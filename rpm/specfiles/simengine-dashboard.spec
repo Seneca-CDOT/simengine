@@ -20,10 +20,13 @@ Dashboard front-end website files for SimEngine.
 %autosetup -c %{name}
 
 %build
+cd simengine-%{version}/dashboard/frontend
+npm i
+npm run build
 
 %install
 mkdir -p %{buildroot}%{_localstatedir}/www/html/
-cd simengine-%{version}/dashboard/prebuild
+cd public
 #cp -fRp images %{buildroot}%{_localstatedir}/www/html/
 #cp -fp vendors.js %{buildroot}%{_localstatedir}/www/html/
 #cp -fp main.js %{buildroot}%{_localstatedir}/www/html/

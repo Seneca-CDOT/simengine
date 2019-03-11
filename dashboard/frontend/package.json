@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Dashboard for SimEngine platform",
   "scripts": {
-    "build": "webpack",
+    "build": "webpack --env.env=prod",
     "build:dev": "npm run build -- --env.env=dev",
     "build:dev:watch": "npm run build:dev -- --watch",
     "build:dev:bundleanalyze": "npm run build:dev -- --env.addons=bundleanalyze",
