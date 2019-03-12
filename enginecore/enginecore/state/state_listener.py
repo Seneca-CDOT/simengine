@@ -363,7 +363,7 @@ class StateListener(Component):
                     node_load = child_asset.state.load * updated_asset.state.draw_percentage
 
                     # logging.info('Child load : {}'.format(node_load))
-                    if int(new_state) == 0:  
+                    if int(new_state) == 0:
                         alt_branch_event = PowerEventManager.map_load_increased_by(node_load, child_asset.key)
                     else:
                         alt_branch_event = PowerEventManager.map_load_decreased_by(node_load, child_asset.key)

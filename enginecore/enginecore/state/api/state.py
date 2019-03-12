@@ -13,7 +13,7 @@ from enginecore.state.utils import format_as_redis_key
 from enginecore.state.redis_channels import RedisChannels
 
 from enginecore.state.asset_definition import SUPPORTED_ASSETS
-
+from enginecore.state.recorder import RECORDER as record
 
 
 class IStateManager():
@@ -90,35 +90,43 @@ class IStateManager():
         return (int(pid), os.path.exists("/proc/" + pid.decode("utf-8"))) if pid else None
 
 
+    @record
     def shut_down(self):
         """Implements state logic for graceful power-off event, sleeps for the pre-configured time
             
         Returns:
             int: Asset's status after power-off operation
         """
+        print('SHUTTING DOWN {}'.format(self.key))
         self._sleep_shutdown()
         if self.status:
             self._set_state_off()
         return self.status
 
 
+    @record
     def power_off(self):
         """Implements state logic for abrupt power loss 
         
         Returns:
             int: Asset's status after power-off operation
         """
+        print('POWERING OFF {}'.format(self.key))
+
         if self.status:
             self._set_state_off()
         return self.status
 
 
+    @record
     def power_up(self):
         """Implements state logic for power up, sleeps for the pre-configured time & resets boot time
         
         Returns:
             int: Asset's status after power-on operation
         """
+        print('POWERING UP {}'.format(self.key))
+
         if self._parents_available() and not self.status:
             self._sleep_powerup()
             # udpate machine start time & turn on
@@ -355,8 +363,9 @@ class IStateManager():
         """Request daemon reloading"""
         cls.get_store().publish(RedisChannels.model_update_channel, 'reload')
 
-    
+
     @classmethod
+    @record
     def power_outage(cls):
         """Simulate complete power outage/restoration"""
         cls.get_store().set('mains-source', '0')
@@ -364,6 +373,7 @@ class IStateManager():
 
 
     @classmethod
+    @record
     def power_restore(cls):
         """Simulate complete power restoration"""
         cls.get_store().set('mains-source', '1')
@@ -526,4 +536,8 @@ class StateClient():
         """Simulate complete power restoration"""
         StateClient.send_request("mains", {"mains": 1})
 
+
+    @classmethod
+    def replay_all(cls):
+        StateClient.send_request("actions", {"all": True})
 

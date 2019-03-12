@@ -4,13 +4,14 @@ import json
 from enum import Enum
 import itertools
 import logging
+import threading
 
 from circuits import handler, Component
 from circuits.net.events import write
 from enginecore.state.assets import SUPPORTED_ASSETS
 from enginecore.state.api import IStateManager
 from enginecore.model.graph_reference import GraphReference
-
+from enginecore.state.recorder import RECORDER as recorder
 
 class ClientRequests(Enum):
     """Requests to the client """
@@ -51,9 +52,8 @@ class WebSocket(Component):
 
     def _handle_bad_request(self, request):
         """Handle bad request"""
-
-        logging.error("Cannot process '%s' request: ", request)
         def process_payload(details):
+            logging.error("Cannot process '%s' request: ", request)
             logging.error("Received payload with '%s' request from client '%s':", request, details['client'])
             logging.error(details['payload'])
         return process_payload
@@ -121,6 +121,20 @@ class WebSocket(Component):
         self._write_data(details['client'], ClientRequests.mains, {'mains': IStateManager.mains_status()})
 
 
+    def _handle_actions_request(self, details):
+        print("\n\n=======================================\n\n")
+        recorder.list_all()
+        replay_t = threading.Thread(
+            target=recorder.replay_all,
+            # kwargs={'slc': slice(-5, None)},
+            name="recorder",
+        )
+
+        replay_t.daemon = True
+        replay_t.start()
+        # recorder.replay_range(slice(-5, None))
+
+
     def read(self, sock, data):
         """Read client request
         all requests are sent in a format:
@@ -141,10 +155,11 @@ class WebSocket(Component):
             'play': self._handle_play_request,
             'status': self._handle_status_request,
             'subscribe': self._handle_subscribe_request,
+            'actions': self._handle_actions_request,
         }.get(
             client_data['request'],
             # default to bad request
-            lambda: self._handle_bad_request(client_data['request'])
+            self._handle_bad_request(client_data['request'])
         )({
             "client": sock,
             "payload": client_data['payload']

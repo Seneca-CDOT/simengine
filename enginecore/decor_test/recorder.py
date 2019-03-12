@@ -5,7 +5,6 @@ from itertools import zip_longest
 from datetime import datetime as dt
 import time
 
-recorder = Recorder()
 
 
 class Recorder:
@@ -39,3 +38,4 @@ class Recorder:
                 time.sleep((next_action['timestamp'] - action['timestamp']).seconds)
 
 
+recorder = Recorder()

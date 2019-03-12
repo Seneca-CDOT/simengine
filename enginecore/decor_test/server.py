@@ -1,8 +1,9 @@
 
 
+from recorder import recorder
+
 class Server:
 
-    recorder = lambda _: None
 
     @recorder
     def power_down(self):

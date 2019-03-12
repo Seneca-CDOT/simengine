@@ -3,10 +3,10 @@
 
 import time
 from server import Server 
-from recorder import Recorder
+from recorder import recorder
 
 if __name__ == '__main__':
-    recorder = Recorder()
+    # recorder = Recorder()
 
 
     server = Server()
@@ -19,7 +19,7 @@ if __name__ == '__main__':
 
 
     print('== Replaying actions: ==')
-    recorder.replay_all()
+    # recorder.replay_all()
 
     play_last_2 = slice(-2, None)
-    # recorder.replay_range(play_last_2)
+    recorder.replay_range(play_last_2)

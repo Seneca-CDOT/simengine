@@ -40,6 +40,9 @@ cli.model_command(
 cli.play_command(
     subparsers.add_parser('play', help="Manage and execute playback scenarios")
 )
+cli.actions_command(
+    subparsers.add_parser('actions', help="Record and replay actions performed by the engine")
+)
 
 try:
     options = argparser.parse_args()

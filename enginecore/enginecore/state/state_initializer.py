@@ -15,10 +15,10 @@ def clear_temp():
     simengine_temp = os.path.join(sys_temp, 'simengine')
     if os.path.exists(simengine_temp):
         for the_file in os.listdir(simengine_temp):
-            file_path = os.path.join(simengine_temp, the_file)    
+            file_path = os.path.join(simengine_temp, the_file)
             if os.path.isfile(file_path):
                 os.unlink(file_path)
-            elif os.path.isdir(file_path): 
+            elif os.path.isdir(file_path):
                 shutil.rmtree(file_path)
     else:
         os.makedirs(simengine_temp)
