@@ -197,14 +197,13 @@ class StateListener(Component):
             self.fire(PowerEventManager.map_ambient_event(old_temp, new_temp), self._assets[a_key]) 
 
 
-    def _handle_state_update(self, asset_key):
+    def _handle_state_update(self, asset_key, asset_status):
         """React to asset state updates in redis store 
         Args:
             asset_key(int): key of the updated asset
         """
         
         updated_asset = self._assets[int(asset_key)]
-        asset_status = str(updated_asset.state.status)
 
         # write to a web socket
         self._notify_client(ClientRequests.asset, {
@@ -433,50 +432,50 @@ class StateListener(Component):
         # "oid-upd" is published when SNMPsim updates an OID
         channel = message['channel'].decode()
 
-        try:
+        # try:
 
-            logging.info("[REDIS:POWER] Received a message in channel [%s]: %s", channel, data)
+        logging.info("[REDIS:POWER] Received a message in channel [%s]: %s", channel, data)
 
-            if channel == RedisChannels.state_update_channel:
-                asset_key, asset_type = data.split('-')
-                if asset_type in Asset.get_supported_assets():
-                    self._handle_state_update(int(asset_key))
-            
-            elif channel == RedisChannels.mains_update_channel:
+        if channel == RedisChannels.state_update_channel:
+            asset_key, asset_type, asset_status = data.split('-')
+            if asset_type in Asset.get_supported_assets():
+                self._handle_state_update(int(asset_key), asset_status)
         
-                with self._graph_ref.get_session() as session:
-                    mains_out_keys = GraphReference.get_mains_powered_outlets(session)
-                    mains_out = {out_key: self._assets[out_key] for out_key in mains_out_keys if out_key}
-          
-                    new_state = int(data)
+        elif channel == RedisChannels.mains_update_channel:
+    
+            with self._graph_ref.get_session() as session:
+                mains_out_keys = GraphReference.get_mains_powered_outlets(session)
+                mains_out = {out_key: self._assets[out_key] for out_key in mains_out_keys if out_key}
+        
+                new_state = int(data)
 
-                    self._notify_client(ClientRequests.mains, {'mains': new_state})
-                    self.fire(PowerEventManager.map_mains_event(data), self._sys_environ)
+                self._notify_client(ClientRequests.mains, {'mains': new_state})
+                self.fire(PowerEventManager.map_mains_event(data), self._sys_environ)
 
-                    for _, outlet in mains_out.items():
+                for _, outlet in mains_out.items():
 
-                        if new_state == 0 and outlet.state.status != 0:
-                            outlet.state.shut_down()
-                            outlet.state.publish_power()
-                        elif new_state == 1 and outlet.state.status != 1:
-                            outlet.state.power_up()
-                            outlet.state.publish_power()
+                    if new_state == 0 and outlet.state.status != 0:
+                        outlet.state.shut_down()
+                        outlet.state.publish_power()
+                    elif new_state == 1 and outlet.state.status != 1:
+                        outlet.state.power_up()
+                        outlet.state.publish_power()
 
 
-            elif channel == RedisChannels.oid_update_channel:
-                value = (self._redis_store.get(data)).decode()
-                asset_key, oid = data.split('-')
-                self._handle_oid_update(int(asset_key), oid, value)
+        elif channel == RedisChannels.oid_update_channel:
+            value = (self._redis_store.get(data)).decode()
+            asset_key, oid = data.split('-')
+            self._handle_oid_update(int(asset_key), oid, value)
 
-            elif channel == RedisChannels.model_update_channel:
-                self._state_pubsub.unsubscribe()
-                self._bat_pubsub.unsubscribe()
+        elif channel == RedisChannels.model_update_channel:
+            self._state_pubsub.unsubscribe()
+            self._bat_pubsub.unsubscribe()
 
-                self._reload_model()
-                self._subscribe_to_channels()
+            self._reload_model()
+            self._subscribe_to_channels()
 
-        except KeyError as error:
-            logging.error("Detected unregistered asset under key [%s]", error)
+        # except KeyError as error:
+        #     logging.error("Detected unregistered asset under key [%s]", error)
 
 
     def monitor_thermal(self):
