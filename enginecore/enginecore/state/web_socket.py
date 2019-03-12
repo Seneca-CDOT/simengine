@@ -32,6 +32,7 @@ class WebSocket(Component):
         super().__init__()
         self._clients = []
         self._data_subscribers = []
+        self._slice_from_paylaod = lambda d: slice(d['payload']['range']['start'], d['payload']['range']['end'])
 
 
     def connect(self, sock, host, port):
@@ -121,11 +122,11 @@ class WebSocket(Component):
         self._write_data(details['client'], ClientRequests.mains, {'mains': IStateManager.mains_status()})
 
 
-    def _handle_actions_request(self, details):
+    def _handle_actions_replay_request(self, details):
         print("\n\n=======================================\n\n")
         recorder.list_all()
         replay_t = threading.Thread(
-            target=recorder.replay_all,
+            target=recorder.replay_range(self._slice_from_paylaod(details)),
             # kwargs={'slc': slice(-5, None)},
             name="recorder",
         )
@@ -133,6 +134,10 @@ class WebSocket(Component):
         replay_t.daemon = True
         replay_t.start()
         # recorder.replay_range(slice(-5, None))
+
+
+    def _handle_actions_purge_request(self, details):
+        recorder.erase_range(self._slice_from_paylaod(details))
 
 
     def read(self, sock, data):
@@ -155,7 +160,8 @@ class WebSocket(Component):
             'play': self._handle_play_request,
             'status': self._handle_status_request,
             'subscribe': self._handle_subscribe_request,
-            'actions': self._handle_actions_request,
+            'replay-actions': self._handle_actions_replay_request,
+            'purge-actions': self._handle_actions_purge_request,
         }.get(
             client_data['request'],
             # default to bad request

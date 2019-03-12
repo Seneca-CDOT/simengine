@@ -34,6 +34,12 @@ class Recorder:
         pp(self._actions)
 
 
+    def erase_all(self):
+        self.erase_range(slice(None, None))
+
+    def erase_range(self, slc):
+        del self._actions[slc]
+
     def replay_all(self):
         """Replay all actions"""
         self.replay_range(slice(None, None))

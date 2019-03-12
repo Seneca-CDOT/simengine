@@ -17,7 +17,13 @@ def actions_command(actions_group):
         action='store_true'
     )
 
+    clear = play_subp.add_parser('clear', help="Purge action history")
+
     # cli actions/callbacks
     replay_action.set_defaults(
         func=lambda args: StateClient.replay_all()
+    )
+
+    clear.set_defaults(
+        func=lambda args: StateClient.clear_actions()
     )
