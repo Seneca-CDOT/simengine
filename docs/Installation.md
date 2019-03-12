@@ -1,14 +1,45 @@
 ## Release - RPM
 
-Simengine project is packaged as RPM. You can retrieve the project specs by downloading the repo details from the project repository:
 
-`wget https://raw.githubusercontent.com/Seneca-CDOT/simengine/master/rpm/simengine.repo`
+To install from RPMs:
 
-`cp simengine.repo /etc/yum.repos.d/`
+1) Add the neo4j repository as documented at [http://yum.neo4j.org/stable/](http://yum.neo4j.org/stable/)
 
-Install app's core components:
+2) Build local RPMs from specs by running [buildall script](https://github.com/Seneca-CDOT/simengine/tree/master/rpm/specfiles) 
 
-`dnf install simengine-database simengine-core simengine-dashboard`
+3) Install the local simengine RPMs from the local repository: 
+	
+	sudo dnf install *.rpm
+
+### Packaging
+
+RPM packaging for the SimEngine project.
+
+To build all of the RPMs, first set the Version: in the spec files to a version
+that is tagged in the GitHub repoi (i.e., create a tag for version 20.6, and set
+Version: in the simengine\* spec files to 20.6), then run:
+
+	 ${GitRepoBase}/rpm/specfiles/buildall
+
+
+## Python API
+
+Some SimEngine functionalities, including power management, storage and thermal settings, can be utilized through python api:
+
+```
+from enginecore.state.api import IStateManager as State
+from enginecore.state.assets import SUPPORTED_ASSETS
+
+# get pdu 4 and power it down
+pdu_4_sm = State.get_state_manager_by_key(4, SUPPORTED_ASSETS)
+pdu_4_sm.shut_down()
+```
+
+### Installation
+
+The easiest way to install package is to download it from PyPI:
+
+`python3 -m pip install simengine`
 
 
 ## Development Version
