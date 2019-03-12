@@ -3,7 +3,7 @@
 
 To install from RPMs:
 
-1) Add the neo4j repository as documented at http://yum.neo4j.org/stable/
+1) Add the neo4j repository as documented at [http://yum.neo4j.org/stable/](http://yum.neo4j.org/stable/)
 
 2) Build local RPMs from specs by running [buildall script](https://github.com/Seneca-CDOT/simengine/tree/master/rpm/specfiles) 
 
