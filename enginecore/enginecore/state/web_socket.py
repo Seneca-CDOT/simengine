@@ -32,7 +32,7 @@ class WebSocket(Component):
         super().__init__()
         self._clients = []
         self._data_subscribers = []
-        self._slice_from_paylaod = lambda d: slice(d['payload']['range']['start'], d['payload']['range']['end'])
+        self._slice_from_paylaod = lambda d: slice(d['payload']['range']['start'], d['payload']['range']['stop'])
 
 
     def connect(self, sock, host, port):
@@ -126,9 +126,9 @@ class WebSocket(Component):
         print("\n\n=======================================\n\n")
         recorder.list_all()
         replay_t = threading.Thread(
-            target=recorder.replay_range(self._slice_from_paylaod(details)),
-            # kwargs={'slc': slice(-5, None)},
-            name="recorder",
+            target=recorder.replay_range,
+            kwargs={'slc': self._slice_from_paylaod(details)},
+            name="[>] replay",
         )
 
         replay_t.daemon = True

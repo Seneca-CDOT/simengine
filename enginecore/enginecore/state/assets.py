@@ -222,7 +222,7 @@ class Asset(Component):
         """
         
         increased_by = kwargs['child_load']
-        msg = 'Asset:[{}] - orig load {} was increased by "{}", new load will be set to "{}"'
+        msg = 'Asset:[{}] load {} was increased by {}, new load={};'
         return self._update_load(increased_by, lambda old, change: old+change, msg)
 
 
@@ -234,7 +234,7 @@ class Asset(Component):
         """
 
         decreased_by = kwargs['child_load']
-        msg = 'Asset:[{}] - orig load {} was decreased by "{}", new load will be set to "{}"'
+        msg = 'Asset:[{}] load {} was decreased by {}, new load={};'
         return self._update_load(decreased_by, lambda old, change: old-change, msg)
 
 

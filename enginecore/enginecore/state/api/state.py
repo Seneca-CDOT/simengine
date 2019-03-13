@@ -540,11 +540,11 @@ class StateClient():
 
 
     @classmethod
-    def replay_all(cls, slc=slice(None, None)):
+    def replay_actions(cls, slc=slice(None, None)):
         StateClient.send_request(
             "replay-actions",
             {
-                "range": {"start": slc.start, "end": slc.end, "step": slc.step}
+                "range": {"start": slc.start, "stop": slc.stop}
             }
         )
 
@@ -554,6 +554,6 @@ class StateClient():
         StateClient.send_request(
             "purge-actions",
             {
-                "range": {"start": slc.start, "end": slc.end, "step": slc.step}
+                "range": {"start": slc.start, "stop": slc.stop}
             }
         )
