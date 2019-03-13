@@ -201,6 +201,7 @@ class StateListener(Component):
         """React to asset state updates in redis store 
         Args:
             asset_key(int): key of the updated asset
+            asset_status(str): updated status of the asset under asset key
         """
         
         updated_asset = self._assets[int(asset_key)]
