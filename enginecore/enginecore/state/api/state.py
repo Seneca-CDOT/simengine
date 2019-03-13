@@ -171,8 +171,10 @@ class IStateManager():
 
     def _publish_power(self):
         """Notify daemon of power updates"""
-        IStateManager.get_store().publish(RedisChannels.state_update_channel, self.redis_key)
- 
+        IStateManager.get_store().publish(
+            RedisChannels.state_update_channel, "{}-{}".format(self.redis_key, self.status)
+        )
+
 
     def _get_oid_value(self, oid, key):
         """Retrieve value for a specific OID """
