@@ -5,6 +5,13 @@
 # Assumes a Fedora system
 #
 
+echo "This script builds a set of RPMs for simengine."
+echo "Note: it is recommended that you wipe previous builds"
+echo "before running this script."
+echo
+echo "sudo permission is requested for the installation"
+echo "of required RPM tools."
+
 sudo dnf install -y "@RPM Development Tools"
 rpmdev-setuptree 2>/dev/null
 for X in *.spec

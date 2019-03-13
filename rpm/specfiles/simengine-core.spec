@@ -1,6 +1,6 @@
 Name:      simengine-core
-Version:   3.7
-Release:   3
+Version:   3.11
+Release:   1%{?dist}
 Summary:   SimEngine - Core
 URL:       https://github.com/Seneca-CDOT/simengine
 License:   GPLv3+
@@ -53,6 +53,15 @@ systemctl daemon-reload
 systemctl enable simengine-core.service --now
 
 %changelog
+* Mon Mar 11 2019 Chris Tyler - 3.11-1
+- new version
+
+* Mon Mar 11 2019 Chris Tyler <ctyler.fedora@gmail.com> - 3.10-1
+- new version
+
+* Mon Mar 11 2019 Chris Tyler <ctyler.fedora@gmail.com> - 3.8-1
+- new version
+
 * Fri Mar 01 2019 Chris Tyler <chris.tyler@senecacollege.ca> - 3.7-3
 - Updated for simengine 3.7
 

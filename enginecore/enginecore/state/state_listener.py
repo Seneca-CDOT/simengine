@@ -205,14 +205,14 @@ class StateListener(Component):
             self.fire(PowerEventManager.map_ambient_event(old_temp, new_temp), self._assets[a_key]) 
 
 
-    def _handle_state_update(self, asset_key):
+    def _handle_state_update(self, asset_key, asset_status):
         """React to asset state updates in redis store 
         Args:
             asset_key(int): key of the updated asset
+            asset_status(str): updated status of the asset under asset key
         """
         
         updated_asset = self._assets[int(asset_key)]
-        asset_status = str(updated_asset.state.status)
 
         # write to a web socket
         self._notify_client(ClientRequests.asset, {
@@ -446,16 +446,16 @@ class StateListener(Component):
             logging.info("[REDIS:POWER] Received a message in channel [%s]: %s", channel, data)
 
             if channel == RedisChannels.state_update_channel:
-                asset_key, asset_type = data.split('-')
+                asset_key, asset_type, asset_status = data.split('-')
                 if asset_type in Asset.get_supported_assets():
-                    self._handle_state_update(int(asset_key))
+                    self._handle_state_update(int(asset_key), asset_status)
             
             elif channel == RedisChannels.mains_update_channel:
         
                 with self._graph_ref.get_session() as session:
                     mains_out_keys = GraphReference.get_mains_powered_outlets(session)
                     mains_out = {out_key: self._assets[out_key] for out_key in mains_out_keys if out_key}
-          
+            
                     new_state = int(data)
 
                     self._notify_client(ClientRequests.mains, {'mains': new_state})

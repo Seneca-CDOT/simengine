@@ -3,10 +3,10 @@ from setuptools import setup, find_packages
 
 setup(
     name="SimEngine",
-    version="1.0",
+    version="3.7",
     packages=find_packages(),
     scripts=['simengine-cli'],
-    install_requires=['redis>=2.10.6', 'circuits', 'neo4j-driver', 'pysnmp', 'libvirt-python'],
+    install_requires=['redis>=2.10.6', 'circuits', 'neo4j-driver', 'pysnmp', 'libvirt-python==4.1.0'],
 
     author="Seneca OSTEP & Alteeve",
     author_email="olga.belavina@senecacollege.ca",

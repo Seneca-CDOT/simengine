@@ -18,3 +18,7 @@ dump.rdb
 # nohup
 nohup.out
 
+# Frontend
+prebuild
+public
+

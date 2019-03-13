@@ -1,6 +1,6 @@
 Name:      simengine-dashboard
-Version:   3.7
-Release:   3
+Version:   3.11
+Release:   1%{?dist}
 Summary:   SimEngine - Dashboard
 URL:       https://github.com/Seneca-CDOT/simengine
 License:   GPLv3+
@@ -20,10 +20,14 @@ Dashboard front-end website files for SimEngine.
 %autosetup -c %{name}
 
 %build
+cd simengine-%{version}/dashboard/frontend
+npm i
+npm run build
 
 %install
 mkdir -p %{buildroot}%{_localstatedir}/www/html/
-cd simengine-%{version}/dashboard/prebuild
+pwd
+cd simengine-%{version}/dashboard/frontend/public
 #cp -fRp images %{buildroot}%{_localstatedir}/www/html/
 #cp -fp vendors.js %{buildroot}%{_localstatedir}/www/html/
 #cp -fp main.js %{buildroot}%{_localstatedir}/www/html/
@@ -38,22 +42,35 @@ cd simengine-%{version}/dashboard/prebuild
 cp -fpr * %{buildroot}%{_localstatedir}/www/html
 
 %files
-%{_localstatedir}/www/html/images
-%{_localstatedir}/www/html/vendors.js
-%{_localstatedir}/www/html/main.js
-%{_localstatedir}/www/html/main.css
-%{_localstatedir}/www/html/vendors.css
-%{_localstatedir}/www/html/vendors.js.map
-%{_localstatedir}/www/html/vendors.css.map
-%{_localstatedir}/www/html/main.js.map
-%{_localstatedir}/www/html/main.css.map
-%{_localstatedir}/www/html/favicon.ico
-%{_localstatedir}/www/html/index.html
+#%{_localstatedir}/www/html/images
+#%{_localstatedir}/www/html/vendors.js
+#%{_localstatedir}/www/html/main.js
+#%{_localstatedir}/www/html/main.css
+#%{_localstatedir}/www/html/vendors.css
+#%{_localstatedir}/www/html/vendors.js.map
+#%{_localstatedir}/www/html/vendors.css.map
+#%{_localstatedir}/www/html/main.js.map
+#%{_localstatedir}/www/html/main.css.map
+#%{_localstatedir}/www/html/favicon.ico
+#%{_localstatedir}/www/html/index.html
+%{_localstatedir}/www/html/*
 
 %post
 systemctl enable httpd.service --now
 
 %changelog
+* Mon Mar 11 2019 Chris Tyler - 3.11-1
+- new version
+
+* Mon Mar 11 2019 Chris Tyler <ctyler.fedora@gmail.com> - 3.10-1
+- new version
+
+* Mon Mar 11 2019 Chris Tyler <ctyler.fedora@gmail.com> - 3.8-2
+- npm build of dashboard
+
+* Mon Mar 11 2019 Chris Tyler <ctyler.fedora@gmail.com> - 3.8-1
+- new version
+
 * Fri Mar 01 2019 Chris Tyler <chris.tyler@senecacollege.ca> - 3.7-3
 - Updated for simengine 3.7
 

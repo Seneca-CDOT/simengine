@@ -1,3 +1,9 @@
+## Agents 
+
+You can check if ipmi/snmp simulators are up & running by issuing status command:
+
+`simengine-cli status --asset-key={key} --agent`
+
 ## Power Management
 
 Power can be managed though either UI or `simengine-cli`, for example:
@@ -166,3 +172,95 @@ You can query cpu load configurations with:
     Server [5]:
      --> t:[CPU1 temperature] using model '{"10": 1, "20": 4, "80": 10}'
 
+
+### Sensors and Storage Components
+
+SimEngine's `storcli64` emulator outputs temperature readings associated with CacheVault and physical drives. Sensor/hard drive components’ interrelationships can be configured similar to sensor/sensor interrelationships.
+
+For instance, this command creates a thermal connection between cache vault (under serial number 17703) and `PSU1 Power` bmc sensor:
+
+
+    simengine-cli thermal storage set \
+      --asset-key=5 \
+      --source-sensor='PSU1 power' \
+      --event=up \
+      --action=increase \
+      --rate=1 \
+      --degrees=1 \
+      --pause-at=28 \
+      --controller=0 \
+      --cache-vault=17703
+    
+    simengine-cli thermal storage set \
+      --asset-key=5 \
+      --source-sensor='PSU1 power' \
+      --event=down \
+      --action=decrease \
+      --rate=1 \
+      --degrees=1 \
+      --pause-at=28 \
+      --controller=0 \
+      --cache-vault=17703
+    
+
+You can also make bmc sensor ‘target’ a physical drive. The following configuration will make a physical drive 9 cool down when upstream power is not present (PSU2 is offline).
+
+
+    simengine-cli thermal storage set \
+      --asset-key=5 \
+      --source-sensor='PSU2 power' \
+      --event=up \
+      --action=increase \
+      --rate=1 \
+      --degrees=1 \
+      --pause-at=28 \
+      --controller=0 \
+      --drive=9
+    
+    simengine-cli thermal storage set \
+      --asset-key=5 \
+      --source-sensor='PSU2 power' \
+      --event=down \
+      --action=decrease \
+      --rate=1 \
+      --degrees=1 \
+      --pause-at=28 \
+      --controller=0 \
+      --drive=9
+    
+
+
+## Storage Simulation
+
+ 
+SimEngine supports a built-in `storcli64` simulator that can reconstruct core storage behaviour. The Storage Command Line Tool (StorCLI) is the command line management software designed for the MegaRAID® product line. SimEngine’s `storcli64` simulator accepts query(read)-only cli commands limited to [alteeve’s](https://www.alteeve.com/c/) Anvil! platform requirements at the moment. 
+
+**Commands**
+
+| **storcli64 command**                | **Details**        |
+|--------------------------------------|--------------------------------------- |
+| `storcli64 /c0 show perfmode`        | Show performance mode  |
+| `storcli64 /c0 show bgirate`         | Background Initialization (BGI) is an automated process that writes the parity or mirrors data on newly created virtual disks.<br><br>Defined at the model creation in [storage.json](https://github.com/Seneca-CDOT/simengine/blob/master/enginecore/enginecore/model/presets/storage.json) as “bgiRate” |
+| `storcli64 /c0 show ccrate`          | The CC (Check Consistency) Rate determines the rate at which consistency check scans are performed on a disk to determine if data is corrupted. <br><br>Defined at the model creation in [storage.json](https://github.com/Seneca-CDOT/simengine/blob/master/enginecore/enginecore/model/presets/storage.json) as “ccRate” |
+| `storcli64 /c0 show rebuildrate`     | Hard drive rebuild rate for a RAID Controller<br><br>Defined at the model creation in [storage.json](https://github.com/Seneca-CDOT/simengine/blob/master/enginecore/enginecore/model/presets/storage.json) as “ccRate” |
+| `storcli64 /c0 show prrate`          | Patrol Read Rate for a RAID Controller<br><br>Defined at the model creation in [storage.json](https://github.com/Seneca-CDOT/simengine/blob/master/enginecore/enginecore/model/presets/storage.json) as “prRate”  |
+| `storcli64 /c0 show alarm`           | Display alarm state for a RAID Controller<br><br>Can be set to either `on/off/missing` with:<br>`simengine-cli storage controller set --asset-key=5 --controller=0 --alarm-state=on` |
+| `storcli64 /c0 show all`             | A RAID controller is a hardware device or software program used to manage hard disk drives in a computer or storage array.<br><br>Some controller-associated properties, such as `Memory Correctable Errors` and `Memory Uncorrectable Errors` can be set with `simengine-cli`<br><br>see `simengine-cli storage controller set -h` for more details. |
+| `storcli64 /c0 /bbu show all`        | Show BBU details (Backup Battery Unit supporting cache for up to 72 hours until a machine is brought back on line) |
+| `storcli64 /c0 /cv show all`         | Display cache vault (flash-based cache protection).<br><br>Replacement status can be updated with: <br>`simengine-cli storage cv set --asset-key=5 --controller=0 --replacement-required="Yes"`<br><br>Sometimes cache vault fails to change its mode to `WriteThrough` (this may result in data loss):<br>`simengine-cli storage cv set --asset-key=5 --controller=0 --write-through-fail` |
+| `storcli64 /c0 /vall show all`       | Display virtual drives<br><br>Virtual drive states will change depending on [storage_state.json](https://github.com/Seneca-CDOT/simengine/blob/master/enginecore/enginecore/model/presets/storage_states.json) definition file and current status of physical drives or other storage components.<br><br>For example with out-of-the-box settings, virtual drive state will be set to `Pdgd` (partially degraded) if one of the physical drives belonging to the virtual space is set offline:<br><br>`simengine-cli storage pd set --asset-key=5 --controller=0 --drive-id=7 --state=Offln` |
+| `storcli64 /c0 /eall /sall show all` | Display physical drives<br><br>Error counts, such as `Media Error Count`, `Other Error Count` and `Predictive Error Count` are settable (see `simengine-cli storage pd set -h`)<br><br>Drive state can be set to either `Onln` or `Offln`:<br>`simengine-cli storage pd set --asset-key=5 --controller=0 --drive-id=7 --state=Offln` |
+
+##  Playback Scenarios 
+
+You can register your own scripts with `simengine-cli` and execute them through either `cli` or SimEngine dashboard:
+
+
+    # Provide a folder SimEngine would register scripts from 
+    simengine-cli play folder --path='~/dev/plays'
+    ls ~/dev/plays
+          outlet_test.sh   # bash (simengine-cli)
+          pdu_test.py      # using python api
+    
+    # execute a script
+    simengine-cli play execute outlet_test
