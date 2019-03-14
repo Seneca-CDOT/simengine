@@ -1,7 +1,7 @@
 """CLI endpoints for replaying, listing and managing recorded actions
 """
 import argparse
-from enginecore.state.api.state import StateClient
+from enginecore.state.net.state_client import StateClient
 
 
 def print_action_list(action_details):
@@ -39,6 +39,7 @@ def actions_command(actions_group):
 
     play_subp = actions_group.add_subparsers()
 
+    # replay commands
     replay_action = play_subp.add_parser(
         "replay",
         help="Replay actions, will replay all history if range is not provided",
@@ -47,11 +48,21 @@ def actions_command(actions_group):
     replay_action.add_argument(
         "-l", "--list", action="store_true", help="List re-played actions"
     )
+
+    #  clear action history
     clear_action = play_subp.add_parser(
         "clear", help="Purge action history", parents=[range_args()]
     )
     clear_action.add_argument(
         "-l", "--list", action="store_true", help="List deleted actions"
+    )
+
+    # misc
+    disable_action = play_subp.add_parser(
+        "disable", help="Disable recorder (recorder will ignore incoming commands)"
+    )
+    enable_action = play_subp.add_parser(
+        "enable", help="Enable recorder registering incoming actions"
     )
     list_action = play_subp.add_parser(
         "list", help="List action history", parents=[range_args()]
@@ -86,3 +97,9 @@ def actions_command(actions_group):
             StateClient.list_actions(slice(args["start"], args["end"]))
         )
     )
+
+    disable_action.set_defaults(
+        func=lambda _: StateClient.recorder_status(enabled=False)
+    )
+
+    enable_action.set_defaults(func=lambda _: StateClient.recorder_status(enabled=True))

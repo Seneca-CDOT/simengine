@@ -24,7 +24,9 @@ from enginecore.state.assets import (
 )
 from enginecore.state.state_managers import StateManager
 from enginecore.state.event_map import PowerEventManager
-from enginecore.state.web_socket import WebSocket, ClientRequests
+from enginecore.state.net.ws_server import WebSocket
+from enginecore.state.net.ws_requests import ServerToClientRequests
+
 from enginecore.state.redis_channels import RedisChannels
 from enginecore.model.graph_reference import GraphReference
 from enginecore.state.state_initializer import initialize, clear_temp
@@ -165,7 +167,7 @@ class StateListener(Component):
 
             # update websocket
             self._notify_client(
-                ClientRequests.asset, {"key": asset_key, "load": new_load}
+                ServerToClientRequests.asset, {"key": asset_key, "load": new_load}
             )
 
         StateManager.set_ambient(21)
@@ -208,7 +210,8 @@ class StateListener(Component):
         """
 
         self._notify_client(
-            ClientRequests.ambient, {"ambient": new_temp, "rising": new_temp > old_temp}
+            ServerToClientRequests.ambient,
+            {"ambient": new_temp, "rising": new_temp > old_temp},
         )
         for a_key in self._assets:
             self.fire(
@@ -227,7 +230,8 @@ class StateListener(Component):
 
         # write to a web socket
         self._notify_client(
-            ClientRequests.asset, {"key": asset_key, "status": int(asset_status)}
+            ServerToClientRequests.asset,
+            {"key": asset_key, "status": int(asset_status)},
         )
 
         # fire-up power events down the power stream
@@ -423,7 +427,7 @@ class StateListener(Component):
         """Notify the WebSocket client(s) of any changes in asset states 
 
         Args:
-            client_request(ClientRequests): type of data passed to the ws client
+            client_request(ServerToClientRequests): type of data passed to the ws client
             data(dict): updated key/values (e.g. status, load)
         """
 
@@ -454,7 +458,7 @@ class StateListener(Component):
             if channel == RedisChannels.battery_update_channel:
                 asset_key, _ = data.split("-")
                 self._notify_client(
-                    ClientRequests.asset,
+                    ServerToClientRequests.asset,
                     {
                         "key": int(asset_key),
                         "battery": self._assets[int(asset_key)].state.battery_level,
@@ -517,7 +521,9 @@ class StateListener(Component):
 
                     new_state = int(data)
 
-                    self._notify_client(ClientRequests.mains, {"mains": new_state})
+                    self._notify_client(
+                        ServerToClientRequests.mains, {"mains": new_state}
+                    )
                     self.fire(
                         PowerEventManager.map_mains_event(data), self._sys_environ
                     )
@@ -614,7 +620,7 @@ class StateListener(Component):
         if event_result.load_change:
             ckey = int(event_result.asset_key)
             self._notify_client(
-                ClientRequests.asset,
+                ServerToClientRequests.asset,
                 {"key": ckey, "load": self._assets[ckey].state.load},
             )
 
@@ -640,7 +646,7 @@ class StateListener(Component):
     def _power_success(self, event_result):
         """Handle power event success by dispatching power events down the power stream"""
         self._notify_client(
-            ClientRequests.asset,
+            ServerToClientRequests.asset,
             {"key": event_result.asset_key, "status": int(event_result.new_state)},
         )
         self._chain_power_update(event_result)
@@ -670,7 +676,7 @@ class StateListener(Component):
             self._chain_power_update(e_result)
 
         self._notify_client(
-            ClientRequests.asset,
+            ServerToClientRequests.asset,
             {"key": e_result.asset_key, "status": e_result.new_state},
         )
 

@@ -1,7 +1,6 @@
 """Power management commands for assets and the system in general"""
 
-from enginecore.state.api.state import StateClient
-from enginecore.state.assets import Asset
+from enginecore.state.net.state_client import StateClient
 
 
 def power_command(power_group):

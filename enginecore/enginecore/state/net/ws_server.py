@@ -1,4 +1,4 @@
-""" Web-App Interface """
+"""Web Socket Server (interface to the enginecore)"""
 
 import json
 from enum import Enum
@@ -12,17 +12,10 @@ from enginecore.state.assets import SUPPORTED_ASSETS
 from enginecore.state.api import IStateManager
 from enginecore.model.graph_reference import GraphReference
 from enginecore.state.recorder import RECORDER as recorder
-
-
-class ClientRequests(Enum):
-    """Requests to the client """
-
-    asset = 1
-    ambient = 2
-    topology = 3
-    mains = 4
-    plays = 5
-    action_list = 6
+from enginecore.state.net.ws_requests import (
+    ServerToClientRequests,
+    ClientToServerRequests,
+)
 
 
 class WebSocket(Component):
@@ -114,25 +107,25 @@ class WebSocket(Component):
 
             self._write_data(
                 details["client"],
-                ClientRequests.topology,
+                ServerToClientRequests.topology,
                 {"assets": assets, "stageLayout": stage_layout},
             )
 
         self._write_data(
             details["client"],
-            ClientRequests.ambient,
+            ServerToClientRequests.ambient,
             {"ambient": IStateManager.get_ambient(), "rising": False},
         )
 
         self._write_data(
             details["client"],
-            ClientRequests.plays,
+            ServerToClientRequests.plays,
             {"plays": list(itertools.chain(*IStateManager.plays()))},
         )
 
         self._write_data(
             details["client"],
-            ClientRequests.mains,
+            ServerToClientRequests.mains,
             {"mains": IStateManager.mains_status()},
         )
 
@@ -156,7 +149,7 @@ class WebSocket(Component):
 
         self._write_data(
             details["client"],
-            ClientRequests.action_list,
+            ServerToClientRequests.action_list,
             {"actions": recorder.get_action_details(self._slice_from_paylaod(details))},
         )
 
@@ -174,17 +167,17 @@ class WebSocket(Component):
 
         # map request names to functions, report 'bad' request on error
         {
-            "power": self._handle_power_request,
-            "layout": self._handle_layout_request,
-            "mains": self._handle_mains_request,
-            "play": self._handle_play_request,
-            "status": self._handle_status_request,
-            "subscribe": self._handle_subscribe_request,
-            "replay-actions": self._handle_replay_actions_request,
-            "purge-actions": self._handle_purge_actions_request,
-            "list-actions": self._handle_list_actions_request,
+            ClientToServerRequests.power: self._handle_power_request,
+            ClientToServerRequests.layout: self._handle_layout_request,
+            ClientToServerRequests.mains: self._handle_mains_request,
+            ClientToServerRequests.play: self._handle_play_request,
+            ClientToServerRequests.status: self._handle_status_request,
+            ClientToServerRequests.subscribe: self._handle_subscribe_request,
+            ClientToServerRequests.replay_actions: self._handle_replay_actions_request,
+            ClientToServerRequests.purge_actions: self._handle_purge_actions_request,
+            ClientToServerRequests.list_actions: self._handle_list_actions_request,
         }.get(
-            client_data["request"],
+            ClientToServerRequests[client_data["request"]],
             # default to bad request
             self._handle_bad_request(client_data["request"]),
         )(
