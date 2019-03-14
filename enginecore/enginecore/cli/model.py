@@ -419,7 +419,8 @@ def create_command(create_asset_group):
     create_server_bmc_action.add_argument(
         "--sensor-def",
         type=str,
-        help="File containing sensor definitions (defaults to sensors.json file in enginecore/enginecore/model/presets)",
+        help="""File containing sensor definitions 
+        (defaults to sensors.json file in enginecore/enginecore/model/presets)""",
     )
 
     create_server_bmc_action.add_argument(

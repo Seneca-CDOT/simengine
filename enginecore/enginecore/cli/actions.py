@@ -7,9 +7,12 @@ from enginecore.state.api.state import StateClient
 def print_action_list(action_details):
     """Display action history"""
 
-    for idx, action in enumerate(action_details):
-        action_fmt = "{num}) [{timestamp}] {work}"
-        print(action_fmt.format(**{"num": idx}, **action))
+    if not action_details:
+        print("Action history is empty or the range specifier is invalid!")
+        return
+
+    for action in action_details:
+        print("{number}) [{timestamp}] {work}".format(**action))
 
 
 def range_args():
@@ -37,10 +40,18 @@ def actions_command(actions_group):
     play_subp = actions_group.add_subparsers()
 
     replay_action = play_subp.add_parser(
-        "replay", help="Replay actions", parents=[range_args()]
+        "replay",
+        help="Replay actions, will replay all history if range is not provided",
+        parents=[range_args()],
+    )
+    replay_action.add_argument(
+        "-l", "--list", action="store_true", help="List re-played actions"
     )
     clear_action = play_subp.add_parser(
         "clear", help="Purge action history", parents=[range_args()]
+    )
+    clear_action.add_argument(
+        "-l", "--list", action="store_true", help="List deleted actions"
     )
     list_action = play_subp.add_parser(
         "list", help="List action history", parents=[range_args()]
@@ -49,11 +60,25 @@ def actions_command(actions_group):
     # cli actions/callbacks
 
     replay_action.set_defaults(
-        func=lambda args: StateClient.replay_actions(slice(args["start"], args["end"]))
+        func=lambda args: [
+            print_action_list(
+                StateClient.list_actions(slice(args["start"], args["end"]))
+            )
+            if args["list"]
+            else None,
+            StateClient.replay_actions(slice(args["start"], args["end"])),
+        ]
     )
 
     clear_action.set_defaults(
-        func=lambda args: StateClient.clear_actions(slice(args["start"], args["end"]))
+        func=lambda args: [
+            print_action_list(
+                StateClient.list_actions(slice(args["start"], args["end"]))
+            )
+            if args["list"]
+            else None,
+            StateClient.clear_actions(slice(args["start"], args["end"])),
+        ]
     )
 
     list_action.set_defaults(

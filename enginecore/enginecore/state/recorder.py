@@ -64,6 +64,7 @@ class Recorder:
                         args=action["work"].args[1:],
                     ),
                     "timestamp": action["timestamp"],
+                    "number": self._actions.index(action),
                 }
             )
 

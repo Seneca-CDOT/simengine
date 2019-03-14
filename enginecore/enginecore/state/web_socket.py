@@ -157,7 +157,7 @@ class WebSocket(Component):
         self._write_data(
             details["client"],
             ClientRequests.action_list,
-            {"actions": recorder.get_action_details()},
+            {"actions": recorder.get_action_details(self._slice_from_paylaod(details))},
         )
 
     def read(self, sock, data):
@@ -165,7 +165,7 @@ class WebSocket(Component):
         all requests are sent in a format:
             {
                 "request": "request_name",
-                "payload": "request_data"
+                "payload": {...} #request_data
             }
         """
 
