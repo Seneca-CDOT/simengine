@@ -22,6 +22,7 @@ class ClientRequests(Enum):
     topology = 3
     mains = 4
     plays = 5
+    action_list = 6
 
 
 class WebSocket(Component):
@@ -46,7 +47,12 @@ class WebSocket(Component):
     def _write_data(self, sock, request, data):
         """Send response to the socket client"""
 
-        self.fire(write(sock, json.dumps({"request": request.name, "payload": data})))
+        self.fire(
+            write(
+                sock,
+                json.dumps({"request": request.name, "payload": data}, default=str),
+            )
+        )
 
     def _handle_bad_request(self, request):
         """Handle bad request"""
@@ -130,9 +136,9 @@ class WebSocket(Component):
             {"mains": IStateManager.mains_status()},
         )
 
-    def _handle_actions_replay_request(self, details):
+    def _handle_replay_actions_request(self, details):
         print("\n\n=======================================\n\n")
-        recorder.list_all()
+        recorder.get_action_details()
         replay_t = threading.Thread(
             target=recorder.replay_range,
             kwargs={"slc": self._slice_from_paylaod(details)},
@@ -143,8 +149,16 @@ class WebSocket(Component):
         replay_t.start()
         # recorder.replay_range(slice(-5, None))
 
-    def _handle_actions_purge_request(self, details):
+    def _handle_purge_actions_request(self, details):
         recorder.erase_range(self._slice_from_paylaod(details))
+
+    def _handle_list_actions_request(self, details):
+
+        self._write_data(
+            details["client"],
+            ClientRequests.action_list,
+            {"actions": recorder.get_action_details()},
+        )
 
     def read(self, sock, data):
         """Read client request
@@ -166,8 +180,9 @@ class WebSocket(Component):
             "play": self._handle_play_request,
             "status": self._handle_status_request,
             "subscribe": self._handle_subscribe_request,
-            "replay-actions": self._handle_actions_replay_request,
-            "purge-actions": self._handle_actions_purge_request,
+            "replay-actions": self._handle_replay_actions_request,
+            "purge-actions": self._handle_purge_actions_request,
+            "list-actions": self._handle_list_actions_request,
         }.get(
             client_data["request"],
             # default to bad request

@@ -4,6 +4,14 @@ import argparse
 from enginecore.state.api.state import StateClient
 
 
+def print_action_list(action_details):
+    """Display action history"""
+
+    for idx, action in enumerate(action_details):
+        action_fmt = "{num}) [{timestamp}] {work}"
+        print(action_fmt.format(**{"num": idx}, **action))
+
+
 def range_args():
     """Get common action arguments"""
 
@@ -31,8 +39,11 @@ def actions_command(actions_group):
     replay_action = play_subp.add_parser(
         "replay", help="Replay actions", parents=[range_args()]
     )
-    clear = play_subp.add_parser(
+    clear_action = play_subp.add_parser(
         "clear", help="Purge action history", parents=[range_args()]
+    )
+    list_action = play_subp.add_parser(
+        "list", help="List action history", parents=[range_args()]
     )
 
     # cli actions/callbacks
@@ -41,6 +52,12 @@ def actions_command(actions_group):
         func=lambda args: StateClient.replay_actions(slice(args["start"], args["end"]))
     )
 
-    clear.set_defaults(
+    clear_action.set_defaults(
         func=lambda args: StateClient.clear_actions(slice(args["start"], args["end"]))
+    )
+
+    list_action.set_defaults(
+        func=lambda args: print_action_list(
+            StateClient.list_actions(slice(args["start"], args["end"]))
+        )
     )

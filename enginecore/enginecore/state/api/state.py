@@ -539,3 +539,16 @@ class StateClient:
         StateClient.send_request(
             "purge-actions", {"range": {"start": slc.start, "stop": slc.stop}}
         )
+
+    @classmethod
+    def list_actions(cls, slc=slice(None, None)):
+
+        ws_client = StateClient.get_ws_client()
+
+        StateClient.send_request(
+            "list-actions",
+            {"range": {"start": slc.start, "stop": slc.stop}},
+            ws_client=ws_client,
+        )
+
+        return json.loads(ws_client.recv())["payload"]["actions"]
