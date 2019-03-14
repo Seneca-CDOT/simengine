@@ -13,8 +13,10 @@ from enginecore.state.api import IStateManager
 from enginecore.model.graph_reference import GraphReference
 from enginecore.state.recorder import RECORDER as recorder
 
+
 class ClientRequests(Enum):
     """Requests to the client """
+
     asset = 1
     ambient = 2
     topology = 3
@@ -27,13 +29,13 @@ class WebSocket(Component):
 
     channel = "wsserver"
 
-
     def __init__(self):
         super().__init__()
         self._clients = []
         self._data_subscribers = []
-        self._slice_from_paylaod = lambda d: slice(d['payload']['range']['start'], d['payload']['range']['stop'])
-
+        self._slice_from_paylaod = lambda d: slice(
+            d["payload"]["range"]["start"], d["payload"]["range"]["stop"]
+        )
 
     def connect(self, sock, host, port):
         """Called upon new client connecting to the ws """
@@ -41,60 +43,59 @@ class WebSocket(Component):
         self._clients.append(sock)
         logging.info("WebSocket Client Connected %s:%s", host, port)
 
-
     def _write_data(self, sock, request, data):
         """Send response to the socket client"""
 
-        self.fire(write(sock, json.dumps({
-            'request': request.name,
-            'payload': data
-        })))
-
+        self.fire(write(sock, json.dumps({"request": request.name, "payload": data})))
 
     def _handle_bad_request(self, request):
         """Handle bad request"""
+
         def process_payload(details):
             logging.error("Cannot process '%s' request: ", request)
-            logging.error("Received payload with '%s' request from client '%s':", request, details['client'])
-            logging.error(details['payload'])
-        return process_payload
+            logging.error(
+                "Received payload with '%s' request from client '%s':",
+                request,
+                details["client"],
+            )
+            logging.error(details["payload"])
 
+        return process_payload
 
     def _handle_power_request(self, details):
         """Power up/down asset"""
 
-        power_up = details['payload']['status']
-        state_manager = IStateManager.get_state_manager_by_key(details['payload']['key'], SUPPORTED_ASSETS)
+        power_up = details["payload"]["status"]
+        state_manager = IStateManager.get_state_manager_by_key(
+            details["payload"]["key"], SUPPORTED_ASSETS
+        )
 
         if power_up:
             state_manager.power_up()
         else:
             state_manager.shut_down()
 
-
     def _handle_layout_request(self, details):
         """Save assets' positions/coordinates"""
         with GraphReference().get_session() as session:
-            GraphReference.save_layout(session, details['payload']['assets'], stage=details['payload']['stage'])
-
+            GraphReference.save_layout(
+                session, details["payload"]["assets"], stage=details["payload"]["stage"]
+            )
 
     def _handle_mains_request(self, details):
         """Wallpower update request"""
-        if details['payload']['mains'] == 0:
+        if details["payload"]["mains"] == 0:
             IStateManager.power_outage()
         else:
             IStateManager.power_restore()
 
-
     def _handle_play_request(self, details):
         """Playback request"""
-        IStateManager.execute_play(details['payload']['name'])
-
+        IStateManager.execute_play(details["payload"]["name"])
 
     def _handle_subscribe_request(self, details):
         """Subscribe a web-socket client to system updates (e.g. battery or status changes) """
-        self._data_subscribers.append(details['client'])
-
+        self._data_subscribers.append(details["client"])
 
     def _handle_status_request(self, details):
         """Get overall system status/details including hardware assets, environment state & play details"""
@@ -105,29 +106,36 @@ class WebSocket(Component):
 
             stage_layout = GraphReference.get_stage_layout(session)
 
-            self._write_data(details['client'], ClientRequests.topology, {
-                'assets': assets, 
-                'stageLayout': stage_layout 
-            })
+            self._write_data(
+                details["client"],
+                ClientRequests.topology,
+                {"assets": assets, "stageLayout": stage_layout},
+            )
 
-        self._write_data(details['client'], ClientRequests.ambient, {
-            'ambient': IStateManager.get_ambient(),
-            'rising': False
-        })
+        self._write_data(
+            details["client"],
+            ClientRequests.ambient,
+            {"ambient": IStateManager.get_ambient(), "rising": False},
+        )
 
-        self._write_data(details['client'], ClientRequests.plays, {
-            'plays': list(itertools.chain(*IStateManager.plays()))
-        })
+        self._write_data(
+            details["client"],
+            ClientRequests.plays,
+            {"plays": list(itertools.chain(*IStateManager.plays()))},
+        )
 
-        self._write_data(details['client'], ClientRequests.mains, {'mains': IStateManager.mains_status()})
-
+        self._write_data(
+            details["client"],
+            ClientRequests.mains,
+            {"mains": IStateManager.mains_status()},
+        )
 
     def _handle_actions_replay_request(self, details):
         print("\n\n=======================================\n\n")
         recorder.list_all()
         replay_t = threading.Thread(
             target=recorder.replay_range,
-            kwargs={'slc': self._slice_from_paylaod(details)},
+            kwargs={"slc": self._slice_from_paylaod(details)},
             name="[>] replay",
         )
 
@@ -135,10 +143,8 @@ class WebSocket(Component):
         replay_t.start()
         # recorder.replay_range(slice(-5, None))
 
-
     def _handle_actions_purge_request(self, details):
         recorder.erase_range(self._slice_from_paylaod(details))
-
 
     def read(self, sock, data):
         """Read client request
@@ -154,32 +160,29 @@ class WebSocket(Component):
 
         # map request names to functions, report 'bad' request on error
         {
-            'power': self._handle_power_request,
-            'layout': self._handle_layout_request,
-            'mains': self._handle_mains_request,
-            'play': self._handle_play_request,
-            'status': self._handle_status_request,
-            'subscribe': self._handle_subscribe_request,
-            'replay-actions': self._handle_actions_replay_request,
-            'purge-actions': self._handle_actions_purge_request,
+            "power": self._handle_power_request,
+            "layout": self._handle_layout_request,
+            "mains": self._handle_mains_request,
+            "play": self._handle_play_request,
+            "status": self._handle_status_request,
+            "subscribe": self._handle_subscribe_request,
+            "replay-actions": self._handle_actions_replay_request,
+            "purge-actions": self._handle_actions_purge_request,
         }.get(
-            client_data['request'],
+            client_data["request"],
             # default to bad request
-            self._handle_bad_request(client_data['request'])
-        )({
-            "client": sock,
-            "payload": client_data['payload']
-        })
-
+            self._handle_bad_request(client_data["request"]),
+        )(
+            {"client": sock, "payload": client_data["payload"]}
+        )
 
     def disconnect(self, sock):
         """A client has disconnected """
         self._clients.remove(sock)
-        if sock in  self._data_subscribers:
+        if sock in self._data_subscribers:
             self._data_subscribers.remove(sock)
 
-
-    @handler('NotifyClient')
+    @handler("NotifyClient")
     def notify_client(self, data):
         """This handler is called upon state changes & is meant to notify web-client of any events 
         

@@ -13,50 +13,60 @@ from enginecore import cli
 
 ## set-up top level params
 argparser = argparse.ArgumentParser(
-    description='Simengine CLI provides a set of management tools for the engine core'
+    description="Simengine CLI provides a set of management tools for the engine core"
 )
 subparsers = argparser.add_subparsers()
-argparser.add_argument('--version', action='version', version='%(prog)s 2.0')
+argparser.add_argument("--version", action="version", version="%(prog)s 2.0")
 
 ## set-up the commands (status/power etc..)
 cli.status_command(
-    subparsers.add_parser('status', help="Retrieve status of registered asset(s)")
+    subparsers.add_parser("status", help="Retrieve status of registered asset(s)")
 )
 cli.power_command(
-    subparsers.add_parser('power', help="Control power component of registered asset(s)")
+    subparsers.add_parser(
+        "power", help="Control power component of registered asset(s)"
+    )
 )
 cli.thermal_command(
-    subparsers.add_parser('thermal', help="Manage temperature/thermal settings of the system")
+    subparsers.add_parser(
+        "thermal", help="Manage temperature/thermal settings of the system"
+    )
 )
 cli.storage_command(
-    subparsers.add_parser('storage', help="Manage storage state of the system")
+    subparsers.add_parser("storage", help="Manage storage state of the system")
 )
 cli.configure_command(
-    subparsers.add_parser('configure-state', help="Update runtime state of the assets/sensors")
+    subparsers.add_parser(
+        "configure-state", help="Update runtime state of the assets/sensors"
+    )
 )
 cli.model_command(
-    subparsers.add_parser('model', help="Manage system model: create new/update existing asset etc.")
+    subparsers.add_parser(
+        "model", help="Manage system model: create new/update existing asset etc."
+    )
 )
 cli.play_command(
-    subparsers.add_parser('play', help="Manage and execute playback scenarios")
+    subparsers.add_parser("play", help="Manage and execute playback scenarios")
 )
 cli.actions_command(
-    subparsers.add_parser('actions', help="Record and replay actions performed by the engine")
+    subparsers.add_parser(
+        "actions", help="Record and replay actions performed by the engine"
+    )
 )
 
 try:
     options = argparser.parse_args()
-    
+
     # if validation is present
-    if hasattr(options, 'validate'):
+    if hasattr(options, "validate"):
         options.validate(vars(options))
     # action associated with the CLI command
-    if hasattr(options, 'func'):
+    if hasattr(options, "func"):
         options.func(vars(options))
     else:
         argparser.print_help()
 except db_error.ConstraintError as e:
-    print('Database constraint was violated: ')
+    print("Database constraint was violated: ")
     print(e, file=sys.stderr)
 except argparse.ArgumentTypeError as e:
     print(e, file=sys.stderr)

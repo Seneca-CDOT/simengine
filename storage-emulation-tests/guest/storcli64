@@ -21,17 +21,16 @@ import os
 simengine = open("/dev/virtio-ports/systems.cdot.simengine.storage.net", "r+b", 0)
 
 # Step 1: encapsulate command-line arguments in json and send to socket
-simengine.write(bytes(json.dumps({'argv': sys.argv}), 'UTF-8'))
+simengine.write(bytes(json.dumps({"argv": sys.argv}), "UTF-8"))
 
 # Step 2: wait for one line from the other end, deserialize, and output
 # the received values
 received = json.loads(simengine.readline())
-if (len(received['stdout']) > 0):
-  print(received['stdout'])
-if (len(received['stderr']) > 0):
-  print(received['stderr'], file=sys.stderr)
+if len(received["stdout"]) > 0:
+    print(received["stdout"])
+if len(received["stderr"]) > 0:
+    print(received["stderr"], file=sys.stderr)
 
 # End: tidy and wrap
 simengine.close()
-sys.exit(received['status'])
-
+sys.exit(received["status"])

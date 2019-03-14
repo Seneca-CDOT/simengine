@@ -14,15 +14,15 @@ def format_as_redis_key(key, oid, key_formatted=True):
     if not key_formatted:
         key = key.zfill(10)
 
-    key_and_oid = key + '-'
-    oid_digits = oid.split('.')
+    key_and_oid = key + "-"
+    oid_digits = oid.split(".")
 
     for digit in oid_digits[:-1]:
-        key_and_oid += (digit + '.').rjust(11, ' ')
-    key_and_oid += (oid_digits[-1]).rjust(10, ' ')
+        key_and_oid += (digit + ".").rjust(11, " ")
+    key_and_oid += (oid_digits[-1]).rjust(10, " ")
 
     return key_and_oid
-    
+
 
 def get_asset_type(labels):
     """Find if any of the labels indicate asset type 
@@ -37,9 +37,6 @@ def get_asset_type(labels):
         StopIteration: when asset type is either not supported or undefined in the graph ref
     """
 
-    asset_label = set(SUPPORTED_ASSETS).intersection(
-        map(lambda x: x.lower(), labels)
-    )
+    asset_label = set(SUPPORTED_ASSETS).intersection(map(lambda x: x.lower(), labels))
 
     return next(iter(asset_label)).lower()
-
