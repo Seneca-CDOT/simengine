@@ -6,5 +6,6 @@ repos:
         language_version: python3.6
   - repo: https://github.com/prettier/prettier
     rev: master
+    exclude: ^docs/
     hooks:
       - id: prettier
