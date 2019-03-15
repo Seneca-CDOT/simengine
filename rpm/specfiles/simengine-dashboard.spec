@@ -9,6 +9,7 @@ License:   GPLv3+
 
 Source0:   https://github.com/Seneca-CDOT/simengine/archive/%{gittag}/simengine-%{version}.tar.gz
 
+BuildRequires: npm
 Requires: simengine-database, simengine-core, httpd
 
 %description
