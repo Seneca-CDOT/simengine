@@ -10,11 +10,16 @@ newtag="$(sed "s/\..*$/.$newminor/" <<<$oldtag)"
 echo "oldtag:   $oldtag"
 echo "newtag:   $newtag"
 
-git tag "$newtag"
 for X in simengine*.spec
 do
 	rpmdev-bumpspec --new "$newtag" $X
 done
 
 git commit -am "Bumped tag $oldtag -> $newtag"
+git tag "$newtag"
+
+echo "Don't forget to push changes AND tag:"
+echo
+echo "    git push"
+echo "    git push --tag"
 
