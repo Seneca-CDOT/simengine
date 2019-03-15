@@ -31,6 +31,7 @@ gcc -shared -o %{_builddir}/simengine-%{version}/haos_extend.so -fPIC %{_builddi
 mkdir -p %{buildroot}%{_datadir}/simengine/
 mkdir -p %{buildroot}%{selected_libdir}/simengine/
 mkdir -p %{buildroot}%{selected_libdir}/systemd/system/
+mkdir -p %{buildroot}/usr/lib/systemd/system/  # in case selected_libdir is different
 mkdir -p %{buildroot}%{_bindir}/
 cp -fp haos_extend.so %{buildroot}%{selected_libdir}/simengine/
 cp -fRp enginecore %{buildroot}%{_datadir}/simengine/
