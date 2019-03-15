@@ -1,5 +1,5 @@
 Name:      simengine-dashboard
-Version:   3.11
+Version:   3.12
 Release:   1%{?dist}
 Summary:   SimEngine - Dashboard
 URL:       https://github.com/Seneca-CDOT/simengine
@@ -60,6 +60,9 @@ cp -fpr * %{buildroot}%{_localstatedir}/www/html
 systemctl enable httpd.service --now
 
 %changelog
+* Fri Mar 15 2019 Chris Tyler <ctyler.fedora@gmail.com> - 3.12-1
+- new version
+
 * Mon Mar 11 2019 Chris Tyler - 3.11-1
 - new version
 

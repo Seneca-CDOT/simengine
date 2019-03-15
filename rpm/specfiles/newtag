@@ -17,4 +17,8 @@ do
 done
 
 git commit -am "Bumped tag $oldtag -> $newtag"
+git tag "$newtag"
+
+echo "Tagged current commit as $newtag"
+echo "Don't forget to push: git push; git push --tag"
 
