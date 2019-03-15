@@ -10,7 +10,6 @@ newtag="$(sed "s/\..*$/.$newminor/" <<<$oldtag)"
 echo "oldtag:   $oldtag"
 echo "newtag:   $newtag"
 
-git tag "$newtag"
 for X in simengine*.spec
 do
 	rpmdev-bumpspec --new "$newtag" $X
