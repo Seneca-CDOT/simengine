@@ -92,8 +92,9 @@ class Recorder:
         """
         self._enabled = False
 
+        logging.info("\n %s \n", self._actions[1:][slc])
         for action, next_action in zip_longest(
-            self._actions[slc], self._actions[1:][slc]
+            self._actions[slc], self._actions[slc][1:]
         ):
 
             action_info = "Replaying: [ {action}{args} ]".format(
@@ -101,9 +102,12 @@ class Recorder:
             )
 
             logging.info(action_info)
+            logging.info(action)
             action["work"]()
 
             if next_action:
+                logging.info(next_action)
+
                 next_delay = (next_action["timestamp"] - action["timestamp"]).seconds
                 logging.info("Paused for %s seconds...", next_delay)
                 time.sleep(next_delay)
