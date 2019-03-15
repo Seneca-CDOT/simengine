@@ -6,6 +6,7 @@ URL:       https://github.com/Seneca-CDOT/simengine
 License:   GPLv3+
 
 %global gittag %{version}
+%global selected_libdir /usr/lib64
 
 Source0: https://github.com/Seneca-CDOT/simengine/archive/%{gittag}/simengine-%{version}.tar.gz  
 
@@ -28,10 +29,10 @@ gcc -shared -o %{_builddir}/simengine-%{version}/haos_extend.so -fPIC %{_builddi
 
 %install
 mkdir -p %{buildroot}%{_datadir}/simengine/
-mkdir -p %{buildroot}/usr/lib/simengine/
-mkdir -p %{buildroot}/usr/lib/systemd/system/
+mkdir -p %{buildroot}%{selected_libdir}/simengine/
+mkdir -p %{buildroot}%{selected_libdir}/systemd/system/
 mkdir -p %{buildroot}%{_bindir}/
-cp -fp haos_extend.so %{buildroot}/usr/lib64/simengine/
+cp -fp haos_extend.so %{buildroot}%{selected_libdir}/simengine/
 cp -fRp enginecore %{buildroot}%{_datadir}/simengine/
 cp -fRp data %{buildroot}%{_datadir}/simengine/
 cp -fp services/simengine-core.service %{buildroot}/usr/lib/systemd/system/
@@ -40,7 +41,7 @@ mkdir -p %{buildroot}%{_localstatedir}/log/simengine
 exit 0
 
 %files
-/usr/lib64/simengine/haos_extend.so
+%{selected_libdir}/simengine/haos_extend.so
 %{_datadir}/simengine/enginecore
 %{_datadir}/simengine/data
 /usr/lib/systemd/system/simengine-core.service
