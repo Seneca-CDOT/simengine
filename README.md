@@ -1,4 +1,4 @@
-# SimEngine [![Documentation Status](https://readthedocs.org/projects/simengine/badge/?version=latest)](https://simengine.readthedocs.io/en/latest/?badge=latest)
+# SimEngine [![Documentation Status](https://readthedocs.org/projects/simengine/badge/?version=latest)](https://simengine.readthedocs.io/en/latest/?badge=latest) [![PyPI version](https://badge.fury.io/py/SimEngine.svg)](https://badge.fury.io/py/SimEngine)
 
 SimEngine is a simulation platform that can model high-availability hardware systems. The project itself supports web-based interface as well as a set of command line tools. SimEngine users can trigger power events through the dashboard or script commands to simulate certain conditions. The platform was developed with open-source community in mind and it is capable of modelling any high-availability setup meaning it can be potentially used by anyone specializing in high-availability industry.
 
@@ -8,6 +8,7 @@ SimEngine features include:
 - Power events (wallpower, assets' states, UPS battery etc) 
 - IPMI/BMC interface and SNMP simulation (load, power etc.)
 - Thermal simulation (AC & Ambient, temperature sensors)
+- storcli64 simulation (Drive/CacheVault failure, temperature behaviour etc.)
 
 
 Full project documentation is hosted on [readthedocs](https://simengine.readthedocs.io/en/latest)
