@@ -64,6 +64,10 @@ def actions_command(actions_group):
     enable_action = play_subp.add_parser(
         "enable", help="Enable recorder registering incoming actions"
     )
+    status_action = play_subp.add_parser(
+        "status",
+        help="Returns recorder status indicating if recorder is enabled and if it is in-process of replaying",
+    )
     list_action = play_subp.add_parser(
         "list", help="List action history", parents=[range_args()]
     )
@@ -99,7 +103,16 @@ def actions_command(actions_group):
     )
 
     disable_action.set_defaults(
-        func=lambda _: StateClient.recorder_status(enabled=False)
+        func=lambda _: StateClient.set_recorder_status(enabled=False)
     )
 
-    enable_action.set_defaults(func=lambda _: StateClient.recorder_status(enabled=True))
+    enable_action.set_defaults(
+        func=lambda _: StateClient.set_recorder_status(enabled=True)
+    )
+    status_action.set_defaults(
+        func=lambda _: print(
+            "Enabled: {enabled}\nReplaying: {replaying}".format(
+                **StateClient.get_recorder_status()
+            )
+        )
+    )

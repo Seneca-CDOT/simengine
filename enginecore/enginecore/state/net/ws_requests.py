@@ -17,6 +17,8 @@ class ServerToClientRequests(enum.Enum):
     plays = 5
     # list of actions
     action_list = 6
+    # recorder status
+    recorder_status = 7
 
 
 class ClientToServerRequests(enum.Enum):
@@ -41,4 +43,5 @@ class ClientToServerRequests(enum.Enum):
     # get all/range of actions
     list_actions = 9
     # toggle recorder status
-    recorder_status = 10
+    set_recorder_status = 10
+    get_recorder_status = 11

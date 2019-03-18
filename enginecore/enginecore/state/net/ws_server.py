@@ -156,9 +156,16 @@ class WebSocket(Component):
             {"actions": recorder.get_action_details(self._slice_from_paylaod(details))},
         )
 
-    def _handle_rec_status_request(self, details):
+    def _handle_set_rec_request(self, details):
         """Disable/Enable recorder status"""
         recorder.enabled = details["payload"]["enabled"]
+
+    def _handle_get_rec_request(self, details):
+        self._write_data(
+            details["client"],
+            ServerToClientRequests.recorder_status,
+            {"status": {"replaying": recorder.replaying, "enabled": recorder.enabled}},
+        )
 
     def read(self, sock, data):
         """Read client request
@@ -183,7 +190,8 @@ class WebSocket(Component):
             ClientToServerRequests.replay_actions: self._handle_replay_actions_request,
             ClientToServerRequests.purge_actions: self._handle_purge_actions_request,
             ClientToServerRequests.list_actions: self._handle_list_actions_request,
-            ClientToServerRequests.recorder_status: self._handle_rec_status_request,
+            ClientToServerRequests.set_recorder_status: self._handle_set_rec_request,
+            ClientToServerRequests.get_recorder_status: self._handle_get_rec_request,
         }.get(
             ClientToServerRequests[client_data["request"]],
             # default to bad request

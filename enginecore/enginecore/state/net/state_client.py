@@ -23,7 +23,8 @@ class StateClient:
         )
 
     @classmethod
-    def send_request(cls, request, data, ws_client=None):
+    def send_request(cls, request, data={}, ws_client=None):
+        """Send request to the simengine websocket server"""
         if not ws_client:
             ws_client = StateClient.get_ws_client()
 
@@ -89,8 +90,19 @@ class StateClient:
         return json.loads(ws_client.recv())["payload"]["actions"]
 
     @classmethod
-    def recorder_status(cls, enabled):
+    def set_recorder_status(cls, enabled):
         """Toggle recorder status"""
         StateClient.send_request(
-            ClientToServerRequests.recorder_status, {"enabled": enabled}
+            ClientToServerRequests.set_recorder_status, {"enabled": enabled}
         )
+
+    @classmethod
+    def get_recorder_status(cls):
+        """Retrieve recorder status"""
+        ws_client = StateClient.get_ws_client()
+
+        StateClient.send_request(
+            ClientToServerRequests.get_recorder_status, ws_client=ws_client
+        )
+
+        return json.loads(ws_client.recv())["payload"]["status"]
