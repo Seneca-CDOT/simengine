@@ -36,12 +36,20 @@ class StateClient:
             self._ws_client,
         )
 
-    def shut_down(self):
+    def _state_off(self, hard=False):
         StateClient.send_request(
             ClientToServerRequests.power,
-            {"status": 0, "key": self._asset_key},
+            {"status": 0, "key": self._asset_key, "hard": hard},
             self._ws_client,
         )
+
+    def shut_down(self):
+        """Graceful shutdown"""
+        self._state_off()
+
+    def power_off(self):
+        """Abrupt shut off"""
+        self._state_off(hard=True)
 
     @classmethod
     def power_outage(cls):

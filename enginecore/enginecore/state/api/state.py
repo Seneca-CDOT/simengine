@@ -88,7 +88,6 @@ class IStateManager:
         Returns:
             int: Asset's status after power-off operation
         """
-        print("SHUTTING DOWN {}".format(self.key))
         self._sleep_shutdown()
         if self.status:
             self._set_state_off()
@@ -101,8 +100,6 @@ class IStateManager:
         Returns:
             int: Asset's status after power-off operation
         """
-        print("POWERING OFF {}".format(self.key))
-
         if self.status:
             self._set_state_off()
         return self.status
@@ -114,8 +111,6 @@ class IStateManager:
         Returns:
             int: Asset's status after power-on operation
         """
-        print("POWERING UP {}".format(self.key))
-
         if self._parents_available() and not self.status:
             self._sleep_powerup()
             # udpate machine start time & turn on

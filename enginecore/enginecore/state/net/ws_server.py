@@ -71,6 +71,8 @@ class WebSocket(Component):
 
         if power_up:
             state_manager.power_up()
+        elif details["payload"]["hard"]:
+            state_manager.power_off()
         else:
             state_manager.shut_down()
 
