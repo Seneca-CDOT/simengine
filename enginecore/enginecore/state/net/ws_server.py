@@ -71,7 +71,7 @@ class WebSocket(Component):
 
         if power_up:
             state_manager.power_up()
-        elif details["payload"]["hard"]:
+        elif "hard" in details["payload"] and details["payload"]["hard"]:
             state_manager.power_off()
         else:
             state_manager.shut_down()
@@ -145,15 +145,20 @@ class WebSocket(Component):
         # recorder.replay_range(slice(-5, None))
 
     def _handle_purge_actions_request(self, details):
+        """Clear recorded actions"""
         recorder.erase_range(self._slice_from_paylaod(details))
 
     def _handle_list_actions_request(self, details):
-
+        """Retrieve recorded acitons and send back to the client"""
         self._write_data(
             details["client"],
             ServerToClientRequests.action_list,
             {"actions": recorder.get_action_details(self._slice_from_paylaod(details))},
         )
+
+    def _handle_rec_status_request(self, details):
+        """Disable/Enable recorder status"""
+        recorder.enabled = details["payload"]["enabled"]
 
     def read(self, sock, data):
         """Read client request
@@ -178,6 +183,7 @@ class WebSocket(Component):
             ClientToServerRequests.replay_actions: self._handle_replay_actions_request,
             ClientToServerRequests.purge_actions: self._handle_purge_actions_request,
             ClientToServerRequests.list_actions: self._handle_list_actions_request,
+            ClientToServerRequests.recorder_status: self._handle_rec_status_request,
         }.get(
             ClientToServerRequests[client_data["request"]],
             # default to bad request

@@ -90,6 +90,7 @@ class StateClient:
 
     @classmethod
     def recorder_status(cls, enabled):
+        """Toggle recorder status"""
         StateClient.send_request(
             ClientToServerRequests.recorder_status, {"enabled": enabled}
         )

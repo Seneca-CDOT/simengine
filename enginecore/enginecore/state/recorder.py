@@ -17,6 +17,7 @@ class Recorder:
     def __init__(self):
         self._actions = []
         self._enabled = True
+        self._replaying = False
 
     def __call__(self, work):
         @functools.wraps(work)
@@ -36,6 +37,21 @@ class Recorder:
             return work(asset_self, *f_args, **f_kwargs)
 
         return record_wrapper
+
+    @property
+    def enabled(self):
+        """Recorder status indicating if it's accepting & recording new actions"""
+        return self._enabled
+
+    @property
+    def replaying(self):
+        """Recorder status indicating if recorder is in process of replaying actions"""
+        return self._replaying
+
+    @enabled.setter
+    def enabled(self, value):
+        if not self.replaying:
+            self._enabled = value
 
     def get_action_details(self, slc=slice(None, None)):
         """Human-readable details on action history
@@ -90,7 +106,10 @@ class Recorder:
         Args:
             slc(slice): range of actions to be performed
         """
-        self._enabled = False
+
+        pre_replay_enabled_status = self.enabled
+        self.enabled = False
+        self._replaying = True
 
         logging.info("\n %s \n", self._actions[1:][slc])
         for action, next_action in zip_longest(
@@ -112,7 +131,8 @@ class Recorder:
                 logging.info("Paused for %s seconds...", next_delay)
                 time.sleep(next_delay)
 
-        self._enabled = True
+        self._replaying = False
+        self.enabled = pre_replay_enabled_status
 
 
 RECORDER = Recorder()
