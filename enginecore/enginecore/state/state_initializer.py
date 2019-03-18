@@ -9,10 +9,16 @@ from enginecore.model.graph_reference import GraphReference
 from enginecore.state.utils import format_as_redis_key, get_asset_type
 
 
-def clear_temp():
-    """All app data is stored in /tmp/simengine (which is cleared on restart)"""
+def get_temp_workplace_dir():
+    """Get location of the temp directory"""
     sys_temp = tempfile.gettempdir()
     simengine_temp = os.path.join(sys_temp, "simengine")
+    return simengine_temp
+
+
+def clear_temp():
+    """All app data is stored in /tmp/simengine (which is cleared on restart)"""
+    simengine_temp = get_temp_workplace_dir()
     if os.path.exists(simengine_temp):
         for the_file in os.listdir(simengine_temp):
             file_path = os.path.join(simengine_temp, the_file)

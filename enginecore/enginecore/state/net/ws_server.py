@@ -9,7 +9,7 @@ import threading
 from circuits import handler, Component
 from circuits.net.events import write
 from enginecore.state.assets import SUPPORTED_ASSETS
-from enginecore.state.api import IStateManager
+from enginecore.state.api import IStateManager, IBMCServerStateManager
 from enginecore.model.graph_reference import GraphReference
 from enginecore.state.recorder import RECORDER as recorder
 from enginecore.state.net.ws_requests import (
@@ -132,7 +132,7 @@ class WebSocket(Component):
         )
 
     def _handle_replay_actions_request(self, details):
-        print("\n\n=======================================\n\n")
+        """Replay all or range of actions stored by the recorder"""
         recorder.get_action_details()
         replay_t = threading.Thread(
             target=recorder.replay_range,
@@ -142,7 +142,6 @@ class WebSocket(Component):
 
         replay_t.daemon = True
         replay_t.start()
-        # recorder.replay_range(slice(-5, None))
 
     def _handle_purge_actions_request(self, details):
         """Clear recorded actions"""
@@ -161,10 +160,21 @@ class WebSocket(Component):
         recorder.enabled = details["payload"]["enabled"]
 
     def _handle_get_rec_request(self, details):
+        """Send recorder status to the client"""
         self._write_data(
             details["client"],
             ServerToClientRequests.recorder_status,
             {"status": {"replaying": recorder.replaying, "enabled": recorder.enabled}},
+        )
+
+    def _handle_sensor_state_request(self, details):
+        """Update runtime value of a IPMI/BMC sensor"""
+        server_sm = IStateManager.get_state_manager_by_key(
+            details["payload"]["key"], SUPPORTED_ASSETS
+        )
+
+        server_sm.update_sensor(
+            details["payload"]["sensor_name"], details["payload"]["sensor_value"]
         )
 
     def read(self, sock, data):
@@ -192,6 +202,7 @@ class WebSocket(Component):
             ClientToServerRequests.list_actions: self._handle_list_actions_request,
             ClientToServerRequests.set_recorder_status: self._handle_set_rec_request,
             ClientToServerRequests.get_recorder_status: self._handle_get_rec_request,
+            ClientToServerRequests.sensor: self._handle_sensor_state_request,
         }.get(
             ClientToServerRequests[client_data["request"]],
             # default to bad request

@@ -26,6 +26,7 @@ import enginecore.state.state_managers as sm
 from enginecore.state.asset_definition import register_asset, SUPPORTED_ASSETS
 from enginecore.state.agent import IPMIAgent, SNMPAgent, StorCLIEmulator
 from enginecore.state.sensor.repository import SensorRepository
+from enginecore.state.state_initializer import get_temp_workplace_dir
 
 PowerEventResult = namedtuple(
     "PowerEventResult", "old_state new_state asset_key asset_type"
@@ -725,9 +726,7 @@ class ServerWithBMC(Server):
     def __init__(self, asset_info):
 
         # create state directory
-        ipmi_dir = os.path.join(
-            sm.StateManager.get_temp_workplace_dir(), str(asset_info["key"])
-        )
+        ipmi_dir = os.path.join(get_temp_workplace_dir(), str(asset_info["key"]))
         os.makedirs(ipmi_dir)
 
         sensors = self.StateManagerCls.get_sensor_definitions(asset_info["key"])

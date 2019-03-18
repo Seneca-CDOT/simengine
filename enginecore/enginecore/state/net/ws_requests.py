@@ -45,3 +45,5 @@ class ClientToServerRequests(enum.Enum):
     # toggle recorder status
     set_recorder_status = 10
     get_recorder_status = 11
+    # set sensor status
+    sensor = 12

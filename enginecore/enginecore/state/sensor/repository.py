@@ -4,7 +4,7 @@ present in a particular asset/machine
 import os
 import logging
 
-import enginecore.state.state_managers as sm
+from enginecore.state.state_initializer import get_temp_workplace_dir
 from enginecore.model.graph_reference import GraphReference
 
 from enginecore.state.sensor.file_locks import SensorFileLocks
@@ -21,7 +21,7 @@ class SensorRepository:
         self._sensor_file_locks = SensorFileLocks()
 
         self._sensor_dir = os.path.join(
-            sm.StateManager.get_temp_workplace_dir(), str(server_key), "sensor_dir"
+            get_temp_workplace_dir(), str(server_key), "sensor_dir"
         )
 
         self._sensors = {}

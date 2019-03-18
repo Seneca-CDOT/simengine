@@ -270,13 +270,6 @@ class IStateManager:
         return assets_up and oids_on and not_affected_by_mains
 
     @classmethod
-    def get_temp_workplace_dir(cls):
-        """Get location of the temp directory"""
-        sys_temp = tempfile.gettempdir()
-        simengine_temp = os.path.join(sys_temp, "simengine")
-        return simengine_temp
-
-    @classmethod
     def get_store(cls):
         """Get redis db handler """
         if not cls.redis_store:

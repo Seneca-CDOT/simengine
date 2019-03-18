@@ -1,6 +1,7 @@
 """MISC: exposes various system's state props configurations """
 
 import argparse
+from enginecore.state.net.state_client import StateClient
 from enginecore.state.assets import Asset
 from enginecore.state.sensor.repository import SensorRepository
 
@@ -59,7 +60,11 @@ def configure_command(configure_state_group):
     conf_ups_action.set_defaults(
         func=lambda args: configure_battery(args["asset_key"], args)
     )
-    conf_sensor_action.set_defaults(func=configure_sensor)
+    conf_sensor_action.set_defaults(
+        func=lambda args: StateClient.set_sensor_status(
+            args["asset_key"], args["sensor_name"], args["runtime_value"]
+        )
+    )
 
 
 def configure_battery(key, kwargs):
@@ -70,16 +75,3 @@ def configure_battery(key, kwargs):
     if kwargs["charge_speed"] is not None:
         state_manager = Asset.get_state_manager_by_key(key)
         state_manager.set_charge_speed_factor(kwargs["charge_speed"])
-
-
-def configure_sensor(kwargs):
-    """Update runtime sensor value"""
-    try:
-        sensor = SensorRepository(kwargs["asset_key"]).get_sensor_by_name(
-            kwargs["sensor_name"]
-        )
-        sensor.sensor_value = kwargs["runtime_value"]
-    except KeyError as error:
-        raise argparse.ArgumentTypeError(
-            "Server or Sensor does not exist: " + str(error)
-        )

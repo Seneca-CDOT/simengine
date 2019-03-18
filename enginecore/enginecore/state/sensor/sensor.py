@@ -10,7 +10,7 @@ import json
 import operator
 from enum import Enum
 
-import enginecore.state.state_managers as sm
+import enginecore.state.api as state_api
 from enginecore.model.graph_reference import GraphReference
 
 
@@ -217,7 +217,7 @@ class Sensor:
             asset_info = GraphReference.get_asset_and_components(
                 session, self._server_key
             )
-            server_sm = sm.BMCServerStateManager(asset_info)
+            server_sm = state_api.IBMCServerStateManager(asset_info)
 
             cpu_impact_degrees_1 = 0
             cpu_impact_degrees_2 = 0
@@ -249,7 +249,7 @@ class Sensor:
 
                     # meaning update is needed
                     if cpu_impact_degrees_1 != cpu_impact_degrees_2:
-                        ambient = sm.StateManager.get_ambient()
+                        ambient = state_api.IStateManager.get_ambient()
                         self.sensor_value = (
                             new_calc_value if new_calc_value > ambient else int(ambient)
                         )
@@ -320,7 +320,7 @@ class Sensor:
                         },
                         temp_change=rel["degrees"] * 1 if causes_heating else -1,
                         limit={
-                            "lower": sm.StateManager.get_ambient(),
+                            "lower": state_api.IStateManager.get_ambient(),
                             "upper": rel["pauseAt"] if causes_heating else None,
                         },
                     )
@@ -382,10 +382,13 @@ class Sensor:
                     source_sensor_status = operator.ne
 
                 # verify that sensor value doesn't go below room temp
-                if causes_heating or rel["pauseAt"] > sm.StateManager.get_ambient():
+                if (
+                    causes_heating
+                    or rel["pauseAt"] > state_api.IStateManager.get_ambient()
+                ):
                     pause_at = rel["pauseAt"]
                 else:
-                    pause_at = sm.StateManager.get_ambient()
+                    pause_at = state_api.IStateManager.get_ambient()
 
                 # update target sensor value
                 with self._s_file_locks.get_lock(target), open(
@@ -499,8 +502,6 @@ class Sensor:
         """Disable thread execution responsible for thermal updates"""
         logging.info("Sensor:[%s] - disabling thermal impact", self._s_name)
         self._s_thermal_event.clear()
-        # logging.info(self._s_thermal_event.is_set())
-        # logging.info(self._th_sensor_t)
 
     def set_to_off(self):
         with open(self._get_sensor_file_path(), "w+") as filein:

@@ -4,6 +4,8 @@ import json
 
 from enginecore.model.graph_reference import GraphReference
 import enginecore.model.system_modeler as sys_modeler
+from enginecore.state.recorder import RECORDER as record
+
 
 from enginecore.state.redis_channels import RedisChannels
 from enginecore.state.api.state import IStateManager
@@ -44,6 +46,23 @@ class IBMCServerStateManager(IServerStateManager):
     def get_cpu_stats(self):
         """Get VM cpu stats (user_time, cpu_time etc. (see libvirt api)) """
         return self._vm.getCPUStats(True)
+
+    @record
+    def update_sensor(self, sensor_name, value):
+        """Update runtime value of the sensor belonging to this server
+        Args:
+            sensor_name(str): human-readable sensor name to be updated
+            value: sensor value
+        """
+
+        try:
+            # import is inside the method to avoid circular imports
+            from enginecore.state.sensor.repository import SensorRepository
+
+            sensor = SensorRepository(self.key).get_sensor_by_name(sensor_name)
+            sensor.sensor_value = value
+        except KeyError as error:
+            print("Server or Sensor does not exist: %s", str(error))
 
     @property
     def cpu_load(self):

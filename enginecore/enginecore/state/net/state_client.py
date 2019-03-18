@@ -106,3 +106,15 @@ class StateClient:
         )
 
         return json.loads(ws_client.recv())["payload"]["status"]
+
+    @classmethod
+    def set_sensor_status(cls, asset_key, sensor_name, sensor_value):
+        """Update runtime BMC sensor value"""
+        StateClient.send_request(
+            ClientToServerRequests.sensor,
+            {
+                "key": asset_key,
+                "sensor_name": sensor_name,
+                "sensor_value": sensor_value,
+            },
+        )
