@@ -31,7 +31,7 @@ class Recorder:
                 self._actions.append(
                     {
                         "work": functools.update_wrapper(partial_func, work),
-                        "timestamp": dt.now(),
+                        "time": dt.now(),
                     }
                 )
             return work(asset_self, *f_args, **f_kwargs)
@@ -79,7 +79,7 @@ class Recorder:
                         func=action["work"].__name__,
                         args=action["work"].args[1:],
                     ),
-                    "timestamp": action["timestamp"],
+                    "timestamp": int(action["time"].timestamp()),
                     "number": self._actions.index(action),
                 }
             )
@@ -111,10 +111,7 @@ class Recorder:
         self.enabled = False
         self._replaying = True
 
-        logging.info("\n %s \n", self._actions[1:][slc])
-        for action, next_action in zip_longest(
-            self._actions[slc], self._actions[slc][1:]
-        ):
+        for action, next_action in self.actions_iter(self._actions, slc):
 
             action_info = "Replaying: [ {action}{args} ]".format(
                 action=action["work"].__name__, args=action["work"].args
@@ -125,14 +122,42 @@ class Recorder:
             action["work"]()
 
             if next_action:
-                logging.info(next_action)
-
-                next_delay = (next_action["timestamp"] - action["timestamp"]).seconds
+                next_delay = (next_action["time"] - action["time"]).seconds
                 logging.info("Paused for %s seconds...", next_delay)
                 time.sleep(next_delay)
 
         self._replaying = False
         self.enabled = pre_replay_enabled_status
+
+    @classmethod
+    def actions_iter(cls, actions, slc):
+        """Get an iterator yielding current & next actions"""
+        return zip_longest(actions[slc], actions[slc][1:])
+
+    @classmethod
+    def perform_dry_run(cls, actions, slc):
+        """Perform replay dry run by outputting step-by-step actions"""
+
+        for action, next_action in cls.actions_iter(actions, slc):
+
+            print("{number}) [executing]: {work}".format(**action))
+            out_pad = len("{number}) ".format(**action)) * " "
+
+            if next_action:
+                next_delay = (
+                    dt.fromtimestamp(next_action["timestamp"])
+                    - dt.fromtimestamp(action["timestamp"])
+                ).seconds
+
+                print(
+                    "{pad}[sleeping]:  {sleep} seconds".format(
+                        pad=out_pad, sleep=next_delay
+                    )
+                )
+
+                for _ in range(1, next_delay + 1):
+                    print("{pad}.".format(pad=out_pad))
+                    time.sleep(1)
 
 
 RECORDER = Recorder()

@@ -1,7 +1,9 @@
 """CLI endpoints for replaying, listing and managing recorded actions
 """
 import argparse
+from datetime import datetime as dt
 from enginecore.state.net.state_client import StateClient
+from enginecore.state.recorder import Recorder
 
 
 def print_action_list(action_details):
@@ -12,7 +14,18 @@ def print_action_list(action_details):
         return
 
     for action in action_details:
-        print("{number}) [{timestamp}] {work}".format(**action))
+        print(
+            "{number}) [{time}] {work}".format(
+                **action, time=dt.fromtimestamp(action["timestamp"])
+            )
+        )
+
+
+def dry_run_actions(args):
+    """Do a dry run of action replay without changing of affecting assets' states"""
+    action_slc = slice(args["start"], args["end"])
+    action_details = StateClient.list_actions(action_slc)
+    Recorder.perform_dry_run(action_details, action_slc)
 
 
 def range_args():
@@ -71,6 +84,9 @@ def actions_command(actions_group):
     list_action = play_subp.add_parser(
         "list", help="List action history", parents=[range_args()]
     )
+    dry_run_action = play_subp.add_parser(
+        "dry-run", help="Perform a dry run of actions replay", parents=[range_args()]
+    )
 
     # cli actions/callbacks
 
@@ -116,3 +132,4 @@ def actions_command(actions_group):
             )
         )
     )
+    dry_run_action.set_defaults(func=dry_run_actions)
