@@ -173,6 +173,7 @@ class IBMCServerStateManager(IServerStateManager):
             )
 
     @classmethod
+    @record
     def set_cv_replacement(cls, asset_key, controller, repl_status, wt_on_fail):
         """Update Cachevault details"""
         graph_ref = GraphReference()

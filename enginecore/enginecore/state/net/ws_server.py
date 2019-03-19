@@ -177,6 +177,16 @@ class WebSocket(Component):
             details["payload"]["sensor_name"], details["payload"]["sensor_value"]
         )
 
+    def _handle_cv_repl_request(self, detials):
+
+        payload = detials["payload"]
+        IBMCServerStateManager.set_cv_replacement(
+            payload["key"],
+            payload["controller"],
+            payload["repl_status"],
+            payload["wt_on_fail"],
+        )
+
     def read(self, sock, data):
         """Read client request
         all requests are sent in a format:
@@ -203,6 +213,7 @@ class WebSocket(Component):
             ClientToServerRequests.set_recorder_status: self._handle_set_rec_request,
             ClientToServerRequests.get_recorder_status: self._handle_get_rec_request,
             ClientToServerRequests.sensor: self._handle_sensor_state_request,
+            ClientToServerRequests.cv_replacement_status: self._handle_cv_repl_request,
         }.get(
             ClientToServerRequests[client_data["request"]],
             # default to bad request

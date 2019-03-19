@@ -3,6 +3,7 @@ controller and cachevault
 """
 import argparse
 from enginecore.state.api import IBMCServerStateManager
+from enginecore.state.net.state_client import StateClient
 
 
 def storage_command(storage_group):
@@ -174,7 +175,7 @@ def cv_command(cv_group):
     )
 
     set_cv_action.set_defaults(
-        func=lambda args: IBMCServerStateManager.set_cv_replacement(
+        func=lambda args: StateClient.set_cv_replacement(
             args["asset_key"],
             args["controller"],
             args["replacement_required"],

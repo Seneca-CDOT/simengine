@@ -47,3 +47,5 @@ class ClientToServerRequests(enum.Enum):
     get_recorder_status = 11
     # set sensor status
     sensor = 12
+    # cv replacement
+    cv_replacement_status = 13

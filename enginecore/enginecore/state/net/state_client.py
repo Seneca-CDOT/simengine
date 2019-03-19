@@ -118,3 +118,15 @@ class StateClient:
                 "sensor_value": sensor_value,
             },
         )
+
+    @classmethod
+    def set_cv_replacement(cls, asset_key, controller, repl_status, wt_on_fail):
+        StateClient.send_request(
+            ClientToServerRequests.cv_replacement_status,
+            {
+                "key": asset_key,
+                "controller": controller,
+                "repl_status": repl_status,
+                "wt_on_fail": wt_on_fail,
+            },
+        )
