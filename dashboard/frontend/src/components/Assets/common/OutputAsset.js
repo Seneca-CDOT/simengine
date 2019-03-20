@@ -1,18 +1,16 @@
-import React from 'react';
-import PropTypes from 'prop-types';
+import React from "react";
+import PropTypes from "prop-types";
 
-import Asset from './Asset';
-import Socket from './Socket';
-
+import Asset from "./Asset";
+import Socket from "./Socket";
 
 /** Output asset provides output outlet(s) */
 class OutputAsset extends Asset {
-
   constructor(props) {
     super(props);
     this.state = {
       // selected child
-      selectedSocketKey: -1,
+      selectedSocketKey: -1
     };
 
     this.outputSpacing = { x: 0, y: 0 };
@@ -22,12 +20,12 @@ class OutputAsset extends Asset {
   }
 
   /** Notify top-lvl Component that OUT-outlet was selected*/
-  selectSocket = (ckey) => {
+  selectSocket = ckey => {
     this.setState({ selectedSocketKey: ckey });
     this.props.onElementSelection(this.props.asset.children[ckey]);
-  }
+  };
 
-  getOutputSockets = (hideName=false) => {
+  getOutputSockets = (hideName = false) => {
     // Initialize outlets that are parts of the PDU
     const outputCoord = this.getOutputCoordinates(false);
     let outputSockets = [];
@@ -40,30 +38,32 @@ class OutputAsset extends Asset {
           y={outputCoord[ckey].y}
           asset={this.props.asset.children[ckey]}
           key={ckey}
-
-          onElementSelection={() => { this.selectSocket(ckey); }}
+          onElementSelection={() => {
+            this.selectSocket(ckey);
+          }}
           onPosChange={this.props.onPosChange}
           hideName={hideName}
           isComponent={true}
-          
-          selected={this.state.selectedSocketKey === ckey && this.props.nestedComponentSelected}
+          selected={
+            this.state.selectedSocketKey === ckey &&
+            this.props.nestedComponentSelected
+          }
           powered={this.props.asset.status !== 0}
           parentSelected={this.props.selected}
         />
-      ); 
+      );
     }
 
     return outputSockets;
-  }
+  };
 }
 
 OutputAsset.defaultProps = {
-  nestedComponentSelected: false,
+  nestedComponentSelected: false
 };
 
 OutputAsset.propTypes = {
-  nestedComponentSelected: PropTypes.bool.isRequired, // Display outlet name
+  nestedComponentSelected: PropTypes.bool.isRequired // Display outlet name
 };
-
 
 export default OutputAsset;
