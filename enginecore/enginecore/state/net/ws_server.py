@@ -78,7 +78,9 @@ class WebSocket(Component):
 
     def _handle_layout_request(self, details):
         """Save assets' positions/coordinates"""
-        with GraphReference().get_session() as session:
+
+        graph_ref = GraphReference()
+        with graph_ref.get_session() as session:
             GraphReference.save_layout(
                 session, details["payload"]["assets"], stage=details["payload"]["stage"]
             )
