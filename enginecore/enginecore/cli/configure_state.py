@@ -1,9 +1,7 @@
 """MISC: exposes various system's state props configurations """
 
-import argparse
 from enginecore.state.net.state_client import StateClient
 from enginecore.state.assets import Asset
-from enginecore.state.sensor.repository import SensorRepository
 
 
 def configure_command(configure_state_group):
@@ -61,8 +59,8 @@ def configure_command(configure_state_group):
         func=lambda args: configure_battery(args["asset_key"], args)
     )
     conf_sensor_action.set_defaults(
-        func=lambda args: StateClient.set_sensor_status(
-            args["asset_key"], args["sensor_name"], args["runtime_value"]
+        func=lambda args: StateClient(args["asset_key"]).set_sensor_status(
+            args["sensor_name"], args["runtime_value"]
         )
     )
 

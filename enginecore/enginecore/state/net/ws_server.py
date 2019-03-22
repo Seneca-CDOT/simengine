@@ -1,12 +1,11 @@
 """Web Socket Server (interface to the enginecore)"""
 
 import json
-from enum import Enum
 import itertools
 import logging
 import threading
 
-from circuits import handler, Component
+from circuits import handler, Component, Event
 from circuits.net.events import write
 from enginecore.state.assets import SUPPORTED_ASSETS
 from enginecore.state.api import IStateManager, IBMCServerStateManager
@@ -61,6 +60,7 @@ class WebSocket(Component):
 
         return process_payload
 
+    @handler(ClientToServerRequests.power.name)
     def _handle_power_request(self, details):
         """Power up/down asset"""
 
@@ -76,6 +76,7 @@ class WebSocket(Component):
         else:
             state_manager.shut_down()
 
+    @handler(ClientToServerRequests.layout.name)
     def _handle_layout_request(self, details):
         """Save assets' positions/coordinates"""
 
@@ -85,6 +86,7 @@ class WebSocket(Component):
                 session, details["payload"]["assets"], stage=details["payload"]["stage"]
             )
 
+    @handler(ClientToServerRequests.mains.name)
     def _handle_mains_request(self, details):
         """Wallpower update request"""
         if details["payload"]["mains"] == 0:
@@ -92,14 +94,17 @@ class WebSocket(Component):
         else:
             IStateManager.power_restore()
 
+    @handler(ClientToServerRequests.play.name)
     def _handle_play_request(self, details):
         """Playback request"""
         IStateManager.execute_play(details["payload"]["name"])
 
+    @handler(ClientToServerRequests.subscribe.name)
     def _handle_subscribe_request(self, details):
         """Subscribe a web-socket client to system updates (e.g. battery or status changes) """
         self._data_subscribers.append(details["client"])
 
+    @handler(ClientToServerRequests.status.name)
     def _handle_status_request(self, details):
         """Get overall system status/details including hardware assets, environment state & play details"""
 
@@ -133,6 +138,7 @@ class WebSocket(Component):
             {"mains": IStateManager.mains_status()},
         )
 
+    @handler(ClientToServerRequests.replay_actions.name)
     def _handle_replay_actions_request(self, details):
         """Replay all or range of actions stored by the recorder"""
         recorder.get_action_details()
@@ -145,10 +151,12 @@ class WebSocket(Component):
         replay_t.daemon = True
         replay_t.start()
 
+    @handler(ClientToServerRequests.purge_actions.name)
     def _handle_purge_actions_request(self, details):
         """Clear recorded actions"""
         recorder.erase_range(self._slice_from_paylaod(details))
 
+    @handler(ClientToServerRequests.list_actions.name)
     def _handle_list_actions_request(self, details):
         """Retrieve recorded acitons and send back to the client"""
         self._write_data(
@@ -157,10 +165,12 @@ class WebSocket(Component):
             {"actions": recorder.get_action_details(self._slice_from_paylaod(details))},
         )
 
+    @handler(ClientToServerRequests.set_recorder_status.name)
     def _handle_set_rec_request(self, details):
         """Disable/Enable recorder status"""
         recorder.enabled = details["payload"]["enabled"]
 
+    @handler(ClientToServerRequests.get_recorder_status.name)
     def _handle_get_rec_request(self, details):
         """Send recorder status to the client"""
         self._write_data(
@@ -169,6 +179,7 @@ class WebSocket(Component):
             {"status": {"replaying": recorder.replaying, "enabled": recorder.enabled}},
         )
 
+    @handler(ClientToServerRequests.sensor.name)
     def _handle_sensor_state_request(self, details):
         """Update runtime value of a IPMI/BMC sensor"""
         server_sm = IStateManager.get_state_manager_by_key(
@@ -179,14 +190,16 @@ class WebSocket(Component):
             details["payload"]["sensor_name"], details["payload"]["sensor_value"]
         )
 
+    @handler(ClientToServerRequests.cv_replacement_status.name)
     def _handle_cv_repl_request(self, detials):
+        """Update cv details upon"""
 
         payload = detials["payload"]
         IBMCServerStateManager.set_cv_replacement(
             payload["key"],
             payload["controller"],
-            payload["repl_status"],
-            payload["wt_on_fail"],
+            payload["replacement_required"],
+            payload["write_through_fail"],
         )
 
     def read(self, sock, data):
@@ -200,28 +213,11 @@ class WebSocket(Component):
 
         client_data = json.loads(data)
         logging.info(client_data)
-
-        # map request names to functions, report 'bad' request on error
-        {
-            ClientToServerRequests.power: self._handle_power_request,
-            ClientToServerRequests.layout: self._handle_layout_request,
-            ClientToServerRequests.mains: self._handle_mains_request,
-            ClientToServerRequests.play: self._handle_play_request,
-            ClientToServerRequests.status: self._handle_status_request,
-            ClientToServerRequests.subscribe: self._handle_subscribe_request,
-            ClientToServerRequests.replay_actions: self._handle_replay_actions_request,
-            ClientToServerRequests.purge_actions: self._handle_purge_actions_request,
-            ClientToServerRequests.list_actions: self._handle_list_actions_request,
-            ClientToServerRequests.set_recorder_status: self._handle_set_rec_request,
-            ClientToServerRequests.get_recorder_status: self._handle_get_rec_request,
-            ClientToServerRequests.sensor: self._handle_sensor_state_request,
-            ClientToServerRequests.cv_replacement_status: self._handle_cv_repl_request,
-        }.get(
-            ClientToServerRequests[client_data["request"]],
-            # default to bad request
-            self._handle_bad_request(client_data["request"]),
-        )(
-            {"client": sock, "payload": client_data["payload"]}
+        self.fire(
+            Event.create(
+                client_data["request"],
+                {"client": sock, "payload": client_data["payload"]},
+            )
         )
 
     def disconnect(self, sock):

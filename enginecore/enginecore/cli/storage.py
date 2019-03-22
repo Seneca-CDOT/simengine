@@ -25,6 +25,10 @@ def storage_command(storage_group):
 
 
 def get_ctrl_storage_args():
+    """Group together storage related args 
+    (most storage commands require at least server asset key and controller number) 
+    """
+
     # group a few args into a common parent element
     server_controller_parent = argparse.ArgumentParser(add_help=False)
     server_controller_parent.add_argument(
@@ -175,10 +179,9 @@ def cv_command(cv_group):
     )
 
     set_cv_action.set_defaults(
-        func=lambda args: StateClient.set_cv_replacement(
-            args["asset_key"],
-            args["controller"],
-            args["replacement_required"],
-            args["write_through_fail"],
+        func=lambda args: StateClient(args["asset_key"]).set_cv_replacement(
+            controller=args["controller"],
+            replacement_required=args["replacement_required"],
+            write_through_fail=args["write_through_fail"],
         )
     )

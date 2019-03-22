@@ -1,3 +1,6 @@
+"""SimEngine web socket server client interface
+"""
+
 import json
 import os
 from websocket import create_connection
@@ -18,19 +21,29 @@ class StateClient:
 
     @classmethod
     def get_ws_client(cls):
+        """Connect to the simengine ws server
+        Returns:
+            WebSocket: ws client
+        """
         return create_connection(
             "ws://{host}:{port}/simengine".format(**StateClient.socket_conf)
         )
 
     @classmethod
-    def send_request(cls, request, data={}, ws_client=None):
-        """Send request to the simengine websocket server"""
+    def send_request(cls, request, data=None, ws_client=None):
+        """Send request to the simengine websocket server
+        Args:
+            request(ClientToServerRequests): request name
+            data(dict): request payload
+            ws_client(WebSocket): web socket / client, this method initializes one if not provided
+        """
         if not ws_client:
             ws_client = StateClient.get_ws_client()
 
         ws_client.send(json.dumps({"request": request.name, "payload": data}))
 
     def power_up(self):
+        """Send power up request to ws-simengine"""
         StateClient.send_request(
             ClientToServerRequests.power,
             {"status": 1, "key": self._asset_key},
@@ -38,6 +51,10 @@ class StateClient:
         )
 
     def _state_off(self, hard=False):
+        """Send power off request to ws-simengine
+        Args:
+            hard(bool): flag for abrupt poweroff
+        """
         StateClient.send_request(
             ClientToServerRequests.power,
             {"status": 0, "key": self._asset_key, "hard": hard},
@@ -52,18 +69,50 @@ class StateClient:
         """Abrupt shut off"""
         self._state_off(hard=True)
 
+    def set_sensor_status(self, sensor_name, sensor_value):
+        """Request simengine socket server to update runtime BMC sensor value
+        Args:
+            sensor_name(str): name of the sensor to be updated
+            sensor_value(any): new sensor value
+        """
+        StateClient.send_request(
+            ClientToServerRequests.sensor,
+            {
+                "key": self._asset_key,
+                "sensor_name": sensor_name,
+                "sensor_value": sensor_value,
+            },
+            self._ws_client,
+        )
+
+    def set_cv_replacement(self, **kwargs):
+        """Request simengine socket server to update cache-vault replacement date
+        Kwargs:
+            **kwargs: controller number cv belongs to, new replacement status of the vault
+                      & write-through flag
+        """
+        StateClient.send_request(
+            ClientToServerRequests.cv_replacement_status,
+            {"key": self._asset_key, **kwargs},
+            self._ws_client,
+        )
+
     @classmethod
     def power_outage(cls):
-        """Simulate complete power outage/restoration"""
+        """Send power outage request to ws-simengine (init blackout)"""
         StateClient.send_request(ClientToServerRequests.mains, {"mains": 0})
 
     @classmethod
     def power_restore(cls):
-        """Simulate complete power restoration"""
+        """Send power restore request to ws-simengine"""
         StateClient.send_request(ClientToServerRequests.mains, {"mains": 1})
 
     @classmethod
     def replay_actions(cls, slc=slice(None, None)):
+        """Send replay actions recorded by SimEngine request to ws-simening 
+        Args:
+            slc(slice): range of actions to be performed, replays all if not provided
+        """
         StateClient.send_request(
             ClientToServerRequests.replay_actions,
             {"range": {"start": slc.start, "stop": slc.stop}},
@@ -71,6 +120,10 @@ class StateClient:
 
     @classmethod
     def clear_actions(cls, slc=slice(None, None)):
+        """Request ws-simenigne to remove all/range of actions
+        Args:
+            slc(slice): range of actions to be deleted, removes all if not provided
+        """
         StateClient.send_request(
             ClientToServerRequests.purge_actions,
             {"range": {"start": slc.start, "stop": slc.stop}},
@@ -78,7 +131,12 @@ class StateClient:
 
     @classmethod
     def list_actions(cls, slc=slice(None, None)):
-
+        """Query SimEngine recorder history
+        Args:
+            slc(slice): range of actions, returns all if not provided
+        Returns:
+            list: array of dicts containing action details (name, timestamp)
+        """
         ws_client = StateClient.get_ws_client()
 
         StateClient.send_request(
@@ -91,7 +149,10 @@ class StateClient:
 
     @classmethod
     def set_recorder_status(cls, enabled):
-        """Toggle recorder status"""
+        """Update recorder status
+        Args:
+            enabled(bool): indicates off/on status
+        """
         StateClient.send_request(
             ClientToServerRequests.set_recorder_status, {"enabled": enabled}
         )
@@ -106,27 +167,3 @@ class StateClient:
         )
 
         return json.loads(ws_client.recv())["payload"]["status"]
-
-    @classmethod
-    def set_sensor_status(cls, asset_key, sensor_name, sensor_value):
-        """Update runtime BMC sensor value"""
-        StateClient.send_request(
-            ClientToServerRequests.sensor,
-            {
-                "key": asset_key,
-                "sensor_name": sensor_name,
-                "sensor_value": sensor_value,
-            },
-        )
-
-    @classmethod
-    def set_cv_replacement(cls, asset_key, controller, repl_status, wt_on_fail):
-        StateClient.send_request(
-            ClientToServerRequests.cv_replacement_status,
-            {
-                "key": asset_key,
-                "controller": controller,
-                "repl_status": repl_status,
-                "wt_on_fail": wt_on_fail,
-            },
-        )

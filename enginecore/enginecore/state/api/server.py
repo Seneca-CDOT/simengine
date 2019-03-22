@@ -43,6 +43,8 @@ class IServerStateManager(IStateManager):
 
 
 class IBMCServerStateManager(IServerStateManager):
+    """Interface for a server that supports BMC chip & IPMI"""
+
     def get_cpu_stats(self):
         """Get VM cpu stats (user_time, cpu_time etc. (see libvirt api)) """
         return self._vm.getCPUStats(True)
