@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """ Command line interface for enginecore """
+# disable all-caps constant name
 # pylint: disable=C0103
 
 import argparse
@@ -60,13 +61,13 @@ try:
     # if validation is present
     if hasattr(options, "validate"):
         options.validate(vars(options))
-    # action associated with the CLI command
+    # execute action associated with the CLI command
     if hasattr(options, "func"):
         options.func(vars(options))
     else:
         argparser.print_help()
-except db_error.ConstraintError as e:
+except db_error.ConstraintError as error:
     print("Database constraint was violated: ")
-    print(e, file=sys.stderr)
-except argparse.ArgumentTypeError as e:
-    print(e, file=sys.stderr)
+    print(error, file=sys.stderr)
+except argparse.ArgumentTypeError as error:
+    print(error, file=sys.stderr)

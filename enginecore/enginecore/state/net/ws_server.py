@@ -26,6 +26,7 @@ class WebSocket(Component):
         super().__init__()
         self._clients = []
         self._data_subscribers = []
+        # a tiny util to convert json to slice (slice is not serializable)
         self._slice_from_paylaod = lambda d: slice(
             d["payload"]["range"]["start"], d["payload"]["range"]["stop"]
         )
@@ -37,7 +38,12 @@ class WebSocket(Component):
         logging.info("WebSocket Client Connected %s:%s", host, port)
 
     def _write_data(self, sock, request, data):
-        """Send response to the socket client"""
+        """Send data to the web-server socket client
+        Args:
+            sock(socket): client socket that will receive data
+            request(ServerToClientRequests): request type
+            data(dict): payload to be sent to the client
+        """
 
         self.fire(
             write(
@@ -46,21 +52,7 @@ class WebSocket(Component):
             )
         )
 
-    def _handle_bad_request(self, request):
-        """Handle bad request"""
-
-        def process_payload(details):
-            logging.error("Cannot process '%s' request: ", request)
-            logging.error(
-                "Received payload with '%s' request from client '%s':",
-                request,
-                details["client"],
-            )
-            logging.error(details["payload"])
-
-        return process_payload
-
-    @handler(ClientToServerRequests.power.name)
+    @handler(ClientToServerRequests.set_power.name)
     def _handle_power_request(self, details):
         """Power up/down asset"""
 
@@ -76,7 +68,7 @@ class WebSocket(Component):
         else:
             state_manager.shut_down()
 
-    @handler(ClientToServerRequests.layout.name)
+    @handler(ClientToServerRequests.set_layout.name)
     def _handle_layout_request(self, details):
         """Save assets' positions/coordinates"""
 
@@ -86,7 +78,7 @@ class WebSocket(Component):
                 session, details["payload"]["assets"], stage=details["payload"]["stage"]
             )
 
-    @handler(ClientToServerRequests.mains.name)
+    @handler(ClientToServerRequests.set_mains.name)
     def _handle_mains_request(self, details):
         """Wallpower update request"""
         if details["payload"]["mains"] == 0:
@@ -94,7 +86,7 @@ class WebSocket(Component):
         else:
             IStateManager.power_restore()
 
-    @handler(ClientToServerRequests.play.name)
+    @handler(ClientToServerRequests.exec_play.name)
     def _handle_play_request(self, details):
         """Playback request"""
         IStateManager.execute_play(details["payload"]["name"])
@@ -104,9 +96,10 @@ class WebSocket(Component):
         """Subscribe a web-socket client to system updates (e.g. battery or status changes) """
         self._data_subscribers.append(details["client"])
 
-    @handler(ClientToServerRequests.status.name)
+    @handler(ClientToServerRequests.get_sys_status.name)
     def _handle_status_request(self, details):
-        """Get overall system status/details including hardware assets, environment state & play details"""
+        """Get overall system status/details including hardware assets, environment state & play details
+        """
 
         assets = IStateManager.get_system_status(flatten=False)
         graph_ref = GraphReference()
@@ -114,6 +107,7 @@ class WebSocket(Component):
 
             stage_layout = GraphReference.get_stage_layout(session)
 
+            # send system topology and assets' power-interconnections
             self._write_data(
                 details["client"],
                 ServerToClientRequests.topology,
@@ -151,12 +145,12 @@ class WebSocket(Component):
         replay_t.daemon = True
         replay_t.start()
 
-    @handler(ClientToServerRequests.purge_actions.name)
+    @handler(ClientToServerRequests.clear_actions.name)
     def _handle_purge_actions_request(self, details):
         """Clear recorded actions"""
         recorder.erase_range(self._slice_from_paylaod(details))
 
-    @handler(ClientToServerRequests.list_actions.name)
+    @handler(ClientToServerRequests.get_actions.name)
     def _handle_list_actions_request(self, details):
         """Retrieve recorded acitons and send back to the client"""
         self._write_data(
@@ -179,7 +173,7 @@ class WebSocket(Component):
             {"status": {"replaying": recorder.replaying, "enabled": recorder.enabled}},
         )
 
-    @handler(ClientToServerRequests.sensor.name)
+    @handler(ClientToServerRequests.set_sensor_status.name)
     def _handle_sensor_state_request(self, details):
         """Update runtime value of a IPMI/BMC sensor"""
         server_sm = IStateManager.get_state_manager_by_key(
@@ -190,7 +184,7 @@ class WebSocket(Component):
             details["payload"]["sensor_name"], details["payload"]["sensor_value"]
         )
 
-    @handler(ClientToServerRequests.cv_replacement_status.name)
+    @handler(ClientToServerRequests.set_cv_replacement_status.name)
     def _handle_cv_repl_request(self, detials):
         """Update cv details upon"""
 

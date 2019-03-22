@@ -1,8 +1,8 @@
 """Requests  accepted by the ws_server"""
-import enum
+from enum import Enum
 
 
-class ServerToClientRequests(enum.Enum):
+class ServerToClientRequests(Enum):
     """Requests sent to the client """
 
     # asset updates (power, load etc.)
@@ -21,31 +21,40 @@ class ServerToClientRequests(enum.Enum):
     recorder_status = 7
 
 
-class ClientToServerRequests(enum.Enum):
+class ClientToServerRequests(Enum):
     """Requests sent to the server by the ws client"""
 
-    # toggle power
-    power = 1
+    # == Asset Commands
+    # toggle asset power
+    set_power = 1
+    # get overall system layout, status etc.
+    get_sys_status = 2
+
+    # == MISC
     # update UI layout
-    layout = 2
+    set_layout = 3
     # update mains
-    mains = 3
+    set_mains = 4
     # execute a play
-    play = 4
-    # get status
-    status = 5
-    # subscribe to system updates
+    exec_play = 5
+    # subscribe to system updates (such as power events, battery etc.)
     subscribe = 6
     # execute actions stored by recorder
     replay_actions = 7
+
+    # == Recorder Requests
     # clear action history
-    purge_actions = 8
+    clear_actions = 8
     # get all/range of actions
-    list_actions = 9
+    get_actions = 9
     # toggle recorder status
     set_recorder_status = 10
     get_recorder_status = 11
+
+    # == BMC-asset commands
     # set sensor status
-    sensor = 12
+    set_sensor_status = 12
     # cv replacement
-    cv_replacement_status = 13
+    set_cv_replacement_status = 13
+    # udpate controller states
+    set_controller_status = 14

@@ -39,7 +39,7 @@ def status_command(status_group):
     status_group.set_defaults(func=lambda args: get_status(**args))
 
 
-class bcolors:
+class BCOLORS:
     """ curses colours """
 
     OKGREEN = 2
@@ -88,7 +88,7 @@ def status_table_format(assets, stdscr=False):
                 0,
                 row,
                 curses.color_pair(
-                    bcolors.ERROR if int(asset["status"]) == 0 else bcolors.OKGREEN
+                    BCOLORS.ERROR if int(asset["status"]) == 0 else BCOLORS.OKGREEN
                 ),
             )
         else:

@@ -396,7 +396,7 @@ class IStateManager:
 
     @classmethod
     def plays(cls):
-        """Get plays available for execution
+        """Get plays (user-defined scripts) available for execution
         Returns:
             tuple: list of bash files as well as python scripts
         """

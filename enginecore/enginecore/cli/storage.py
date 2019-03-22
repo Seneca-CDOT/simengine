@@ -129,6 +129,7 @@ def controller_command(ctrl_group):
         help="Correctable RAM errors on disk data",
         type=int,
         required=False,
+        dest="mem_c_errors",
     )
 
     set_ctrl_action.add_argument(
@@ -137,6 +138,7 @@ def controller_command(ctrl_group):
         help="Uncorrectable RAM errors on disk data",
         type=int,
         required=False,
+        dest="mem_uc_errors",
     )
 
     set_ctrl_action.add_argument(
@@ -145,11 +147,17 @@ def controller_command(ctrl_group):
         help="Controller alarm state",
         choices=["missing", "off", "on"],
         required=False,
+        dest="alarm",
     )
 
     set_ctrl_action.set_defaults(
-        func=lambda args: IBMCServerStateManager.set_controller_prop(
-            args["asset_key"], args["controller"], args
+        func=lambda args: StateClient(args["asset_key"]).set_controller_prop(
+            args["controller"],
+            {
+                "alarm": args["alarm"],
+                "mem_c_errors": args["mem_c_errors"],
+                "mem_uc_errors": args["mem_uc_errors"],
+            },
         )
     )
 
@@ -180,8 +188,10 @@ def cv_command(cv_group):
 
     set_cv_action.set_defaults(
         func=lambda args: StateClient(args["asset_key"]).set_cv_replacement(
-            controller=args["controller"],
-            replacement_required=args["replacement_required"],
-            write_through_fail=args["write_through_fail"],
+            args["controller"],
+            {
+                "replacement_required": args["replacement_required"],
+                "write_through_fail": args["write_through_fail"],
+            },
         )
     )

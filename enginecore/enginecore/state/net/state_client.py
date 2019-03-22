@@ -45,7 +45,7 @@ class StateClient:
     def power_up(self):
         """Send power up request to ws-simengine"""
         StateClient.send_request(
-            ClientToServerRequests.power,
+            ClientToServerRequests.set_power,
             {"status": 1, "key": self._asset_key},
             self._ws_client,
         )
@@ -56,7 +56,7 @@ class StateClient:
             hard(bool): flag for abrupt poweroff
         """
         StateClient.send_request(
-            ClientToServerRequests.power,
+            ClientToServerRequests.set_power,
             {"status": 0, "key": self._asset_key, "hard": hard},
             self._ws_client,
         )
@@ -76,7 +76,7 @@ class StateClient:
             sensor_value(any): new sensor value
         """
         StateClient.send_request(
-            ClientToServerRequests.sensor,
+            ClientToServerRequests.set_sensor_status,
             {
                 "key": self._asset_key,
                 "sensor_name": sensor_name,
@@ -85,27 +85,39 @@ class StateClient:
             self._ws_client,
         )
 
-    def set_cv_replacement(self, **kwargs):
+    def set_cv_replacement(self, controller, cv_props):
         """Request simengine socket server to update cache-vault replacement date
-        Kwargs:
-            **kwargs: controller number cv belongs to, new replacement status of the vault
-                      & write-through flag
+        Args:
+            controller(int): controller number cv belongs to
+            cv_props(dict): new replacement status of the vault & write-through flag
         """
         StateClient.send_request(
-            ClientToServerRequests.cv_replacement_status,
-            {"key": self._asset_key, **kwargs},
+            ClientToServerRequests.set_cv_replacement_status,
+            {"key": self._asset_key, "controller": controller, **cv_props},
+            self._ws_client,
+        )
+
+    def set_controller_prop(self, controller, ctrl_props):
+        """Request simengine socket server to update controller properties such as memory counts, alarms
+        Args:
+            controller(int): controller number to be updated
+            ctrl_props(dict): including "alarm", correctable & uncorrectable errors as "mem_c_errors", "mem_uc_errors"
+        """
+        StateClient.send_request(
+            ClientToServerRequests.set_controller_status,
+            {"key": self._asset_key, "controller": controller, **ctrl_props},
             self._ws_client,
         )
 
     @classmethod
     def power_outage(cls):
         """Send power outage request to ws-simengine (init blackout)"""
-        StateClient.send_request(ClientToServerRequests.mains, {"mains": 0})
+        StateClient.send_request(ClientToServerRequests.set_mains, {"mains": 0})
 
     @classmethod
     def power_restore(cls):
         """Send power restore request to ws-simengine"""
-        StateClient.send_request(ClientToServerRequests.mains, {"mains": 1})
+        StateClient.send_request(ClientToServerRequests.set_mains, {"mains": 1})
 
     @classmethod
     def replay_actions(cls, slc=slice(None, None)):
@@ -125,7 +137,7 @@ class StateClient:
             slc(slice): range of actions to be deleted, removes all if not provided
         """
         StateClient.send_request(
-            ClientToServerRequests.purge_actions,
+            ClientToServerRequests.clear_actions,
             {"range": {"start": slc.start, "stop": slc.stop}},
         )
 
@@ -140,7 +152,7 @@ class StateClient:
         ws_client = StateClient.get_ws_client()
 
         StateClient.send_request(
-            ClientToServerRequests.list_actions,
+            ClientToServerRequests.get_actions,
             {"range": {"start": slc.start, "stop": slc.stop}},
             ws_client=ws_client,
         )
