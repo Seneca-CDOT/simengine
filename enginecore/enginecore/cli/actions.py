@@ -1,6 +1,7 @@
 """CLI endpoints for replaying, listing and managing recorded actions
 """
 import argparse
+import sys
 from datetime import datetime as dt
 from enginecore.state.net.state_client import StateClient
 from enginecore.state.recorder import Recorder
@@ -25,7 +26,10 @@ def dry_run_actions(args):
     """Do a dry run of action replay without changing of affecting assets' states"""
     action_slc = slice(args["start"], args["end"])
     action_details = StateClient.list_actions(action_slc)
-    Recorder.perform_dry_run(action_details, action_slc)
+    try:
+        Recorder.perform_dry_run(action_details, action_slc)
+    except KeyboardInterrupt:
+        print("Dry-run was interrupted by the user", file=sys.stderr)
 
 
 def range_args():
