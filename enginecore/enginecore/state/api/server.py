@@ -166,6 +166,7 @@ class IBMCServerStateManager(IServerStateManager):
             )
 
     @classmethod
+    @record
     def set_controller_prop(cls, asset_key, controller, properties):
         """Update RAID controller """
         graph_ref = GraphReference()

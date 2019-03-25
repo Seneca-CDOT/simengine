@@ -65,7 +65,8 @@ class Recorder:
             self._enabled = value
 
     def get_action_details(self, slc=slice(None, None)):
-        """Human-readable details on action history
+        """Human-readable details on action history;
+        Note that this method "serializes" actions so they are not callable when returned.
         Args:
             slc(slice): range of actions to be returned
         Returns:

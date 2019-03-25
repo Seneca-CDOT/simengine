@@ -695,15 +695,11 @@ class GraphReference:
             session:  database session
             server_key(int): key of the server controller belongs to
             controller(int): controller number
-            properties(dict): e.g. 'media_error_count', 'other_error_count', 'predictive_error_count' or 'state'
+            properties(dict): settable controller props e.g. 'mem_c_errors', 'mem_uc_errors', 'alarm'
         """
         query = []
 
-        s_attr = [
-            "memory_correctable_errors",
-            "memory_uncorrectable_errors",
-            "alarm_state",
-        ]
+        s_attr = ["mem_c_errors", "mem_uc_errors", "alarm"]
 
         # query as (server)->(storage_controller)
         query.append("MATCH (server:Asset {{ key: {} }})".format(server_key))

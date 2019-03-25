@@ -186,7 +186,7 @@ class WebSocket(Component):
 
     @handler(ClientToServerRequests.set_cv_replacement_status.name)
     def _handle_cv_repl_request(self, detials):
-        """Update cv details upon"""
+        """Update cv details upon a request"""
 
         payload = detials["payload"]
         IBMCServerStateManager.set_cv_replacement(
@@ -194,6 +194,15 @@ class WebSocket(Component):
             payload["controller"],
             payload["replacement_required"],
             payload["write_through_fail"],
+        )
+
+    @handler(ClientToServerRequests.set_controller_status.name)
+    def _handle_ctrl_update_request(self, details):
+        """Update RAID controller when requested"""
+
+        payload = details["payload"]
+        IBMCServerStateManager.set_controller_prop(
+            payload["key"], payload["controller"], payload
         )
 
     def read(self, sock, data):
