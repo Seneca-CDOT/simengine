@@ -6,15 +6,15 @@ class ServerToClientRequests(Enum):
     """Requests sent to the client """
 
     # asset updates (power, load etc.)
-    asset = 1
+    asset_upd = 1
     # ambient changes
-    ambient = 2
+    ambient_upd = 2
     # system layout/topology
-    topology = 3
+    sys_layout = 3
     # wallpower status change
-    mains = 4
+    mains_upd = 4
     # list of plays
-    plays = 5
+    play_list = 5
     # list of actions
     action_list = 6
     # recorder status

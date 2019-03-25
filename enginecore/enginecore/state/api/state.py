@@ -2,7 +2,6 @@
 
 import time
 import os
-import tempfile
 import subprocess
 
 import redis

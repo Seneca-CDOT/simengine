@@ -110,25 +110,25 @@ class WebSocket(Component):
             # send system topology and assets' power-interconnections
             self._write_data(
                 details["client"],
-                ServerToClientRequests.topology,
+                ServerToClientRequests.sys_layout,
                 {"assets": assets, "stageLayout": stage_layout},
             )
 
         self._write_data(
             details["client"],
-            ServerToClientRequests.ambient,
+            ServerToClientRequests.ambient_upd,
             {"ambient": IStateManager.get_ambient(), "rising": False},
         )
 
         self._write_data(
             details["client"],
-            ServerToClientRequests.plays,
+            ServerToClientRequests.play_list,
             {"plays": list(itertools.chain(*IStateManager.plays()))},
         )
 
         self._write_data(
             details["client"],
-            ServerToClientRequests.mains,
+            ServerToClientRequests.mains_upd,
             {"mains": IStateManager.mains_status()},
         )
 
@@ -198,7 +198,7 @@ class WebSocket(Component):
 
     def read(self, sock, data):
         """Read client request
-        all requests are sent in a format:
+        all request data is sent in a format:
             {
                 "request": "request_name",
                 "payload": {...} #request_data

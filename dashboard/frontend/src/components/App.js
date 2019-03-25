@@ -124,7 +124,7 @@ class App extends Component {
     this.ws.onOpen(() => {
       this.setState({ socketOffline: false });
 
-      this.ws.sendData({ request: "status", payload: {} });
+      this.ws.sendData({ request: "get_sys_status", payload: {} });
       this.ws.sendData({ request: "subscribe", payload: {} });
     });
 
@@ -242,14 +242,14 @@ class App extends Component {
   changeAssetStatus = asset => {
     let payload = { ...asset };
     payload.status = !payload.status;
-    this.ws.sendData({ request: "power", payload });
+    this.ws.sendData({ request: "set_power", payload });
   };
 
   changeWallpowerStatus = status =>
-    this.ws.sendData({ request: "mains", payload: { mains: status } });
+    this.ws.sendData({ request: "set_mains", payload: { mains: status } });
 
   executePlay = name =>
-    this.ws.sendData({ request: "play", payload: { name } });
+    this.ws.sendData({ request: "exec_play", payload: { name } });
 
   showPlayerHandler = () =>
     this.setState(prevState => ({ playerVisible: !prevState.playerVisible }));
@@ -275,7 +275,7 @@ class App extends Component {
     );
 
     if (this.ws.socketOnline()) {
-      this.ws.sendData({ request: "layout", payload });
+      this.ws.sendData({ request: "set_layout", payload });
       this.setState({ changesSaved: true });
       setTimeout(() => {
         this.setState({ changesSaved: false });

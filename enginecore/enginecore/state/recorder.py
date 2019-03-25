@@ -9,9 +9,7 @@ import inspect
 
 
 class Recorder:
-    """Recorder can be used to record and replay methods belonging to a class
-    Example:
-        
+    """Recorder can be used to record and replay methods or functions
     """
 
     def __init__(self):
@@ -20,6 +18,19 @@ class Recorder:
         self._replaying = False
 
     def __call__(self, work):
+        """Make an instance of recorder a callable object that can be used as a decorator
+        with functions/class methods.
+        Function calls will be registered by the recorder & can be replayed later on.
+
+        Example:
+            recorder = Recorder()
+            @recorder
+            def my_action():
+                ...
+
+            each call to my_action() will be stored in action history of the recorder instance,
+        """
+
         @functools.wraps(work)
         def record_wrapper(asset_self, *f_args, **f_kwargs):
 
@@ -118,9 +129,10 @@ class Recorder:
             )
 
             logging.info(action_info)
-            logging.info(action)
+            # perform action
             action["work"]()
 
+            # simulate pause between 2 actions
             if next_action:
                 next_delay = (next_action["time"] - action["time"]).seconds
                 logging.info("Paused for %s seconds...", next_delay)
@@ -131,12 +143,22 @@ class Recorder:
 
     @classmethod
     def actions_iter(cls, actions, slc):
-        """Get an iterator yielding current & next actions"""
+        """Get an iterator yielding current & next actions
+        Args:
+            actions(list): action history
+            slc(slice): range of actions
+        Returns:
+            iterator: aggragates actions & actions+1 in one iter
+        """
         return zip_longest(actions[slc], actions[slc][1:])
 
     @classmethod
     def perform_dry_run(cls, actions, slc):
-        """Perform replay dry run by outputting step-by-step actions"""
+        """Perform replay dry run by outputting step-by-step actions (without executing them)
+        Args:
+            actions(list): action history, must contain action "number", "work" (action itself) & "timestamp"
+            slc(slice): range of actions
+        """
 
         for action, next_action in cls.actions_iter(actions, slc):
 
