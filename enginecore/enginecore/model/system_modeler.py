@@ -66,9 +66,6 @@ def configure_asset(key, attr):
         attr(dict): asset props' updates
     """
 
-    if "func" in attr and attr["func"]:
-        del attr["func"]
-
     if "asset_key" in attr and attr["asset_key"]:
         del attr["asset_key"]
 

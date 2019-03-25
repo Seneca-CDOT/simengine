@@ -63,7 +63,10 @@ try:
         options.validate(vars(options))
     # execute action associated with the CLI command
     if hasattr(options, "func"):
-        options.func(vars(options))
+        # remove func from cli attributes & execute it
+        cmd_callback = options.func
+        del options.func
+        cmd_callback(vars(options))
     else:
         argparser.print_help()
 except db_error.ConstraintError as error:

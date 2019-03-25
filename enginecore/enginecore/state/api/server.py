@@ -157,6 +157,7 @@ class IBMCServerStateManager(IServerStateManager):
             return GraphReference.get_thermal_cpu_details(session, asset_key)
 
     @classmethod
+    @record
     def set_physical_drive_prop(cls, asset_key, controller, did, properties):
         """Update physical drive"""
         graph_ref = GraphReference()

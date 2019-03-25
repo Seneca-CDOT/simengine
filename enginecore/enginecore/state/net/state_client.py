@@ -109,6 +109,24 @@ class StateClient:
             self._ws_client,
         )
 
+    def set_physical_drive_prop(self, controller, drive_id, drive_props):
+        """Request simengine socket server to update status of a physical drive 
+        Args:
+            controller(int): controller physical drive belongs to
+            drive_id(int): unique drive id (DID) of drive to be updated
+            pd_props(dict): including TODO
+        """
+        StateClient.send_request(
+            ClientToServerRequests.set_physical_drive_status,
+            {
+                "key": self._asset_key,
+                "controller": controller,
+                "drive_id": drive_id,
+                **drive_props,
+            },
+            self._ws_client,
+        )
+
     @classmethod
     def power_outage(cls):
         """Send power outage request to ws-simengine (init blackout)"""

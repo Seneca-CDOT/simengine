@@ -2,7 +2,6 @@
 controller and cachevault
 """
 import argparse
-from enginecore.state.api import IBMCServerStateManager
 from enginecore.state.net.state_client import StateClient
 
 
@@ -104,8 +103,8 @@ def pd_command(pd_group):
     )
 
     set_pd_action.set_defaults(
-        func=lambda args: IBMCServerStateManager.set_physical_drive_prop(
-            args["asset_key"], args["controller"], args["drive_id"], args
+        func=lambda args: StateClient(args["asset_key"]).set_physical_drive_prop(
+            args["controller"], args["drive_id"], args
         )
     )
 
@@ -152,12 +151,7 @@ def controller_command(ctrl_group):
 
     set_ctrl_action.set_defaults(
         func=lambda args: StateClient(args["asset_key"]).set_controller_prop(
-            args["controller"],
-            {
-                "alarm": args["alarm"],
-                "mem_c_errors": args["mem_c_errors"],
-                "mem_uc_errors": args["mem_uc_errors"],
-            },
+            args["controller"], args
         )
     )
 
@@ -188,10 +182,6 @@ def cv_command(cv_group):
 
     set_cv_action.set_defaults(
         func=lambda args: StateClient(args["asset_key"]).set_cv_replacement(
-            args["controller"],
-            {
-                "replacement_required": args["replacement_required"],
-                "write_through_fail": args["write_through_fail"],
-            },
+            args["controller"], args
         )
     )

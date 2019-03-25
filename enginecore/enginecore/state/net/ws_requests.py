@@ -58,3 +58,5 @@ class ClientToServerRequests(Enum):
     set_cv_replacement_status = 13
     # udpate controller states
     set_controller_status = 14
+    # update physical drive details
+    set_physical_drive_status = 15

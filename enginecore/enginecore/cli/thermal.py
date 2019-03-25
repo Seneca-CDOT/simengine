@@ -427,8 +427,6 @@ def handle_get_thermal_cpu(kwargs):
 def handle_set_thermal_ambient(kwargs):
     """Configure thermal properties for room temperature"""
 
-    del kwargs["func"]
-
     if kwargs["event"] and kwargs["pause_at"] and kwargs["rate"]:
         IStateManager.set_ambient_props(kwargs)
     elif kwargs["event"] or kwargs["pause_at"] or kwargs["rate"]:
@@ -458,7 +456,6 @@ def handle_get_thermal_ambient(kwargs):
 
 def handle_set_thermal_sensor(kwargs):
     """Configure thermal sensor relations & properties"""
-    del kwargs["func"]
 
     if not kwargs["action"] and kwargs["event"]:
         kwargs["action"] = "increase" if kwargs["event"] == "down" else "decrease"
@@ -479,7 +476,6 @@ def handle_set_thermal_sensor(kwargs):
 
 
 def handle_set_thermal_storage(kwargs):
-    del kwargs["func"]
     if not kwargs["cache_vault"] and not kwargs["drive"]:
         raise argparse.ArgumentTypeError(
             "Must provide either target drive id or cachevault!"

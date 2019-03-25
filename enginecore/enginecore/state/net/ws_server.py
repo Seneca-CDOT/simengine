@@ -205,6 +205,15 @@ class WebSocket(Component):
             payload["key"], payload["controller"], payload
         )
 
+    @handler(ClientToServerRequests.set_physical_drive_status.name)
+    def _handle_pd_update_request(self, details):
+        """Update data related to physical drives when requested"""
+        payload = details["payload"]
+
+        IBMCServerStateManager.set_physical_drive_prop(
+            payload["key"], payload["controller"], payload["drive_id"], payload
+        )
+
     def read(self, sock, data):
         """Read client request
         all request data is sent in a format:
