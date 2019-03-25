@@ -12,10 +12,11 @@ class Recorder:
     """Recorder can be used to record and replay methods or functions
     """
 
-    def __init__(self):
+    def __init__(self, module):
         self._actions = []
         self._enabled = True
         self._replaying = False
+        self._module = module
 
     def __call__(self, work):
         """Make an instance of recorder a callable object that can be used as a decorator
@@ -34,10 +35,7 @@ class Recorder:
         @functools.wraps(work)
         def record_wrapper(asset_self, *f_args, **f_kwargs):
 
-            if (
-                asset_self.__module__.startswith("enginecore.state.api")
-                and self._enabled
-            ):
+            if asset_self.__module__.startswith(self._module) and self._enabled:
                 partial_func = functools.partial(work, asset_self, *f_args, **f_kwargs)
                 self._actions.append(
                     {
@@ -183,4 +181,4 @@ class Recorder:
                     time.sleep(1)
 
 
-RECORDER = Recorder()
+RECORDER = Recorder(module="enginecore.state.api")
