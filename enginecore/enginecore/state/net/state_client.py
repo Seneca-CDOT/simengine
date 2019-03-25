@@ -133,6 +133,13 @@ class StateClient:
         StateClient.send_request(ClientToServerRequests.set_mains, {"mains": 0})
 
     @classmethod
+    def set_ambient(cls, degrees):
+        """Send power outage request to ws-simengine (init blackout)"""
+        StateClient.send_request(
+            ClientToServerRequests.set_ambient, {"degrees": degrees}
+        )
+
+    @classmethod
     def power_restore(cls):
         """Send power restore request to ws-simengine"""
         StateClient.send_request(ClientToServerRequests.set_mains, {"mains": 1})

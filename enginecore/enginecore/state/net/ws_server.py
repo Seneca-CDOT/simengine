@@ -86,6 +86,11 @@ class WebSocket(Component):
         else:
             IStateManager.power_restore()
 
+    @handler(ClientToServerRequests.set_ambient.name)
+    def _handle_ambient_request(self, details):
+        """"Handle ambient changes request"""
+        IStateManager.set_ambient(details["payload"]["degrees"])
+
     @handler(ClientToServerRequests.exec_play.name)
     def _handle_play_request(self, details):
         """Playback request"""

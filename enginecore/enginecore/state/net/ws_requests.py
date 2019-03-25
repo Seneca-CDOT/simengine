@@ -41,22 +41,24 @@ class ClientToServerRequests(Enum):
     subscribe = 6
     # execute actions stored by recorder
     replay_actions = 7
+    # set ambient
+    set_ambient = 8
 
     # == Recorder Requests
     # clear action history
-    clear_actions = 8
+    clear_actions = 9
     # get all/range of actions
-    get_actions = 9
+    get_actions = 10
     # toggle recorder status
-    set_recorder_status = 10
-    get_recorder_status = 11
+    set_recorder_status = 11
+    get_recorder_status = 12
 
     # == BMC-asset commands
     # set sensor status
-    set_sensor_status = 12
+    set_sensor_status = 13
     # cv replacement
-    set_cv_replacement_status = 13
+    set_cv_replacement_status = 14
     # udpate controller states
-    set_controller_status = 14
+    set_controller_status = 15
     # update physical drive details
-    set_physical_drive_status = 15
+    set_physical_drive_status = 16

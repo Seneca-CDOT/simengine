@@ -361,6 +361,7 @@ class IStateManager:
         return int(temp.decode()) if temp else 0
 
     @classmethod
+    @record
     def set_ambient(cls, value):
         """Update ambient value"""
         old_temp = cls.get_ambient()
