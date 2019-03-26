@@ -11,6 +11,7 @@ class RecordedEntity:
     """Class to be "recorded" """
 
     num_entities = 0
+    test_a = {"value": 2}
 
     def __init__(self):
         self.count = 0
@@ -27,6 +28,11 @@ class RecordedEntity:
     def subtract(self, value):
         """Test method 2"""
         self.count = self.count - value
+
+    @REC
+    def double_a(self):
+        """Test method 3"""
+        RecordedEntity.test_a["value"] = RecordedEntity.test_a["value"] * 2
 
     @classmethod
     @REC
@@ -142,6 +148,29 @@ class RecorderTests(unittest.TestCase):
 
         # 2 + 2 original actions plus 2 replayed actions
         self.assertEqual(6, self.recorded_entity_1.count)
+
+    def test_serialization(self):
+        """Test action saving functionality"""
+
+        self.recorded_entity_1.double_a()  # 4
+        self.recorded_entity_2.double_a()  # 8
+        RecordedEntity.class_lvl_method()
+
+        REC.save_actions(action_file="/tmp/simengine_rec_utest.json")
+        self.recorded_entity_1.double_a()  # 16 (action not saved)
+        self.assertEqual(16, RecordedEntity.test_a["value"])
+
+        # Action history: a * 2 * 2 where test_a = 16
+
+        new_recorder = Recorder(module=__name__)
+        new_recorder.load_actions(action_file="/tmp/simengine_rec_utest.json")
+
+        new_recorder.replay_all()
+
+        self.assertEqual(64, RecordedEntity.test_a["value"])
+
+        action_details = new_recorder.get_action_details()
+        self.assertEqual(3, len(action_details))
 
 
 if __name__ == "__main__":

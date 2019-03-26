@@ -6,6 +6,9 @@ from datetime import datetime as dt
 import time
 import logging
 import inspect
+import pickle
+import json
+import codecs
 
 
 class Recorder:
@@ -61,6 +64,54 @@ class Recorder:
     def enabled(self, value):
         if not self.replaying:
             self._enabled = value
+
+    def save_actions(self, action_file="/tmp/test_action_file.json"):
+        """save actions into a file"""
+        serialized_actions = []
+        json_pickle = lambda x: codecs.encode(pickle.dumps(x), "base64").decode()
+
+        for action in self._actions:
+            serialized_actions.append(
+                {
+                    "state": json_pickle(action["work"].args[0]),
+                    "args": json_pickle(action["work"].args[1:]),
+                    "kwargs": json_pickle(action["work"].keywords),
+                    "work": action["work"].__wrapped__.__name__,
+                    "timestamp": action["time"].timestamp(),
+                }
+            )
+
+        with open(action_file, "w") as action_f_handler:
+            json.dump(serialized_actions, action_f_handler)
+
+    def load_actions(self, action_file="/tmp/test_action_file.json"):
+        """load actions from a file"""
+
+        if self._replaying:
+            logging.warning("Cannot load actions while replaying")
+            return
+
+        json_unpickle = lambda x: pickle.loads(codecs.decode(x.encode(), "base64"))
+        self._actions = []
+
+        with open(action_file, "r") as action_f_handler:
+            serialized_actions = json.load(action_f_handler)
+
+        for action in serialized_actions:
+            state = json_unpickle(action["state"])
+            args = json_unpickle(action["args"])
+            kwargs = json_unpickle(action["kwargs"])
+            action_time = dt.fromtimestamp(action["timestamp"])
+
+            work = getattr(state, action["work"]).__wrapped__
+            partial_func = functools.partial(work, state, *args, **kwargs)
+
+            self._actions.append(
+                {
+                    "work": functools.update_wrapper(partial_func, work),
+                    "time": action_time,
+                }
+            )
 
     def get_action_details(self, slc=slice(None, None)):
         """Human-readable details on action history;
