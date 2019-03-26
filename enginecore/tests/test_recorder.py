@@ -3,6 +3,7 @@
 import unittest
 
 from enginecore.state.recorder import Recorder
+from enginecore.model.graph_reference import GraphReference
 
 REC = Recorder(module=__name__)
 
@@ -15,6 +16,7 @@ class RecordedEntity:
 
     def __init__(self):
         self.count = 0
+        self._graph_ref = GraphReference()
 
         RecordedEntity.num_entities = RecordedEntity.num_entities + 1
         self.key = RecordedEntity.num_entities
@@ -53,6 +55,7 @@ class RecorderTests(unittest.TestCase):
         REC.enabled = True
         REC.erase_all()
         RecordedEntity.num_entities = 0
+        RecordedEntity.test_a = {"value": 2}
 
     def test_record(self):
         """Test if action is getting stored"""
@@ -148,6 +151,13 @@ class RecorderTests(unittest.TestCase):
 
         # 2 + 2 original actions plus 2 replayed actions
         self.assertEqual(6, self.recorded_entity_1.count)
+
+    def test_randomizer(self):
+        """test action randomizer"""
+        self.recorded_entity_1.add(1)
+        a = REC.random()
+        a(self.recorded_entity_1, 2)
+        print(self.recorded_entity_1.count)
 
     def test_serialization(self):
         """Test action saving functionality"""

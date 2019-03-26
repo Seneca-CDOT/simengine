@@ -21,6 +21,8 @@ class Recorder:
         self._replaying = False
         self._module = module
 
+        self._recordable_methods = []
+
     def __call__(self, work: callable):
         """Make an instance of recorder a callable object that can be used as a decorator
         with functions/class methods.
@@ -37,7 +39,6 @@ class Recorder:
 
         @functools.wraps(work)
         def record_wrapper(asset_self, *f_args, **f_kwargs):
-
             if asset_self.__module__.startswith(self._module) and self._enabled:
                 partial_func = functools.partial(work, asset_self, *f_args, **f_kwargs)
                 self._actions.append(
@@ -47,6 +48,8 @@ class Recorder:
                     }
                 )
             return work(asset_self, *f_args, **f_kwargs)
+
+        self._recordable_methods.append(work)
 
         return record_wrapper
 
@@ -64,6 +67,18 @@ class Recorder:
     def enabled(self, value: bool):
         if not self.replaying:
             self._enabled = value
+
+    def random(self):
+
+        method = self._recordable_methods[0]
+        arg_spec = inspect.getfullargspec(method)
+        sig = inspect.signature(method)
+        print(method)
+        print(sig.parameters["self"].annotation)
+
+        print(dir(method))
+        print(method.__class__.__name__)
+        return method
 
     def save_actions(self, action_file: str = "/tmp/recorder_action_file.json"):
         """Save actions into a json file (actions can be later loaded)
