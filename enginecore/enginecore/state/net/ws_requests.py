@@ -49,16 +49,20 @@ class ClientToServerRequests(Enum):
     clear_actions = 9
     # get all/range of actions
     get_actions = 10
+
+    # save/load actions from a file
+    save_actions = 11
+    load_actions = 12
     # toggle recorder status
-    set_recorder_status = 11
-    get_recorder_status = 12
+    set_recorder_status = 13
+    get_recorder_status = 14
 
     # == BMC-asset commands
     # set sensor status
-    set_sensor_status = 13
+    set_sensor_status = 15
     # cv replacement
-    set_cv_replacement_status = 14
+    set_cv_replacement_status = 16
     # udpate controller states
-    set_controller_status = 15
+    set_controller_status = 17
     # update physical drive details
-    set_physical_drive_status = 16
+    set_physical_drive_status = 18

@@ -1,5 +1,6 @@
-import libvirt
 import json
+
+import libvirt
 
 
 from enginecore.model.graph_reference import GraphReference

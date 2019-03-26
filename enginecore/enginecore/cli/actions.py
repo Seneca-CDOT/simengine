@@ -2,6 +2,7 @@
 """
 import argparse
 import sys
+import os
 from datetime import datetime as dt
 from enginecore.state.net.state_client import StateClient
 from enginecore.state.recorder import Recorder
@@ -92,8 +93,28 @@ def actions_command(actions_group):
         "dry-run", help="Perform a dry run of actions replay", parents=[range_args()]
     )
 
-    # cli actions/callbacks
+    save_action = play_subp.add_parser(
+        "save", help="Save action history to a file", parents=[range_args()]
+    )
 
+    save_action.add_argument(
+        "-l", "--list", action="store_true", help="Explicitly list saved actions"
+    )
+
+    save_action.add_argument(
+        "-f", "--filename", type=str, required=True, help="Target file name"
+    )
+
+    load_action = play_subp.add_parser(
+        "load",
+        help="Load action history from a file (will override the existing actions)",
+    )
+
+    load_action.add_argument(
+        "-f", "--filename", type=str, required=True, help="Will load from this file"
+    )
+
+    # cli actions/callbacks
     replay_action.set_defaults(
         func=lambda args: [
             print_action_list(
@@ -137,3 +158,15 @@ def actions_command(actions_group):
         )
     )
     dry_run_action.set_defaults(func=dry_run_actions)
+
+    save_action.set_defaults(
+        func=lambda args: StateClient.save_actions(
+            os.path.abspath(os.path.expanduser(args["filename"])),
+            slice(args["start"], args["end"]),
+        )
+    )
+    load_action.set_defaults(
+        func=lambda args: os.path.abspath(
+            os.path.expanduser(StateClient.load_actions(args["filename"]))
+        )
+    )

@@ -15,7 +15,7 @@ class StateClient:
         "port": os.environ.get("SIMENGINE_SOCKET_PORT", int(8000)),
     }
 
-    def __init__(self, key):
+    def __init__(self, key: str):
         self._asset_key = key
         self._ws_client = StateClient.get_ws_client()
 
@@ -185,18 +185,43 @@ class StateClient:
         return json.loads(ws_client.recv())["payload"]["actions"]
 
     @classmethod
-    def set_recorder_status(cls, enabled):
+    def save_actions(cls, filename: str, slc: slice = slice(None, None)):
+        """Request simengine to save actions (serialize them into a file)
+        Args:
+            filename: .json file that will contain actions
+            slc: save only this range of actions. Will save all if not provided
+        """
+        StateClient.send_request(
+            ClientToServerRequests.save_actions,
+            {"filename": filename, "range": {"start": slc.start, "stop": slc.stop}},
+        )
+
+    @classmethod
+    def load_actions(cls, filename: str):
+        """Request simengine to dynamically load actions from a filename
+        Args:
+            filename: .json file containing recorded action history
+        """
+        StateClient.send_request(
+            ClientToServerRequests.load_actions, {"filename": filename}
+        )
+
+    @classmethod
+    def set_recorder_status(cls, enabled: bool):
         """Update recorder status
         Args:
-            enabled(bool): indicates off/on status
+            enabled: indicates off/on status
         """
         StateClient.send_request(
             ClientToServerRequests.set_recorder_status, {"enabled": enabled}
         )
 
     @classmethod
-    def get_recorder_status(cls):
-        """Retrieve recorder status"""
+    def get_recorder_status(cls) -> dict:
+        """Retrieve recorder status 
+        Returns:
+            dictionary containg "enabled" & "replaying" recorder indicators
+        """
         ws_client = StateClient.get_ws_client()
 
         StateClient.send_request(

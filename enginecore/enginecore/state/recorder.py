@@ -15,13 +15,13 @@ class Recorder:
     """Recorder can be used to record and replay methods or functions
     """
 
-    def __init__(self, module):
+    def __init__(self, module: str):
         self._actions = []
         self._enabled = True
         self._replaying = False
         self._module = module
 
-    def __call__(self, work):
+    def __call__(self, work: callable):
         """Make an instance of recorder a callable object that can be used as a decorator
         with functions/class methods.
         Function calls will be registered by the recorder & can be replayed later on.
@@ -51,22 +51,39 @@ class Recorder:
         return record_wrapper
 
     @property
-    def enabled(self):
+    def enabled(self) -> bool:
         """Recorder status indicating if it's accepting & recording new actions"""
         return self._enabled
 
     @property
-    def replaying(self):
+    def replaying(self) -> bool:
         """Recorder status indicating if recorder is in process of replaying actions"""
         return self._replaying
 
     @enabled.setter
-    def enabled(self, value):
+    def enabled(self, value: bool):
         if not self.replaying:
             self._enabled = value
 
-    def save_actions(self, action_file="/tmp/test_action_file.json"):
-        """save actions into a file"""
+    def save_actions(self, action_file: str = "/tmp/recorder_action_file.json"):
+        """Save actions into a json file (actions can be later loaded)
+        Args:
+            action_file(optional): action history will be saved in this file
+        Example:
+            Action history is saved in the following format:
+            [
+                {
+                    "state": "..encoded base64 bytes..",
+                    "args": "..encoded base64 bytes..",
+                    "kwargs": "..encoded base64 bytes..",
+                    "work": "method_name",
+                    "timestamp": "utc-timestamp"
+                },
+                {...},
+                {...}
+            ]
+            Where "state" is the pickled IStateManager, "args" & "kwargs" 
+        """
         serialized_actions = []
         json_pickle = lambda x: codecs.encode(pickle.dumps(x), "base64").decode()
 
@@ -84,7 +101,7 @@ class Recorder:
         with open(action_file, "w") as action_f_handler:
             json.dump(serialized_actions, action_f_handler)
 
-    def load_actions(self, action_file="/tmp/test_action_file.json"):
+    def load_actions(self, action_file: str = "/tmp/recorder_action_file.json"):
         """load actions from a file"""
 
         if self._replaying:
@@ -113,13 +130,13 @@ class Recorder:
                 }
             )
 
-    def get_action_details(self, slc=slice(None, None)):
+    def get_action_details(self, slc: slice = slice(None, None)) -> list:
         """Human-readable details on action history;
         Note that this method "serializes" actions so they are not callable when returned.
         Args:
             slc(slice): range of actions to be returned
         Returns:
-            list: history of actions
+            list containing history of actions
         """
         action_details = []
 
@@ -151,7 +168,7 @@ class Recorder:
         """Clear all actions"""
         self.erase_range(slice(None, None))
 
-    def erase_range(self, slc):
+    def erase_range(self, slc: slice = slice(None, None)):
         """Delete a slice of actions
         Args:
             slc(slice): range of actions to be deleted
@@ -162,10 +179,10 @@ class Recorder:
         """Replay all actions"""
         self.replay_range(slice(None, None))
 
-    def replay_range(self, slc):
+    def replay_range(self, slc: slice = slice(None, None)):
         """Replay a slice of actions
         Args:
-            slc(slice): range of actions to be performed
+            slc: range of actions to be performed
         """
 
         pre_replay_enabled_status = self.enabled
@@ -192,18 +209,18 @@ class Recorder:
         self.enabled = pre_replay_enabled_status
 
     @classmethod
-    def actions_iter(cls, actions, slc):
+    def actions_iter(cls, actions: list, slc: slice = slice(None, None)) -> zip_longest:
         """Get an iterator yielding current & next actions
         Args:
             actions(list): action history
             slc(slice): range of actions
         Returns:
-            iterator: aggragates actions & actions+1 in one iter
+            iterator aggragating actions & actions+1 in one iter
         """
         return zip_longest(actions[slc], actions[slc][1:])
 
     @classmethod
-    def perform_dry_run(cls, actions, slc):
+    def perform_dry_run(cls, actions: list, slc: slice = slice(None, None)):
         """Perform replay dry run by outputting step-by-step actions (without executing them)
         Args:
             actions(list): action history, must contain action "number", "work" (action itself) & "timestamp"

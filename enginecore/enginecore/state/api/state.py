@@ -25,27 +25,27 @@ class IStateManager:
         self._asset_info = asset_info
 
     @property
-    def key(self):
+    def key(self) -> int:
         """Asset Key """
         return self._asset_key
 
     @property
-    def redis_key(self):
+    def redis_key(self) -> str:
         """Asset key in redis format as '{key}-{type}' """
         return "{}-{}".format(str(self.key), self.asset_type)
 
     @property
-    def asset_type(self):
+    def asset_type(self) -> str:
         """Asset Type """
         return self._asset_info["type"]
 
     @property
-    def power_usage(self):
+    def power_usage(self) -> float:
         """Normal power usage in AMPS when powered up"""
         return 0
 
     @property
-    def draw_percentage(self):
+    def draw_percentage(self) -> float:
         """How much power the asset draws"""
         return self._asset_info["draw"] if "draw" in self._asset_info else 1
 

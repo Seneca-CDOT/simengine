@@ -164,6 +164,16 @@ class WebSocket(Component):
             {"actions": recorder.get_action_details(self._slice_from_paylaod(details))},
         )
 
+    @handler(ClientToServerRequests.save_actions.name)
+    def _handle_save_history_reqeust(self, details):
+        """Save recorder history to a file"""
+        recorder.save_actions(action_file=details["payload"]["filename"])
+
+    @handler(ClientToServerRequests.load_actions.name)
+    def _handle_load_history_request(self, details):
+        """Populate recorder history from a file"""
+        recorder.load_actions(action_file=details["payload"]["filename"])
+
     @handler(ClientToServerRequests.set_recorder_status.name)
     def _handle_set_rec_request(self, details):
         """Disable/Enable recorder status"""
