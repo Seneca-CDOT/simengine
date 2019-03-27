@@ -1,13 +1,42 @@
 """Unittests for testing action recorder & action history replay"""
 
 import unittest
+import inspect
+import random
+import pprint
 
 from enginecore.state.recorder import Recorder
 from enginecore.model.graph_reference import GraphReference
 
+
 REC = Recorder(module=__name__)
 
 
+class Randomizer:
+
+    classes = {}
+
+    @classmethod
+    def perform(cls, rand_obj):
+
+        rand_method = random.choice(cls.classes[rand_obj.__class__])
+        rand_args = map(lambda x: x(), rand_method.arg_defaults)
+        rand_method(rand_obj, *tuple(rand_args))
+
+    @classmethod
+    def register(cls, rand_cls):
+        """ """
+        cls_details = []
+
+        for val in rand_cls.__dict__.values():
+            if hasattr(val, "recordable") and val.recordable:
+                cls_details.append(val)
+
+        cls.classes[rand_cls] = cls_details
+        return rand_cls
+
+
+@Randomizer.register
 class RecordedEntity:
     """Class to be "recorded" """
 
@@ -21,23 +50,23 @@ class RecordedEntity:
         RecordedEntity.num_entities = RecordedEntity.num_entities + 1
         self.key = RecordedEntity.num_entities
 
-    @REC
+    @REC((lambda: random.randrange(0, 10),))
     def add(self, value):
         """Test method 1"""
         self.count = self.count + value
 
-    @REC
+    @REC((lambda: random.randrange(0, 10),))
     def subtract(self, value):
         """Test method 2"""
         self.count = self.count - value
 
-    @REC
+    @REC()
     def double_a(self):
         """Test method 3"""
         RecordedEntity.test_a["value"] = RecordedEntity.test_a["value"] * 2
 
     @classmethod
-    @REC
+    @REC()
     def class_lvl_method(cls):
         """Test method 3"""
         pass
@@ -155,8 +184,15 @@ class RecorderTests(unittest.TestCase):
     def test_randomizer(self):
         """test action randomizer"""
         self.recorded_entity_1.add(1)
-        a = REC.random()
-        a(self.recorded_entity_1, 2)
+        print("==RESUT==")
+        print(dir(self.recorded_entity_1))
+        print(Randomizer.perform(self.recorded_entity_1))
+        print(Randomizer.perform(self.recorded_entity_1))
+        print(Randomizer.perform(self.recorded_entity_1))
+
+        # print(Randomizer.classes)
+        # print(Randomizer.classes[RecordedEntity][0](self.recorded_entity_1, 2))
+        pprint.pprint(REC.get_action_details())
         print(self.recorded_entity_1.count)
 
     def test_serialization(self):
