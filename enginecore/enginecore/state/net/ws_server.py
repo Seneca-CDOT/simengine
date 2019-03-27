@@ -7,8 +7,7 @@ import threading
 
 from circuits import handler, Component, Event
 from circuits.net.events import write
-from enginecore.state.assets import SUPPORTED_ASSETS
-from enginecore.state.api import IStateManager, IBMCServerStateManager
+from enginecore.state.api import IStateManager
 from enginecore.model.graph_reference import GraphReference
 from enginecore.state.recorder import RECORDER as recorder
 from enginecore.state.net.ws_requests import (
@@ -58,7 +57,7 @@ class WebSocket(Component):
 
         power_up = details["payload"]["status"]
         state_manager = IStateManager.get_state_manager_by_key(
-            details["payload"]["key"], SUPPORTED_ASSETS
+            details["payload"]["key"]
         )
 
         if power_up:
@@ -191,9 +190,7 @@ class WebSocket(Component):
     @handler(ClientToServerRequests.set_sensor_status.name)
     def _handle_sensor_state_request(self, details):
         """Update runtime value of a IPMI/BMC sensor"""
-        server_sm = IStateManager.get_state_manager_by_key(
-            details["payload"]["key"], SUPPORTED_ASSETS
-        )
+        server_sm = IStateManager.get_state_manager_by_key(details["payload"]["key"])
 
         server_sm.update_sensor(
             details["payload"]["sensor_name"], details["payload"]["sensor_value"]
@@ -204,8 +201,7 @@ class WebSocket(Component):
         """Update cv details upon a request"""
 
         payload = detials["payload"]
-        IBMCServerStateManager.set_cv_replacement(
-            payload["key"],
+        IStateManager.get_state_manager_by_key(payload["key"]).set_cv_replacement(
             payload["controller"],
             payload["replacement_required"],
             payload["write_through_fail"],
@@ -216,8 +212,8 @@ class WebSocket(Component):
         """Update RAID controller when requested"""
 
         payload = details["payload"]
-        IBMCServerStateManager.set_controller_prop(
-            payload["key"], payload["controller"], payload
+        IStateManager.get_state_manager_by_key(payload["key"]).set_controller_prop(
+            payload["controller"], payload
         )
 
     @handler(ClientToServerRequests.set_physical_drive_status.name)
@@ -225,8 +221,8 @@ class WebSocket(Component):
         """Update data related to physical drives when requested"""
         payload = details["payload"]
 
-        IBMCServerStateManager.set_physical_drive_prop(
-            payload["key"], payload["controller"], payload["drive_id"], payload
+        IStateManager.get_state_manager_by_key(payload["key"]).set_physical_drive_prop(
+            payload["controller"], payload["drive_id"], payload
         )
 
     def read(self, sock, data):

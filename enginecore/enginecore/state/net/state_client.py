@@ -114,7 +114,7 @@ class StateClient:
         Args:
             controller(int): controller physical drive belongs to
             drive_id(int): unique drive id (DID) of drive to be updated
-            pd_props(dict): including TODO
+            pd_props(dict): including 'media_error_count', 'other_error_count', 'predictive_error_count' or 'state'
         """
         StateClient.send_request(
             ClientToServerRequests.set_physical_drive_status,

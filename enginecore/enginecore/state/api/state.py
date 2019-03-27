@@ -455,8 +455,10 @@ class IStateManager:
             )
 
     @classmethod
-    def get_state_manager_by_key(cls, key, supported_assets):
+    def get_state_manager_by_key(cls, key, supported_assets=None):
         """Infer asset manager from key"""
+        if not supported_assets:
+            supported_assets = SUPPORTED_ASSETS
 
         graph_ref = GraphReference()
 
@@ -465,7 +467,7 @@ class IStateManager:
             asset_info = GraphReference.get_asset_and_components(session, key)
             sm_mro = supported_assets[asset_info["type"]].StateManagerCls.mro()
 
-            module = "enginecore.state.api"
+            module = ".".join(__name__.split(".")[:-1])  # api module
             return next(filter(lambda x: x.__module__.startswith(module), sm_mro))(
                 asset_info
             )

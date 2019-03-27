@@ -44,18 +44,27 @@ class IServerStateManager(IStateManager):
 
 
 class IBMCServerStateManager(IServerStateManager):
-    """Interface for a server that supports BMC chip & IPMI"""
+    """Interface for a server that supports BMC chip & IPMI
+    Example:
+        unlike server (simpler variation of this type), bmc-server exposes
+        both BMC sensors & storage/hard drive settable properties related
+        to storcli64.
+    """
 
-    def get_cpu_stats(self):
-        """Get VM cpu stats (user_time, cpu_time etc. (see libvirt api)) """
+    def get_cpu_stats(self) -> list:
+        """Get VM cpu stats (user_time, cpu_time etc. (see libvirt api))
+        Returns:
+            cpu statistics for all CPUs
+        """
         return self._vm.getCPUStats(True)
 
     @record
-    def update_sensor(self, sensor_name, value):
+    def update_sensor(self, sensor_name: str, value):
         """Update runtime value of the sensor belonging to this server
         Args:
-            sensor_name(str): human-readable sensor name to be updated
-            value: sensor value
+            sensor_name: human-readable sensor name to be updated
+            value: new sensor value. Value type depends on a sensor type, but note that some sensors
+                   (fans for example) will have values multiplied by 10 (e.g. 120=1200RPM)
         """
 
         try:
@@ -67,9 +76,44 @@ class IBMCServerStateManager(IServerStateManager):
         except KeyError as error:
             print("Server or Sensor does not exist: %s", str(error))
 
+    @record
+    def set_physical_drive_prop(self, controller: int, did: int, properties: dict):
+        """Update properties of a physical drive belonging to a RAID array
+        Args:
+            controller: id of the controller physical drive is member of
+            did: DID - unique drive id
+            properties: props associated with physical drive such as drive state ('state') or 
+                        error counts ('media_error_count', 'other_error_count', 'predictive_error_count')
+        """
+        with self._graph_ref.get_session() as session:
+            return GraphReference.set_physical_drive_prop(
+                session, self.key, controller, did, properties
+            )
+
+    @record
+    def set_controller_prop(self, controller: int, properties: dict):
+        """Update properties associated with a RAID controller
+        Args:
+            controller: id/number assigned to a controller
+            properties: controller props including "alarm", correctable & uncorrectable 
+                        errors as "mem_c_errors", "mem_uc_errors"
+        """
+        with self._graph_ref.get_session() as session:
+            return GraphReference.set_controller_prop(
+                session, self.key, controller, properties
+            )
+
+    @record
+    def set_cv_replacement(self, controller: int, repl_status: str, wt_on_fail: bool):
+        """Update Cachevault replacement status"""
+        with self._graph_ref.get_session() as session:
+            return GraphReference.set_cv_replacement(
+                session, self.key, controller, repl_status, wt_on_fail
+            )
+
     @property
-    def cpu_load(self):
-        """Get latest recorded CPU load in percentage"""
+    def cpu_load(self) -> int:
+        """Get latest recorded CPU load in percentage (between 0 and 100)"""
         cpu_load = IStateManager.get_store().get(self.redis_key + ":cpu_load")
         return int(cpu_load.decode()) if cpu_load else 0
 
@@ -156,34 +200,3 @@ class IBMCServerStateManager(IServerStateManager):
         graph_ref = GraphReference()
         with graph_ref.get_session() as session:
             return GraphReference.get_thermal_cpu_details(session, asset_key)
-
-    @classmethod
-    @record
-    def set_physical_drive_prop(cls, asset_key, controller, did, properties):
-        """Update physical drive"""
-        graph_ref = GraphReference()
-        with graph_ref.get_session() as session:
-            return GraphReference.set_physical_drive_prop(
-                session, asset_key, controller, did, properties
-            )
-
-    @classmethod
-    @record
-    def set_controller_prop(cls, asset_key, controller, properties):
-        """Update RAID controller """
-        graph_ref = GraphReference()
-        with graph_ref.get_session() as session:
-            return GraphReference.set_controller_prop(
-                session, asset_key, controller, properties
-            )
-
-    @classmethod
-    @record
-    def set_cv_replacement(cls, asset_key, controller, repl_status, wt_on_fail):
-        """Update Cachevault details"""
-        graph_ref = GraphReference()
-
-        with graph_ref.get_session() as session:
-            return GraphReference.set_cv_replacement(
-                session, asset_key, controller, repl_status, wt_on_fail
-            )
