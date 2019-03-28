@@ -5,8 +5,8 @@ import json
 import time
 
 from neo4j.v1 import GraphDatabase, basic_auth
-from enginecore.state.utils import format_as_redis_key
-import enginecore.model.query_helpers as qh
+from enginecore.tools.utils import format_as_redis_key
+import enginecore.tools.query_helpers as qh
 
 
 class GraphReference:

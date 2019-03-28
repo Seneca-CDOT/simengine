@@ -6,7 +6,7 @@ import shutil
 import redis
 
 from enginecore.model.graph_reference import GraphReference
-from enginecore.state.utils import format_as_redis_key, get_asset_type
+from enginecore.tools.utils import format_as_redis_key, get_asset_type
 
 
 def get_temp_workplace_dir():

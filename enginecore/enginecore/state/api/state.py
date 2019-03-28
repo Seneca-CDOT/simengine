@@ -7,11 +7,11 @@ import subprocess
 import redis
 
 from enginecore.model.graph_reference import GraphReference
-from enginecore.state.utils import format_as_redis_key
+from enginecore.tools.utils import format_as_redis_key
 from enginecore.state.redis_channels import RedisChannels
 
 from enginecore.state.asset_definition import SUPPORTED_ASSETS
-from enginecore.state.recorder import RECORDER as record
+from enginecore.tools.recorder import RECORDER as record
 
 
 class IStateManager:
@@ -80,7 +80,7 @@ class IStateManager:
             (int(pid), os.path.exists("/proc/" + pid.decode("utf-8"))) if pid else None
         )
 
-    @record
+    @record()
     def shut_down(self):
         """Implements state logic for graceful power-off event, sleeps for the pre-configured time
             
@@ -92,7 +92,7 @@ class IStateManager:
             self._set_state_off()
         return self.status
 
-    @record
+    @record()
     def power_off(self):
         """Implements state logic for abrupt power loss 
         
@@ -103,7 +103,7 @@ class IStateManager:
             self._set_state_off()
         return self.status
 
-    @record
+    @record()
     def power_up(self):
         """Implements state logic for power up, sleeps for the pre-configured time & resets boot time
         
@@ -336,14 +336,14 @@ class IStateManager:
         cls.get_store().publish(RedisChannels.model_update_channel, "reload")
 
     @classmethod
-    @record
+    @record()
     def power_outage(cls):
         """Simulate complete power outage/restoration"""
         cls.get_store().set("mains-source", "0")
         cls.get_store().publish(RedisChannels.mains_update_channel, "0")
 
     @classmethod
-    @record
+    @record()
     def power_restore(cls):
         """Simulate complete power restoration"""
         cls.get_store().set("mains-source", "1")
@@ -361,7 +361,7 @@ class IStateManager:
         return int(temp.decode()) if temp else 0
 
     @classmethod
-    @record
+    @record()
     def set_ambient(cls, value):
         """Update ambient value"""
         old_temp = cls.get_ambient()

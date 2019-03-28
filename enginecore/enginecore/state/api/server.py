@@ -5,7 +5,7 @@ import libvirt
 
 from enginecore.model.graph_reference import GraphReference
 import enginecore.model.system_modeler as sys_modeler
-from enginecore.state.recorder import RECORDER as record
+from enginecore.tools.recorder import RECORDER as record
 
 
 from enginecore.state.redis_channels import RedisChannels
@@ -58,7 +58,7 @@ class IBMCServerStateManager(IServerStateManager):
         """
         return self._vm.getCPUStats(True)
 
-    @record
+    @record()
     def update_sensor(self, sensor_name: str, value):
         """Update runtime value of the sensor belonging to this server
         Args:
@@ -76,7 +76,7 @@ class IBMCServerStateManager(IServerStateManager):
         except KeyError as error:
             print("Server or Sensor does not exist: %s", str(error))
 
-    @record
+    @record()
     def set_physical_drive_prop(self, controller: int, did: int, properties: dict):
         """Update properties of a physical drive belonging to a RAID array
         Args:
@@ -90,7 +90,7 @@ class IBMCServerStateManager(IServerStateManager):
                 session, self.key, controller, did, properties
             )
 
-    @record
+    @record()
     def set_controller_prop(self, controller: int, properties: dict):
         """Update properties associated with a RAID controller
         Args:
@@ -103,7 +103,7 @@ class IBMCServerStateManager(IServerStateManager):
                 session, self.key, controller, properties
             )
 
-    @record
+    @record()
     def set_cv_replacement(self, controller: int, repl_status: str, wt_on_fail: bool):
         """Update Cachevault replacement status"""
         with self._graph_ref.get_session() as session:

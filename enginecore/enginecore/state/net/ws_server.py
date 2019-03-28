@@ -9,7 +9,7 @@ from circuits import handler, Component, Event
 from circuits.net.events import write
 from enginecore.state.api import IStateManager
 from enginecore.model.graph_reference import GraphReference
-from enginecore.state.recorder import RECORDER as recorder
+from enginecore.tools.recorder import RECORDER as recorder
 from enginecore.state.net.ws_requests import (
     ServerToClientRequests,
     ClientToServerRequests,

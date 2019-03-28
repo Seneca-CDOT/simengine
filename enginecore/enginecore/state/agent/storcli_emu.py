@@ -13,7 +13,7 @@ import copy
 from string import Template
 
 from enginecore.model.graph_reference import GraphReference
-from enginecore.model.query_helpers import to_camelcase
+from enginecore.tools.query_helpers import to_camelcase
 
 
 class StorCLIEmulator:

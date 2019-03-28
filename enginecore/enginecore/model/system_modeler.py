@@ -11,7 +11,7 @@ import libvirt
 from enginecore.model.graph_reference import GraphReference
 from enginecore.model.supported_sensors import SUPPORTED_SENSORS
 
-import enginecore.model.query_helpers as qh
+import enginecore.tools.query_helpers as qh
 
 GRAPH_REF = GraphReference()
 

@@ -5,7 +5,7 @@ import inspect
 import random
 import pprint
 
-from enginecore.state.recorder import Recorder
+from enginecore.tools.recorder import Recorder
 from enginecore.model.graph_reference import GraphReference
 
 
