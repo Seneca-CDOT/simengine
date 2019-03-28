@@ -99,7 +99,15 @@ class Randomizer:
             if isinstance(attr, types.MethodType):
                 attr = attr.__func__
 
-            if hasattr(attr, "recordable") and attr.recordable:
+            # reg_cls_super = super(new_reg_cls)
+            # super_attr = None
+
+            # if hasattr(reg_cls_super, attr_name):
+            #     super_attr = getattr(reg_cls_super, attr_name)
+
+            is_recordable = lambda a: a and hasattr(a, "recordable") and a.recordable
+
+            if is_recordable(attr):
                 cls_details.append(attr)
 
         cls.classes[new_reg_cls] = cls_details

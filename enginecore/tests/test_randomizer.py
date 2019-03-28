@@ -92,7 +92,10 @@ class RandomizedEntity:
 
 @Randomizer.register
 class RandomizedEntityChild(RandomizedEntity):
-    pass
+    def no_args(self):
+        """Test method 4"""
+        time.time()
+        super().no_args()
 
 
 @Randomizer.register
