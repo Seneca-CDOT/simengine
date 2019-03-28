@@ -38,10 +38,17 @@ class Recorder:
         def decorator(work: callable):
             @functools.wraps(work)
             def record_wrapper(asset_self, *f_args, **f_kwargs):
-                if asset_self.__module__.startswith(self._module) and self._enabled:
-                    partial_func = functools.partial(
-                        work, asset_self, *f_args, **f_kwargs
-                    )
+
+                if work.__module__.startswith(self._module) and self._enabled:
+
+                    full_work_args = inspect.getfullargspec(work).args
+
+                    if "self" in full_work_args or "cls" in full_work_args:
+                        func_args = tuple((work, asset_self))
+                    else:
+                        func_args = tuple((work,))
+
+                    partial_func = functools.partial(*func_args, *f_args, **f_kwargs)
                     self._actions.append(
                         {
                             "work": functools.update_wrapper(partial_func, work),
