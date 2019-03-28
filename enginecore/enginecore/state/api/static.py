@@ -1,6 +1,8 @@
 from enginecore.state.api.state import IStateManager
+from enginecore.tools.randomizer import Randomizer
 
 
+@Randomizer.register
 class IStaticDeviceManager(IStateManager):
     """Exposes state logic for static(dummy) asset """
 

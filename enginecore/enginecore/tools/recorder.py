@@ -38,8 +38,7 @@ class Recorder:
         def decorator(work: callable):
             @functools.wraps(work)
             def record_wrapper(asset_self, *f_args, **f_kwargs):
-
-                if work.__module__.startswith(self._module) and self._enabled:
+                if asset_self.__module__.startswith(self._module) and self._enabled:
 
                     full_work_args = inspect.getfullargspec(work).args
 

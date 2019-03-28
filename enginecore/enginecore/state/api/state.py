@@ -3,7 +3,7 @@
 import time
 import os
 import subprocess
-
+import random
 import redis
 
 from enginecore.model.graph_reference import GraphReference
@@ -12,8 +12,10 @@ from enginecore.state.redis_channels import RedisChannels
 
 from enginecore.state.asset_definition import SUPPORTED_ASSETS
 from enginecore.tools.recorder import RECORDER as record
+from enginecore.tools.randomizer import Randomizer
 
 
+@Randomizer.register
 class IStateManager:
     """Base class for all the state managers """
 
@@ -361,7 +363,7 @@ class IStateManager:
         return int(temp.decode()) if temp else 0
 
     @classmethod
-    @record()
+    @record(arg_defaults=(lambda: random.randrange(18, 35),))
     def set_ambient(cls, value):
         """Update ambient value"""
         old_temp = cls.get_ambient()

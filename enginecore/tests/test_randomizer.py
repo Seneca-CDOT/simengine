@@ -4,7 +4,7 @@ import unittest
 import random
 import time
 
-# from pprint import pprint as pp
+from pprint import pprint as pp
 from datetime import datetime as dt
 
 from enginecore.tools.recorder import Recorder
@@ -91,6 +91,11 @@ class RandomizedEntity:
 
 
 @Randomizer.register
+class RandomizedEntityChild(RandomizedEntity):
+    pass
+
+
+@Randomizer.register
 class Employee:
     """Yet another randomized entity (a bit more meaningful this time)"""
 
@@ -114,6 +119,7 @@ class RandomizerTests(unittest.TestCase):
 
     def setUp(self):
         self.rand_entity_1 = RandomizedEntity()
+        self.rand_child_entity_1 = RandomizedEntityChild()
         self.employee = Employee()
         # Randomizer.set_seed(1)
 
@@ -195,12 +201,16 @@ class RandomizerTests(unittest.TestCase):
         self.assertEqual(20, len(recorder_history))
 
     def test_recorder(self):
-        """test action randomizer"""
+        """Test action randomizer"""
         self.assertEqual(0, len(REC.get_action_details()))
         Randomizer.randact(self.employee)
         self.assertEqual(1, len(REC.get_action_details()))
         Randomizer.randact([self.employee, self.rand_entity_1], num_iter=9)
         self.assertEqual(10, len(REC.get_action_details()))
+
+    def test_child_class(self):
+        """Verify that inherited methods get randomized as well"""
+        Randomizer.randact(self.rand_child_entity_1)
 
     def _test_static_call(self):
         """Test if @staticmethod class functions can be recorded"""

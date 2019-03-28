@@ -114,6 +114,17 @@ def actions_command(actions_group):
         "-f", "--filename", type=str, required=True, help="Will load from this file"
     )
 
+    rand_action = play_subp.add_parser(
+        "random", help="Perform random actions associated with assets"
+    )
+    # rand_action.add_argument(
+    #     "-c",
+    #     "--count",
+    #     type=str,
+    #     required=True,
+    #     help="Number of actions to be performed",
+    # )
+
     # cli actions/callbacks
     replay_action.set_defaults(
         func=lambda args: [
@@ -170,3 +181,5 @@ def actions_command(actions_group):
             os.path.expanduser(StateClient.load_actions(args["filename"]))
         )
     )
+
+    rand_action.set_defaults(func=StateClient.rand_actions)

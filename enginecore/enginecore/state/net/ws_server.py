@@ -10,6 +10,8 @@ from circuits.net.events import write
 from enginecore.state.api import IStateManager
 from enginecore.model.graph_reference import GraphReference
 from enginecore.tools.recorder import RECORDER as recorder
+from enginecore.tools.randomizer import Randomizer
+
 from enginecore.state.net.ws_requests import (
     ServerToClientRequests,
     ClientToServerRequests,
@@ -224,6 +226,10 @@ class WebSocket(Component):
         IStateManager.get_state_manager_by_key(payload["key"]).set_physical_drive_prop(
             payload["controller"], payload["drive_id"], payload
         )
+
+    @handler(ClientToServerRequests.exec_rand_actions.name)
+    def _handle_rand_act(self, details):
+        Randomizer.randact(IStateManager.get_state_manager_by_key(61), num_iter=10)
 
     def read(self, sock, data):
         """Read client request

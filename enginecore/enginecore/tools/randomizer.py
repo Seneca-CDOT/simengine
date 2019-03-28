@@ -4,6 +4,7 @@ import functools
 import inspect
 import time
 import sys
+import types
 
 
 class Randomizer:
@@ -21,7 +22,7 @@ class Randomizer:
     def _rand_action(cls, rand_obj, nap):
         """Perform rand action associated with the passed object"""
         rand_func = random.choice(cls.classes[rand_obj.__class__])
-        rand_args = map(lambda x: x(), rand_func.arg_defaults)
+        rand_args = list(map(lambda x: x(), rand_func.arg_defaults))
 
         full_func_args = inspect.getfullargspec(rand_func.__wrapped__).args
 
@@ -75,7 +76,7 @@ class Randomizer:
         if seconds:
             t_end = time.time() + seconds
             if not nap:
-                nap = functools.partial(time.sleep, 0.5)
+                nap = functools.partial(time.sleep, 1)
 
             while time.time() < t_end:
                 cls._rand_action(rand_obj(), nap)
@@ -91,15 +92,15 @@ class Randomizer:
 
         # Find methods/classmethods with @Recorder()
         # decorator attached to them
-        for val in new_reg_cls.__dict__.values():
+        for attr_name in dir(new_reg_cls):
+            attr = getattr(new_reg_cls, attr_name)
 
-            # Get object behind classmethod descriptor
             # see https://stackoverflow.com/a/41696531
-            if isinstance(val, classmethod) or isinstance(val, staticmethod):
-                val = val.__func__
+            if isinstance(attr, types.MethodType):
+                attr = attr.__func__
 
-            if hasattr(val, "recordable") and val.recordable:
-                cls_details.append(val)
+            if hasattr(attr, "recordable") and attr.recordable:
+                cls_details.append(attr)
 
         cls.classes[new_reg_cls] = cls_details
         return new_reg_cls

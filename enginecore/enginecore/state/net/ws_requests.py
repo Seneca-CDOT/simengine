@@ -66,3 +66,6 @@ class ClientToServerRequests(Enum):
     set_controller_status = 17
     # update physical drive details
     set_physical_drive_status = 18
+
+    #
+    exec_rand_actions = 19
