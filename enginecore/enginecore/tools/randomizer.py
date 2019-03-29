@@ -24,12 +24,13 @@ class Randomizer:
         rand_func = random.choice(cls.classes[rand_obj.__class__])
         rand_args = list(map(lambda x: x(), rand_func.arg_defaults))
 
-        full_func_args = inspect.getfullargspec(rand_func.__wrapped__).args
+        # full_func_args = inspect.getfullargspec(rand_func.__wrapped__).args
 
-        if "self" in full_func_args or "cls" in full_func_args:
-            rand_func(rand_obj, *tuple(rand_args))
-        else:
-            rand_func(*tuple(rand_args))
+        # if "self" in full_func_args or "cls" in full_func_args:
+        #     rand_func(rand_obj, *tuple(rand_args))
+        # else:
+        #     rand_func(*tuple(rand_args))
+        rand_func(rand_obj, *tuple(rand_args))
 
         # majestic nap
         if nap:

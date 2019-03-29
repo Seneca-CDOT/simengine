@@ -46,24 +46,27 @@ class RandomizedEntity:
         RandomizedEntity.num_entities = RandomizedEntity.num_entities + 1
         self.key = RandomizedEntity.num_entities
 
+    @REC
     @Randomizer.randomize_method((lambda: random.randrange(0, 10),))
     def set_count(self, value):
         """Test method 1"""
         self.count = value
 
+    @REC
     @Randomizer.randomize_method((lambda: random.choice(["a", "aa", "aaa"]), _get_b))
     def set_kwargs(self, a_str="a", b_str="b"):
         """Test method 2"""
         self.a_str = a_str
         self.b_str = b_str
 
+    @REC
     @Randomizer.randomize_method((_get_obj,))
     def set_object(self, obj):
         """Test method 3"""
         self.obj = obj
 
-    @Randomizer.randomize_method()
     @REC
+    @Randomizer.randomize_method()
     def no_args(self):
         """Test method 4"""
         pass
@@ -73,12 +76,14 @@ class RandomizedEntity:
         pass
 
     @classmethod
+    @REC
     @Randomizer.randomize_method()
     def class_method_1(cls):
         """Test class method 1"""
         pass
 
     @classmethod
+    @REC
     @Randomizer.randomize_method((lambda: random.randrange(0, 1),))
     def class_method_2(cls, number):
         """Test class method 2"""
@@ -92,11 +97,24 @@ class RandomizedEntity:
 
 
 @Randomizer.register
-class RandomizedEntityChild(RandomizedEntity):
-    def no_args(self):
+class RandomizedEntityParent:
+    def __init__(self):
+        self.key = 0
+
+    @REC
+    @Randomizer.randomize_method((lambda: random.randrange(0, 10),))
+    def test_method(self, value):
         """Test method 4"""
         time.time()
-        super().no_args()
+
+
+@Randomizer.register
+class RandomizedEntityChild(RandomizedEntityParent):
+    @Randomizer.randomize_method((lambda: random.randrange(0, 10),))
+    def test_method(self, value):
+        """Test method 4"""
+        time.time()
+        super().test_method(value)
 
 
 @Randomizer.register
@@ -111,6 +129,7 @@ class Employee:
         Employee.employee_num = Employee.employee_num + 1
         self.key = Employee.employee_num
 
+    @REC
     @Randomizer.randomize_method(
         (lambda: random.choice(["manager", "ceo", "cto", "janitor"]),)
     )
@@ -217,8 +236,12 @@ class RandomizerTests(unittest.TestCase):
     def test_child_class(self):
         """Verify that inherited methods get randomized as well"""
         Randomizer.randact(self.rand_child_entity_1)
-        print(REC.get_action_details())
-        pp(Randomizer.classes)
+        self.assertEqual(1, len(REC.get_action_details()))
+        self.assertTrue(
+            REC.get_action_details()[0]["work"].startswith(
+                "RandomizedEntityChild(0).test_method"
+            )
+        )
 
     def _test_static_call(self):
         """Test if @staticmethod class functions can be recorded"""

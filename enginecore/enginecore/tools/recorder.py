@@ -37,16 +37,14 @@ class Recorder:
 
         @functools.wraps(work)
         def record_wrapper(asset_self, *f_args, **f_kwargs):
-            print("!!!!!!!!!!!!!!!")
-            print(asset_self, f_args)
+
             if asset_self.__module__.startswith(self._module) and self._enabled:
+                # full_work_args = inspect.getfullargspec(work).args
 
-                full_work_args = inspect.getfullargspec(work).args
-
-                if "self" in full_work_args or "cls" in full_work_args:
-                    func_args = tuple((work, asset_self))
-                else:
-                    func_args = tuple((work,))
+                # if "self" in full_work_args or "cls" in full_work_args:
+                # else:
+                #     func_args = tuple((work,))
+                func_args = tuple((work, asset_self))
 
                 partial_func = functools.partial(*func_args, *f_args, **f_kwargs)
                 self._actions.append(
