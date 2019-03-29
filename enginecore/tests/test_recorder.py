@@ -22,23 +22,23 @@ class RecordedEntity:
         RecordedEntity.num_entities = RecordedEntity.num_entities + 1
         self.key = RecordedEntity.num_entities
 
-    @REC()
+    @REC
     def add(self, value):
         """Test method 1"""
         self.count = self.count + value
 
-    @REC()
+    @REC
     def subtract(self, value):
         """Test method 2"""
         self.count = self.count - value
 
-    @REC()
+    @REC
     def double_a(self):
         """Test method 3"""
         RecordedEntity.test_a["value"] = RecordedEntity.test_a["value"] * 2
 
     @classmethod
-    @REC()
+    @REC
     def class_lvl_method(cls):
         """Test class method"""
         pass

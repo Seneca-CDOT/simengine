@@ -99,12 +99,6 @@ class Randomizer:
             if isinstance(attr, types.MethodType):
                 attr = attr.__func__
 
-            # reg_cls_super = super(new_reg_cls)
-            # super_attr = None
-
-            # if hasattr(reg_cls_super, attr_name):
-            #     super_attr = getattr(reg_cls_super, attr_name)
-
             is_recordable = lambda a: a and hasattr(a, "recordable") and a.recordable
 
             if is_recordable(attr):
@@ -112,6 +106,21 @@ class Randomizer:
 
         cls.classes[new_reg_cls] = cls_details
         return new_reg_cls
+
+    @classmethod
+    def randomize_method(cls, arg_defaults=tuple()):
+        """"""
+
+        def decorator(work: callable):
+            @functools.wraps(work)
+            def func_wrapper(asset_self, *f_args, **f_kwargs):
+                return work(asset_self, *f_args, **f_kwargs)
+
+            func_wrapper.recordable = True
+            func_wrapper.arg_defaults = arg_defaults
+            return func_wrapper
+
+        return decorator
 
 
 Randomizer.set_seed()

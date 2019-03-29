@@ -21,7 +21,7 @@ class Recorder:
         self._replaying = False
         self._module = module
 
-    def __call__(self, arg_defaults=tuple()):
+    def __call__(self, work: callable):
         """Make an instance of recorder a callable object that can be used as a decorator
         with functions/class methods.
         Function calls will be registered by the recorder & can be replayed later on.
@@ -35,32 +35,29 @@ class Recorder:
             each call to my_action() will be stored in action history of the recorder instance,
         """
 
-        def decorator(work: callable):
-            @functools.wraps(work)
-            def record_wrapper(asset_self, *f_args, **f_kwargs):
-                if asset_self.__module__.startswith(self._module) and self._enabled:
+        @functools.wraps(work)
+        def record_wrapper(asset_self, *f_args, **f_kwargs):
+            print("!!!!!!!!!!!!!!!")
+            print(asset_self, f_args)
+            if asset_self.__module__.startswith(self._module) and self._enabled:
 
-                    full_work_args = inspect.getfullargspec(work).args
+                full_work_args = inspect.getfullargspec(work).args
 
-                    if "self" in full_work_args or "cls" in full_work_args:
-                        func_args = tuple((work, asset_self))
-                    else:
-                        func_args = tuple((work,))
+                if "self" in full_work_args or "cls" in full_work_args:
+                    func_args = tuple((work, asset_self))
+                else:
+                    func_args = tuple((work,))
 
-                    partial_func = functools.partial(*func_args, *f_args, **f_kwargs)
-                    self._actions.append(
-                        {
-                            "work": functools.update_wrapper(partial_func, work),
-                            "time": dt.now(),
-                        }
-                    )
-                return work(asset_self, *f_args, **f_kwargs)
+                partial_func = functools.partial(*func_args, *f_args, **f_kwargs)
+                self._actions.append(
+                    {
+                        "work": functools.update_wrapper(partial_func, work),
+                        "time": dt.now(),
+                    }
+                )
+            return work(asset_self, *f_args, **f_kwargs)
 
-            record_wrapper.recordable = True
-            record_wrapper.arg_defaults = arg_defaults
-            return record_wrapper
-
-        return decorator
+        return record_wrapper
 
     @property
     def enabled(self) -> bool:
