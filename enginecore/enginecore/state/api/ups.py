@@ -8,7 +8,10 @@ from enginecore.model.graph_reference import GraphReference
 from enginecore.state.redis_channels import RedisChannels
 from enginecore.state.api.state import IStateManager
 
+from enginecore.tools.randomizer import Randomizer
 
+
+@Randomizer.register
 class IUPSStateManager(IStateManager):
     """Handles UPS state logic """
 

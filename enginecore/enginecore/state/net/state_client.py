@@ -232,4 +232,4 @@ class StateClient:
 
     @classmethod
     def rand_actions(cls, args):
-        StateClient.send_request(ClientToServerRequests.exec_rand_actions)
+        StateClient.send_request(ClientToServerRequests.exec_rand_actions, {**args})

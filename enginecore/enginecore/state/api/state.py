@@ -82,7 +82,8 @@ class IStateManager:
             (int(pid), os.path.exists("/proc/" + pid.decode("utf-8"))) if pid else None
         )
 
-    @record()
+    @record
+    @Randomizer.randomize_method()
     def shut_down(self):
         """Implements state logic for graceful power-off event, sleeps for the pre-configured time
             
@@ -94,7 +95,8 @@ class IStateManager:
             self._set_state_off()
         return self.status
 
-    @record()
+    @record
+    @Randomizer.randomize_method()
     def power_off(self):
         """Implements state logic for abrupt power loss 
         
@@ -105,7 +107,8 @@ class IStateManager:
             self._set_state_off()
         return self.status
 
-    @record()
+    @record
+    @Randomizer.randomize_method()
     def power_up(self):
         """Implements state logic for power up, sleeps for the pre-configured time & resets boot time
         
@@ -338,14 +341,16 @@ class IStateManager:
         cls.get_store().publish(RedisChannels.model_update_channel, "reload")
 
     @classmethod
-    @record()
+    @record
+    @Randomizer.randomize_method()
     def power_outage(cls):
         """Simulate complete power outage/restoration"""
         cls.get_store().set("mains-source", "0")
         cls.get_store().publish(RedisChannels.mains_update_channel, "0")
 
     @classmethod
-    @record()
+    @record
+    @Randomizer.randomize_method()
     def power_restore(cls):
         """Simulate complete power restoration"""
         cls.get_store().set("mains-source", "1")
@@ -363,7 +368,8 @@ class IStateManager:
         return int(temp.decode()) if temp else 0
 
     @classmethod
-    @record(arg_defaults=(lambda: random.randrange(18, 35),))
+    @record
+    @Randomizer.randomize_method((lambda: random.randrange(18, 35),))
     def set_ambient(cls, value):
         """Update ambient value"""
         old_temp = cls.get_ambient()

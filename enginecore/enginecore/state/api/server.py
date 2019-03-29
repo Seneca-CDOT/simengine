@@ -10,8 +10,10 @@ from enginecore.tools.recorder import RECORDER as record
 
 from enginecore.state.redis_channels import RedisChannels
 from enginecore.state.api.state import IStateManager
+from enginecore.tools.randomizer import Randomizer
 
 
+@Randomizer.register
 class IServerStateManager(IStateManager):
     def __init__(self, asset_info):
         super(IServerStateManager, self).__init__(asset_info)
@@ -23,18 +25,21 @@ class IServerStateManager(IStateManager):
         """Check if vm is powered up"""
         return self._vm.isActive()
 
+    @Randomizer.randomize_method()
     def shut_down(self):
         if self._vm.isActive():
             self._vm.destroy()
             self._update_load(0)
         return super().shut_down()
 
+    @Randomizer.randomize_method()
     def power_off(self):
         if self._vm.isActive():
             self._vm.destroy()
             self._update_load(0)
         return super().power_off()
 
+    @Randomizer.randomize_method()
     def power_up(self):
         powered = super().power_up()
         if not self._vm.isActive() and powered:
@@ -43,6 +48,7 @@ class IServerStateManager(IStateManager):
         return powered
 
 
+@Randomizer.register
 class IBMCServerStateManager(IServerStateManager):
     """Interface for a server that supports BMC chip & IPMI
     Example:
@@ -58,7 +64,7 @@ class IBMCServerStateManager(IServerStateManager):
         """
         return self._vm.getCPUStats(True)
 
-    @record()
+    @record
     def update_sensor(self, sensor_name: str, value):
         """Update runtime value of the sensor belonging to this server
         Args:
@@ -76,7 +82,7 @@ class IBMCServerStateManager(IServerStateManager):
         except KeyError as error:
             print("Server or Sensor does not exist: %s", str(error))
 
-    @record()
+    @record
     def set_physical_drive_prop(self, controller: int, did: int, properties: dict):
         """Update properties of a physical drive belonging to a RAID array
         Args:
@@ -90,7 +96,7 @@ class IBMCServerStateManager(IServerStateManager):
                 session, self.key, controller, did, properties
             )
 
-    @record()
+    @record
     def set_controller_prop(self, controller: int, properties: dict):
         """Update properties associated with a RAID controller
         Args:
@@ -103,7 +109,7 @@ class IBMCServerStateManager(IServerStateManager):
                 session, self.key, controller, properties
             )
 
-    @record()
+    @record
     def set_cv_replacement(self, controller: int, repl_status: str, wt_on_fail: bool):
         """Update Cachevault replacement status"""
         with self._graph_ref.get_session() as session:

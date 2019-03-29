@@ -4,6 +4,8 @@ import json
 import itertools
 import logging
 import threading
+import functools
+import time
 
 from circuits import handler, Component, Event
 from circuits.net.events import write
@@ -229,7 +231,30 @@ class WebSocket(Component):
 
     @handler(ClientToServerRequests.exec_rand_actions.name)
     def _handle_rand_act(self, details):
-        Randomizer.randact(IStateManager.get_state_manager_by_key(61), num_iter=10)
+
+        # from pprint import pprint as pp
+
+        rand_session_specs = details["payload"]
+        nap = None
+        assets = IStateManager.get_system_status(flatten=True)
+        state_managers = list(map(IStateManager.get_state_manager_by_key, assets))
+
+        if rand_session_specs["nap_time"]:
+            nap = functools.partial(time.sleep, rand_session_specs["nap_time"])
+
+        rand_t = threading.Thread(
+            target=Randomizer.randact,
+            args=(state_managers,),
+            kwargs={
+                "num_iter": rand_session_specs["count"],
+                "seconds": rand_session_specs["seconds"],
+                "nap": nap,
+            },
+            name="[#] Randomizer",
+        )
+
+        rand_t.daemon = True
+        rand_t.start()
 
     def read(self, sock, data):
         """Read client request

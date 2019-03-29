@@ -77,7 +77,7 @@ class Randomizer:
         if seconds:
             t_end = time.time() + seconds
             if not nap:
-                nap = functools.partial(time.sleep, 1)
+                nap = functools.partial(time.sleep, 2)
 
             while time.time() < t_end:
                 cls._rand_action(rand_obj(), nap)

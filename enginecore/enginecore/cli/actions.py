@@ -117,13 +117,18 @@ def actions_command(actions_group):
     rand_action = play_subp.add_parser(
         "random", help="Perform random actions associated with assets"
     )
-    # rand_action.add_argument(
-    #     "-c",
-    #     "--count",
-    #     type=str,
-    #     required=True,
-    #     help="Number of actions to be performed",
-    # )
+    rand_action.add_argument(
+        "-c", "--count", type=int, help="Number of actions to be performed", default=1
+    )
+    rand_action.add_argument(
+        "-s",
+        "--seconds",
+        type=int,
+        help="Perform actions for 'n' seconds (alternative to 'count')",
+    )
+    rand_action.add_argument(
+        "-n", "--nap-time", type=int, help="Pause between each random action"
+    )
 
     # cli actions/callbacks
     replay_action.set_defaults(
