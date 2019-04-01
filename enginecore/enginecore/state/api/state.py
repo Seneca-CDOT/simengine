@@ -52,6 +52,11 @@ class IStateManager:
         return self._asset_info["draw"] if "draw" in self._asset_info else 1
 
     @property
+    def asset_info(self) -> dict:
+        """Get information associated with the asset"""
+        return self._asset_info
+
+    @property
     def load(self):
         """Get current load stored in redis (in AMPs)"""
         return float(IStateManager.get_store().get(self.redis_key + ":load"))

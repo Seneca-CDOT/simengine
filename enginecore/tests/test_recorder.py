@@ -15,12 +15,12 @@ class RecordedEntity:
     num_entities = 0
     test_a = {"value": 2}
 
-    def __init__(self):
+    def __init__(self, key=None):
         self.count = 0
         self._graph_ref = GraphReference()
 
         RecordedEntity.num_entities = RecordedEntity.num_entities + 1
-        self.key = RecordedEntity.num_entities
+        self.key = RecordedEntity.num_entities if not key else key
 
     @REC
     def add(self, value):
@@ -153,28 +153,31 @@ class RecorderTests(unittest.TestCase):
         # 2 + 2 original actions plus 2 replayed actions
         self.assertEqual(6, self.recorded_entity_1.count)
 
-    def _test_serialization(self):
+    def test_serialization(self):
         """Test action saving functionality"""
 
         self.recorded_entity_1.double_a()  # 4
         self.recorded_entity_2.double_a()  # 8
+
+        self.recorded_entity_1.add(1)
         RecordedEntity.class_lvl_method()
 
         REC.save_actions(action_file="/tmp/simengine_rec_utest.json")
         self.recorded_entity_1.double_a()  # 16 (action not saved)
         self.assertEqual(16, RecordedEntity.test_a["value"])
-
         # Action history: a * 2 * 2 where test_a = 16
 
         new_recorder = Recorder(module=__name__)
-        new_recorder.load_actions(action_file="/tmp/simengine_rec_utest.json")
+        new_recorder.load_actions(
+            map_key_to_state=RecordedEntity, action_file="/tmp/simengine_rec_utest.json"
+        )
 
         new_recorder.replay_all()
 
         self.assertEqual(64, RecordedEntity.test_a["value"])
 
         action_details = new_recorder.get_action_details()
-        self.assertEqual(3, len(action_details))
+        self.assertEqual(4, len(action_details))
 
 
 if __name__ == "__main__":

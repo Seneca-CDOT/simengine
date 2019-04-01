@@ -95,20 +95,28 @@ class Recorder:
         json_pickle = lambda x: codecs.encode(pickle.dumps(x), "base64").decode()
 
         for action in self._actions:
-            serialized_actions.append(
-                {
-                    "state": json_pickle(action["work"].args[0]),
-                    "args": json_pickle(action["work"].args[1:]),
-                    "kwargs": json_pickle(action["work"].keywords),
-                    "work": action["work"].__wrapped__.__name__,
-                    "timestamp": action["time"].timestamp(),
-                }
-            )
+
+            action_info = {
+                "args": json_pickle(action["work"].args[1:]),
+                "kwargs": json_pickle(action["work"].keywords),
+                "work": action["work"].__wrapped__.__name__,
+                "timestamp": action["time"].timestamp(),
+            }
+
+            if hasattr(action["work"].args[0], "key"):
+                action_info["key"] = action["work"].args[0].key
+                action_info["type"] = action["work"].args[0].__class__.__name__
+            else:
+                action_info["type"] = json_pickle(action["work"].args[0])
+
+            serialized_actions.append(action_info)
 
         with open(action_file, "w") as action_f_handler:
-            json.dump(serialized_actions, action_f_handler)
+            json.dump(serialized_actions, action_f_handler, indent=2)
 
-    def load_actions(self, action_file: str = "/tmp/recorder_action_file.json"):
+    def load_actions(
+        self, map_key_to_state, action_file: str = "/tmp/recorder_action_file.json"
+    ):
         """load actions from a file"""
 
         if self._replaying:
@@ -122,7 +130,11 @@ class Recorder:
             serialized_actions = json.load(action_f_handler)
 
         for action in serialized_actions:
-            state = json_unpickle(action["state"])
+            if "key" in action:
+                state = map_key_to_state(action["key"])
+            else:
+                state = json_unpickle(action["type"])
+
             args = json_unpickle(action["args"])
             kwargs = json_unpickle(action["kwargs"])
             action_time = dt.fromtimestamp(action["timestamp"])
