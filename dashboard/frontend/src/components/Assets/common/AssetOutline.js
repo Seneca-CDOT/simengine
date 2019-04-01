@@ -1,33 +1,35 @@
-import React, { Fragment } from 'react';
-import { Path } from 'react-konva';
-import PropTypes from 'prop-types';
+import React from "react";
+import { Path } from "react-konva";
+import PropTypes from "prop-types";
 
-import colors from '../../../styles/colors';
-
+import colors from "../../../styles/colors";
+import PointerElement from "./PointerElement";
 /**
  * AssetOutline (.svg outline of the asset)
  */
 const AssetOutline = ({ path, selected, onClick, scale, children }) => (
-  <Fragment>
-    <Path data={path}
+  <PointerElement>
+    <Path
+      data={path}
       fill={colors.backgroundAssetColor}
       scale={scale}
-      y={-575} 
+      y={-575}
     />
     {children}
-    <Path data={path}
+    <Path
+      data={path}
       strokeWidth={0.4}
       stroke={selected ? colors.selectedAsset : colors.deselectedAsset}
       fill={null}
       scale={scale}
-      y={-575 /*?!...*/} 
+      y={-575 /*?!...*/}
       onClick={onClick}
     />
-  </Fragment>
+  </PointerElement>
 );
 
 AssetOutline.defaultProps = {
-  scale: {x: 4, y: 4,}
+  scale: { x: 4, y: 4 }
 };
 
 AssetOutline.propTypes = {
@@ -40,7 +42,7 @@ AssetOutline.propTypes = {
   /** scale of the path */
   scale: PropTypes.object.isRequired,
   /** components to be encosed in the asset outline (non-selectable items) */
-  children: PropTypes.array,
+  children: PropTypes.array
 };
 
 export default AssetOutline;

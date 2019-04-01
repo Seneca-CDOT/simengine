@@ -32,7 +32,7 @@ load-plugins=
 # Disable the message, report, category or checker with the given id(s). You
 # can either give multiple identifier separated by comma (,) or put this option
 # multiple time.
-disable=C0303
+disable=C0303, C0330
 
 
 [REPORTS]

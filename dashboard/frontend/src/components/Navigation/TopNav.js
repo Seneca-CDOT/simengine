@@ -1,25 +1,23 @@
-import React, { Fragment } from 'react';
-import classNames from 'classnames';
-import PropTypes from 'prop-types';
+import React, { Fragment } from "react";
+import classNames from "classnames";
+import PropTypes from "prop-types";
 
 // Material imports
-import { withStyles } from '@material-ui/core/styles';
-import { AppBar, Toolbar, Typography } from '@material-ui/core';
+import { withStyles } from "@material-ui/core/styles";
+import { AppBar, Toolbar, Typography } from "@material-ui/core";
 
 // local imports
-import SettingsOption from './SettingsOption';
-import SysStatusOption from './SysStatusOption';
-
+import SettingsOption from "./SettingsOption";
+import SysStatusOption from "./SysStatusOption";
 
 class TopNav extends React.Component {
-
   constructor(props) {
     super(props);
 
     this.state = {
       ambientRising: false,
       lastTempChange: new Date(),
-      flash: false,
+      flash: false
     };
 
     this.flashArrow = null;
@@ -28,32 +26,37 @@ class TopNav extends React.Component {
   componentWillReceiveProps(newProps) {
     /** Flash temperature arrow */
 
-    if (newProps.ambient == this.props.ambient) { return; }
+    if (newProps.ambient == this.props.ambient) {
+      return;
+    }
     const elapsedSinceLastTemp = new Date() - this.state.lastTempChange;
 
     clearInterval(this.flashArrow);
 
     // flash arrow icon on temp changes
     this.flashArrow = setInterval(() => {
-      this.setState(() => ({flash: true}));
+      this.setState(() => ({ flash: true }));
       setTimeout(() => {
-        this.setState(() => ({flash: false}));
-      }, elapsedSinceLastTemp*0.5*0.8);
-    }, elapsedSinceLastTemp*0.5);
-
+        this.setState(() => ({ flash: false }));
+      }, elapsedSinceLastTemp * 0.5 * 0.8);
+    }, elapsedSinceLastTemp * 0.5);
 
     // stop flashing arrow after a while (max is 1 minute)
-    const maxFlashingTime =  60*1000;
+    const maxFlashingTime = 60 * 1000;
 
-    setTimeout(() => {
-      clearInterval(this.flashArrow);
-      this.setState({ flash: false, ambientRising: false });
-
-    }, (elapsedSinceLastTemp > maxFlashingTime?maxFlashingTime:elapsedSinceLastTemp));
+    setTimeout(
+      () => {
+        clearInterval(this.flashArrow);
+        this.setState({ flash: false, ambientRising: false });
+      },
+      elapsedSinceLastTemp > maxFlashingTime
+        ? maxFlashingTime
+        : elapsedSinceLastTemp
+    );
 
     this.setState({
       ambientRising: newProps.ambientRising,
-      lastTempChange: new Date(),
+      lastTempChange: new Date()
     });
   }
 
@@ -98,14 +101,14 @@ class TopNav extends React.Component {
 
 const styles = {
   grow: {
-    flexGrow: 1,
+    flexGrow: 1
   },
   appBar: {
-    width: `100%`,
+    width: `100%`
   },
-  'appBar-left': {
+  "appBar-left": {
     backgroundColor: "#36454F",
-    marginLeft: 240,
+    marginLeft: 240
   }
 };
 
@@ -125,7 +128,7 @@ TopNav.propTypes = {
   /** drawer Save Layout callback */
   saveLayout: PropTypes.func.isRequired,
   /** execute playbook callback */
-  executePlay: PropTypes.func.isRequired,
+  executePlay: PropTypes.func.isRequired
 };
 
 export default withStyles(styles)(TopNav);

@@ -1,5 +1,6 @@
 SUPPORTED_ASSETS = {}
 
+
 def register_asset(cls):
     """
     This decorator maps string class names to classes

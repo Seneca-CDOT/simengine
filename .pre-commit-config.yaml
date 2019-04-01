@@ -1,0 +1,10 @@
+repos:
+  - repo: https://github.com/ambv/black
+    rev: stable
+    hooks:
+      - id: black
+  - repo: https://github.com/prettier/prettier
+    rev: master
+    exclude: ^docs/
+    hooks:
+      - id: prettier

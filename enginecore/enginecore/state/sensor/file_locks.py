@@ -1,7 +1,8 @@
 """Threa-safe locks for sensors & sensor repository"""
 import threading
 
-class SensorFileLocks():
+
+class SensorFileLocks:
     """File locks for sensor files for safe access"""
 
     def __init__(self):

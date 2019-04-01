@@ -32,11 +32,8 @@ def configure_logger(develop=False):
     else:
         log_path = os.path.join(os.sep, "var", "log", "simengine", "info.log")
 
-
     logfile_h = handlers.RotatingFileHandler(
-        log_path,
-        maxBytes=10*1024*1024,
-        backupCount=5,
+        log_path, maxBytes=10 * 1024 * 1024, backupCount=5
     )
 
     logfile_h.setFormatter(formatter)
@@ -63,14 +60,28 @@ def configure_env(relative=False):
         storcli_templ_path = os.path.join(share_dir, "enginecore", "storcli_template")
         lua_script_path = os.path.join(share_dir, "enginecore", "script", "snmppub.lua")
 
-    os.environ['SIMENGINE_STATIC_DATA'] = os.environ.get('SIMENGINE_STATIC_DATA', static_path)
-    os.environ['SIMENGINE_IPMI_TEMPL'] = os.environ.get('SIMENGINE_IPMI_TEMPL', ipmi_templ_path)
-    os.environ['SIMENGINE_STORCLI_TEMPL'] = os.environ.get('SIMENGINE_STORCLI_TEMPL', storcli_templ_path)
+    os.environ["SIMENGINE_STATIC_DATA"] = os.environ.get(
+        "SIMENGINE_STATIC_DATA", static_path
+    )
+    os.environ["SIMENGINE_IPMI_TEMPL"] = os.environ.get(
+        "SIMENGINE_IPMI_TEMPL", ipmi_templ_path
+    )
+    os.environ["SIMENGINE_STORCLI_TEMPL"] = os.environ.get(
+        "SIMENGINE_STORCLI_TEMPL", storcli_templ_path
+    )
+    os.environ["SIMENGINE_SOCKET_HOST"] = os.environ.get(
+        "SIMENGINE_SOCKET_HOST", "0.0.0.0"
+    )
+    os.environ["SIMENGINE_SOCKET_PORT"] = os.environ.get(
+        "SIMENGINE_SOCKET_PORT", str(8000)
+    )
 
-    os.environ['SIMENGINE_SNMP_SHA'] = os.environ.get(
-        'SIMENGINE_SNMP_SHA',
+    os.environ["SIMENGINE_SNMP_SHA"] = os.environ.get(
+        "SIMENGINE_SNMP_SHA",
         # str(os.popen('/usr/local/bin/redis-cli script load "$(cat {})"'.format(lua_script_path)).read())
-        str(os.popen('redis-cli script load "$(cat {})"'.format(lua_script_path)).read())
+        str(
+            os.popen('redis-cli script load "$(cat {})"'.format(lua_script_path)).read()
+        ),
     )
 
 
@@ -82,23 +93,33 @@ def run():
 
     # parse cli option
     argparser = argparse.ArgumentParser(
-        description='Start enginecore daemon running the main engine loop'
+        description="Start enginecore daemon running the main engine loop"
     )
 
-    argparser.add_argument('-v', '--verbose', help="Enable State Listener Debugger", action='store_true')
-    argparser.add_argument('-r', '--reload-data', help="Reload state data from .snmprec files", action='store_true')
-    argparser.add_argument('-d', '--develop', help="Run in a development mode", action='store_true')
+    argparser.add_argument(
+        "-v", "--verbose", help="Enable State Listener Debugger", action="store_true"
+    )
+    argparser.add_argument(
+        "-r",
+        "--reload-data",
+        help="Reload state data from .snmprec files",
+        action="store_true",
+    )
+    argparser.add_argument(
+        "-d", "--develop", help="Run in a development mode", action="store_true"
+    )
 
     args = vars(argparser.parse_args())
 
     # logging config
-    configure_logger(develop=args['develop'])
+    configure_logger(develop=args["develop"])
 
     # env space configuration
-    configure_env(relative=args['develop'])
+    configure_env(relative=args["develop"])
 
     # run daemon
-    StateListener(debug=args['verbose'], force_snmp_init=args['reload_data']).run()
+    StateListener(debug=args["verbose"], force_snmp_init=args["reload_data"]).run()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     run()

@@ -1,4 +1,3 @@
-
 # Asset Configurations
 
 ## UPS
@@ -9,11 +8,11 @@ You can configure both IP & port of the snmpsim instance:
 
 `simengine-cli model create ups -k=3 --name=an-ups01 --host=192.168.124.3 --port=161`
 
-or 
+or
 
 `simengine-cli model update ups -k=3 --name=an-ups01 --host=localhost --port=1024`
 
-__Note__ : binding to `161` requires `root` access. 
+**Note** : binding to `161` requires `root` access.
 
 ### Charge & Drain Speed Factors
 
@@ -25,13 +24,13 @@ __Note__ : binding to `161` requires `root` access.
 
 This factor will be multiplied by the estimated drain/charge percentage per second.
 
-__Note__ that running this command does not require simengine-core restart.
+**Note** that running this command does not require simengine-core restart.
 
 ### Runtime Graph
 
 You can configure UPS runtime chart; For example, `runtime.json` file will map 50 watts to 32 minutes, 100 to 18 min, 200 to 9 min etc.
 
-runtime.json: 
+runtime.json:
 
 ```
 {
@@ -64,34 +63,30 @@ UPS also supports minimum battery level required (before UPS can power up its ou
 
 `simengine-cli model update ups -k2 --min-power-bat=1 # 0.1% required before power is restored`
 
-
 ### Vendor Pre-Set
 
-The simengine defaults its SNMP interface settings to APC hardware (outlined here [ups](https://github.com/Seneca-CDOT/simengine/blob/master/enginecore/enginecore/model/presets/apc_ups.json)). Custom vendor presets can be passed to the `simengine-cli` system modelling tool with the `--snmp-preset=/path/to/my_specs.json` option. 
+The simengine defaults its SNMP interface settings to APC hardware (outlined here [ups](https://github.com/Seneca-CDOT/simengine/blob/master/enginecore/enginecore/model/presets/apc_ups.json)). Custom vendor presets can be passed to the `simengine-cli` system modelling tool with the `--snmp-preset=/path/to/my_specs.json` option.
 
 You can find APC examples of .json config files in simengine repo:
 
-- [ups](https://github.com/Seneca-CDOT/simengine/blob/master/enginecore/enginecore/model/presets/apc_ups.json)  
+- [ups](https://github.com/Seneca-CDOT/simengine/blob/master/enginecore/enginecore/model/presets/apc_ups.json)
 - [pdu](https://github.com/Seneca-CDOT/simengine/blob/master/enginecore/enginecore/model/presets/apc_pdu.json)
-
 
 **General Configurations (snmp-preset file description)**
 
-
-| **JSON property**      | **Description**                                                                                                                                                                                                                                 |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **JSON property**      | **Description**                                                                                                                                                                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | staticOidFile          | `.snmprec` file containing recorded OID tree (see snmpsim doc [reference](http://snmplabs.com/snmpsim/building-simulation-data.html#building-simulation-data)). The simengine will search for the specified file at `SIMENGINE_STATIC_DATA` path |
-| assetName              | Name displayed on the UI (can be overwritten with `--name` option)                                                                                                                                                                              |
-| numOutlets             | Number of UPS output outlets                                                                                                                                                                                                                    |
-| fullRechargeTime       | (hours) Recharge time for a fully depleted battery                                                                                                                                                                                              |
-| minPowerOnBatteryLevel | Minimum value of the battery charge before UPS powers up its output                                                                                                                                                                             |
-| outputPowerCapacity    | (Watts) UPS output power capacity                                                                                                                                                                                                               |
-| modelRuntime           | Runtime graph consisting of key-value pairs  `{ wattage: expected runtime in minutes }`More values should yield more accurate results                                                                                                          
+| assetName              | Name displayed on the UI (can be overwritten with `--name` option)                                                                                                                                                                               |
+| numOutlets             | Number of UPS output outlets                                                                                                                                                                                                                     |
+| fullRechargeTime       | (hours) Recharge time for a fully depleted battery                                                                                                                                                                                               |
+| minPowerOnBatteryLevel | Minimum value of the battery charge before UPS powers up its output                                                                                                                                                                              |
+| outputPowerCapacity    | (Watts) UPS output power capacity                                                                                                                                                                                                                |
+| modelRuntime           | Runtime graph consisting of key-value pairs `{ wattage: expected runtime in minutes }`More values should yield more accurate results                                                                                                             |
 
 **OID Specifications**
 
 OID JSON structure:
-
 
     "OIDName": {
         "OID": "1.3.6....", // Vendor-specific OID
@@ -103,24 +98,23 @@ OID JSON structure:
         }
     }
 
-
-| **JSON Property (OID Name)** | **Description**                                                            | **Value Mappings**                   |
-| ---------------------------- | -------------------------------------------------------------------------- | ------------------------------------ |
-| SerialNumber                 | Asset serial number                                                        |                                      |
-| HighPrecBatteryCapacity      | High-precision battery capacity (max 1000)                                 |                                      |
-| AdvBatteryCapacity           | Advance battery capacity (max 100%)                                        |                                      |
-| BasicBatteryStatus           | Basic status of the UPS battery                                            | batteryNormal, batteryLow             |
-| HighPrecOutputLoad           | High-precision load percentage of the total capacity (outputPowerCapacity) |                                      |
-| AdvOutputLoad                | load percentage of the total capacity (outputPowerCapacity)                |                                      |
-| HighPrecOutputCurrent        | Current UPS load in AMPs (high-precision)                                  |                                      |
-| AdvOutputCurrent             | Current UPS load in AMPs                                                   |                                      |
-| BatteryRunTimeRemaining      | Run-time left before UPS shuts down                                        |                                      |
-| TimeOnBattery                | How long UPS has been running on a battery                                 |                                      |
-| PowerOff                     | Power off UPS device                                                       | switchOff,switchOffGraceful          |
-| BasicOutputStatus            | Battery status: online, on-battery, offline                                | onLine, onBattery, off               |
+| **JSON Property (OID Name)** | **Description**                                                            | **Value Mappings**                     |
+| ---------------------------- | -------------------------------------------------------------------------- | -------------------------------------- |
+| SerialNumber                 | Asset serial number                                                        |                                        |
+| HighPrecBatteryCapacity      | High-precision battery capacity (max 1000)                                 |                                        |
+| AdvBatteryCapacity           | Advance battery capacity (max 100%)                                        |                                        |
+| BasicBatteryStatus           | Basic status of the UPS battery                                            | batteryNormal, batteryLow              |
+| HighPrecOutputLoad           | High-precision load percentage of the total capacity (outputPowerCapacity) |                                        |
+| AdvOutputLoad                | load percentage of the total capacity (outputPowerCapacity)                |                                        |
+| HighPrecOutputCurrent        | Current UPS load in AMPs (high-precision)                                  |                                        |
+| AdvOutputCurrent             | Current UPS load in AMPs                                                   |                                        |
+| BatteryRunTimeRemaining      | Run-time left before UPS shuts down                                        |                                        |
+| TimeOnBattery                | How long UPS has been running on a battery                                 |                                        |
+| PowerOff                     | Power off UPS device                                                       | switchOff,switchOffGraceful            |
+| BasicOutputStatus            | Battery status: online, on-battery, offline                                | onLine, onBattery, off                 |
 | InputLineFailCause           | Reason behind transferring to the alt. battery power source                | noTransfer, blackout, deepMomentarySag |
-| AdvConfigReturnDelay         | Power up delay                                                             |                                      |
-| AdvConfigShutoffDelay        | Shut down delay                                                            |                                      |
+| AdvConfigReturnDelay         | Power up delay                                                             |                                        |
+| AdvConfigShutoffDelay        | Shut down delay                                                            |                                        |
 
 ## Server Type
 
@@ -143,7 +137,7 @@ For instance, this CLI-defined server model:
                                           --vmport=9102 \
                                           --storcli-port=50001
 
-Will require the following .xml configurations: 
+Will require the following .xml configurations:
 
     <qemu:commandline>
         <qemu:arg value='-chardev'/>
@@ -162,31 +156,29 @@ Will require the following .xml configurations:
         <qemu:arg value='virtserialport,chardev=simengine-storage-tcp,name=systems.cdot.simengine.storage.net'/>
     </qemu:commandline>
 
-
 Storage emulation features require `storcli64` executable to be uploaded to the managed vm bin directory.
-The binary can be found in simengine repo: [link]('https://github.com/Seneca-CDOT/simengine/blob/master/storage-emulation-tests/guest/storcli64')
+The binary can be found in simengine repo: [link](https://github.com/Seneca-CDOT/simengine/blob/master/storage-emulation-tests/guest/storcli64)
 
 Here is a breakdown of `server-bmc` command line parameters and some corresponding .xml configurations:
 
-**IPMI Interface** 
+**IPMI Interface**
 
-| Argument   | Description |
-| ---------- | -------------------------------------------------------------------------------------------------------- |
+| Argument   | Description                                                                                          |
+| ---------- | ---------------------------------------------------------------------------------------------------- |
 | `port`     | IPMI/BMC interface port (used on the host machine): <br> `ipmitool -H localhost -p {port} -U {user}` |
-| `user`     | admin user: <br>`ipmitool -H localhost -p {port} -U {user}`                              |
-| `password` | admin user password                                                                                      |
+| `user`     | admin user: <br>`ipmitool -H localhost -p {port} -U {user}`                                          |
+| `password` | admin user password                                                                                  |
 
 **VM Configurations**
 
-| Argument   | Description |
-| ---------- | -------------------------------------------------------------------------------------------------------- |
-| `vmport` | Simengine will use this port internally to connect to the VM, <br>this value needs to be configured in libvirt `.xml` definition as: `<qemu:arg value='socket,id=ipmi0,host=localhost,port={vmport},reconnect=10'/>` |
+| Argument       | Description                                                                                                                                                                                                                                                   |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vmport`       | Simengine will use this port internally to connect to the VM, <br>this value needs to be configured in libvirt `.xml` definition as: `<qemu:arg value='socket,id=ipmi0,host=localhost,port={vmport},reconnect=10'/>`                                          |
 | `storcli-port` | `storcli64` binary will connect to this StorCLI websocket server port on guest OS. <br>The port value needs to be configured in libvirt `.xml` definition as: <br>`<qemu:arg value='socket,id=simengine-storage-tcp,host=localhost,port=50001,reconnect=2'/>` |
-
 
 **Sensor Model**
 
-SimEngine defaults its IPMI/BMC sensor definitions to the following [model](https://github.com/Seneca-CDOT/simengine/blob/master/enginecore/enginecore/model/presets/sensors.json). Custom configurations can be passed to the `cli` system modelling tool with the `--sensor-def=/path/to/my_specs.json` option. 
+SimEngine defaults its IPMI/BMC sensor definitions to the following [model](https://github.com/Seneca-CDOT/simengine/blob/master/enginecore/enginecore/model/presets/sensors.json). Custom configurations can be passed to the `cli` system modelling tool with the `--sensor-def=/path/to/my_specs.json` option.
 
 Engine supports a limited number of sensor [types](https://github.com/Seneca-CDOT/simengine/blob/master/enginecore/enginecore/model/supported_sensors.py) and each sensor definition must provide `defaultValue`, `offValue` and `name` as well as `address` if `addressSpace` is not provided. You can also specify any number of thresholds (or none).
 
@@ -196,7 +188,7 @@ Engine supports a limited number of sensor [types](https://github.com/Seneca-CDO
         "sensorDefinitions": [
             {
                 "thresholds": {
-                    "lnr": 0,    // Lower Non-Recoverable 
+                    "lnr": 0,    // Lower Non-Recoverable
                     "lcr": 200,  // Lower Critical
                     "lnc": 300,  // Lower Non-Critical
                     "unc": 1000, // Upper Non-Critical
@@ -210,11 +202,9 @@ Engine supports a limited number of sensor [types](https://github.com/Seneca-CDO
         ]
     }
 
-
 **Storage Model**
 
-SimEngine uses the following storage topology: [storage.json](https://github.com/Seneca-CDOT/simengine/blob/master/enginecore/enginecore/model/presets/storage.json). Custom configurations can be passed to the `cli` system modelling tool with the `--storage-def=/path/to/my_specs.json` option. You can specify any number of controllers and each controller can include definitions of cache vault (`CacheVault`),  virtual and physical drives (`VD` & `PD`).
-
+SimEngine uses the following storage topology: [storage.json](https://github.com/Seneca-CDOT/simengine/blob/master/enginecore/enginecore/model/presets/storage.json). Custom configurations can be passed to the `cli` system modelling tool with the `--storage-def=/path/to/my_specs.json` option. You can specify any number of controllers and each controller can include definitions of cache vault (`CacheVault`), virtual and physical drives (`VD` & `PD`).
 
     {
         // ..storcli64 details
@@ -226,7 +216,7 @@ SimEngine uses the following storage topology: [storage.json](https://github.com
                     {
                         // ..virtual drive 0 details
                         // IDs of the physical drives belonging to the virtual drive
-                        "DID": [9, 10, 8]  
+                        "DID": [9, 10, 8]
                     }, { ... }
                 ],
                 "PD": [
@@ -237,11 +227,9 @@ SimEngine uses the following storage topology: [storage.json](https://github.com
         ]
      }
 
-
 **Storage States**
 
 Storage states file defines how the storage emulator will behave depending on current system states. For example, virtual drive will be set to partially degraded state — `Pdgd` when one of the physical drives is either offline or rebuilding:
-
 
     {
         "virtualDrive": {
@@ -257,6 +245,5 @@ Storage states file defines how the storage emulator will behave depending on cu
         },
         "controller": { ... }
     }
-    
 
 Custom spec file can be passed to the `cli` system modelling tool with the `--storage-states=/path/to/my_specs.json` parameter.

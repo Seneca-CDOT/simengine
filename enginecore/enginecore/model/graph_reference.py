@@ -5,27 +5,29 @@ import json
 import time
 
 from neo4j.v1 import GraphDatabase, basic_auth
-from enginecore.state.utils import format_as_redis_key
-import enginecore.model.query_helpers as qh
+from enginecore.tools.utils import format_as_redis_key
+import enginecore.tools.query_helpers as qh
 
-class GraphReference():
+
+class GraphReference:
     """Graph DB wrapper """
+
     def __init__(self):
         self._driver = GraphDatabase.driver(
-            'bolt://localhost', 
-            auth=basic_auth(os.environ.get('NEO4J_USR', 'simengine'), os.environ.get('NEO4J_PSW', 'simengine'))
+            "bolt://localhost",
+            auth=basic_auth(
+                os.environ.get("NEO4J_USR", "simengine"),
+                os.environ.get("NEO4J_PSW", "simengine"),
+            ),
         )
 
-    
     def close(self):
         """ Close as db """
         # self._driver.close()
 
-
     def get_session(self):
         """ Get a database session """
         return self._driver.session()
-
 
     @classmethod
     def get_parent_assets(cls, session, asset_key):
@@ -39,12 +41,11 @@ class GraphReference():
         """
         results = session.run(
             "MATCH (:Asset { key: $key })-[:POWERED_BY]->(asset:Asset) RETURN asset",
-            key=int(asset_key)
+            key=int(asset_key),
         )
 
-        assets = list(map(lambda x: dict(x['asset']), list(results)))
+        assets = list(map(lambda x: dict(x["asset"]), list(results)))
         return assets
-
 
     @classmethod
     def get_parent_keys(cls, session, asset_key):
@@ -63,28 +64,30 @@ class GraphReference():
             OPTIONAL MATCH (a:Asset { key: $key })-[:POWERED_BY]->(oid:OID)<-[:HAS_OID]-(parent:Asset)
             OPTIONAL MATCH (oid)-[:HAS_STATE_DETAILS]->(oid_details) RETURN parent, oid, oid_details
             """,
-            key=int(asset_key)
+            key=int(asset_key),
         )
 
         asset_keys = []
         oid_keys = {}
         for record in results:
-            
-            asset_type = record['parent']['type']
-            
-            asset_key = record['parent'].get('key')           
-            asset_keys.append("{asset_key}-{property}".format(
-                asset_key=asset_key, 
-                property=asset_type.lower()
-                ))
 
-            if record['oid'] and record['oid_details']:
-                oid = record['oid'].get('OID')
+            asset_type = record["parent"]["type"]
+
+            asset_key = record["parent"].get("key")
+            asset_keys.append(
+                "{asset_key}-{property}".format(
+                    asset_key=asset_key, property=asset_type.lower()
+                )
+            )
+
+            if record["oid"] and record["oid_details"]:
+                oid = record["oid"].get("OID")
                 oid_rkey = format_as_redis_key(str(asset_key), oid, key_formatted=False)
-                oid_keys[oid_rkey] = {v:k for k, v in dict(record['oid_details']).items()} # swap order
-                
-        return asset_keys, oid_keys
+                oid_keys[oid_rkey] = {
+                    v: k for k, v in dict(record["oid_details"]).items()
+                }  # swap order
 
+        return asset_keys, oid_keys
 
     @classmethod
     def get_asset_oid_info(cls, session, asset_key, oid):
@@ -102,20 +105,21 @@ class GraphReference():
             MATCH (asset:Asset)-[:POWERED_BY]->(oid:OID { OID: $oid })<-[:HAS_OID]-({key: $key}) 
             MATCH (oid)-[:HAS_STATE_DETAILS]->(oid_specs)
             RETURN asset, oid, oid_specs
-            """, oid=oid, key=asset_key
+            """,
+            oid=oid,
+            key=asset_key,
         )
 
         keys_oid_powers = []
         oid_specs = {}
         for record in results:
-            keys_oid_powers.append(record['asset'].get('key'))
+            keys_oid_powers.append(record["asset"].get("key"))
             oid_specs = {
-                'name': record['oid']['OIDName'],
-                'specs': dict(record['oid_specs'])
+                "name": record["oid"]["OIDName"],
+                "specs": dict(record["oid_specs"]),
             }
-        
-        return keys_oid_powers, oid_specs
 
+        return keys_oid_powers, oid_specs
 
     @classmethod
     def get_asset_oid_by_name(cls, session, asset_key, oid_name):
@@ -130,27 +134,30 @@ class GraphReference():
                    returns None if there's no such OID
         """
 
-
-        results = session.run( 
+        results = session.run(
             """
             MATCH (:Asset { key: $key })-[:HAS_OID]->(oid {OIDName: $oid_name}) 
             OPTIONAL MATCH (oid)-[:HAS_STATE_DETAILS]->(oid_details)
             RETURN oid, oid_details
             """,
-            key=asset_key, oid_name=oid_name
+            key=asset_key,
+            oid_name=oid_name,
         )
 
         record = results.single()
-        details = record.get('oid') if record else None
+        details = record.get("oid") if record else None
 
-        oid_info = details['OID'] if details else None
+        oid_info = details["OID"] if details else None
 
         # get vendor specific information
-        v_specs = {v:k for k, v in dict(record['oid_details']).items()} if (record and record['oid_details']) else None
-        oid_data_type = details['dataType'] if oid_info else None
+        v_specs = (
+            {v: k for k, v in dict(record["oid_details"]).items()}
+            if (record and record["oid_details"])
+            else None
+        )
+        oid_data_type = details["dataType"] if oid_info else None
 
         return oid_info, oid_data_type, v_specs
-
 
     @classmethod
     def get_component_oid_by_name(cls, session, component_key, oid_name):
@@ -163,21 +170,23 @@ class GraphReference():
             tuple: SNMP OID that belongs to the enclosing asset (as str), key of the asset component belongs to (int)
         """
 
-
         result = session.run(
             """
             MATCH (component:Component { key: $key})<-[:HAS_COMPONENT]-(p:Asset)-[:HAS_OID]->(oid:OID {OIDName: $name})
             RETURN oid, p.key as parent_key
             """,
-            name=oid_name, key=component_key
+            name=oid_name,
+            key=component_key,
         )
         record = result.single()
 
-        oid_info = record.get('oid')
-        parent_key = record.get('parent_key')
-        
-        return oid_info['OID'], int(parent_key) if (oid_info and 'OID' in oid_info) else None
+        oid_info = record.get("oid")
+        parent_key = record.get("parent_key")
 
+        return (
+            oid_info["OID"],
+            int(parent_key) if (oid_info and "OID" in oid_info) else None,
+        )
 
     @classmethod
     def get_assets_and_children(cls, session):
@@ -199,14 +208,20 @@ class GraphReference():
             """
         )
 
-        assets = list(map(lambda x: dict({
-            **x['asset'], 
-            'children': x['children'],
-            'num_components': x['num_components']
-        }), list(results)))
+        assets = list(
+            map(
+                lambda x: dict(
+                    {
+                        **x["asset"],
+                        "children": x["children"],
+                        "num_components": x["num_components"],
+                    }
+                ),
+                list(results),
+            )
+        )
 
         return assets
-            
 
     @classmethod
     def get_assets_and_connections(cls, session, flatten=True):
@@ -230,41 +245,50 @@ class GraphReference():
 
         assets = {}
         for record in results:
-            
-            asset = dict(record['asset'])
-            
+
+            asset = dict(record["asset"])
+
             ## Set asset parent(s)
-            asset['parent'] = list(map(dict, list(record['parent']))) if record['parent'] else None
+            asset["parent"] = (
+                list(map(dict, list(record["parent"]))) if record["parent"] else None
+            )
 
             # For server type, parent will not be a PSU but an asset that powers that PSU
-            if (asset['type'] == 'server' or asset['type'] == 'serverwithbmc') and asset['parent']:
-                keys = map(lambda x: x['key'], asset['parent'])
+            if (
+                asset["type"] == "server" or asset["type"] == "serverwithbmc"
+            ) and asset["parent"]:
+                keys = map(lambda x: x["key"], asset["parent"])
                 presults = session.run(
                     """
                     MATCH (c:Component)-[:POWERED_BY]->(parent) 
                     WHERE c.key IN $list RETURN parent ORDER BY c.key
-                    """"", list=keys
+                    """
+                    "",
+                    list=keys,
                 )
 
-                asset['parent'] = []
+                asset["parent"] = []
                 for presult in presults:
-                    asset['parent'].append(dict(presult['parent']))
+                    asset["parent"].append(dict(presult["parent"]))
 
-            ## Set asset children 
+            ## Set asset children
             # format asset children as list of child_key: { child_info }
-            if record['children']:
-                nested_assets = {c['key']: {**dict(c), 'type': c['type']} for c in record['children']}
+            if record["children"]:
+                nested_assets = {
+                    c["key"]: {**dict(c), "type": c["type"]} for c in record["children"]
+                }
                 if flatten:
-                    asset['children'] = sorted(list(map(lambda x: x['key'], record['children'])))
-                    assets = {**assets, **nested_assets} # merge dicts
+                    asset["children"] = sorted(
+                        list(map(lambda x: x["key"], record["children"]))
+                    )
+                    assets = {**assets, **nested_assets}  # merge dicts
                 else:
-                    asset['children'] = nested_assets
+                    asset["children"] = nested_assets
 
-            assets[record['asset'].get('key')] = asset
-  
+            assets[record["asset"].get("key")] = asset
+
         return assets
-    
-    
+
     @classmethod
     def get_affected_assets(cls, session, asset_key):
         """Get information about assets affected by a change in parent's state
@@ -288,19 +312,20 @@ class GraphReference():
             WHERE updatedAsset.key <> nextAsset2ndParent.key 
             RETURN collect(nextAsset) as childAssets, collect(parentAsset) as parentAsset, nextAsset2ndParent
             """,
-            key=asset_key
+            key=asset_key,
         )
 
         list_of_dicts = lambda r: list(map(dict, list(r)))
 
         record = results.single()
         return (
-            list_of_dicts(record['childAssets']) if record['childAssets'] else list(),
-            list_of_dicts(record['parentAsset']) if record['parentAsset'] else list(),
-            dict(record['nextAsset2ndParent']) if record['nextAsset2ndParent'] else None
-        ) 
+            list_of_dicts(record["childAssets"]) if record["childAssets"] else list(),
+            list_of_dicts(record["parentAsset"]) if record["parentAsset"] else list(),
+            dict(record["nextAsset2ndParent"])
+            if record["nextAsset2ndParent"]
+            else None,
+        )
 
-  
     @classmethod
     def get_asset_and_components(cls, session, asset_key):
         """Get information about individual asset & its components 
@@ -317,20 +342,20 @@ class GraphReference():
             """
             MATCH (n:Asset { key: $key }) OPTIONAL MATCH (n)-[:HAS_COMPONENT]->(c) 
             RETURN n as asset, labels(n) as labels, collect(c) as children
-            """, key=int(asset_key)
+            """,
+            key=int(asset_key),
         )
 
         record = results.single()
-        asset = dict(record['asset'])
-        asset['labels'] = record['labels']
+        asset = dict(record["asset"])
+        asset["labels"] = record["labels"]
 
         children = []
-        if record['children']:
-            children = sorted(list(map(lambda x: x['key'], record['children'])))
-        
-        asset['children'] = children
-        return asset
+        if record["children"]:
+            children = sorted(list(map(lambda x: x["key"], record["children"])))
 
+        asset["children"] = children
+        return asset
 
     @classmethod
     def save_layout(cls, session, layout, stage=None):
@@ -345,14 +370,17 @@ class GraphReference():
             if layout[k]:
                 session.run(
                     "MATCH (a:Asset { key: $key }) SET a.x=$x, a.y=$y",
-                    key=int(k), x=layout[k]['x'], y=layout[k]['y']
+                    key=int(k),
+                    x=layout[k]["x"],
+                    y=layout[k]["y"],
                 )
         if stage:
             session.run(
                 "MERGE (n:StageLayout { sref: 1 }) SET n.scale=$scale, n.x=$x, n.y=$y",
-                scale=stage['scale'], x=stage['x'], y=stage['y']
+                scale=stage["scale"],
+                x=stage["x"],
+                y=stage["y"],
             )
-    
 
     @classmethod
     def get_stage_layout(cls, session):
@@ -363,14 +391,11 @@ class GraphReference():
         Returns:
             dict: stage coordinates (x,y) & its scale
         """
-        results = session.run(
-            "MATCH (stageLayout:StageLayout) RETURN stageLayout"
-        )
+        results = session.run("MATCH (stageLayout:StageLayout) RETURN stageLayout")
 
         stage_layout = results.single()
 
-        return dict(stage_layout.get('stageLayout')) if stage_layout else None
-
+        return dict(stage_layout.get("stageLayout")) if stage_layout else None
 
     @classmethod
     def get_asset_sensors(cls, session, asset_key):
@@ -387,22 +412,26 @@ class GraphReference():
             MATCH (a:Asset { key: $key })-[:HAS_SENSOR]->(sensor:Sensor)
             OPTIONAL MATCH (sensor)-[:HAS_ADDRESS_SPACE]->(addr)
             RETURN sensor, addr
-            """, key=int(asset_key)
+            """,
+            key=int(asset_key),
         )
 
         sensors = []
 
         for record in results:
-            sensor = dict(record['sensor'])
+            sensor = dict(record["sensor"])
 
-            sensors.append({ 
-                'specs': sensor, 
-                'address_space': dict(record['addr']) if 'index' in sensor else None
-            })
+            sensors.append(
+                {
+                    "specs": sensor,
+                    "address_space": dict(record["addr"])
+                    if "index" in sensor
+                    else None,
+                }
+            )
 
         return sensors
 
-    
     @classmethod
     def get_mains_powered_outlets(cls, session):
         """Wall-powered outlets
@@ -418,20 +447,22 @@ class GraphReference():
             """
         )
         # print(results['key'])
-        return list(map(lambda x: x.get('key'), results))
-            
+        return list(map(lambda x: x.get("key"), results))
 
     @classmethod
     def format_target_elements(cls, results, t_format=None):
         """Format neo4j results as target sensors"""
-        thermal_details = {'source': {}, 'targets': [],}
+        thermal_details = {"source": {}, "targets": []}
 
         for record in results:
-            thermal_details['source'] = dict(record.get('source'))
+            thermal_details["source"] = dict(record.get("source"))
 
             if not t_format:
-                t_format = lambda r: {**dict(r.get('targets')), **{"rel": list(map(dict, r.get('rel')))}}
-            thermal_details['targets'].append(t_format(record))
+                t_format = lambda r: {
+                    **dict(r.get("targets")),
+                    **{"rel": list(map(dict, r.get("rel")))},
+                }
+            thermal_details["targets"].append(t_format(record))
 
         return thermal_details
 
@@ -446,14 +477,14 @@ class GraphReference():
         Returns:
             dict: source and target sensor details
         """
-        
+
         results = session.run(
             """
             MATCH (:ServerWithBMC { key: $server })-[:HAS_SENSOR]->(source:Sensor { name: $source })
             MATCH (source)<-[rel]-(targets:Sensor) return source, targets, collect(rel) as rel
             """,
             server=server_key,
-            source=source_name
+            source=source_name,
         )
 
         return cls.format_target_elements(results)
@@ -478,16 +509,15 @@ class GraphReference():
             return source, targets, collect(rel) as rel, controller
             """,
             server=server_key,
-            source=source_name
+            source=source_name,
         )
 
         output_format = lambda r: {
-            **dict(r.get('targets')), 
-            **{"rel": list(map(dict, r.get('rel')))},
-            **{"controller": dict(r.get('controller'))}
+            **dict(r.get("targets")),
+            **{"rel": list(map(dict, r.get("rel")))},
+            **{"controller": dict(r.get("controller"))},
         }
         return cls.format_target_elements(results, t_format=output_format)
-
 
     @classmethod
     def get_sensor_thermal_rel(cls, session, server_key, relationship):
@@ -500,28 +530,35 @@ class GraphReference():
 
         query = []
         query.append(
-            'MATCH (:ServerWithBMC {{ key: {} }})-[:HAS_SENSOR]->(source:Sensor {{ name: "{}" }})'
-            .format(server_key, relationship['source'])
+            'MATCH (:ServerWithBMC {{ key: {} }})-[:HAS_SENSOR]->(source:Sensor {{ name: "{}" }})'.format(
+                server_key, relationship["source"]
+            )
         )
 
         query.append(
-            'MATCH (source)<-[rel :COOLED_BY|:HEATED_BY]-(target {{ {}: {} }})'
-            .format(relationship['target']['attribute'], relationship['target']['value'])
+            "MATCH (source)<-[rel :COOLED_BY|:HEATED_BY]-(target {{ {}: {} }})".format(
+                relationship["target"]["attribute"], relationship["target"]["value"]
+            )
         )
 
-        query.extend([
-            'WHERE rel.event = "{}"'.format(relationship['event']),
-            'RETURN source, target, rel'
-        ])
+        query.extend(
+            [
+                'WHERE rel.event = "{}"'.format(relationship["event"]),
+                "RETURN source, target, rel",
+            ]
+        )
 
         results = session.run("\n".join(query))
         record = results.single()
-        return {
-            'source': dict(record.get('source')),
-            'target': dict(record.get('target')),
-            'rel': dict(record.get('rel'))
-        } if record else None
-
+        return (
+            {
+                "source": dict(record.get("source")),
+                "target": dict(record.get("target")),
+                "rel": dict(record.get("rel")),
+            }
+            if record
+            else None
+        )
 
     @classmethod
     def get_cpu_thermal_rel(cls, session, server_key, sensor_name):
@@ -539,17 +576,16 @@ class GraphReference():
             RETURN rel
             """,
             server=server_key,
-            sensor=sensor_name
+            sensor=sensor_name,
         )
 
         record = results.single()
-        return dict(record.get('rel')) if record else None
-
+        return dict(record.get("rel")) if record else None
 
     @classmethod
     def get_ambient_props(cls, session):
         """Get properties belonging to ambient """
-        
+
         results = session.run(
             "MATCH (sys:SystemEnvironment)-[:HAS_PROP]->(props:EnvProp) RETURN props"
         )
@@ -557,30 +593,32 @@ class GraphReference():
         amp_props = {}
 
         for record in results:
-            event_prop = dict(record.get('props'))
-            amp_props[event_prop['event']] = event_prop
+            event_prop = dict(record.get("props"))
+            amp_props[event_prop["event"]] = event_prop
 
-        return amp_props 
-
+        return amp_props
 
     @classmethod
     def set_ambient_props(cls, session, properties):
         """Save ambient properties """
 
         query = []
-        s_attr = ['event', 'degrees', 'rate', 'pause_at', 'sref']
+        s_attr = ["event", "degrees", "rate", "pause_at", "sref"]
 
-        query.append('MERGE (sys:SystemEnvironment { sref: 1 })')
-        query.append('MERGE (sys)-[:HAS_PROP]->(env:EnvProp {{ event: "{}" }})'.format(properties['event']))
+        query.append("MERGE (sys:SystemEnvironment { sref: 1 })")
+        query.append(
+            'MERGE (sys)-[:HAS_PROP]->(env:EnvProp {{ event: "{}" }})'.format(
+                properties["event"]
+            )
+        )
 
         set_stm = qh.get_set_stm(properties, node_name="env", supported_attr=s_attr)
-        query.append('SET {}'.format(set_stm))
+        query.append("SET {}".format(set_stm))
 
         session.run("\n".join(query))
 
-
     @classmethod
-    def get_thermal_cpu_details(cls, session, server_key):                 
+    def get_thermal_cpu_details(cls, session, server_key):
         """Get ALL thermal relationships between a CPU and server sensors
         Args:
             session:  database session
@@ -595,18 +633,15 @@ class GraphReference():
             MATCH (:CPU)<-[rel:HEATED_BY]-(sensor)
             RETURN rel, sensor
             """,
-            server=server_key
+            server=server_key,
         )
 
         th_cpu_details = []
         for record in results:
-            sensor = dict(record.get('sensor'))
-            th_cpu_details.append({
-                'sensor': sensor, 'rel': dict(record.get('rel'))
-            })
-        
+            sensor = dict(record.get("sensor"))
+            th_cpu_details.append({"sensor": sensor, "rel": dict(record.get("rel"))})
+
         return th_cpu_details
-    
 
     @classmethod
     def set_physical_drive_prop(cls, session, server_key, controller, did, properties):
@@ -621,27 +656,38 @@ class GraphReference():
         query = []
 
         s_attr = [
-            'media_error_count', 'other_error_count', 'predictive_error_count',
-            'State', 'time_stamp', 'rebuild_time'
+            "media_error_count",
+            "other_error_count",
+            "predictive_error_count",
+            "State",
+            "time_stamp",
+            "rebuild_time",
         ]
 
-        properties['State'] = properties['state']
+        properties["State"] = properties["state"]
 
         # query as (server)->(storage_controller)->(physical drive)
         query.append("MATCH (server:Asset {{ key: {} }})".format(server_key))
-        query.append("MATCH (server)-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})".format(controller))
-        query.append("MATCH (ctrl)-[:HAS_PHYSICAL_DRIVE]->(pd:PhysicalDrive {{ DID: {} }})".format(did))
+        query.append(
+            "MATCH (server)-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})".format(
+                controller
+            )
+        )
+        query.append(
+            "MATCH (ctrl)-[:HAS_PHYSICAL_DRIVE]->(pd:PhysicalDrive {{ DID: {} }})".format(
+                did
+            )
+        )
 
         # record uptime so that the rebuilding process gets simulated
-        if properties['State'] and properties['State'] == 'Onln':
-            properties['time_stamp'] = time.time()
+        if properties["State"] and properties["State"] == "Onln":
+            properties["time_stamp"] = time.time()
 
         set_stm = qh.get_set_stm(properties, node_name="pd", supported_attr=s_attr)
-        query.append('SET {}'.format(set_stm))
+        query.append("SET {}".format(set_stm))
 
         session.run("\n".join(query))
 
-    
     @classmethod
     def set_controller_prop(cls, session, server_key, controller, properties):
         """Update controller state
@@ -649,22 +695,25 @@ class GraphReference():
             session:  database session
             server_key(int): key of the server controller belongs to
             controller(int): controller number
-            properties(dict): e.g. 'media_error_count', 'other_error_count', 'predictive_error_count' or 'state'
+            properties(dict): settable controller props e.g. 'mem_c_errors', 'mem_uc_errors', 'alarm'
         """
         query = []
 
-        s_attr = ['memory_correctable_errors', 'memory_uncorrectable_errors', 'alarm_state']
+        s_attr = ["mem_c_errors", "mem_uc_errors", "alarm"]
 
         # query as (server)->(storage_controller)
         query.append("MATCH (server:Asset {{ key: {} }})".format(server_key))
-        query.append("MATCH (server)-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})".format(controller))
+        query.append(
+            "MATCH (server)-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})".format(
+                controller
+            )
+        )
 
         set_stm = qh.get_set_stm(properties, node_name="ctrl", supported_attr=s_attr)
-        query.append('SET {}'.format(set_stm))
+        query.append("SET {}".format(set_stm))
 
         session.run("\n".join(query))
 
-    
     @classmethod
     def get_storcli_details(cls, session, server_key):
         """
@@ -673,22 +722,21 @@ class GraphReference():
             server_key(int): key of the server controller belongs to
         """
 
-        results = session.run( 
+        results = session.run(
             """
             MATCH (:Asset { key: $key })-[:SUPPORTS_STORCLI]->(cli) RETURN cli
             """,
-            key=server_key
+            key=server_key,
         )
 
         record = results.single()
         storcli_details = {}
 
         if record:
-            storcli_details = dict(record.get('cli'))
-            storcli_details['stateConfig'] = json.loads(storcli_details['stateConfig'])
+            storcli_details = dict(record.get("cli"))
+            storcli_details["stateConfig"] = json.loads(storcli_details["stateConfig"])
 
         return storcli_details
-
 
     @classmethod
     def get_controller_details(cls, session, server_key, controller):
@@ -705,8 +753,7 @@ class GraphReference():
         results = session.run(query.format(server_key, controller))
         record = results.single()
 
-        return dict(record.get('ctrl')) if record else None
-
+        return dict(record.get("ctrl")) if record else None
 
     @classmethod
     def get_controller_count(cls, session, server_key):
@@ -718,18 +765,17 @@ class GraphReference():
             int: controller count
         """
 
-        results = session.run( 
+        results = session.run(
             """
             MATCH (:Asset { key: $key })-[:HAS_CONTROLLER]->(ctrl:Controller) RETURN count(ctrl) as ctrl_count
             """,
-            key=server_key
+            key=server_key,
         )
 
         record = results.single()
-        return int(record.get('ctrl_count')) if record else None
+        return int(record.get("ctrl_count")) if record else None
 
-
-    @classmethod 
+    @classmethod
     def get_virtual_drive_details(cls, session, server_key, controller):
         """Get virtual drive details
         Args:
@@ -742,10 +788,11 @@ class GraphReference():
 
         query = []
         query.append(
-            "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})"
-            .format(server_key, controller)
+            "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})".format(
+                server_key, controller
+            )
         )
-        
+
         query.append("MATCH (ctrl)-[:HAS_VIRTUAL_DRIVE]->(vd:VirtualDrive)")
         query.append("MATCH (vd)<-[:BELONGS_TO_VIRTUAL_SPACE]-(pd:PhysicalDrive)")
         query.append("WITH vd, pd")
@@ -753,11 +800,13 @@ class GraphReference():
         query.append("RETURN vd, collect(pd) as pd ORDER BY vd.vdNum ASC")
 
         results = session.run("\n".join(query))
-        vd_details = [{**dict(r.get('vd')), **{'pd': list(map(dict, list(r.get('pd'))))}} for r in results]
+        vd_details = [
+            {**dict(r.get("vd")), **{"pd": list(map(dict, list(r.get("pd"))))}}
+            for r in results
+        ]
 
         return vd_details
 
-    
     @classmethod
     def get_all_drives(cls, session, server_key, controller):
         """Get both virtual & physical drives for a particular server/raid controller
@@ -771,24 +820,26 @@ class GraphReference():
 
         query = []
         query.append(
-            "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})"
-            .format(server_key, controller)
+            "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})".format(
+                server_key, controller
+            )
         )
         query.append("MATCH (ctrl)-[:HAS_PHYSICAL_DRIVE]->(pd:PhysicalDrive)")
 
         query.append("RETURN collect(pd) as pd")
-        
+
         results = session.run("\n".join(query))
         record = results.single()
-        
+
         return {
-            "vd": cls.get_virtual_drive_details(session, server_key, controller), 
-            "pd": list(map(dict, list(record.get('pd'))))
+            "vd": cls.get_virtual_drive_details(session, server_key, controller),
+            "pd": list(map(dict, list(record.get("pd")))),
         }
 
-
     @classmethod
-    def get_cachevault(cls, session, server_key, controller): #TODO: cachevault serial NUMBER!
+    def get_cachevault(
+        cls, session, server_key, controller
+    ):  # TODO: cachevault serial NUMBER!
         """Cachevault details
         Args:
             session:  database session
@@ -798,21 +849,25 @@ class GraphReference():
             dict: information about cachevault
         """
         query = []
-        query.extend([
-            "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})"
-            .format(server_key, controller),
-            "MATCH (ctr)-[:HAS_CACHEVAULT]->(cv:CacheVault)",
-            "RETURN cv"
-        ])
+        query.extend(
+            [
+                "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})".format(
+                    server_key, controller
+                ),
+                "MATCH (ctr)-[:HAS_CACHEVAULT]->(cv:CacheVault)",
+                "RETURN cv",
+            ]
+        )
 
         results = session.run("\n".join(query))
         record = results.single()
 
-        return dict(record.get('cv')) if record else None
-
+        return dict(record.get("cv")) if record else None
 
     @classmethod
-    def set_cv_replacement(cls, session, server_key, controller, repl_status, wt_on_fail): #TODO: cachevault serial NUMBER!
+    def set_cv_replacement(
+        cls, session, server_key, controller, repl_status, wt_on_fail
+    ):  # TODO: cachevault serial NUMBER!
         """Update cachevault replacement status
         Args:
             session:  database session
@@ -821,23 +876,24 @@ class GraphReference():
         """
 
         query = []
-        query.extend([
-            "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})"
-            .format(server_key, controller),
-            "MATCH (ctrl)-[:HAS_CACHEVAULT]->(cv:CacheVault)",
-        ])
-
+        query.extend(
+            [
+                "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})".format(
+                    server_key, controller
+                ),
+                "MATCH (ctrl)-[:HAS_CACHEVAULT]->(cv:CacheVault)",
+            ]
+        )
 
         set_stm = qh.get_set_stm(
             {"replacement": repl_status, "writeThrough": wt_on_fail},
-            node_name="cv", 
-            supported_attr=['replacement', 'writeThrough']
+            node_name="cv",
+            supported_attr=["replacement", "writeThrough"],
         )
 
-        query.append('SET {}'.format(set_stm))
+        query.append("SET {}".format(set_stm))
 
         session.run("\n".join(query))
-
 
     @classmethod
     def add_to_hd_component_temperature(cls, session, target, temp_change, limit):
@@ -851,60 +907,66 @@ class GraphReference():
             tuple: True if the temp value was updated & current temp value (updated)
         """
         query = []
-        query.extend([
-            "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})"
-            .format(target['server_key'], target['controller']),
-            "MATCH (ctr)-[:HAS_CACHEVAULT|:HAS_PHYSICAL_DRIVE]->(hd_element:{} {{ {}: {} }})"
-            .format(target['hd_type'], target['attribute'], target['value']),
-            "RETURN hd_element.temperature as temp"
-        ])
+        query.extend(
+            [
+                "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }})".format(
+                    target["server_key"], target["controller"]
+                ),
+                "MATCH (ctr)-[:HAS_CACHEVAULT|:HAS_PHYSICAL_DRIVE]->(hd_element:{} {{ {}: {} }})".format(
+                    target["hd_type"], target["attribute"], target["value"]
+                ),
+                "RETURN hd_element.temperature as temp",
+            ]
+        )
 
         results = session.run("\n".join(query))
         record = results.single()
-        current_temp = record.get('temp')
+        current_temp = record.get("temp")
 
         new_temp = current_temp + temp_change
-        
-        new_temp = max(new_temp, limit['lower'])
-        
-        if 'upper' in limit and limit['upper']:
-            new_temp = min(new_temp, limit['upper'])
+
+        new_temp = max(new_temp, limit["lower"])
+
+        if "upper" in limit and limit["upper"]:
+            new_temp = min(new_temp, limit["upper"])
 
         if new_temp == current_temp:
             return False, current_temp
 
-        query = query[:2] # grab first 2 queries
-        query.append(
-            "SET hd_element.temperature={}".format(new_temp)
-        )
+        query = query[:2]  # grab first 2 queries
+        query.append("SET hd_element.temperature={}".format(new_temp))
 
         session.run("\n".join(query))
 
         return True, new_temp
-
 
     @classmethod
     def get_all_hd_thermal_elements(cls, session, server_key):
         """Retrieve all storage components that support temperature sensors"""
 
         query = []
-        query.extend([
-            "MATCH (:ServerWithBMC {{ key: {} }})-[:HAS_CONTROLLER]->(controller:Controller)"
-            .format(server_key),
-            "MATCH (controller)-[:HAS_CACHEVAULT|:HAS_PHYSICAL_DRIVE]->(hd_component)",
-            "WHERE hd_component:PhysicalDrive or hd_component:CacheVault",
-            "RETURN controller, hd_component"
-        ])
+        query.extend(
+            [
+                "MATCH (:ServerWithBMC {{ key: {} }})-[:HAS_CONTROLLER]->(controller:Controller)".format(
+                    server_key
+                ),
+                "MATCH (controller)-[:HAS_CACHEVAULT|:HAS_PHYSICAL_DRIVE]->(hd_component)",
+                "WHERE hd_component:PhysicalDrive or hd_component:CacheVault",
+                "RETURN controller, hd_component",
+            ]
+        )
 
         results = session.run("\n".join(query))
 
         hd_thermal_elements = []
 
         for record in results:
-            hd_thermal_elements.append({
-                "controller": dict(record.get('controller')),
-                "component": dict(record.get('hd_component'))
-            })
+            hd_thermal_elements.append(
+                {
+                    "controller": dict(record.get("controller")),
+                    "component": dict(record.get("hd_component")),
+                }
+            )
 
         return hd_thermal_elements
 
@@ -920,20 +982,25 @@ class GraphReference():
         query = []
 
         sensor_match = "MATCH (:PSU {{ key: {} }})<-[:HAS_COMPONENT]-(:Asset)-[:HAS_SENSOR]->(sensor {{ num: {} }})"
-        label_match = map('sensor:{}'.format, ['psuCurrent', 'psuTemperature', 'psuStatus', 'psuPower'])
+        label_match = map(
+            "sensor:{}".format,
+            ["psuCurrent", "psuTemperature", "psuStatus", "psuPower"],
+        )
 
-        query.extend([
-            sensor_match.format(server_key, psu_num),
-            "WHERE {}".format(' or '.join(label_match)),
-            "RETURN sensor"
-        ])
+        query.extend(
+            [
+                sensor_match.format(server_key, psu_num),
+                "WHERE {}".format(" or ".join(label_match)),
+                "RETURN sensor",
+            ]
+        )
 
         results = session.run("\n".join(query))
-        
+
         psu_names = {}
         for record in results:
-            entry = dict(record.get('sensor'))
-            psu_names[entry['type']] = entry['name']
+            entry = dict(record.get("sensor"))
+            psu_names[entry["type"]] = entry["name"]
 
         return psu_names
 
@@ -944,9 +1011,8 @@ class GraphReference():
             session: database session
             path(str): absolute path to the script folder
         """
-        
-        session.run("MERGE (n:Playback { sref: 1 }) SET n.path=$path", path=path)
 
+        session.run("MERGE (n:Playback { sref: 1 }) SET n.path=$path", path=path)
 
     @classmethod
     def get_play_path(cls, session):
@@ -956,13 +1022,12 @@ class GraphReference():
         Returns:
             str: path to the plays/scripts
         """
-        
+
         results = session.run("MATCH (n:Playback { sref: 1 }) RETURN n.path as path")
         record = results.single()
-        play_folder = ''
+        play_folder = ""
 
         if record:
-            play_folder = record.get('path')
+            play_folder = record.get("path")
 
         return play_folder
-    
