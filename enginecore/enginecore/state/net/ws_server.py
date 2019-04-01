@@ -175,7 +175,10 @@ class WebSocket(Component):
     @handler(ClientToServerRequests.load_actions.name)
     def _handle_load_history_request(self, details):
         """Populate recorder history from a file"""
-        recorder.load_actions(action_file=details["payload"]["filename"])
+        recorder.load_actions(
+            action_file=details["payload"]["filename"],
+            map_key_to_state=IStateManager.get_state_manager_by_key,
+        )
 
     @handler(ClientToServerRequests.set_recorder_status.name)
     def _handle_set_rec_request(self, details):

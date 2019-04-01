@@ -182,8 +182,8 @@ def actions_command(actions_group):
         )
     )
     load_action.set_defaults(
-        func=lambda args: os.path.abspath(
-            os.path.expanduser(StateClient.load_actions(args["filename"]))
+        func=lambda args: StateClient.load_actions(
+            os.path.abspath(os.path.expanduser(args["filename"]))
         )
     )
 
