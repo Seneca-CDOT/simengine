@@ -63,6 +63,9 @@ class App extends Component {
 
         let connections = {};
         const { assets, stageLayout } = data;
+        if (!assets || Object.keys(assets).length === 0) {
+          return;
+        }
 
         Object.keys(assets).map(key => {
           if (assets[key]["parent"]) {
@@ -296,7 +299,8 @@ class App extends Component {
     const displayedSnackbars = {
       socketOffline: this.state.socketOffline,
       changesSaved: this.state.changesSaved,
-      layoutEmpty: !this.state.socketOffline && !assets
+      layoutEmpty:
+        !this.state.socketOffline && (!assets || Object.keys(assets) == 0)
     };
 
     return (
