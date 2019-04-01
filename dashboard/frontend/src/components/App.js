@@ -25,7 +25,7 @@ class App extends Component {
     super();
 
     this.state = {
-      assets: null,
+      assets: {},
       selectedAssetKey: 0,
       connections: {},
       ambient: 0,
@@ -59,6 +59,8 @@ class App extends Component {
     this.ws = new simengineSocketClient({
       /** 1st time connection -> initialize system topology */
       onTopologyReceived: data => {
+        this.setState({ assets: {}, connections: {}, loadedConnections: 0 });
+
         let connections = {};
         const { assets, stageLayout } = data;
 
