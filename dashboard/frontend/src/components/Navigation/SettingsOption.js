@@ -25,13 +25,7 @@ class SettingsOption extends React.Component {
   handleDrawerClose = () => this.setState({ drawerAnchor: null });
 
   render() {
-    const {
-      classes,
-      plays,
-      executePlay,
-      saveLayout,
-      showPlayerHandler
-    } = this.props;
+    const { classes, plays, executePlay, saveLayout } = this.props;
 
     const { drawerAnchor } = this.state;
     const drawerOpen = Boolean(drawerAnchor);
@@ -78,9 +72,6 @@ class SettingsOption extends React.Component {
               <ListItem button onClick={saveLayout}>
                 <ListItemText primary="Save Layout" />
               </ListItem>
-              <ListItem button onClick={showPlayerHandler}>
-                <ListItemText primary="View Player" />
-              </ListItem>
               <ListItem
                 button
                 onClick={() =>
@@ -114,9 +105,7 @@ SettingsOption.propTypes = {
   classes: PropTypes.object, // styling
   saveLayout: PropTypes.func.isRequired, // drawer Save Layout callback
   plays: PropTypes.array,
-  executePlay: PropTypes.func.isRequired,
-  /** toggle visibility of the player */
-  showPlayerHandler: PropTypes.func.isRequired
+  executePlay: PropTypes.func.isRequired
 };
 
 export default withStyles(styles)(SettingsOption);

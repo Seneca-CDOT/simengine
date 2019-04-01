@@ -79,7 +79,6 @@ class TopNav extends React.Component {
                 saveLayout={this.props.saveLayout}
                 executePlay={this.props.executePlay}
                 plays={this.props.plays}
-                showPlayerHandler={this.props.showPlayerHandler}
               />
             </div>
 
@@ -129,9 +128,7 @@ TopNav.propTypes = {
   /** drawer Save Layout callback */
   saveLayout: PropTypes.func.isRequired,
   /** execute playbook callback */
-  executePlay: PropTypes.func.isRequired,
-  /** toggle visibility of the player */
-  showPlayerHandler: PropTypes.func.isRequired
+  executePlay: PropTypes.func.isRequired
 };
 
 export default withStyles(styles)(TopNav);

@@ -14,7 +14,6 @@ import TopNav from "./Navigation/TopNav";
 import Canvas from "./Canvas";
 import Notifications from "./Notifications";
 import Progress from "./Progress";
-import Player from "./Player";
 
 // few helpers
 import { onWheelScroll, onWheelDown, fitStageIntoParent } from "./canvasEvents";
@@ -35,8 +34,7 @@ class App extends Component {
       socketOffline: true,
       changesSaved: false,
       loadedConnections: 0,
-      plays: [],
-      playerVisible: false
+      plays: []
     };
 
     // establish client-server connection
@@ -251,9 +249,6 @@ class App extends Component {
   executePlay = name =>
     this.ws.sendData({ request: "exec_play", payload: { name } });
 
-  showPlayerHandler = () =>
-    this.setState(prevState => ({ playerVisible: !prevState.playerVisible }));
-
   /** Save assets' coordinates in db  */
   saveLayout = () => {
     let payload = {};
@@ -314,7 +309,6 @@ class App extends Component {
             executePlay={this.executePlay}
             mainsStatus={!!this.state.mainsStatus}
             togglePower={this.changeWallpowerStatus}
-            showPlayerHandler={this.showPlayerHandler}
           />
 
           {/* Main Canvas */}
@@ -347,7 +341,6 @@ class App extends Component {
               anchorOrigin={snackbarOrigin}
               displayedSnackbars={displayedSnackbars}
             />
-            {!!this.state.playerVisible && <Player />}
           </main>
         </div>
       </div>
