@@ -24,26 +24,25 @@ class Recorder:
     def __call__(self, work: callable):
         """Make an instance of recorder a callable object that can be used as a decorator
         with functions/class methods.
+
         Function calls will be registered by the recorder & can be replayed later on.
 
         Example:
             recorder = Recorder()
             @recorder
-            def my_action():
+            def my_action(self):
                 ...
 
             each call to my_action() will be stored in action history of the recorder instance,
+        
+            *Note* that class or instance implementing recorded action must have key attribute
         """
 
         @functools.wraps(work)
         def record_wrapper(asset_self, *f_args, **f_kwargs):
 
             if asset_self.__module__.startswith(self._module) and self._enabled:
-                # full_work_args = inspect.getfullargspec(work).args
 
-                # if "self" in full_work_args or "cls" in full_work_args:
-                # else:
-                #     func_args = tuple((work,))
                 func_args = tuple((work, asset_self))
 
                 partial_func = functools.partial(*func_args, *f_args, **f_kwargs)
@@ -72,29 +71,43 @@ class Recorder:
         if not self.replaying:
             self._enabled = value
 
-    def save_actions(self, action_file: str = "/tmp/recorder_action_file.json"):
+    def save_actions(
+        self,
+        action_file: str = "/tmp/recorder_action_file.json",
+        slc: slice = slice(None, None),
+    ):
         """Save actions into a json file (actions can be later loaded)
         Args:
             action_file(optional): action history will be saved in this file
+            slc(optional): range of actions to be saved, defaults to all if not specified
         Example:
             Action history is saved in the following format:
             [
+                // for instance methods:
                 {
-                    "state": "..encoded base64 bytes..",
+                    "type": "ClassName",
+                    "key": integer key,
                     "args": "..encoded base64 bytes..",
                     "kwargs": "..encoded base64 bytes..",
                     "work": "method_name",
                     "timestamp": "utc-timestamp"
                 },
-                {...},
+                // for class methods:
+                {
+                    "type": "..encoded base64 bytes..",
+                    "args": "..encoded base64 bytes..",
+                    "kwargs": "..encoded base64 bytes..",
+                    "work": "method_name",
+                    "timestamp": "utc-timestamp"
+                },
                 {...}
             ]
-            Where "state" is the pickled IStateManager, "args" & "kwargs" 
+            Where "..encoded base64 bytes.." is codecs base64 encoded pickled python object
         """
         serialized_actions = []
         json_pickle = lambda x: codecs.encode(pickle.dumps(x), "base64").decode()
 
-        for action in self._actions:
+        for action in self._actions[slc]:
 
             action_info = {
                 "args": json_pickle(action["work"].args[1:]),
@@ -115,9 +128,19 @@ class Recorder:
             json.dump(serialized_actions, action_f_handler, indent=2)
 
     def load_actions(
-        self, map_key_to_state, action_file: str = "/tmp/recorder_action_file.json"
+        self,
+        map_key_to_state: callable,
+        action_file: str = "/tmp/recorder_action_file.json",
+        slc=slice(None, None),
     ):
-        """load actions from a file"""
+        """load action history from a file; Note that this function clears existing actions
+        Args:
+            map_key_to_state: instances are not serialized instead their keys are stored in the file;
+                              the de-serialization is key-based and must be provided with this argument
+                              by mapping keys to python objects
+            action_file(optional): action history will be saved in this file
+            slc(optional): range of actions to be loaded from a file, defaults to all if not specified
+        """
 
         if self._replaying:
             logging.warning("Cannot load actions while replaying")
@@ -129,7 +152,7 @@ class Recorder:
         with open(action_file, "r") as action_f_handler:
             serialized_actions = json.load(action_f_handler)
 
-        for action in serialized_actions:
+        for action in serialized_actions[slc]:
             if "key" in action:
                 state = map_key_to_state(action["key"])
             else:

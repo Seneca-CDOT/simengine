@@ -197,13 +197,15 @@ class StateClient:
         )
 
     @classmethod
-    def load_actions(cls, filename: str):
+    def load_actions(cls, filename: str, slc: slice = slice(None, None)):
         """Request simengine to dynamically load actions from a filename
         Args:
             filename: .json file containing recorded action history
+            slc: load only this range of actions
         """
         StateClient.send_request(
-            ClientToServerRequests.load_actions, {"filename": filename}
+            ClientToServerRequests.load_actions,
+            {"filename": filename, "range": {"start": slc.start, "stop": slc.stop}},
         )
 
     @classmethod

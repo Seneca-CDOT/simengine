@@ -179,6 +179,49 @@ class RecorderTests(unittest.TestCase):
         action_details = new_recorder.get_action_details()
         self.assertEqual(4, len(action_details))
 
+    def test_serialization_save_range(self):
+        """Test action saving but only slice of action history"""
+        self.recorded_entity_1.double_a()  # 4
+        self.recorded_entity_1.double_a()  # 8
+        self.recorded_entity_1.double_a()  # 16
+
+        # serialize only the last action
+        REC.save_actions(
+            action_file="/tmp/simengine_rec_utest.json", slc=slice(-1, None)
+        )
+
+        new_recorder = Recorder(module=__name__)
+        new_recorder.load_actions(
+            map_key_to_state=RecordedEntity, action_file="/tmp/simengine_rec_utest.json"
+        )
+
+        new_recorder.replay_all()
+        self.assertEqual(32, RecordedEntity.test_a["value"])
+        action_details = new_recorder.get_action_details()
+        self.assertEqual(1, len(action_details))
+
+    def test_serialization_load_range(self):
+        """Test action loading but only slice of action history"""
+
+        self.recorded_entity_1.double_a()  # 4
+        self.recorded_entity_1.double_a()  # 8
+        self.recorded_entity_1.double_a()  # 16
+
+        # serialize only the last action
+        REC.save_actions(action_file="/tmp/simengine_rec_utest.json")
+
+        new_recorder = Recorder(module=__name__)
+        new_recorder.load_actions(
+            map_key_to_state=RecordedEntity,
+            action_file="/tmp/simengine_rec_utest.json",
+            slc=slice(-1, None),
+        )
+
+        new_recorder.replay_all()
+        self.assertEqual(32, RecordedEntity.test_a["value"])
+        action_details = new_recorder.get_action_details()
+        self.assertEqual(1, len(action_details))
+
 
 if __name__ == "__main__":
     unittest.main()

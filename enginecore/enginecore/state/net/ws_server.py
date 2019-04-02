@@ -170,7 +170,10 @@ class WebSocket(Component):
     @handler(ClientToServerRequests.save_actions.name)
     def _handle_save_history_reqeust(self, details):
         """Save recorder history to a file"""
-        recorder.save_actions(action_file=details["payload"]["filename"])
+        recorder.save_actions(
+            action_file=details["payload"]["filename"],
+            slc=self._slice_from_paylaod(details),
+        )
 
     @handler(ClientToServerRequests.load_actions.name)
     def _handle_load_history_request(self, details):
@@ -178,6 +181,7 @@ class WebSocket(Component):
         recorder.load_actions(
             action_file=details["payload"]["filename"],
             map_key_to_state=IStateManager.get_state_manager_by_key,
+            slc=self._slice_from_paylaod(details),
         )
 
     @handler(ClientToServerRequests.set_recorder_status.name)
