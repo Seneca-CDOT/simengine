@@ -52,6 +52,17 @@ def range_args():
     return common_args
 
 
+def handle_file_command(args, client_request_func):
+    """Process file command (either save or load)
+    Args:
+        client_request_func(callable): StateClient method processing file command
+    """
+    client_request_func(
+        os.path.abspath(os.path.expanduser(args["filename"])),
+        slice(args["start"], args["end"]),
+    )
+
+
 def actions_command(actions_group):
     """Action command can be used to manage/replay recorded actions performed by SimEngine users"""
 
@@ -108,6 +119,7 @@ def actions_command(actions_group):
     load_action = play_subp.add_parser(
         "load",
         help="Load action history from a file (will override the existing actions)",
+        parents=[range_args()],
     )
 
     load_action.add_argument(
@@ -176,15 +188,10 @@ def actions_command(actions_group):
     dry_run_action.set_defaults(func=dry_run_actions)
 
     save_action.set_defaults(
-        func=lambda args: StateClient.save_actions(
-            os.path.abspath(os.path.expanduser(args["filename"])),
-            slice(args["start"], args["end"]),
-        )
+        func=lambda args: handle_file_command(args, StateClient.save_actions)
     )
     load_action.set_defaults(
-        func=lambda args: StateClient.load_actions(
-            os.path.abspath(os.path.expanduser(args["filename"]))
-        )
+        func=lambda args: handle_file_command(args, StateClient.load_actions)
     )
 
     rand_action.set_defaults(func=StateClient.rand_actions)
