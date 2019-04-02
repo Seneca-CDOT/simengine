@@ -1,12 +1,10 @@
 /** Scale Layout on wheel event */
-const onWheelScroll = (stage) => {
+const onWheelScroll = stage => {
   stage.scale({ x: 0.7, y: 0.7 });
-  stage.position({x: window.innerWidth * 0.3, y: window.innerHeight * 0.3 });
+  stage.position({ x: window.innerWidth * 0.3, y: window.innerHeight * 0.3 });
 
   const scaleBy = 1.03;
-  window.addEventListener('wheel', (e) => {
-    e.preventDefault();
-
+  window.addEventListener("wheel", e => {
     const oldScale = stage.scaleX();
 
     if (!stage.getPointerPosition()) {
@@ -15,7 +13,7 @@ const onWheelScroll = (stage) => {
 
     const mousePointTo = {
       x: stage.getPointerPosition().x / oldScale - stage.x() / oldScale,
-      y: stage.getPointerPosition().y / oldScale - stage.y() / oldScale,
+      y: stage.getPointerPosition().y / oldScale - stage.y() / oldScale
     };
 
     const newScale = e.deltaY > 0 ? oldScale * scaleBy : oldScale / scaleBy;
@@ -31,23 +29,23 @@ const onWheelScroll = (stage) => {
 };
 
 /** Move canvas on middle mouse button down */
-const onWheelDown = (stage) => {
-  const moveCanvas = (e) => {
+const onWheelDown = stage => {
+  const moveCanvas = e => {
     const newPos = {
-      x: (stage.x() + e.movementX),
-      y: (stage.y() + e.movementY),
+      x: stage.x() + e.movementX,
+      y: stage.y() + e.movementY
     };
     stage.position(newPos);
     stage.batchDraw();
   };
 
-  window.addEventListener("mousedown", (e) => {
+  window.addEventListener("mousedown", e => {
     if (e.button == 1) {
       window.addEventListener("mousemove", moveCanvas);
     }
   });
 
-  window.addEventListener("mouseup", (e) => {
+  window.addEventListener("mouseup", e => {
     if (e.button == 1) {
       window.removeEventListener("mousemove", moveCanvas);
     }
@@ -55,16 +53,15 @@ const onWheelDown = (stage) => {
 };
 
 /** Resize canvas/stage on window changes */
-const fitStageIntoParent = (stage) => {
-
+const fitStageIntoParent = stage => {
   const fitStage = () => {
     stage.width(window.innerWidth);
-    stage.height(window.innerHeight  * 0.99);
+    stage.height(window.innerHeight * 0.99);
     stage.batchDraw();
   };
-  
+
   fitStage();
-  window.addEventListener('resize', fitStage);
+  window.addEventListener("resize", fitStage);
 };
 
-export { onWheelScroll, onWheelDown, fitStageIntoParent, };
+export { onWheelScroll, onWheelDown, fitStageIntoParent };
