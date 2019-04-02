@@ -299,8 +299,7 @@ class App extends Component {
     const displayedSnackbars = {
       socketOffline: this.state.socketOffline,
       changesSaved: this.state.changesSaved,
-      layoutEmpty:
-        !this.state.socketOffline && (!assets || Object.keys(assets) == 0)
+      layoutEmpty: !this.state.socketOffline && Object.keys(assets).length === 0
     };
 
     return (
