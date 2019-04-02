@@ -264,26 +264,30 @@ Recorder itself can register and replay the following actions:
 
 You can list recorded actions with `simengine-cli actions list` as in this example:
 
-    $ simengine-cli power down -k61 # record one
-    $ simengine-cli power up -k61   # record two
-    $ simengine-cli actions list # query action history
-    0) [2019-04-02 10:39:31] IStaticDeviceManager(61).shut_down()
-    1) [2019-04-02 10:39:37] IStaticDeviceManager(61).power_up()
+```bash
+$ simengine-cli power down -k61 # record one
+$ simengine-cli power up -k61   # record two
+$ simengine-cli actions list # query action history
+0) [2019-04-02 10:39:31] IStaticDeviceManager(61).shut_down()
+1) [2019-04-02 10:39:37] IStaticDeviceManager(61).power_up()
+```
 
 **Dry Run**
 
 Dry run command will display actions to be performed without actually executing them, this can be useful for some forms of debugging:
 
-    $ simengine-cli actions dry-run
-    0) [executing]: IStaticDeviceManager(61).shut_down()
-       [sleeping]:  6 seconds
-       .
-       .
-       .
-       .
-       .
-       .
-    1) [executing]: IStaticDeviceManager(61).power_up()
+```bash
+$ simengine-cli actions dry-run
+0) [executing]: IStaticDeviceManager(61).shut_down()
+    [sleeping]:  6 seconds
+    .
+    .
+    .
+    .
+    .
+    .
+1) [executing]: IStaticDeviceManager(61).power_up()
+```
 
 **Saving Actions**
 
@@ -305,12 +309,14 @@ Actions can be deleted upon a request with `simengine-cli actions clear`, you ca
 
 Replay CLI command will make SimEngine execute previously recorded actions. For instance, if you power down 3 static assets and power them back up, you action history will look like:
 
-    0) [2019-04-02 11:06:21] IStaticDeviceManager(61).shut_down()
-    1) [2019-04-02 11:06:22] IStaticDeviceManager(62).shut_down()
-    2) [2019-04-02 11:06:24] IStaticDeviceManager(63).shut_down()
-    3) [2019-04-02 11:06:25] IStaticDeviceManager(61).power_up()
-    4) [2019-04-02 11:06:27] IStaticDeviceManager(62).power_up()
-    5) [2019-04-02 11:06:29] IStaticDeviceManager(63).power_up()
+```bash
+0) [2019-04-02 11:06:21] IStaticDeviceManager(61).shut_down()
+1) [2019-04-02 11:06:22] IStaticDeviceManager(62).shut_down()
+2) [2019-04-02 11:06:24] IStaticDeviceManager(63).shut_down()
+3) [2019-04-02 11:06:25] IStaticDeviceManager(61).power_up()
+4) [2019-04-02 11:06:27] IStaticDeviceManager(62).power_up()
+5) [2019-04-02 11:06:29] IStaticDeviceManager(63).power_up()
+```
 
 You can replay all actions by issuing `simengine-cli actions replay` (this will result in execution of the power-cycle outlined above).
 
@@ -318,14 +324,18 @@ Alternatively, you can replay only a certain range of actions;
 
 Perform only steps number 2 and 3:
 
-    $ simengine-cli actions replay --list --start=2 --end=4
-    2) [2019-04-02 11:06:24] IStaticDeviceManager(63).shut_down()
-    3) [2019-04-02 11:06:25] IStaticDeviceManager(61).power_up()
+```bash
+$ simengine-cli actions replay --list --start=2 --end=4
+2) [2019-04-02 11:06:24] IStaticDeviceManager(63).shut_down()
+3) [2019-04-02 11:06:25] IStaticDeviceManager(61).power_up()
+```
 
 Replay only the last recorded action:
 
-    $ simengine-cli actions replay --list --start=-1
-    5) [2019-04-02 11:06:29] IStaticDeviceManager(63).power_up()
+```bash
+  $ simengine-cli actions replay --list --start=-1
+  5) [2019-04-02 11:06:29] IStaticDeviceManager(63).power_up()
+```
 
 **Recorder Status**
 
@@ -333,6 +343,8 @@ Recorder can be disabled with `simengine-cli actions disable` & enabled back wit
 
 When disabled, recorder ignores any incoming commands. The status itself can be queried with:
 
-    $ simengine-cli actions status
-    Enabled: True  # Is recorder capturing new actions?
-    Replaying: False # is recorder replaying any commands?
+```bash
+  $ simengine-cli actions status
+  Enabled: True    # - is recorder capturing new actions?
+  Replaying: False # - is recorder replaying any commands?
+```
