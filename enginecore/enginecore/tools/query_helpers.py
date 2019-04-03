@@ -5,8 +5,15 @@ import random
 import re
 
 
-def get_props_stm(attr, supported_attr=None):
-    """Format dict attributes as neo4j props ( attr: attrValue )"""
+def get_props_stm(attr: dict, supported_attr: list = None) -> str:
+    """Format dict attributes as neo4j props
+    e.g. CREATE (node:Label {attr1: attrValue1, attr2: attrValue2})
+    Args:
+        attr: node properties mapped to prop values
+        supported_attr: valid node properties, used for filtering out attributes
+    Returns:
+        str: statement formatted for neo4j query
+    """
 
     existing = dict(
         filter(
@@ -20,8 +27,18 @@ def get_props_stm(attr, supported_attr=None):
     )
 
 
-def get_set_stm(attr, node_name="asset", supported_attr=None):
-    """Format dict as neo4j set statement ( nodeName.nodeProp=nodeValue ) """
+def get_set_stm(
+    attr: dict, node_name: str = "asset", supported_attr: list = None
+) -> str:
+    """Format dict as neo4j set statement ( nodeName.nodeProp=nodeValue )
+    e.g. MATCH (node) SET node.attr1=attrValue1
+    Args:
+        attr: node properties mapped to new values
+        node_name: name given to a graph node (node to be updated)
+        supported_attr: valid node properties, used for filtering out attributes
+    Returns:
+        str: set statement formatted for neo4j query 
+    """
 
     existing = dict(
         filter(
@@ -40,7 +57,7 @@ def get_set_stm(attr, node_name="asset", supported_attr=None):
 
 def get_oid_desc_stm(oid_desc):
     """Format oid descriptions (int->value mappings) for neo4j """
-    return ",".join(map(lambda k: '{}: "{}"'.format(oid_desc[k], k), oid_desc))
+    return ",".join(map(lambda k: '`{}`: "{}"'.format(oid_desc[k], k), oid_desc))
 
 
 def to_camelcase(snake_string):

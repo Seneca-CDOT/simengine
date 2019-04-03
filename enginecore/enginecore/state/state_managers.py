@@ -72,7 +72,7 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
             load(float): New load in amps
         """
         super().update_load(load)
-        if "outputPowerCapacity" in self._asset_info:
+        if "outputPowerCapacity" in self._asset_info and load >= 0:
             self._update_load_perc_oids(load)
             self._update_current_oids(load)
 
