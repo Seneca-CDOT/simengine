@@ -22,7 +22,7 @@ class Randomizer:
     def _rand_action(cls, rand_obj, nap):
         """Perform rand action associated with the passed object"""
         rand_func = random.choice(cls.classes[rand_obj.__class__])
-        rand_args = list(map(lambda x: x(), rand_func.arg_defaults))
+        rand_args = list(map(lambda x: x(rand_obj), rand_func.arg_defaults))
 
         rand_func(rand_obj, *tuple(rand_args))
 
