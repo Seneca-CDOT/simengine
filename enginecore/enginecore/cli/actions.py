@@ -133,6 +133,13 @@ def actions_command(actions_group):
         "-c", "--count", type=int, help="Number of actions to be performed", default=1
     )
     rand_action.add_argument(
+        "-k",
+        "--asset-keys",
+        nargs="+",
+        type=int,
+        help="Include only these assets when picking a random component, defaults to all if not provided",
+    )
+    rand_action.add_argument(
         "-s",
         "--seconds",
         type=int,

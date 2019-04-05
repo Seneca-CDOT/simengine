@@ -242,8 +242,19 @@ class WebSocket(Component):
 
         rand_session_specs = details["payload"]
         assets = IStateManager.get_system_status(flatten=True)
-        state_managers = list(map(IStateManager.get_state_manager_by_key, assets))
         nap = None
+
+        # filter out assets if range is provided
+        if rand_session_specs["asset_keys"]:
+            assets = list(
+                filter(lambda x: x in rand_session_specs["asset_keys"], assets)
+            )
+
+        if not assets:
+            logging.error("No assets selected for random actions")
+            return
+
+        state_managers = list(map(IStateManager.get_state_manager_by_key, assets))
 
         if rand_session_specs["nap_time"]:
 
