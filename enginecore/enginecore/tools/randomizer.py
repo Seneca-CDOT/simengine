@@ -52,7 +52,7 @@ class Randomizer:
             instance: either a list of objects whose methods will be randomized or a single object to be used
             num_iter: number of random actions to be performed
             seconds: perform actions for this number of seconds, alternative to num_iter
-            nap: sleep function executed in-between the action
+            nap: sleep function executed in-between the action, defaults to 0.5 seconds nap
         """
 
         if seconds and seconds < 0:
@@ -74,12 +74,13 @@ class Randomizer:
         if not isinstance(instance, list):
             instance = [instance]
 
+        if not nap:
+            nap = functools.partial(time.sleep, 0.5)
+
         rand_obj = lambda: random.choice(instance)
         # either perform rand actions for 'n' seconds or for 'n' iterations
         if seconds:
             t_end = time.time() + seconds
-            if not nap:
-                nap = functools.partial(time.sleep, 2)
 
             while time.time() < t_end:
                 cls._rand_action(rand_obj(), nap)

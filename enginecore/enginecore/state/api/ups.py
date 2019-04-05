@@ -67,13 +67,14 @@ class IUPSStateManager(IStateManager):
         """UPS rated capacity"""
         return self._asset_info["outputPowerCapacity"]
 
+    @Randomizer.randomize_method()
     def shut_down(self):
         time.sleep(self.get_config_off_delay())
         powered = super().shut_down()
         return powered
 
+    @Randomizer.randomize_method()
     def power_up(self):
-        print("Powering up {}".format(self._asset_key))
 
         if self.battery_level and not self.status:
             self._sleep_powerup()

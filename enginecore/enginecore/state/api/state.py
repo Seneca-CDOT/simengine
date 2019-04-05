@@ -374,7 +374,7 @@ class IStateManager:
 
     @classmethod
     @record
-    @Randomizer.randomize_method((lambda: random.randrange(18, 35),))
+    @Randomizer.randomize_method((lambda _: random.randrange(18, 35),))
     def set_ambient(cls, value):
         """Update ambient value"""
         old_temp = cls.get_ambient()
