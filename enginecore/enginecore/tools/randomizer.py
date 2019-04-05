@@ -24,12 +24,6 @@ class Randomizer:
         rand_func = random.choice(cls.classes[rand_obj.__class__])
         rand_args = list(map(lambda x: x(), rand_func.arg_defaults))
 
-        # full_func_args = inspect.getfullargspec(rand_func.__wrapped__).args
-
-        # if "self" in full_func_args or "cls" in full_func_args:
-        #     rand_func(rand_obj, *tuple(rand_args))
-        # else:
-        #     rand_func(*tuple(rand_args))
         rand_func(rand_obj, *tuple(rand_args))
 
         # majestic nap
@@ -52,7 +46,14 @@ class Randomizer:
     def randact(
         cls, instance, num_iter: int = 1, seconds: int = None, nap: callable = None
     ):
-        """Perform random action on an object"""
+        """Perform random action(s) (one of the methods marked with @Randomizer.randomize_method) 
+        on an object or a list of objects (instances marked with @Randomizer.register)
+        Args:
+            instance: either a list of objects whose methods will be randomized or a single object to be used
+            num_iter: number of random actions to be performed
+            seconds: perform actions for this number of seconds, alternative to num_iter
+            nap: sleep function executed in-between the action
+        """
 
         if seconds and seconds < 0:
             raise ValueError("Argument 'seconds' must be postivie")
@@ -69,6 +70,7 @@ class Randomizer:
                 "Unregistered class '{}'".format(instance.__class__.__name__)
             )
 
+        # passed validation
         if not isinstance(instance, list):
             instance = [instance]
 
@@ -87,7 +89,7 @@ class Randomizer:
     @classmethod
     def register(cls, new_reg_cls):
         """Register class as randomizable with @Randomizer.register decorator
-        Randomizer will search for recordable methods & store them as randomly-replayable
+        Randomizer will search for methods marked with @Randomizer.randomize_method & store them as randomly-replayable
         """
         cls_details = []
 

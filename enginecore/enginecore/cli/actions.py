@@ -139,7 +139,17 @@ def actions_command(actions_group):
         help="Perform actions for 'n' seconds (alternative to 'count')",
     )
     rand_action.add_argument(
-        "-n", "--nap-time", type=int, help="Pause between each random action"
+        "-n",
+        "--nap-time",
+        type=float,
+        help="Pause between each random action or max nap time if --min-nap is present",
+    )
+
+    rand_action.add_argument(
+        "-m",
+        "--min-nap",
+        type=float,
+        help="Minimum sleep time, pauses between actions will be set to random if this value is provided",
     )
 
     # cli actions/callbacks

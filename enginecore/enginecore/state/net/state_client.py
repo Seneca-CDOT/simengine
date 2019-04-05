@@ -233,5 +233,9 @@ class StateClient:
         return json.loads(ws_client.recv())["payload"]["status"]
 
     @classmethod
-    def rand_actions(cls, args):
+    def rand_actions(cls, args: dict):
+        """Request Sim-Engine to perform random action
+        Args:
+            args: TODO
+        """
         StateClient.send_request(ClientToServerRequests.exec_rand_actions, {**args})
