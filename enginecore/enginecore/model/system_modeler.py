@@ -5,7 +5,7 @@ import json
 import os
 from enum import Enum
 import time
-
+import sys
 import libvirt
 
 from enginecore.model.graph_reference import GraphReference
@@ -118,7 +118,7 @@ def link_assets(source_key, dest_key):
 
         record = result.single()
         if record:
-            print("The source asset already powers an existing asset!")
+            print("The source asset already powers an existing asset!", file=sys.stderr)
             return
 
         result = session.run(
@@ -130,7 +130,20 @@ def link_assets(source_key, dest_key):
 
         record = result.single()
         if record:
-            print("The destination asset is already powered by an existing asset!")
+            print(
+                "The destination asset is already powered by an existing asset!",
+                file=sys.stderr,
+            )
+            return
+
+        result = session.run(
+            "MATCH (dst:Asset {key: $dest_key})-[:HAS_COMPONENT]->(src:Asset {key: $source_key}) RETURN src",
+            source_key=source_key,
+            dest_key=dest_key,
+        )
+        record = result.single()
+        if record:
+            print("Asset cannot power itself!", file=sys.stderr)
             return
 
         # Create a link

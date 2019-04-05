@@ -4,7 +4,6 @@ import unittest
 import random
 import time
 
-from pprint import pprint as pp
 from datetime import datetime as dt
 
 from enginecore.tools.recorder import Recorder
