@@ -1,5 +1,5 @@
 import json
-
+import random
 import libvirt
 
 
@@ -13,12 +13,25 @@ from enginecore.state.api.state import IStateManager
 from enginecore.tools.randomizer import Randomizer
 
 
+def pd_set_props_rand_args(server):
+
+    ctrl_num = random.randrange(0, server.controller_count)
+
+    p_drives = server.get_server_drives(ctrl_num)["pd"]
+    rand_pd_id = random.choice(list(map(lambda x: x["DID"], p_drives)))
+
+    #  state, 'media_error_count', 'other_error_count', 'predictive_error_count'
+    return tuple(ctrl_num, rand_pd_id, {"state": random.choice(["Onln", "Offln"])})
+
+
 @Randomizer.register
 class IServerStateManager(IStateManager):
     def __init__(self, asset_info):
         super(IServerStateManager, self).__init__(asset_info)
         self._vm_conn = libvirt.open("qemu:///system")
         # TODO: error handling if the domain is missing (throws libvirtError) & close the connection
+
+        # print(pd_set_props_rand_args(self))
         self._vm = self._vm_conn.lookupByName(asset_info["domainName"])
 
     def vm_is_active(self):
@@ -64,6 +77,11 @@ class IBMCServerStateManager(IServerStateManager):
         """
         return self._vm.getCPUStats(True)
 
+    def get_server_drives(self, controller_num):
+        """Get all the drives that are in the server"""
+        with self._graph_ref.get_session() as session:
+            return GraphReference.get_all_drives(session, self.key, controller_num)
+
     @record
     def update_sensor(self, sensor_name: str, value):
         """Update runtime value of the sensor belonging to this server
@@ -83,6 +101,7 @@ class IBMCServerStateManager(IServerStateManager):
             print("Server or Sensor does not exist: %s", str(error))
 
     @record
+    @Randomizer.randomize_method()
     def set_physical_drive_prop(self, controller: int, did: int, properties: dict):
         """Update properties of a physical drive belonging to a RAID array
         Args:
@@ -122,6 +141,12 @@ class IBMCServerStateManager(IServerStateManager):
         """Get latest recorded CPU load in percentage (between 0 and 100)"""
         cpu_load = IStateManager.get_store().get(self.redis_key + ":cpu_load")
         return int(cpu_load.decode()) if cpu_load else 0
+
+    @property
+    def controller_count(self) -> int:
+        """Find number of RAID controllers"""
+        with self._graph_ref.get_session() as session:
+            return GraphReference.get_controller_count(session, self.key)
 
     @classmethod
     def get_sensor_definitions(cls, asset_key):
