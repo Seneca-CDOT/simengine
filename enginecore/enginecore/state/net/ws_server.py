@@ -243,10 +243,11 @@ class WebSocket(Component):
         rand_session_specs = details["payload"]
         assets = IStateManager.get_system_status(flatten=True)
         state_managers = list(map(IStateManager.get_state_manager_by_key, assets))
+        nap = None
 
         if rand_session_specs["nap_time"]:
 
-            def nap():
+            def nap_calc():
                 nap_time = lambda: rand_session_specs["nap_time"]
                 if rand_session_specs["min_nap"]:
                     nap_time = lambda: random.randrange(
@@ -254,6 +255,8 @@ class WebSocket(Component):
                     )
 
                 time.sleep(nap_time())
+
+            nap = nap_calc
 
         rand_t = threading.Thread(
             target=Randomizer.randact,
