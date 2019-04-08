@@ -1,6 +1,7 @@
 """Aggregate functionalities related to randomizing actions"""
 import random
 import functools
+import itertools
 import time
 import sys
 import types
@@ -144,6 +145,17 @@ class Randomizer:
                 cls._rand_action(rand_obj(), nap)
         else:
             list(map(lambda _: cls._rand_action(rand_obj(), nap), range(num_iter)))
+
+    @classmethod
+    def biased_rand_obj(cls, supplied_objects):
+        """Adds weights to classes based on number of randomized functions"""
+
+        func_scores = list(map(lambda x: len(cls.classes[x]), cls.classes))
+        rand_score = random.randrange(0, sum(func_scores))
+
+        closest_score = min(func_scores, key=lambda x: abs(int(x) - rand_score))
+        valid_indices = [i for i, x in enumerate(func_scores) if x == closest_score]
+        return cls.classes[random.choice(valid_indices)]
 
     @classmethod
     def register(cls, new_reg_cls):
