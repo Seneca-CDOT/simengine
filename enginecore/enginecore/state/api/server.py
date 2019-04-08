@@ -10,46 +10,7 @@ from enginecore.tools.recorder import RECORDER as record
 
 from enginecore.state.redis_channels import RedisChannels
 from enginecore.state.api.state import IStateManager
-from enginecore.tools.randomizer import Randomizer, ArgRandomizer
-
-
-pd_set_arg_randomizer = ArgRandomizer(
-    [
-        lambda server, _: random.randrange(0, server.controller_count),
-        lambda server, ctrl_num: random.choice(
-            list(map(lambda x: x["DID"], server.get_server_drives(ctrl_num)["pd"]))
-        ),
-        lambda server, _: random.choice(
-            [
-                {"state": random.choice(["Onln", "Offln"])},
-                {"media_error_count": random.randrange(0, 10)},
-                {"other_error_count": random.randrange(0, 10)},
-                {"predictive_error_count": random.randrange(0, 10)},
-            ]
-        ),
-    ]
-)
-
-ctrl_set_arg_randomizer = ArgRandomizer(
-    [
-        lambda server, _: random.randrange(0, server.controller_count),
-        lambda server, _: random.choice(
-            [
-                {"alarm": random.choice(["on", "off", "missing"])},
-                {"mem_c_errors": random.randrange(0, 10)},
-                {"mem_uc_errors": random.randrange(0, 10)},
-            ]
-        ),
-    ]
-)
-
-cv_set_arg_randomizer = ArgRandomizer(
-    [
-        lambda server, _: random.randrange(0, server.controller_count),
-        lambda server, _: random.choice(["Yes", "No"]),
-        lambda server, _: bool(random.getrandbits(1)),
-    ]
-)
+from enginecore.tools.randomizer import Randomizer, ChainedArgs
 
 
 @Randomizer.register
@@ -129,7 +90,26 @@ class IBMCServerStateManager(IServerStateManager):
             print("Server or Sensor does not exist: %s", str(error))
 
     @record
-    @Randomizer.randomize_method(arg_defaults=pd_set_arg_randomizer())
+    @Randomizer.randomize_method(
+        arg_defaults=ChainedArgs(
+            [
+                lambda self: random.randrange(0, self.controller_count),
+                lambda self, ctrl_num: random.choice(
+                    list(
+                        map(lambda x: x["DID"], self.get_server_drives(ctrl_num)["pd"])
+                    )
+                ),
+                lambda self, _: random.choice(
+                    [
+                        {"state": random.choice(["Onln", "Offln"])},
+                        {"media_error_count": random.randrange(0, 10)},
+                        {"other_error_count": random.randrange(0, 10)},
+                        {"predictive_error_count": random.randrange(0, 10)},
+                    ]
+                ),
+            ]
+        )()
+    )
     def set_physical_drive_prop(self, controller: int, did: int, properties: dict):
         """Update properties of a physical drive belonging to a RAID array
         Args:
@@ -144,7 +124,20 @@ class IBMCServerStateManager(IServerStateManager):
             )
 
     @record
-    @Randomizer.randomize_method(arg_defaults=ctrl_set_arg_randomizer())
+    @Randomizer.randomize_method(
+        arg_defaults=ChainedArgs(
+            [
+                lambda self: random.randrange(0, self.controller_count),
+                lambda self, _: random.choice(
+                    [
+                        {"alarm": random.choice(["on", "off", "missing"])},
+                        {"mem_c_errors": random.randrange(0, 10)},
+                        {"mem_uc_errors": random.randrange(0, 10)},
+                    ]
+                ),
+            ]
+        )()
+    )
     def set_controller_prop(self, controller: int, properties: dict):
         """Update properties associated with a RAID controller
         Args:
@@ -158,7 +151,15 @@ class IBMCServerStateManager(IServerStateManager):
             )
 
     @record
-    @Randomizer.randomize_method(arg_defaults=cv_set_arg_randomizer())
+    @Randomizer.randomize_method(
+        arg_defaults=ChainedArgs(
+            [
+                lambda self: random.randrange(0, self.controller_count),
+                lambda self, _: random.choice(["Yes", "No"]),
+                lambda self, _: bool(random.getrandbits(1)),
+            ]
+        )()
+    )
     def set_cv_replacement(self, controller: int, repl_status: str, wt_on_fail: bool):
         """Update Cachevault replacement status"""
         with self._graph_ref.get_session() as session:

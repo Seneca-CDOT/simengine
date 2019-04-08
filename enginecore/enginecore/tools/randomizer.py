@@ -1,35 +1,66 @@
 """Aggregate functionalities related to randomizing actions"""
 import random
 import functools
-import inspect
 import time
 import sys
 import types
 
 
-class ArgRandomizer:
+class ChainedArgs:
+    """Keeps track of previously calculated arguments for 
+    random function arguments & passes it to the next argument
+    (can be used when generation of a particular random value 
+    passed to randomized method as an arg depends on previously generated values)
+    
+    Example:
+        ChainedArgs(
+            lambda self: generate_first_arg(),
+            lambda self, first_arg: generate_seconds_arg(first_arg)
+        )()
+    """
+
     def __init__(self, arg_list):
         self._arg_gen = None
+        if len(arg_list) < 2:
+            raise ValueError("Cannot chain less than 2 arguments!")
+
         self._arg_list = arg_list
 
-    def generate_arg(self, instance):
-        prev_result = None
+    def _generate_arg(self, instance: object):
+        """Generate arguments in a sequential manner
+        Args:
+            instance: class or object to be passed to the args
+        Yields:
+            any: random function arguments (one by one) initialized at the ChainedArgs createion
+        """
 
-        for arg_gen in self._arg_list[:-1]:
-            prev_result = arg_gen(instance, prev_result)
+        prev_result = self._arg_list[0](instance)
+        yield prev_result
+
+        for calc_rand_arg in self._arg_list[1:-1]:
+            prev_result = calc_rand_arg(instance, prev_result)
             yield prev_result
 
+        # reset generator once went through the entire arg list
         self._arg_gen = None
         yield self._arg_list[-1](instance, prev_result)
 
-    def gen_arg_wrapper(self, instance):
+    def _gen_arg_wrapper(self, instance: object):
+        """Get next random argument value to be passed to a function
+        Args:
+            instance: class or object to be passed to the args
+        Returns:
+            next argument value
+        """
+
         if not self._arg_gen:
-            self._arg_gen = self.generate_arg(instance)
+            self._arg_gen = self._generate_arg(instance)
 
         return next(self._arg_gen)
 
     def __call__(self):
-        return tuple(map(lambda _: self.gen_arg_wrapper, self._arg_list))
+        """Get generated function arguments"""
+        return tuple(map(lambda _: self._gen_arg_wrapper, self._arg_list))
 
 
 class Randomizer:
@@ -74,6 +105,7 @@ class Randomizer:
     ):
         """Perform random action(s) (one of the methods marked with @Randomizer.randomize_method) 
         on an object or a list of objects (instances marked with @Randomizer.register)
+
         Args:
             instance: either a list of objects whose methods will be randomized or a single object to be used
             num_iter: number of random actions to be performed
@@ -82,7 +114,7 @@ class Randomizer:
         """
 
         if seconds and seconds < 0:
-            raise ValueError("Argument 'seconds' must be postivie")
+            raise ValueError("Argument 'seconds' must be positive")
 
         # received multiple objects
         if isinstance(instance, list):
