@@ -7,6 +7,31 @@ import sys
 import types
 
 
+class ArgRandomizer:
+    def __init__(self, arg_list):
+        self._arg_gen = None
+        self._arg_list = arg_list
+
+    def generate_arg(self, instance):
+        prev_result = None
+
+        for arg_gen in self._arg_list[:-1]:
+            prev_result = arg_gen(instance, prev_result)
+            yield prev_result
+
+        self._arg_gen = None
+        yield self._arg_list[-1](instance, prev_result)
+
+    def gen_arg_wrapper(self, instance):
+        if not self._arg_gen:
+            self._arg_gen = self.generate_arg(instance)
+
+        return next(self._arg_gen)
+
+    def __call__(self):
+        return tuple(map(lambda _: self.gen_arg_wrapper, self._arg_list))
+
+
 class Randomizer:
     """Randomizer is a chaos generator that can perform random actions
     associated with a class/or its instance
@@ -21,9 +46,10 @@ class Randomizer:
     @classmethod
     def _rand_action(cls, rand_obj, nap):
         """Perform rand action associated with the passed object"""
-        rand_func = random.choice(cls.classes[rand_obj.__class__])
-        rand_args = list(map(lambda x: x(rand_obj), rand_func.arg_defaults))
 
+        rand_func = random.choice(cls.classes[rand_obj.__class__])
+
+        rand_args = list(map(lambda x: x(rand_obj), rand_func.arg_defaults))
         rand_func(rand_obj, *tuple(rand_args))
 
         # majestic nap
