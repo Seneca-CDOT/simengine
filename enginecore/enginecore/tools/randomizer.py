@@ -1,7 +1,6 @@
 """Aggregate functionalities related to randomizing actions"""
 import random
 import functools
-import itertools
 import time
 import sys
 import types
@@ -76,10 +75,14 @@ class Randomizer:
     seed = None
 
     @classmethod
-    def _rand_action(cls, rand_obj, nap):
-        """Perform rand action associated with the passed object"""
+    def _rand_action(cls, instances: list, nap: callable):
+        """Perform rand action associated with the passed objects
+        Args:
+            instances: collection of objects valid for randomization
+            nap: sleep function executed at the end of the function call
+        """
 
-        rand_func = random.choice(cls.classes[rand_obj.__class__])
+        rand_obj, rand_func = cls._get_rand_combination(instances)
 
         rand_args = list(map(lambda x: x(rand_obj), rand_func.arg_defaults))
         rand_func(rand_obj, *tuple(rand_args))
@@ -87,6 +90,32 @@ class Randomizer:
         # majestic nap
         if nap:
             nap()
+
+    @classmethod
+    def _get_rand_combination(cls, instances: list) -> tuple:
+        """Random combination of object and method
+        Args:
+            instances: collection of objects valid for randomization
+        Returns:
+            random object and random method
+        """
+
+        # filter classes by the supplied objects
+        inst_classes = set(map(lambda x: x.__class__, instances))
+        accepted_cls_keys = list(set(cls.classes).intersection(inst_classes))
+
+        filtered_cls = {k: cls.classes[k] for k in accepted_cls_keys}
+
+        methods = []
+        list(map(lambda k: methods.extend(cls.classes[k]), filtered_cls))
+
+        rand_method = random.choice(methods)
+
+        obj_choices = list(
+            filter(lambda x: rand_method in filtered_cls[x.__class__], instances)
+        )
+
+        return random.choice(obj_choices), rand_method
 
     @classmethod
     def set_seed(cls, seed=random.randrange(sys.maxsize)):
@@ -102,13 +131,13 @@ class Randomizer:
 
     @classmethod
     def randact(
-        cls, instance, num_iter: int = 1, seconds: int = None, nap: callable = None
+        cls, instances, num_iter: int = 1, seconds: int = None, nap: callable = None
     ):
         """Perform random action(s) (one of the methods marked with @Randomizer.randomize_method) 
         on an object or a list of objects (instances marked with @Randomizer.register)
 
         Args:
-            instance: either a list of objects whose methods will be randomized or a single object to be used
+            instances: either a list of objects whose methods will be randomized or a single object to be used
             num_iter: number of random actions to be performed
             seconds: perform actions for this number of seconds, alternative to num_iter
             nap: sleep function executed in-between the action, defaults to 0.5 seconds nap
@@ -118,44 +147,32 @@ class Randomizer:
             raise ValueError("Argument 'seconds' must be positive")
 
         # received multiple objects
-        if isinstance(instance, list):
-            obj_classes = map(lambda x: x.__class__, instance)
+        if isinstance(instances, list):
+            inst_classes = map(lambda x: x.__class__, instances)
 
             # Classes not registered in cls.classes
-            if set(obj_classes).difference(set(cls.classes)) != set():
+            if set(inst_classes).difference(set(cls.classes)) != set():
                 raise ValueError("Unsupported/unregistered classes detected")
-        elif instance.__class__ not in cls.classes:
+        elif instances.__class__ not in cls.classes:
             raise ValueError(
-                "Unregistered class '{}'".format(instance.__class__.__name__)
+                "Unregistered class '{}'".format(instances.__class__.__name__)
             )
 
         # passed validation
-        if not isinstance(instance, list):
-            instance = [instance]
+        if not isinstance(instances, list):
+            instances = [instances]
 
         if not nap:
             nap = functools.partial(time.sleep, 0.5)
 
-        rand_obj = lambda: random.choice(instance)
         # either perform rand actions for 'n' seconds or for 'n' iterations
         if seconds:
             t_end = time.time() + seconds
 
             while time.time() < t_end:
-                cls._rand_action(rand_obj(), nap)
+                cls._rand_action(instances, nap)
         else:
-            list(map(lambda _: cls._rand_action(rand_obj(), nap), range(num_iter)))
-
-    @classmethod
-    def biased_rand_obj(cls, supplied_objects):
-        """Adds weights to classes based on number of randomized functions"""
-
-        func_scores = list(map(lambda x: len(cls.classes[x]), cls.classes))
-        rand_score = random.randrange(0, sum(func_scores))
-
-        closest_score = min(func_scores, key=lambda x: abs(int(x) - rand_score))
-        valid_indices = [i for i, x in enumerate(func_scores) if x == closest_score]
-        return cls.classes[random.choice(valid_indices)]
+            list(map(lambda _: cls._rand_action(instances, nap), range(num_iter)))
 
     @classmethod
     def register(cls, new_reg_cls):
@@ -182,8 +199,11 @@ class Randomizer:
         return new_reg_cls
 
     @classmethod
-    def randomize_method(cls, arg_defaults=tuple()):
-        """"""
+    def randomize_method(cls, arg_defaults: tuple = tuple()):
+        """Mark method as randomizable;
+        Args:
+            arg_defaults: collection of callables returning method arguments 
+        """
 
         def decorator(work: callable):
             @functools.wraps(work)
