@@ -83,9 +83,7 @@ class Randomizer:
         """
 
         rand_obj, rand_func = cls._get_rand_combination(instances)
-
-        rand_args = list(map(lambda x: x(rand_obj), rand_func.arg_defaults))
-        rand_func(rand_obj, *tuple(rand_args))
+        rand_func(rand_obj, *map(lambda x: x(rand_obj), rand_func.arg_defaults))
 
         # majestic nap
         if nap:
@@ -107,15 +105,17 @@ class Randomizer:
         filtered_cls = {k: cls.classes[k] for k in accepted_cls_keys}
 
         methods = []
+
+        # flatten dict
         list(map(lambda k: methods.extend(cls.classes[k]), filtered_cls))
 
+        # select random method & random object from the passed instances that implements it
         rand_method = random.choice(methods)
-
-        obj_choices = list(
+        obj_with_methods = list(
             filter(lambda x: rand_method in filtered_cls[x.__class__], instances)
         )
 
-        return random.choice(obj_choices), rand_method
+        return random.choice(obj_with_methods), rand_method
 
     @classmethod
     def set_seed(cls, seed=random.randrange(sys.maxsize)):
