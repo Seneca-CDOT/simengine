@@ -21,6 +21,17 @@ class HDComponents(Enum):
     PhysicalDrive = 2
 
 
+class SensorGroups(Enum):
+    """Valid sensor groups"""
+
+    psu = 1
+    current = 2
+    fan = 3
+    voltage = 4
+    wattage = 5
+    temperature = 6
+
+
 class Sensor:
     """Aggregates sensor information """
 
@@ -31,7 +42,7 @@ class Sensor:
         self._s_specs = s_details["specs"]
         self._s_type = self._s_specs["type"]
         self._s_name = self._s_specs["name"]
-        self._s_group = self._s_specs["group"]
+        self._s_group = SensorGroups[self._s_specs["group"]]
 
         self._th_sensor_t = {}
         self._th_storage_t = {}
@@ -512,7 +523,7 @@ class Sensor:
         """Reset the sensor value to the specified default value"""
 
         with open(self._get_sensor_file_path(), "w+") as filein:
-            if self.group == "fan":
+            if self.group == SensorGroups.fan:
                 default_value = int(self._s_specs["defaultValue"] * 0.1)
             else:
                 default_value = self._s_specs["defaultValue"]

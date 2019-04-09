@@ -1,7 +1,6 @@
 import json
 import random
 import libvirt
-import itertools
 
 from enginecore.model.graph_reference import GraphReference
 import enginecore.model.system_modeler as sys_modeler
@@ -71,7 +70,22 @@ class IBMCServerStateManager(IServerStateManager):
         with self._graph_ref.get_session() as session:
             return GraphReference.get_all_drives(session, self.key, controller_num)
 
+    def get_fan_sensors(self):
+        """Retrieve sensors of type "fan" """
+        from enginecore.state.sensor.repository import SensorRepository
+        from enginecore.state.sensor.sensor import SensorGroups
+
+        return SensorRepository(self.key).get_sensors_by_group(SensorGroups.fan)
+
     @record
+    @Randomizer.randomize_method(
+        ChainedArgs(
+            [
+                lambda self: random.choice(self.get_fan_sensors()).name,
+                lambda self, sensor: random.randrange(0, 80),
+            ]
+        )()
+    )
     def update_sensor(self, sensor_name: str, value):
         """Update runtime value of the sensor belonging to this server
         Args:
