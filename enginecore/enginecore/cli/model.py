@@ -18,8 +18,10 @@ def handle_link(kwargs):
 
 def validate_key(key):
     """Validate asset key"""
-    if key > 9999:
-        raise argparse.ArgumentTypeError("asset-key must be <= 9999")
+    if key > 9999 or key <= 0:
+        raise argparse.ArgumentTypeError(
+            "asset-key must be less than 9999 and greater than 0"
+        )
 
 
 def validate_server(kwargs):

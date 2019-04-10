@@ -163,7 +163,7 @@ class Randomizer:
             instances = [instances]
 
         if not nap:
-            nap = functools.partial(time.sleep, 0.5)
+            nap = functools.partial(time.sleep, 1)
 
         # either perform rand actions for 'n' seconds or for 'n' iterations
         if seconds:
