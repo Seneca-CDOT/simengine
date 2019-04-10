@@ -13,6 +13,7 @@ from enginecore.state.redis_channels import RedisChannels
 from enginecore.state.asset_definition import SUPPORTED_ASSETS
 from enginecore.tools.recorder import RECORDER as record
 from enginecore.tools.randomizer import Randomizer
+from enginecore.state.api.environment import ISystemEnvironment
 
 
 @Randomizer.register
@@ -266,7 +267,7 @@ class IStateManager:
             self._graph_ref.get_session(), self._asset_key
         )
 
-        if not asset_keys and not IStateManager.mains_status():
+        if not asset_keys and not ISystemEnvironment.mains_status():
             not_affected_by_mains = False
 
         assets_up = self._check_parents(asset_keys, lambda rvalue, _: rvalue == b"0")
@@ -341,63 +342,22 @@ class IStateManager:
             return assets
 
     @classmethod
-    def reload_model(cls):
-        """Request daemon reloading"""
-        cls.get_store().publish(RedisChannels.model_update_channel, "reload")
-
-    @classmethod
-    @record
-    @Randomizer.randomize_method()
-    def power_outage(cls):
-        """Simulate complete power outage/restoration"""
-        cls.get_store().set("mains-source", "0")
-        cls.get_store().publish(RedisChannels.mains_update_channel, "0")
-
-    @classmethod
-    @record
-    @Randomizer.randomize_method()
-    def power_restore(cls):
-        """Simulate complete power restoration"""
-        cls.get_store().set("mains-source", "1")
-        cls.get_store().publish(RedisChannels.mains_update_channel, "1")
-
-    @classmethod
-    def mains_status(cls):
-        """Get wall power status"""
-        return int(cls.get_store().get("mains-source").decode())
-
-    @classmethod
-    def get_ambient(cls):
-        """Retrieve current ambient value"""
-        temp = cls.get_store().get("ambient")
-        return int(temp.decode()) if temp else 0
-
-    @classmethod
-    @record
-    @Randomizer.randomize_method((lambda _: random.randrange(18, 35),))
-    def set_ambient(cls, value):
-        """Update ambient value"""
-        old_temp = cls.get_ambient()
-        cls.get_store().set("ambient", str(int(value)))
-        cls.get_store().publish(
-            RedisChannels.ambient_update_channel, "{}-{}".format(old_temp, value)
-        )
-
-    @classmethod
-    def get_ambient_props(cls):
-        """Get runtime ambient properties (ambient behaviour description)"""
-        graph_ref = GraphReference()
-        with graph_ref.get_session() as session:
-            props = GraphReference.get_ambient_props(session)
-            return props
-
-    @classmethod
-    def set_ambient_props(cls, props):
-        """Update runtime thermal properties of the room temperature"""
+    def get_state_manager_by_key(cls, key, supported_assets=None):
+        """Infer asset manager from key"""
+        if not supported_assets:
+            supported_assets = SUPPORTED_ASSETS
 
         graph_ref = GraphReference()
+
         with graph_ref.get_session() as session:
-            GraphReference.set_ambient_props(session, props)
+
+            asset_info = GraphReference.get_asset_and_components(session, key)
+            sm_mro = supported_assets[asset_info["type"]].StateManagerCls.mro()
+
+            module = ".".join(__name__.split(".")[:-1])  # api module
+            return next(filter(lambda x: x.__module__.startswith(module), sm_mro))(
+                asset_info
+            )
 
     @classmethod
     def set_play_path(cls, path):
@@ -465,22 +425,4 @@ class IStateManager:
                 os.path.join(play_path, play_file),
                 stderr=subprocess.DEVNULL,
                 close_fds=True,
-            )
-
-    @classmethod
-    def get_state_manager_by_key(cls, key, supported_assets=None):
-        """Infer asset manager from key"""
-        if not supported_assets:
-            supported_assets = SUPPORTED_ASSETS
-
-        graph_ref = GraphReference()
-
-        with graph_ref.get_session() as session:
-
-            asset_info = GraphReference.get_asset_and_components(session, key)
-            sm_mro = supported_assets[asset_info["type"]].StateManagerCls.mro()
-
-            module = ".".join(__name__.split(".")[:-1])  # api module
-            return next(filter(lambda x: x.__module__.startswith(module), sm_mro))(
-                asset_info
             )

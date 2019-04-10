@@ -1,6 +1,6 @@
+"""Server interfaces for managing servers' states """
 import json
 import random
-import statistics
 import libvirt
 
 from enginecore.model.graph_reference import GraphReference
@@ -11,6 +11,8 @@ from enginecore.tools.recorder import RECORDER as record
 from enginecore.state.redis_channels import RedisChannels
 from enginecore.state.api.state import IStateManager
 from enginecore.tools.randomizer import Randomizer, ChainedArgs
+from enginecore.state.sensor.repository import SensorRepository
+from enginecore.state.sensor.sensor import SensorGroups
 
 
 @Randomizer.register
@@ -73,14 +75,9 @@ class IBMCServerStateManager(IServerStateManager):
 
     def get_fan_sensors(self):
         """Retrieve sensors of type "fan" """
-        from enginecore.state.sensor.repository import SensorRepository
-        from enginecore.state.sensor.sensor import SensorGroups
-
         return SensorRepository(self.key).get_sensors_by_group(SensorGroups.fan)
 
     def _get_rand_fan_sensor_value(self, sensor_name):
-        from enginecore.state.sensor.repository import SensorRepository
-        from enginecore.state.sensor.sensor import Sensor
 
         sensor = SensorRepository(self.key).get_sensor_by_name(sensor_name)
         thresholds = sensor.thresholds
@@ -116,9 +113,6 @@ class IBMCServerStateManager(IServerStateManager):
         """
 
         try:
-            # import is inside the method to avoid circular imports
-            from enginecore.state.sensor.repository import SensorRepository
-
             sensor = SensorRepository(self.key).get_sensor_by_name(sensor_name)
             sensor.sensor_value = value
         except KeyError as error:

@@ -9,7 +9,7 @@ import random
 
 from circuits import handler, Component, Event
 from circuits.net.events import write
-from enginecore.state.api import IStateManager
+from enginecore.state.api import IStateManager, ISystemEnvironment
 from enginecore.model.graph_reference import GraphReference
 from enginecore.tools.recorder import RECORDER as recorder
 from enginecore.tools.randomizer import Randomizer
@@ -85,14 +85,14 @@ class WebSocket(Component):
     def _handle_mains_request(self, details):
         """Wallpower update request"""
         if details["payload"]["mains"] == 0:
-            IStateManager.power_outage()
+            ISystemEnvironment.power_outage()
         else:
-            IStateManager.power_restore()
+            ISystemEnvironment.power_restore()
 
     @handler(ClientToServerRequests.set_ambient.name)
     def _handle_ambient_request(self, details):
         """"Handle ambient changes request"""
-        IStateManager.set_ambient(details["payload"]["degrees"])
+        ISystemEnvironment.set_ambient(details["payload"]["degrees"])
 
     @handler(ClientToServerRequests.exec_play.name)
     def _handle_play_request(self, details):
@@ -125,7 +125,7 @@ class WebSocket(Component):
         self._write_data(
             details["client"],
             ServerToClientRequests.ambient_upd,
-            {"ambient": IStateManager.get_ambient(), "rising": False},
+            {"ambient": ISystemEnvironment.get_ambient(), "rising": False},
         )
 
         self._write_data(
@@ -137,7 +137,7 @@ class WebSocket(Component):
         self._write_data(
             details["client"],
             ServerToClientRequests.mains_upd,
-            {"mains": IStateManager.mains_status()},
+            {"mains": ISystemEnvironment.mains_status()},
         )
 
     @handler(ClientToServerRequests.replay_actions.name)

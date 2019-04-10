@@ -83,13 +83,6 @@ class Randomizer:
         """
 
         rand_obj, rand_func = cls._get_rand_combination(instances)
-
-        rand_func = next(
-            filter(
-                lambda x: x.__name__ == rand_obj.update_sensor.__name__,
-                cls.classes[rand_obj.__class__],
-            )
-        )
         rand_func(rand_obj, *map(lambda x: x(rand_obj), rand_func.arg_defaults))
 
         # majestic nap

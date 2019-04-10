@@ -11,7 +11,7 @@ import operator
 import collections
 from enum import Enum
 
-import enginecore.state.api as state_api
+from enginecore.state.api.environment import ISystemEnvironment
 from enginecore.model.graph_reference import GraphReference
 
 
@@ -227,12 +227,15 @@ class Sensor:
         is removed;
         """
 
+        # avoid circular imports with the server
+        from enginecore.state.api import IBMCServerStateManager
+
         with self._graph_ref.get_session() as session:
 
             asset_info = GraphReference.get_asset_and_components(
                 session, self._server_key
             )
-            server_sm = state_api.IBMCServerStateManager(asset_info)
+            server_sm = IBMCServerStateManager(asset_info)
 
             cpu_impact_degrees_1 = 0
             cpu_impact_degrees_2 = 0
@@ -264,7 +267,7 @@ class Sensor:
 
                     # meaning update is needed
                     if cpu_impact_degrees_1 != cpu_impact_degrees_2:
-                        ambient = state_api.IStateManager.get_ambient()
+                        ambient = ISystemEnvironment.get_ambient()
                         self.sensor_value = (
                             new_calc_value if new_calc_value > ambient else int(ambient)
                         )
@@ -335,7 +338,7 @@ class Sensor:
                         },
                         temp_change=rel["degrees"] * 1 if causes_heating else -1,
                         limit={
-                            "lower": state_api.IStateManager.get_ambient(),
+                            "lower": ISystemEnvironment.get_ambient(),
                             "upper": rel["pauseAt"] if causes_heating else None,
                         },
                     )
@@ -397,13 +400,10 @@ class Sensor:
                     source_sensor_status = operator.ne
 
                 # verify that sensor value doesn't go below room temp
-                if (
-                    causes_heating
-                    or rel["pauseAt"] > state_api.IStateManager.get_ambient()
-                ):
+                if causes_heating or rel["pauseAt"] > ISystemEnvironment.get_ambient():
                     pause_at = rel["pauseAt"]
                 else:
-                    pause_at = state_api.IStateManager.get_ambient()
+                    pause_at = ISystemEnvironment.get_ambient()
 
                 # update target sensor value
                 with self._s_file_locks.get_lock(target), open(

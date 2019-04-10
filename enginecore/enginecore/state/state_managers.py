@@ -15,7 +15,7 @@ from enginecore.state.redis_channels import RedisChannels
 import enginecore.state.api as state_api
 
 
-class StateManager(state_api.IStateManager):
+class StateManager(state_api.IStateManager, state_api.ISystemEnvironment):
     def update_agent(self, pid):
         """Set agent PID"""
         StateManager.get_store().set(self.redis_key + ":agent", pid)
@@ -42,7 +42,7 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
 
     def update_temperature(self, temp):
         """Set battery temperature of the device"""
-        oid_value = (temp + StateManager.get_ambient()) * 10
+        oid_value = (temp + state_api.ISystemEnvironment.get_ambient()) * 10
         self._update_oid_by_name(
             "HighPrecBatteryTemperature", snmp_data_types.Gauge32, oid_value
         )
