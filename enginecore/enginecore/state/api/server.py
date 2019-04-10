@@ -17,11 +17,11 @@ from enginecore.state.sensor.sensor import SensorGroups
 
 @Randomizer.register
 class IServerStateManager(IStateManager):
+    """Server managing a vm (libvirt domain)"""
+
     def __init__(self, asset_info):
         super(IServerStateManager, self).__init__(asset_info)
         self._vm_conn = libvirt.open("qemu:///system")
-        # TODO: error handling if the domain is missing (throws libvirtError) & close the connection
-
         # print(pd_set_props_rand_args(self))
         self._vm = self._vm_conn.lookupByName(asset_info["domainName"])
 
@@ -77,19 +77,31 @@ class IBMCServerStateManager(IServerStateManager):
         """Retrieve sensors of type "fan" """
         return SensorRepository(self.key).get_sensors_by_group(SensorGroups.fan)
 
-    def _get_rand_fan_sensor_value(self, sensor_name):
+    def _get_rand_fan_sensor_value(self, sensor_name: str) -> int:
+        """Get random fan sensor value (if sensor thresholds are present)
+        Args:
+            sensor_name: name of a fan sensor
+        Raises:
+            ValueError: when the sensor name provided does not belong to a sensor of type fan
+        Returns:
+            Random RPM value divided by 10 (unit accepted by IPMI_sim) 
+            if at leat one lower & one upper thresholds are present,
+            returns the old sensor value otherwise
+        """
 
         sensor = SensorRepository(self.key).get_sensor_by_name(sensor_name)
+        if sensor.group != SensorGroups.fan:
+            raise ValueError('Only sensors of type "fan" are acceped')
+
         thresholds = sensor.thresholds
-
-        # no random generation for this sensor if thresholds are missing
-        if not thresholds or ("lnc" not in thresholds and "unc" not in thresholds):
-            return round(sensor.sensor_value * 0.1)
-
         get_th_by_group = lambda g: filter(lambda x: x.startswith(g), thresholds)
 
         lowest_th = min(get_th_by_group("l"), key=lambda x: thresholds[x])
         highest_th = max(get_th_by_group("u"), key=lambda x: thresholds[x])
+
+        # no random generation for this sensor if thresholds are missing
+        if not thresholds or not lowest_th or not highest_th:
+            return round(sensor.sensor_value * 0.1)
 
         return round(
             random.randrange(thresholds[lowest_th], thresholds[highest_th]) * 0.1
