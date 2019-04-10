@@ -8,6 +8,7 @@ import logging
 import time
 import json
 import operator
+import collections
 from enum import Enum
 
 import enginecore.state.api as state_api
@@ -33,7 +34,10 @@ class SensorGroups(Enum):
 
 
 class Sensor:
+
     """Aggregates sensor information """
+
+    thresholds_types = ["lnr", "lcr", "lnc", "unc", "ucr", "unr"]
 
     def __init__(self, sensor_dir, server_key, s_details, s_locks):
         self._s_dir = sensor_dir
@@ -493,6 +497,19 @@ class Sensor:
         """Current sensor reading value"""
         with open(self._get_sensor_file_path()) as sf_handler:
             return sf_handler.read()
+
+    @property
+    def thresholds(self):
+        """Get sensor thresholds
+        Returns: TODO
+        """
+        return collections.OrderedDict(
+            [
+                (k, self._s_specs[k])
+                for k in Sensor.thresholds_types
+                if k in self._s_specs
+            ]
+        )
 
     @sensor_value.setter
     def sensor_value(self, new_value):

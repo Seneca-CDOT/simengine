@@ -1,5 +1,6 @@
 import json
 import random
+import statistics
 import libvirt
 
 from enginecore.model.graph_reference import GraphReference
@@ -77,12 +78,32 @@ class IBMCServerStateManager(IServerStateManager):
 
         return SensorRepository(self.key).get_sensors_by_group(SensorGroups.fan)
 
+    def _get_rand_fan_sensor_value(self, sensor_name):
+        from enginecore.state.sensor.repository import SensorRepository
+        from enginecore.state.sensor.sensor import Sensor
+
+        sensor = SensorRepository(self.key).get_sensor_by_name(sensor_name)
+        thresholds = sensor.thresholds
+
+        # no random generation for this sensor if thresholds are missing
+        if not thresholds or ("lnc" not in thresholds and "unc" not in thresholds):
+            return round(sensor.sensor_value * 0.1)
+
+        get_th_by_group = lambda g: filter(lambda x: x.startswith(g), thresholds)
+
+        lowest_th = min(get_th_by_group("l"), key=lambda x: thresholds[x])
+        highest_th = max(get_th_by_group("u"), key=lambda x: thresholds[x])
+
+        return round(
+            random.randrange(thresholds[lowest_th], thresholds[highest_th]) * 0.1
+        )
+
     @record
     @Randomizer.randomize_method(
         ChainedArgs(
             [
                 lambda self: random.choice(self.get_fan_sensors()).name,
-                lambda self, sensor: random.randrange(0, 80),
+                lambda self, sensor_name: self._get_rand_fan_sensor_value(sensor_name),
             ]
         )()
     )
