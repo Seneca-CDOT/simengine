@@ -140,7 +140,7 @@ class Randomizer:
             instances: either a list of objects whose methods will be randomized or a single object to be used
             num_iter: number of random actions to be performed
             seconds: perform actions for this number of seconds, alternative to num_iter
-            nap: sleep function executed in-between the action, defaults to 0.5 seconds nap
+            nap: sleep function executed in-between the action, defaults to 1 second nap
         """
 
         if seconds and seconds < 0:

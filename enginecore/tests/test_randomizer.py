@@ -216,7 +216,7 @@ class RandomizerTests(unittest.TestCase):
 
     def test_randact_iter(self):
         """Test randomizer performing specified number of actions"""
-        Randomizer.randact(self.employee, num_iter=20)
+        Randomizer.randact(self.employee, num_iter=20, nap=lambda: None)
         self.assertEqual(20, Employee.num_promotions)
 
     def test_randact_timed(self):
@@ -233,7 +233,9 @@ class RandomizerTests(unittest.TestCase):
 
     def test_randact_many(self):
         """Verify randomized actions with various instances"""
-        Randomizer.randact([self.employee, self.rand_entity_1], num_iter=20)
+        Randomizer.randact(
+            [self.employee, self.rand_entity_1], num_iter=20, nap=lambda: None
+        )
         recorder_history = REC.get_action_details()
         self.assertEqual(20, len(recorder_history))
 
@@ -242,7 +244,9 @@ class RandomizerTests(unittest.TestCase):
         self.assertEqual(0, len(REC.get_action_details()))
         Randomizer.randact(self.employee)
         self.assertEqual(1, len(REC.get_action_details()))
-        Randomizer.randact([self.employee, self.rand_entity_1], num_iter=9)
+        Randomizer.randact(
+            [self.employee, self.rand_entity_1], num_iter=9, nap=lambda: None
+        )
         self.assertEqual(10, len(REC.get_action_details()))
 
     def test_child_class(self):
@@ -262,7 +266,7 @@ class RandomizerTests(unittest.TestCase):
         self.assertEqual(1, test_entity_2.status)
         test_entity_2.status = 0
 
-        Randomizer.randact(test_entity_2, num_iter=5)
+        Randomizer.randact(test_entity_2, num_iter=5, nap=lambda: None)
         self.assertEqual(1, test_entity_2.status)
 
     def _test_static_call(self):
