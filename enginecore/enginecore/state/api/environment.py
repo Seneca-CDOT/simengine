@@ -16,8 +16,13 @@ class ISystemEnvironment:
 
     redis_store = None
 
-    def __init__(self):
-        pass
+    def __init__(self, key=0):
+        self._key = key
+
+    @property
+    def key(self):
+        """ID of the system environment"""
+        return self._key
 
     @classmethod
     def get_store(cls):

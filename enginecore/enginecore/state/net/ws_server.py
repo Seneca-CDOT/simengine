@@ -250,11 +250,17 @@ class WebSocket(Component):
                 filter(lambda x: x in rand_session_specs["asset_keys"], assets)
             )
 
-        if not assets:
+        if not assets and not 0 in rand_session_specs["asset_keys"]:
             logging.error("No assets selected for random actions")
             return
 
         state_managers = list(map(IStateManager.get_state_manager_by_key, assets))
+
+        if (
+            not rand_session_specs["asset_keys"]
+            or 0 in rand_session_specs["asset_keys"]
+        ):
+            state_managers.append(ISystemEnvironment())
 
         if rand_session_specs["nap_time"]:
 
