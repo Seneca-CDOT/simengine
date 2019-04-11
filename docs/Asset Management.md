@@ -115,7 +115,7 @@ For example, this CLI command:
 
 will set ‘Frnt_FAN2’ to cool down ‘Mem E’ temperature every 5 seconds by 1°.
 
-!!! note ""
+!!! note
     Most thermal cases require both ‘up’ and ‘down’ events configured (‘Frnt_FAN2’ going down should result in temperature spikes for Memory slot(s)).
 
 ### Model-Based Relationship
