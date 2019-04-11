@@ -333,9 +333,20 @@ $ simengine-cli actions replay --list --start=2 --end=4
 Replay only the last recorded action:
 
 ```bash
-  $ simengine-cli actions replay --list --start=-1
-  5) [2019-04-02 11:06:29] IStaticDeviceManager(63).power_up()
+$ simengine-cli actions replay --list --start=-1
+5) [2019-04-02 11:06:29] IStaticDeviceManager(63).power_up()
 ```
+
+Replay actions that occured today between "11:06:22" and "11:06:27"
+
+```bash
+$ simengine-cli actions replay --list --start="11:06:22" --end="11:06:27"
+1) [2019-04-02 11:06:22] IStaticDeviceManager(62).shut_down()
+2) [2019-04-02 11:06:24] IStaticDeviceManager(63).shut_down()
+3) [2019-04-02 11:06:25] IStaticDeviceManager(61).power_up()
+4) [2019-04-02 11:06:27] IStaticDeviceManager(62).power_up()
+```
+
 
 **Recorder Status**
 

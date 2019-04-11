@@ -119,11 +119,15 @@ def range_args():
     common_args = argparse.ArgumentParser(add_help=False)
 
     common_args.add_argument(
-        "-s", "--start", help="Starting at this action number (range specifier)"
+        "-s",
+        "--start",
+        help="Starting at this action number, or at this time today (format %H:%M:%S) or date (%Y-%m-%d %H:%M:%S)",
     )
 
     common_args.add_argument(
-        "-e", "--end", help="Ending at this action number (range specifier)"
+        "-e",
+        "--end",
+        help="Ending at this action number, or at this time today (format %H:%M:%S) or date (%Y-%m-%d %H:%M:%S)",
     )
 
     return common_args
