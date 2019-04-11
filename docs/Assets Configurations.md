@@ -12,7 +12,7 @@ or
 
 `simengine-cli model update ups -k=3 --name=an-ups01 --host=localhost --port=1024`
 
-!!! note
+!!! note ""
 Binding to `161` requires `root` access.
 
 ### Charge & Drain Speed Factors
@@ -25,7 +25,7 @@ Binding to `161` requires `root` access.
 
 This factor will be multiplied by the estimated drain/charge percentage per second.
 
-!!! note
+!!! note ""
 Running this command does not require simengine-core restart.
 
 ### Runtime Graph
