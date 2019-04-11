@@ -3,7 +3,6 @@
 import time
 import os
 import subprocess
-import random
 import redis
 
 from enginecore.model.graph_reference import GraphReference

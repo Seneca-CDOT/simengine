@@ -348,3 +348,39 @@ When disabled, recorder ignores any incoming commands. The status itself can be 
   Enabled: True    # - is recorder capturing new actions?
   Replaying: False # - is recorder replaying any commands?
 ```
+
+## Action Randomizer
+
+SimEngine can spawn random actions associated with the components belonging to your system topology.
+
+Generated events are recorded just like any other actions executed through SimEngine interface and can be later replayed/saved (see [Action Recorder](https://simengine.readthedocs.io/en/latest/Asset%20Management/#action-recorder)).
+
+```bash
+$ simengine-cli actions random # generate one random action, pick random asset
+$ simengine-cli actions list   # view action history
+0) [2019-04-11 10:57:35] IOutletStateManager(44).shut_down()
+```
+
+Randomizer can generate any of the [recordable](https://simengine.readthedocs.io/en/latest/Asset%20Management/#action-recorder) actions although some events are limited in regards to the possible randomised parameters. For instance, only fan sensor get their values randomly generated and only if they support sensor thresholds.
+
+`actions random` command can either generate a certain number of random events with `--count` parameter or execute random actions for a specific time-period (`--seconds` argument).
+
+Pauses between actions can have a fixed value supplied with `--nap-time` or you can also provide min and max sleep time with both `--min-nap` & `--nap-time` (max) arguments.
+
+For example, the following command will generate 4 random actions associated with asset#5. The nap time between each action will be randomly assigned a value between 1 and 4.
+
+```bash
+$ simengine-cli actions random --count=4       # num of random actions \
+                                --min-nap=1    # min pause \
+                                --nap-time=4   # max possible pause time \
+                                --asset-keys 5 # only inlcude asset under id 5
+```
+
+Result:
+
+```bash
+0) [2019-04-11 11:12:37] IBMCServerStateManager(5).set_controller_prop(0, {'alarm': 'on'})
+1) [2019-04-11 11:12:38] IBMCServerStateManager(5).power_off()
+2) [2019-04-11 11:12:41] IBMCServerStateManager(5).set_cv_replacement(0, 'No', True)
+3) [2019-04-11 11:12:43] IBMCServerStateManager(5).power_up()
+```
