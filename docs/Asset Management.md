@@ -353,7 +353,7 @@ When disabled, recorder ignores any incoming commands. The status itself can be 
 
 SimEngine can spawn random actions associated with the components belonging to your system topology.
 
-Generated events are recorded just like any other actions executed through SimEngine interface and can be later replayed/saved (see [Action Recorder](https://simengine.readthedocs.io/en/latest/Asset%20Management/#action-recorder)).
+Generated events are recorded just like any other actions executed through SimEngine interface and can be later replayed/saved (see [Action Recorder](./Asset%20Management/#action-recorder)).
 
 ```bash
 $ simengine-cli actions random # generate one random action, pick random asset
@@ -361,7 +361,7 @@ $ simengine-cli actions list   # view action history
 0) [2019-04-11 10:57:35] IOutletStateManager(44).shut_down()
 ```
 
-Randomizer can generate any of the [recordable](https://simengine.readthedocs.io/en/latest/Asset%20Management/#action-recorder) actions although some events are limited in regards to the possible randomised parameters. For instance, only fan sensor get their values randomly generated and only if they support sensor thresholds.
+Randomizer can generate any of the [recordable](./Asset%20Management/#action-recorder) actions although some events are limited in regards to the possible randomised parameters. For instance, only fan sensor get their values randomly generated and only if they support sensor thresholds.
 
 `actions random` command can either generate a certain number of random events with `--count` parameter or execute random actions for a specific time-period (`--seconds` argument).
 

@@ -3,7 +3,7 @@
 `simengine-cli` provides interface for making your own system model (run `simengine-cli model --help` for more information).
 There're 6 supported asset types at the moment: Outlet, PDU, UPS, Server, Server with BMC (IPMI interface) and Static Device (dummy asset). The CLI type options can be found under `simengine-cli model create -h`.
 
-*Note* that the main engine daemon will need to be reloaded before schema changes can take place (any `simengine model` commands require `simengine-core` restart).
+_Note_ that the main engine daemon will need to be reloaded before schema changes can take place (any `simengine model` commands require `simengine-core` restart).
 
 The first time you load the model in a web interface, the assets are going to be overlaid on top of each other. You will need to create your own layout by dragging the components around, clicking `Gear` icon located in the top bar and saving it by choosing `Save Layout` option.
 
@@ -21,24 +21,22 @@ The code snippet below will create more complicated system that includes 3 PDUs 
 
 ![](./pdu_rack.png)
 
-
 Source Code:
-
 
     # Create an Outlet
     simengine-cli model create outlet --asset-key=1111
-    
+
     # Create 3 PDUs
     simengine-cli model create pdu --asset-key=1112 --port=1024
     simengine-cli model create pdu --asset-key=1113 --port=1025
     simengine-cli model create pdu --asset-key=1114 --port=1026
-    
+
     # Add bunch of microwaves (4 items)
     simengine-cli model create static --asset-key=2011 --name='Panasonic' --img-url=http://z3central.cdot.systems/docs/microwave-159076_640.png --power-source=120 --power-consumption=600
     simengine-cli model create static --asset-key=2012 --name='EvilCorp' --img-url=http://z3central.cdot.systems/docs/microwave-159076_640.png --power-source=120 --power-consumption=600
     simengine-cli model create static --asset-key=2013 --name='EvilCorp 10' --img-url=http://z3central.cdot.systems/docs/microwave-159076_640.png --power-source=120 --power-consumption=600
     simengine-cli model create static --asset-key=2014 --name='EvilCorp 10' --img-url=http://z3central.cdot.systems/docs/microwave-159076_640.png --power-source=120 --power-consumption=600
-    
+
     # Linking Assets Together
     simengine-cli model power-link --source-key=1111 --dest-key=1112
     simengine-cli model power-link --source-key=11124 --dest-key=1113
@@ -60,11 +58,11 @@ It is also possible to delete an existing power connection:
 
 ### Linking Schema
 
-PDU: if __input__ outlet has key 1, __output__ outlets will be assigned 11, 12, 13, 14, 15 ... 1n ('n' -> number of outlets)
+PDU: if **input** outlet has key 1, **output** outlets will be assigned 11, 12, 13, 14, 15 ... 1n ('n' -> number of outlets)
 
-UPS: if __input__ outlet has key 1, __output__ outlets will be assigned 11, 12, 13, 14, 15 ... 1n ('n' -> number of outlets)
+UPS: if **input** outlet has key 1, **output** outlets will be assigned 11, 12, 13, 14, 15 ... 1n ('n' -> number of outlets)
 
-Server: if server asset key is 1, __input__ PSU outlets will be assigned 11, 12 (if dual PSU is enabled)
+Server: if server asset key is 1, **input** PSU outlets will be assigned 11, 12 (if dual PSU is enabled)
 
 ## Update
 
@@ -72,11 +70,11 @@ Some properties can be configured later as in this example:
 
 `simengine-cli model update pdu -k1113 --off-delay=3000 # set power-off delay as 3000 ms`
 
-SNMP OID configurations (oid mappings), PSU settings & outlet count cannot be updated after asset's creation; Howerver, you can delete the existing asset, add a new one and recreate its power connections; 
+SNMP OID configurations (oid mappings), PSU settings & outlet count cannot be updated after asset's creation; Howerver, you can delete the existing asset, add a new one and recreate its power connections;
 
-See `simengine-cli model update {asset_type} -h` for the list of supported properties and [Assets Configurations](./Assets%20Configurations) page for more detailed documentation. 
+See `simengine-cli model update {asset_type} -h` for the list of supported properties and [Assets Configurations](./Assets%20Configurations) page for more detailed documentation.
 
-*Note* that the main engine daemon will need to be reloaded before schema changes can take place.
+_Note_ that the main engine daemon will need to be reloaded before schema changes can take place.
 
 ## Delete Asset
 
@@ -87,4 +85,3 @@ You can also remove & detach specific assets by key (note that you may need to r
 ## Drop Topology
 
 The entire system topology can be deleted with `simengine-cli model drop` command
-
