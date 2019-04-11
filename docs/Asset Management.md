@@ -42,6 +42,10 @@ You can also use `ipmitool` to communicate commands to the ipmi simulator instan
 
 ### Wall Power
 
+Wall power affects outlets' power & thermal state of the environment. It can be queried with:
+
+`simengine-cli status --mains`
+
 You can control the mains with the following commands:
 
 `simengine-cli power outage`

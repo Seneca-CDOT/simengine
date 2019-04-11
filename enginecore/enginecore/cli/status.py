@@ -4,7 +4,7 @@ import json
 import time
 import curses
 from enginecore.state.assets import Asset
-from enginecore.state.api import IStateManager
+from enginecore.state.api import IStateManager, ISystemEnvironment
 
 
 def status_command(status_group):
@@ -18,6 +18,9 @@ def status_command(status_group):
         "--load",
         help="Get load for the specified asset (key must be provided)",
         action="store_true",
+    )
+    status_group.add_argument(
+        "--mains", help="Get wallpower status", action="store_true"
     )
     status_group.add_argument(
         "--agent",
@@ -149,6 +152,13 @@ def get_status(**kwargs):
                     state_manager.key, state_manager.asset_type, state_manager.status
                 )
             )
+        return
+    elif kwargs["mains"]:
+        mains_status = ISystemEnvironment.mains_status()
+        if kwargs["value_only"]:
+            print(mains_status)
+        else:
+            print("Wallpower status:", mains_status)
         return
 
     ##### list states #####
