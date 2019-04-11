@@ -4,7 +4,7 @@
 There're 6 supported asset types at the moment: Outlet, PDU, UPS, Server, Server with BMC (IPMI interface) and Static Device (dummy asset). The CLI type options can be found under `simengine-cli model create -h`.
 
 !!! note ""
-Main engine daemon will need to be reloaded before schema changes can take place (any `simengine model` commands require `simengine-core` restart).
+    Main engine daemon will need to be reloaded before schema changes can take place (any `simengine model` commands require `simengine-core` restart).
 
 The first time you load the model in a web interface, the assets are going to be overlaid on top of each other. You will need to create your own layout by dragging the components around, clicking `Gear` icon located in the top bar and saving it by choosing `Save Layout` option.
 
@@ -76,7 +76,7 @@ SNMP OID configurations (oid mappings), PSU settings & outlet count cannot be up
 See `simengine-cli model update {asset_type} -h` for the list of supported properties and [Assets Configurations](./Assets%20Configurations) page for more detailed documentation.
 
 !!! note ""
-The main engine daemon will need to be reloaded before schema changes can take place.
+    The main engine daemon will need to be reloaded before schema changes can take place.
 
 ## Delete Asset
 
@@ -85,7 +85,7 @@ You can also remove & detach specific assets by key:
 `simengine-cli model delete --asset-key=1113`
 
 !!! note ""
-You may need to re-connect some components afterwards since the power-link may be broken
+    You may need to re-connect some components afterwards since the power-link may be broken
 
 ## Drop Topology
 

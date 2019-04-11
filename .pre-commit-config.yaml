@@ -1,11 +1,11 @@
 repos:
   - repo: https://github.com/ambv/black
     rev: stable
-    exclude: ^docs/
     hooks:
       - id: black
+        files: ^enginecore/
   - repo: https://github.com/prettier/prettier
     rev: master
-    exclude: ^docs/
     hooks:
       - id: prettier
+        files: ^dashboard/
