@@ -664,7 +664,7 @@ class GraphReference:
             "rebuild_time",
         ]
 
-        properties["State"] = properties["state"]
+        properties["State"] = properties["state"] if "state" in properties else None
 
         # query as (server)->(storage_controller)->(physical drive)
         query.append("MATCH (server:Asset {{ key: {} }})".format(server_key))

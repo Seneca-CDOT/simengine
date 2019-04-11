@@ -4,12 +4,12 @@ import json
 import itertools
 import logging
 import threading
-import functools
 import time
+import random
 
 from circuits import handler, Component, Event
 from circuits.net.events import write
-from enginecore.state.api import IStateManager
+from enginecore.state.api import IStateManager, ISystemEnvironment
 from enginecore.model.graph_reference import GraphReference
 from enginecore.tools.recorder import RECORDER as recorder
 from enginecore.tools.randomizer import Randomizer
@@ -85,14 +85,14 @@ class WebSocket(Component):
     def _handle_mains_request(self, details):
         """Wallpower update request"""
         if details["payload"]["mains"] == 0:
-            IStateManager.power_outage()
+            ISystemEnvironment.power_outage()
         else:
-            IStateManager.power_restore()
+            ISystemEnvironment.power_restore()
 
     @handler(ClientToServerRequests.set_ambient.name)
     def _handle_ambient_request(self, details):
         """"Handle ambient changes request"""
-        IStateManager.set_ambient(details["payload"]["degrees"])
+        ISystemEnvironment.set_ambient(details["payload"]["degrees"])
 
     @handler(ClientToServerRequests.exec_play.name)
     def _handle_play_request(self, details):
@@ -125,7 +125,7 @@ class WebSocket(Component):
         self._write_data(
             details["client"],
             ServerToClientRequests.ambient_upd,
-            {"ambient": IStateManager.get_ambient(), "rising": False},
+            {"ambient": ISystemEnvironment.get_ambient(), "rising": False},
         )
 
         self._write_data(
@@ -137,7 +137,7 @@ class WebSocket(Component):
         self._write_data(
             details["client"],
             ServerToClientRequests.mains_upd,
-            {"mains": IStateManager.mains_status()},
+            {"mains": ISystemEnvironment.mains_status()},
         )
 
     @handler(ClientToServerRequests.replay_actions.name)
@@ -238,16 +238,42 @@ class WebSocket(Component):
 
     @handler(ClientToServerRequests.exec_rand_actions.name)
     def _handle_rand_act(self, details):
-
-        # from pprint import pprint as pp
+        """Handle perform random actions request"""
 
         rand_session_specs = details["payload"]
-        nap = None
         assets = IStateManager.get_system_status(flatten=True)
+        nap = None
+
+        # filter out assets if range is provided
+        if rand_session_specs["asset_keys"]:
+            assets = list(
+                filter(lambda x: x in rand_session_specs["asset_keys"], assets)
+            )
+
+        if not assets and not 0 in rand_session_specs["asset_keys"]:
+            logging.error("No assets selected for random actions")
+            return
+
         state_managers = list(map(IStateManager.get_state_manager_by_key, assets))
 
+        if (
+            not rand_session_specs["asset_keys"]
+            or 0 in rand_session_specs["asset_keys"]
+        ):
+            state_managers.append(ISystemEnvironment())
+
         if rand_session_specs["nap_time"]:
-            nap = functools.partial(time.sleep, rand_session_specs["nap_time"])
+
+            def nap_calc():
+                nap_time = lambda: rand_session_specs["nap_time"]
+                if rand_session_specs["min_nap"]:
+                    nap_time = lambda: random.randrange(
+                        rand_session_specs["min_nap"], rand_session_specs["nap_time"]
+                    )
+
+                time.sleep(nap_time())
+
+            nap = nap_calc
 
         rand_t = threading.Thread(
             target=Randomizer.randact,

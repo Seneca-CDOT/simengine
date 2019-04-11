@@ -28,7 +28,8 @@ We will need to allocate IP addresses for the SNMP simulators on the host machin
     sudo ip addr add dev enp4s0 192.168.124.5/24 # PDU 1
     sudo ip addr add dev enp4s0 192.168.124.6/24 # PDU 2
 
-**Note** that you may need to re-configure your firewall and expose port 161 to the striker systems.
+!!! note
+    You may need to re-configure your firewall and expose port 161 to the striker systems.
 
 ## VM
 
@@ -237,6 +238,7 @@ More information on asset management including storage and thermal relationships
 
 You can update the existing model (for example, update UPS snmp ip address or server’s power consumption);
 
-**Note** that any model changes require `simengine-core` service restart;
+!!! note
+    Any model changes require `simengine-core` service restart;
 
 see `simengine-cli model update` for more information;

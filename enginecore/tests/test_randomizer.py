@@ -13,12 +13,12 @@ from enginecore.tools.randomizer import Randomizer
 REC = Recorder(module=__name__)
 
 
-def _get_b():
+def _get_b(_):
     """return random b value from a range"""
     return random.choice(["b", "bb", "bb"])
 
 
-def _get_obj():
+def _get_obj(_):
     """return random object"""
     return random.choice([dt.now(), {"message": "!"}, RandomizedEntity()])
 
@@ -46,13 +46,13 @@ class RandomizedEntity:
         self.key = RandomizedEntity.num_entities
 
     @REC
-    @Randomizer.randomize_method((lambda: random.randrange(0, 10),))
+    @Randomizer.randomize_method((lambda _: random.randrange(0, 10),))
     def set_count(self, value):
         """Test method 1"""
         self.count = value
 
     @REC
-    @Randomizer.randomize_method((lambda: random.choice(["a", "aa", "aaa"]), _get_b))
+    @Randomizer.randomize_method((lambda _: random.choice(["a", "aa", "aaa"]), _get_b))
     def set_kwargs(self, a_str="a", b_str="b"):
         """Test method 2"""
         self.a_str = a_str
@@ -83,13 +83,13 @@ class RandomizedEntity:
 
     @classmethod
     @REC
-    @Randomizer.randomize_method((lambda: random.randrange(0, 1),))
+    @Randomizer.randomize_method((lambda _: random.randrange(0, 1),))
     def class_method_2(cls, number):
         """Test class method 2"""
         cls.cls_lvl_number = number
 
     # @staticmethod
-    # @Randomizer.randomize_method((lambda: random.randrange(0, 1),))
+    # @Randomizer.randomize_method((lambda _: random.randrange(0, 1),))
     # def static_method_1(number):
     #     """Test static method"""
     #     RandomizedEntity.cls_lvl_number = number
@@ -101,15 +101,28 @@ class RandomizedEntityParent:
         self.key = 0
 
     @REC
-    @Randomizer.randomize_method((lambda: random.randrange(0, 10),))
+    @Randomizer.randomize_method((lambda _: random.randrange(0, 10),))
     def test_method(self, value):
         """Test method 4"""
         time.time()
 
 
 @Randomizer.register
+class RandomizedEntity2:
+    def __init__(self):
+        self.status = 0
+        self.key = 0
+
+    @REC
+    @Randomizer.randomize_method((lambda self: 1 if self.status < 1 else 0,))
+    def determine_status_from_self(self, value):
+        """Test method 5"""
+        self.status = value
+
+
+@Randomizer.register
 class RandomizedEntityChild(RandomizedEntityParent):
-    @Randomizer.randomize_method((lambda: random.randrange(0, 10),))
+    @Randomizer.randomize_method((lambda _: random.randrange(0, 10),))
     def test_method(self, value):
         """Test method 4"""
         time.time()
@@ -130,7 +143,7 @@ class Employee:
 
     @REC
     @Randomizer.randomize_method(
-        (lambda: random.choice(["manager", "ceo", "cto", "janitor"]),)
+        (lambda _: random.choice(["manager", "ceo", "cto", "janitor"]),)
     )
     def assign_title(self, title):
         """Test method 1"""
@@ -203,7 +216,7 @@ class RandomizerTests(unittest.TestCase):
 
     def test_randact_iter(self):
         """Test randomizer performing specified number of actions"""
-        Randomizer.randact(self.employee, num_iter=20)
+        Randomizer.randact(self.employee, num_iter=20, nap=lambda: None)
         self.assertEqual(20, Employee.num_promotions)
 
     def test_randact_timed(self):
@@ -220,7 +233,9 @@ class RandomizerTests(unittest.TestCase):
 
     def test_randact_many(self):
         """Verify randomized actions with various instances"""
-        Randomizer.randact([self.employee, self.rand_entity_1], num_iter=20)
+        Randomizer.randact(
+            [self.employee, self.rand_entity_1], num_iter=20, nap=lambda: None
+        )
         recorder_history = REC.get_action_details()
         self.assertEqual(20, len(recorder_history))
 
@@ -229,7 +244,9 @@ class RandomizerTests(unittest.TestCase):
         self.assertEqual(0, len(REC.get_action_details()))
         Randomizer.randact(self.employee)
         self.assertEqual(1, len(REC.get_action_details()))
-        Randomizer.randact([self.employee, self.rand_entity_1], num_iter=9)
+        Randomizer.randact(
+            [self.employee, self.rand_entity_1], num_iter=9, nap=lambda: None
+        )
         self.assertEqual(10, len(REC.get_action_details()))
 
     def test_child_class(self):
@@ -241,6 +258,16 @@ class RandomizerTests(unittest.TestCase):
                 "RandomizedEntityChild(0).test_method"
             )
         )
+
+    def test_arg_from_object(self):
+        """Test that you can access object when randomizing function argument"""
+        test_entity_2 = RandomizedEntity2()
+        Randomizer.randact(test_entity_2)
+        self.assertEqual(1, test_entity_2.status)
+        test_entity_2.status = 0
+
+        Randomizer.randact(test_entity_2, num_iter=5, nap=lambda: None)
+        self.assertEqual(1, test_entity_2.status)
 
     def _test_static_call(self):
         """Test if @staticmethod class functions can be recorded"""

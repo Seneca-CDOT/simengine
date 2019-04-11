@@ -3,8 +3,9 @@ repos:
     rev: stable
     hooks:
       - id: black
+        files: ^enginecore/
   - repo: https://github.com/prettier/prettier
     rev: master
-    exclude: ^docs/
     hooks:
       - id: prettier
+        files: ^dashboard/

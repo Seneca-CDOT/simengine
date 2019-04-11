@@ -133,13 +133,30 @@ def actions_command(actions_group):
         "-c", "--count", type=int, help="Number of actions to be performed", default=1
     )
     rand_action.add_argument(
+        "-k",
+        "--asset-keys",
+        nargs="+",
+        type=int,
+        help="Include only these assets when picking a random component, defaults to all if not provided",
+    )
+    rand_action.add_argument(
         "-s",
         "--seconds",
         type=int,
         help="Perform actions for 'n' seconds (alternative to 'count')",
     )
     rand_action.add_argument(
-        "-n", "--nap-time", type=int, help="Pause between each random action"
+        "-n",
+        "--nap-time",
+        type=float,
+        help="Pause between each random action or max nap time if --min-nap is present",
+    )
+
+    rand_action.add_argument(
+        "-m",
+        "--min-nap",
+        type=float,
+        help="Minimum sleep time, pauses between actions will be set to random if this value is provided",
     )
 
     # cli actions/callbacks

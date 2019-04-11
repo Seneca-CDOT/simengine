@@ -5,7 +5,7 @@
 
 import argparse
 import enginecore.model.system_modeler as sys_modeler
-from enginecore.state.api import IStateManager, IBMCServerStateManager
+from enginecore.state.api import ISystemEnvironment, IBMCServerStateManager
 from enginecore.state.sensor.repository import SensorRepository
 from enginecore.state.net.state_client import StateClient
 
@@ -430,7 +430,7 @@ def handle_set_thermal_ambient(kwargs):
     """Configure thermal properties for room temperature"""
 
     if kwargs["event"] and kwargs["pause_at"] and kwargs["rate"]:
-        IStateManager.set_ambient_props(kwargs)
+        ISystemEnvironment.set_ambient_props(kwargs)
     elif kwargs["event"] or kwargs["pause_at"] or kwargs["rate"]:
         raise argparse.ArgumentTypeError("Event, pause-at and rate must be supplied")
     else:
@@ -441,11 +441,11 @@ def handle_get_thermal_ambient(kwargs):
     """Print some general information about ambient configurations"""
 
     if kwargs["value_only"]:
-        print(IStateManager.get_ambient())
+        print(ISystemEnvironment.get_ambient())
     else:
-        print("Ambient: {}° ".format(IStateManager.get_ambient()))
+        print("Ambient: {}° ".format(ISystemEnvironment.get_ambient()))
 
-        ambient_props = IStateManager.get_ambient_props()
+        ambient_props = ISystemEnvironment.get_ambient_props()
         if not ambient_props:
             print("Ambient event properties are not configured yet!")
             return

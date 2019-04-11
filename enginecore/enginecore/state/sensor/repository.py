@@ -8,7 +8,7 @@ from enginecore.state.state_initializer import get_temp_workplace_dir
 from enginecore.model.graph_reference import GraphReference
 
 from enginecore.state.sensor.file_locks import SensorFileLocks
-from enginecore.state.sensor.sensor import Sensor
+from enginecore.state.sensor.sensor import Sensor, SensorGroups
 
 
 class SensorRepository:
@@ -67,7 +67,7 @@ class SensorRepository:
         """Set all sensors to offline"""
         for s_name in self._sensors:
             sensor = self._sensors[s_name]
-            if sensor.group != "temperature":
+            if sensor.group != SensorGroups.temperature:
                 sensor.set_to_off()
 
         self.disable_thermal_impact()
@@ -76,7 +76,7 @@ class SensorRepository:
         """Set all sensors to online"""
         for s_name in self._sensors:
             sensor = self._sensors[s_name]
-            if sensor.group != "temperature":
+            if sensor.group != SensorGroups.temperature:
                 sensor.set_to_defaults()
         self.enable_thermal_impact()
 
@@ -84,12 +84,20 @@ class SensorRepository:
         """Get a specific sensor by name"""
         return self._sensors[name]
 
+    def get_sensors_by_group(self, group):
+        """Get sensors by group name (temperature, fan etc) """
+
+        sensors_in_group = filter(
+            lambda k: self._sensors[k].group == group, self._sensors
+        )
+        return list(map(lambda k: self._sensors[k], sensors_in_group))
+
     def adjust_thermal_sensors(self, old_ambient, new_ambient):
         """Indicate an ambient update"""
 
         for s_name in self._sensors:
             sensor = self._sensors[s_name]
-            if sensor.group == "temperature":
+            if sensor.group == SensorGroups.temperature:
                 with self._sensor_file_locks.get_lock(sensor.name):
 
                     old_sensor_value = int(sensor.sensor_value)

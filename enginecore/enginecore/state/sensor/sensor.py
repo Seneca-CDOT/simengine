@@ -8,9 +8,10 @@ import logging
 import time
 import json
 import operator
+import collections
 from enum import Enum
 
-import enginecore.state.api as state_api
+from enginecore.state.api.environment import ISystemEnvironment
 from enginecore.model.graph_reference import GraphReference
 
 
@@ -21,8 +22,22 @@ class HDComponents(Enum):
     PhysicalDrive = 2
 
 
+class SensorGroups(Enum):
+    """Valid sensor groups"""
+
+    psu = 1
+    current = 2
+    fan = 3
+    voltage = 4
+    wattage = 5
+    temperature = 6
+
+
 class Sensor:
+
     """Aggregates sensor information """
+
+    thresholds_types = ["lnr", "lcr", "lnc", "unc", "ucr", "unr"]
 
     def __init__(self, sensor_dir, server_key, s_details, s_locks):
         self._s_dir = sensor_dir
@@ -31,7 +46,7 @@ class Sensor:
         self._s_specs = s_details["specs"]
         self._s_type = self._s_specs["type"]
         self._s_name = self._s_specs["name"]
-        self._s_group = self._s_specs["group"]
+        self._s_group = SensorGroups[self._s_specs["group"]]
 
         self._th_sensor_t = {}
         self._th_storage_t = {}
@@ -212,12 +227,15 @@ class Sensor:
         is removed;
         """
 
+        # avoid circular imports with the server
+        from enginecore.state.api import IBMCServerStateManager
+
         with self._graph_ref.get_session() as session:
 
             asset_info = GraphReference.get_asset_and_components(
                 session, self._server_key
             )
-            server_sm = state_api.IBMCServerStateManager(asset_info)
+            server_sm = IBMCServerStateManager(asset_info)
 
             cpu_impact_degrees_1 = 0
             cpu_impact_degrees_2 = 0
@@ -249,7 +267,7 @@ class Sensor:
 
                     # meaning update is needed
                     if cpu_impact_degrees_1 != cpu_impact_degrees_2:
-                        ambient = state_api.IStateManager.get_ambient()
+                        ambient = ISystemEnvironment.get_ambient()
                         self.sensor_value = (
                             new_calc_value if new_calc_value > ambient else int(ambient)
                         )
@@ -320,7 +338,7 @@ class Sensor:
                         },
                         temp_change=rel["degrees"] * 1 if causes_heating else -1,
                         limit={
-                            "lower": state_api.IStateManager.get_ambient(),
+                            "lower": ISystemEnvironment.get_ambient(),
                             "upper": rel["pauseAt"] if causes_heating else None,
                         },
                     )
@@ -382,13 +400,10 @@ class Sensor:
                     source_sensor_status = operator.ne
 
                 # verify that sensor value doesn't go below room temp
-                if (
-                    causes_heating
-                    or rel["pauseAt"] > state_api.IStateManager.get_ambient()
-                ):
+                if causes_heating or rel["pauseAt"] > ISystemEnvironment.get_ambient():
                     pause_at = rel["pauseAt"]
                 else:
-                    pause_at = state_api.IStateManager.get_ambient()
+                    pause_at = ISystemEnvironment.get_ambient()
 
                 # update target sensor value
                 with self._s_file_locks.get_lock(target), open(
@@ -483,6 +498,19 @@ class Sensor:
         with open(self._get_sensor_file_path()) as sf_handler:
             return sf_handler.read()
 
+    @property
+    def thresholds(self):
+        """Get sensor thresholds
+        Returns: TODO
+        """
+        return collections.OrderedDict(
+            [
+                (k, self._s_specs[k])
+                for k in Sensor.thresholds_types
+                if k in self._s_specs
+            ]
+        )
+
     @sensor_value.setter
     def sensor_value(self, new_value):
         with open(self._get_sensor_file_path(), "w+") as filein:
@@ -512,7 +540,7 @@ class Sensor:
         """Reset the sensor value to the specified default value"""
 
         with open(self._get_sensor_file_path(), "w+") as filein:
-            if self.group == "fan":
+            if self.group == SensorGroups.fan:
                 default_value = int(self._s_specs["defaultValue"] * 0.1)
             else:
                 default_value = self._s_specs["defaultValue"]

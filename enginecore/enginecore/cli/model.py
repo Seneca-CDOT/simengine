@@ -2,7 +2,7 @@
 
 import argparse
 import enginecore.model.system_modeler as sys_modeler
-from enginecore.state.api import IStateManager
+from enginecore.state.api import ISystemEnvironment
 
 
 def handle_link(kwargs):
@@ -18,8 +18,10 @@ def handle_link(kwargs):
 
 def validate_key(key):
     """Validate asset key"""
-    if key > 9999:
-        raise argparse.ArgumentTypeError("asset-key must be <= 9999")
+    if key > 9999 or key <= 0:
+        raise argparse.ArgumentTypeError(
+            "asset-key must be less than 9999 and greater than 0"
+        )
 
 
 def validate_server(kwargs):
@@ -80,7 +82,9 @@ def model_command(asset_group):
         "-r", "--remove", action="store_true", help="Delete power conneciton if exists"
     )
 
-    reload_asset_action.set_defaults(func=lambda args: IStateManager.reload_model())
+    reload_asset_action.set_defaults(
+        func=lambda args: ISystemEnvironment.reload_model()
+    )
 
     delete_asset_action.set_defaults(
         func=lambda args: sys_modeler.delete_asset(args["asset_key"])

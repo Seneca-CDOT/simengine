@@ -1,15 +1,13 @@
 ## Release - RPM
 
-
 To install from RPMs:
 
-1) Add the neo4j repository as documented at [http://yum.neo4j.org/stable/](http://yum.neo4j.org/stable/)
+1. Add the neo4j repository as documented at [http://yum.neo4j.org/stable/](http://yum.neo4j.org/stable/)
 
-2) Build local RPMs from specs by running [buildall script](https://github.com/Seneca-CDOT/simengine/tree/master/rpm/specfiles) 
+2. Build local RPMs from specs by running [buildall script](https://github.com/Seneca-CDOT/simengine/tree/master/rpm/specfiles)
 
-3) Install the local simengine RPMs from the local repository: 
-	
-	sudo dnf install *.rpm
+3. Install the local simengine RPMs from the local repository:
+   sudo dnf install \*.rpm
 
 ### Packaging
 
@@ -19,8 +17,7 @@ To build all of the RPMs, first set the Version: in the spec files to a version
 that is tagged in the GitHub repoi (i.e., create a tag for version 20.6, and set
 Version: in the simengine\* spec files to 20.6), then run:
 
-	 ${GitRepoBase}/rpm/specfiles/buildall
-
+     ${GitRepoBase}/rpm/specfiles/buildall
 
 ## Python API
 
@@ -41,10 +38,9 @@ The easiest way to install package is to download it from PyPI:
 
 `python3 -m pip install simengine`
 
-
 ## Development Version
 
-### DNF Dependencies 
+### DNF Dependencies
 
 Simengine uses OpenIPMI lanserv simulator for its BMC emulations and libvirt for virtualization.
 
@@ -74,13 +70,13 @@ Move to lib folder (may be arch-dependent):
 
 `sudo mkdir /usr/lib64/simengine`
 
-`sudo cp ./haos_extend.so  /usr/lib64/simengine`
+`sudo cp ./haos_extend.so /usr/lib64/simengine`
 
 ### enginecore
 
 Change location to `enginecore`
 
-Install pip packages: 
+Install pip packages:
 
 `python3 -m pip install -r requirements.txt`
 
@@ -124,4 +120,3 @@ mibs ALL
 You can start the main daemon (as root) by issuing:
 
 `./app.py -d -r -v`
-

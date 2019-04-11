@@ -1,7 +1,7 @@
+"""Server interfaces for managing servers' states """
 import json
-
+import random
 import libvirt
-
 
 from enginecore.model.graph_reference import GraphReference
 import enginecore.model.system_modeler as sys_modeler
@@ -10,15 +10,19 @@ from enginecore.tools.recorder import RECORDER as record
 
 from enginecore.state.redis_channels import RedisChannels
 from enginecore.state.api.state import IStateManager
-from enginecore.tools.randomizer import Randomizer
+from enginecore.tools.randomizer import Randomizer, ChainedArgs
+from enginecore.state.sensor.repository import SensorRepository
+from enginecore.state.sensor.sensor import SensorGroups
 
 
 @Randomizer.register
 class IServerStateManager(IStateManager):
+    """Server managing a vm (libvirt domain)"""
+
     def __init__(self, asset_info):
         super(IServerStateManager, self).__init__(asset_info)
         self._vm_conn = libvirt.open("qemu:///system")
-        # TODO: error handling if the domain is missing (throws libvirtError) & close the connection
+        # print(pd_set_props_rand_args(self))
         self._vm = self._vm_conn.lookupByName(asset_info["domainName"])
 
     def vm_is_active(self):
@@ -64,7 +68,54 @@ class IBMCServerStateManager(IServerStateManager):
         """
         return self._vm.getCPUStats(True)
 
+    def get_server_drives(self, controller_num):
+        """Get all the drives that are in the server"""
+        with self._graph_ref.get_session() as session:
+            return GraphReference.get_all_drives(session, self.key, controller_num)
+
+    def get_fan_sensors(self):
+        """Retrieve sensors of type "fan" """
+        return SensorRepository(self.key).get_sensors_by_group(SensorGroups.fan)
+
+    def _get_rand_fan_sensor_value(self, sensor_name: str) -> int:
+        """Get random fan sensor value (if sensor thresholds are present)
+        Args:
+            sensor_name: name of a fan sensor
+        Raises:
+            ValueError: when the sensor name provided does not belong to a sensor of type fan
+        Returns:
+            Random RPM value divided by 10 (unit accepted by IPMI_sim) 
+            if at leat one lower & one upper thresholds are present,
+            returns the old sensor value otherwise
+        """
+
+        sensor = SensorRepository(self.key).get_sensor_by_name(sensor_name)
+        if sensor.group != SensorGroups.fan:
+            raise ValueError('Only sensors of type "fan" are acceped')
+
+        thresholds = sensor.thresholds
+        get_th_by_group = lambda g: filter(lambda x: x.startswith(g), thresholds)
+
+        lowest_th = min(get_th_by_group("l"), key=lambda x: thresholds[x])
+        highest_th = max(get_th_by_group("u"), key=lambda x: thresholds[x])
+
+        # no random generation for this sensor if thresholds are missing
+        if not thresholds or not lowest_th or not highest_th:
+            return round(sensor.sensor_value * 0.1)
+
+        return round(
+            random.randrange(thresholds[lowest_th], thresholds[highest_th]) * 0.1
+        )
+
     @record
+    @Randomizer.randomize_method(
+        ChainedArgs(
+            [
+                lambda self: random.choice(self.get_fan_sensors()).name,
+                lambda self, sensor_name: self._get_rand_fan_sensor_value(sensor_name),
+            ]
+        )()
+    )
     def update_sensor(self, sensor_name: str, value):
         """Update runtime value of the sensor belonging to this server
         Args:
@@ -74,15 +125,32 @@ class IBMCServerStateManager(IServerStateManager):
         """
 
         try:
-            # import is inside the method to avoid circular imports
-            from enginecore.state.sensor.repository import SensorRepository
-
             sensor = SensorRepository(self.key).get_sensor_by_name(sensor_name)
             sensor.sensor_value = value
         except KeyError as error:
             print("Server or Sensor does not exist: %s", str(error))
 
     @record
+    @Randomizer.randomize_method(
+        arg_defaults=ChainedArgs(
+            [
+                lambda self: random.randrange(0, self.controller_count),
+                lambda self, ctrl_num: random.choice(
+                    list(
+                        map(lambda x: x["DID"], self.get_server_drives(ctrl_num)["pd"])
+                    )
+                ),
+                lambda self, _: random.choice(
+                    [
+                        {"state": random.choice(["Onln", "Offln"])},
+                        {"media_error_count": random.randrange(0, 10)},
+                        {"other_error_count": random.randrange(0, 10)},
+                        {"predictive_error_count": random.randrange(0, 10)},
+                    ]
+                ),
+            ]
+        )()
+    )
     def set_physical_drive_prop(self, controller: int, did: int, properties: dict):
         """Update properties of a physical drive belonging to a RAID array
         Args:
@@ -97,6 +165,20 @@ class IBMCServerStateManager(IServerStateManager):
             )
 
     @record
+    @Randomizer.randomize_method(
+        arg_defaults=ChainedArgs(
+            [
+                lambda self: random.randrange(0, self.controller_count),
+                lambda self, _: random.choice(
+                    [
+                        {"alarm": random.choice(["on", "off", "missing"])},
+                        {"mem_c_errors": random.randrange(0, 10)},
+                        {"mem_uc_errors": random.randrange(0, 10)},
+                    ]
+                ),
+            ]
+        )()
+    )
     def set_controller_prop(self, controller: int, properties: dict):
         """Update properties associated with a RAID controller
         Args:
@@ -110,6 +192,15 @@ class IBMCServerStateManager(IServerStateManager):
             )
 
     @record
+    @Randomizer.randomize_method(
+        arg_defaults=ChainedArgs(
+            [
+                lambda self: random.randrange(0, self.controller_count),
+                lambda self, _: random.choice(["Yes", "No"]),
+                lambda self, _: bool(random.getrandbits(1)),
+            ]
+        )()
+    )
     def set_cv_replacement(self, controller: int, repl_status: str, wt_on_fail: bool):
         """Update Cachevault replacement status"""
         with self._graph_ref.get_session() as session:
@@ -122,6 +213,12 @@ class IBMCServerStateManager(IServerStateManager):
         """Get latest recorded CPU load in percentage (between 0 and 100)"""
         cpu_load = IStateManager.get_store().get(self.redis_key + ":cpu_load")
         return int(cpu_load.decode()) if cpu_load else 0
+
+    @property
+    def controller_count(self) -> int:
+        """Find number of RAID controllers"""
+        with self._graph_ref.get_session() as session:
+            return GraphReference.get_controller_count(session, self.key)
 
     @classmethod
     def get_sensor_definitions(cls, asset_key):
