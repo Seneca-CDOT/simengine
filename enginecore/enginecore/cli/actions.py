@@ -3,6 +3,7 @@
 import argparse
 import sys
 import os
+import operator
 from datetime import datetime as dt
 from enginecore.state.net.state_client import StateClient
 from enginecore.tools.recorder import Recorder
@@ -23,9 +24,81 @@ def print_action_list(action_details):
         )
 
 
+def try_date_format(date_str, date_format):
+    try:
+        return dt.strptime(date_str, date_format)
+    except ValueError:
+        return None
+
+
+def get_date_from_str(date_str):
+
+    parsed_date = try_date_format(date_str, "%H:%M:%S")
+    if parsed_date:
+        parsed_date = dt.combine(dt.now(), parsed_date.time())
+    else:
+        parsed_date = try_date_format(date_str, "%Y-%m-%d %H:%M:%S")
+
+    return parsed_date
+
+
+def get_action_slice(start, end):
+    """Parse start & end range specifiers"""
+
+    if not start or not end:
+        return slice(None, None)
+
+    try:
+        return slice(int(start), int(end))
+    except ValueError:
+
+        start_idx, end_idx, start_date, end_date = [None] * 4
+
+        if not start.isdigit():
+            start_date = get_date_from_str(start)
+        else:
+            start_idx = start
+
+        if not end.isdigit():
+            end_date = get_date_from_str(end)
+        else:
+            end_idx = end
+
+        # Some non-parsable date formats were supplied
+        if not start_date and not end_date:
+            return slice(None, None)
+
+        # filter actions by their index if either of the range options are indices
+        all_actions = StateClient.list_actions(slice(start_idx, end_idx))
+        filter_actions_by_date = lambda d, op: list(
+            filter(lambda x: op(dt.fromtimestamp(x["timestamp"]), d), all_actions)
+        )
+
+        if start_date:
+            filtered_actions = filter_actions_by_date(start_date, operator.ge)
+        if end_date:
+            filtered_actions = filter_actions_by_date(end_date, operator.le)
+
+        start_idx = (
+            start_idx
+            if start_idx
+            else min(filtered_actions, key=lambda x: x["number"])["number"]
+        )
+
+        end_idx = (
+            end_idx
+            if end_idx
+            else max(filtered_actions, key=lambda x: x["number"])["number"] + 1
+        )
+
+        print(start_idx, end_idx)
+
+        return slice(start_idx, end_idx)
+
+
 def dry_run_actions(args):
     """Do a dry run of action replay without changing of affecting assets' states"""
-    action_slc = slice(args["start"], args["end"])
+    action_slc = get_action_slice(args["start"], args["end"])
     action_details = StateClient.list_actions(action_slc)
     try:
         Recorder.perform_dry_run(action_details, action_slc)
@@ -39,14 +112,11 @@ def range_args():
     common_args = argparse.ArgumentParser(add_help=False)
 
     common_args.add_argument(
-        "-s",
-        "--start",
-        type=int,
-        help="Starting at this action number (range specifier)",
+        "-s", "--start", help="Starting at this action number (range specifier)"
     )
 
     common_args.add_argument(
-        "-e", "--end", type=int, help="Ending at this action number (range specifier)"
+        "-e", "--end", help="Ending at this action number (range specifier)"
     )
 
     return common_args
@@ -59,7 +129,7 @@ def handle_file_command(args, client_request_func):
     """
     client_request_func(
         os.path.abspath(os.path.expanduser(args["filename"])),
-        slice(args["start"], args["end"]),
+        get_action_slice(args["start"], args["end"]),
     )
 
 
@@ -163,28 +233,28 @@ def actions_command(actions_group):
     replay_action.set_defaults(
         func=lambda args: [
             print_action_list(
-                StateClient.list_actions(slice(args["start"], args["end"]))
+                StateClient.list_actions(get_action_slice(args["start"], args["end"]))
             )
             if args["list"]
             else None,
-            StateClient.replay_actions(slice(args["start"], args["end"])),
+            StateClient.replay_actions(get_action_slice(args["start"], args["end"])),
         ]
     )
 
     clear_action.set_defaults(
         func=lambda args: [
             print_action_list(
-                StateClient.list_actions(slice(args["start"], args["end"]))
+                StateClient.list_actions(get_action_slice(args["start"], args["end"]))
             )
             if args["list"]
             else None,
-            StateClient.clear_actions(slice(args["start"], args["end"])),
+            StateClient.clear_actions(get_action_slice(args["start"], args["end"])),
         ]
     )
 
     list_action.set_defaults(
         func=lambda args: print_action_list(
-            StateClient.list_actions(slice(args["start"], args["end"]))
+            StateClient.list_actions(get_action_slice(args["start"], args["end"]))
         )
     )
 
