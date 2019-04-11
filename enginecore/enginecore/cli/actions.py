@@ -25,6 +25,11 @@ def print_action_list(action_details):
 
 
 def try_date_format(date_str, date_format):
+    """Try to apply a specific date format
+    Args:
+        date_str: date to be parsed
+        date_format: will be applied to date_str
+    """
     try:
         return dt.strptime(date_str, date_format)
     except ValueError:
@@ -32,6 +37,12 @@ def try_date_format(date_str, date_format):
 
 
 def get_date_from_str(date_str):
+    """CLI either accepts today's time as 17:35:38 or full date as 2019-04-11 17:35:38
+    Args:
+        date_str: provided date to be parsed
+    Returns:
+        None if parsing failed, else parsed date
+    """
 
     parsed_date = try_date_format(date_str, "%H:%M:%S")
     if parsed_date:
@@ -42,58 +53,54 @@ def get_date_from_str(date_str):
     return parsed_date
 
 
+def get_index_from_range_opt(range_opt, actions, start_opt=True):
+    """Analyze range option"""
+
+    # action index was provided
+    if range_opt is None or range_opt.isdigit():
+        return int(range_opt) if range_opt else None
+
+    range_date = get_date_from_str(range_opt)
+
+    # could not parse the date format
+    if not range_date:
+        return None
+
+    # find actions within the date
+    filter_actions_by_date = lambda d, op: list(
+        filter(lambda x: op(dt.fromtimestamp(x["timestamp"]), d), actions)
+    )
+    filtered_actions = filter_actions_by_date(
+        range_date, operator.ge if start_opt else operator.le
+    )
+
+    if not filtered_actions:
+        return None
+
+    border_date_action = (min if start_opt else max)(
+        filtered_actions, key=lambda x: x["number"]
+    )
+    range_idx = border_date_action["number"] if border_date_action else None
+
+    if not start_opt and range_idx is not None:
+        range_idx = range_idx + 1
+
+    return range_idx
+
+
 def get_action_slice(start, end):
     """Parse start & end range specifiers"""
 
-    if not start or not end:
-        return slice(None, None)
-
     try:
         return slice(int(start), int(end))
-    except ValueError:
+    except (ValueError, TypeError):
 
-        start_idx, end_idx, start_date, end_date = [None] * 4
+        all_actions = StateClient.list_actions(slice(None, None))
 
-        if not start.isdigit():
-            start_date = get_date_from_str(start)
-        else:
-            start_idx = start
+        start = get_index_from_range_opt(start, all_actions)
+        end = get_index_from_range_opt(end, all_actions, start_opt=False)
 
-        if not end.isdigit():
-            end_date = get_date_from_str(end)
-        else:
-            end_idx = end
-
-        # Some non-parsable date formats were supplied
-        if not start_date and not end_date:
-            return slice(None, None)
-
-        # filter actions by their index if either of the range options are indices
-        all_actions = StateClient.list_actions(slice(start_idx, end_idx))
-        filter_actions_by_date = lambda d, op: list(
-            filter(lambda x: op(dt.fromtimestamp(x["timestamp"]), d), all_actions)
-        )
-
-        if start_date:
-            filtered_actions = filter_actions_by_date(start_date, operator.ge)
-        if end_date:
-            filtered_actions = filter_actions_by_date(end_date, operator.le)
-
-        start_idx = (
-            start_idx
-            if start_idx
-            else min(filtered_actions, key=lambda x: x["number"])["number"]
-        )
-
-        end_idx = (
-            end_idx
-            if end_idx
-            else max(filtered_actions, key=lambda x: x["number"])["number"] + 1
-        )
-
-        print(start_idx, end_idx)
-
-        return slice(start_idx, end_idx)
+        return slice(start, end)
 
 
 def dry_run_actions(args):
