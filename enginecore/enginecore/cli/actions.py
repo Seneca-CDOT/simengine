@@ -54,19 +54,26 @@ def get_date_from_str(date_str):
 
 
 def get_index_from_range_opt(range_opt, actions, start_opt=True):
-    """Analyze range option"""
+    """Analyze range option, find index for rand_opt if it is a date string
+    Args:
+        rand_opt: either index of an action or date string in format 
+                  "%H:%M:%S" or "%Y-%m-%d %H:%M:%S"
+        actions(list): list of action history
+        start_opt: indicates if the index provided is the starting point of a slice
+    Returns:
+        int: index of the starting or ending action
+    """
 
-    # action index was provided
+    # action index was provided - return number
     if range_opt is None or range_opt.isdigit():
         return int(range_opt) if range_opt else None
 
+    # try to parse a date
     range_date = get_date_from_str(range_opt)
-
-    # could not parse the date format
     if not range_date:
         return None
 
-    # find actions within the date
+    # find actions within the date range
     filter_actions_by_date = lambda d, op: list(
         filter(lambda x: op(dt.fromtimestamp(x["timestamp"]), d), actions)
     )
@@ -89,12 +96,19 @@ def get_index_from_range_opt(range_opt, actions, start_opt=True):
 
 
 def get_action_slice(start, end):
-    """Parse start & end range specifiers"""
+    """Parse start & end range specifiers
+    Args:
+        start: start index or starting datestring or time string in a format "%H:%M:%S" or "%Y-%m-%d %H:%M:%S"
+        end: end index or end date/time in a format "%H:%M:%S" or "%Y-%m-%d %H:%M:%S"
+    Returns:
+        slice: range of actions
+    """
 
     try:
         return slice(int(start), int(end))
     except (ValueError, TypeError):
 
+        # attemp to parse dates if one/both of the range options are non digits
         all_actions = StateClient.list_actions(slice(None, None))
 
         start = get_index_from_range_opt(start, all_actions)
