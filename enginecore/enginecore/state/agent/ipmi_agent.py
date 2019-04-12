@@ -15,7 +15,9 @@ from enginecore.state.agent.agent import Agent
 
 
 class IPMIAgent(Agent):
-    """Python wrapper around ipmi_sim program"""
+    """Python wrapper managing ipmi_sim program that takes SensorRepository & translates it into ipmi_sim 
+    sensor definitions.
+    """
 
     supported_sensors = dict.fromkeys(SUPPORTED_SENSORS, "")
     lan_conf_attributes = [
