@@ -1,5 +1,4 @@
 # PSU voltage sensors (12v)
-# Range 10-14
 sdr type 1
 	sensor_owner_id		0x20
 	sensor_owner_lun	0

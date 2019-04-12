@@ -81,7 +81,7 @@ ${caseFan}
 ${Ambient}
 ${Systemboard}
 ${RAIDControllerTemperature}
-
+${BBU}
 
 mc_enable 0x30
 

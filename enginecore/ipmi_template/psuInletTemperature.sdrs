@@ -1,4 +1,3 @@
-# Front panel temp sensor
 sdr type 1
 	sensor_owner_id		0x20
 	sensor_owner_lun	0

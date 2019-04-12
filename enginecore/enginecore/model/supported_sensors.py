@@ -13,4 +13,5 @@ SUPPORTED_SENSORS = [
     "RAIDControllerTemperature",
     "cpuTemperature",
     "Systemboard",
+    "BBU",
 ]

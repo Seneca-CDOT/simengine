@@ -318,5 +318,20 @@
                 "name": "PSU{index} Inlet"
             }
         ]
+    },
+    "BBU": {
+        "group": "temperature",
+        "sensorDefinitions": [
+            {
+                "thresholds": {
+                    "unc": 50.0,
+                    "ucr": 55.0
+                },
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "BBU temperature",
+                "address": "0x41"
+            }
+        ]
     }
 }
