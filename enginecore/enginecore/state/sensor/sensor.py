@@ -8,7 +8,7 @@ import logging
 import time
 import json
 import operator
-import collections
+from collections import OrderedDict
 from enum import Enum
 
 from enginecore.state.api.environment import ISystemEnvironment
@@ -491,6 +491,11 @@ class Sensor:
         return self._s_name
 
     @property
+    def sensor_type(self):
+        """Sensor type (one of enginecore.model.supported_sensors)"""
+        return self._s_type
+
+    @property
     def group(self):
         """Sensor group type (datatype, e.g. temperature, voltage)"""
         return self._s_group
@@ -503,10 +508,12 @@ class Sensor:
 
     @property
     def thresholds(self):
-        """Get sensor thresholds
-        Returns: TODO
+        """Get sensor thresholds (if supported by the sensor)
+        Returns:
+            OrderedDict: annotated sensor threshold values ordered from lower to upper as
+                         ("lnr", "lcr", "lnc", "unc", "ucr", "unr")
         """
-        return collections.OrderedDict(
+        return OrderedDict(
             [
                 (k, self._s_specs[k])
                 for k in Sensor.thresholds_types
@@ -515,15 +522,30 @@ class Sensor:
         )
 
     @property
-    def specs(self):
-        return self._s_specs
+    def event(self):
+        """Event associated with a type"""
+        return 8 if self.event_reading_type != 1 else 3
+
+    @property
+    def event_reading_type(self):
+        """Get event reading type"""
+        return (
+            self._s_specs["eventReadingType"]
+            if "eventReadingType" in self._s_specs
+            else 1
+        )
+
+    @property
+    def index(self):
+        """Get sensor index if sensor is part of an address space"""
+        return self._s_specs["index"] if "index" in self._s_specs else None
 
     @property
     def address(self):
         """Get sensor address"""
-        if not "index" in self._s_specs:
-            return self._s_specs["address"]
-        return hex(int(self._s_address_space["address"], 16) + self._s_specs["index"])
+        if self.index is not None:
+            return hex(int(self._s_address_space["address"], 16) + self.index)
+        return self._s_specs["address"]
 
     @sensor_value.setter
     def sensor_value(self, new_value):
