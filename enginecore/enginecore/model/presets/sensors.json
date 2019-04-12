@@ -294,5 +294,29 @@
                 "address": "0x26"
             }
         ]
+    },
+    "psuInletTemperature": {
+        "group": "temperature",
+        "addressSpace": "0x31",
+        "sensorDefinitions": [
+            {
+                "thresholds": {
+                    "unc": 57.0,
+                    "ucr": 61.0
+                },
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "PSU{index} Inlet"
+            },
+            {
+                "thresholds": {
+                    "unc": 57.0,
+                    "ucr": 61.0
+                },
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "PSU{index} Inlet"
+            }
+        ]
     }
 }

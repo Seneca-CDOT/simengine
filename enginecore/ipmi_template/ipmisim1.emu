@@ -61,6 +61,8 @@ ${psuCurrent}
 ${psuPower}
 ${psuVoltage}
 ${psuTemperature}
+${psuInletTemperature}
+
 
 # ===========
 # MEMORY 
