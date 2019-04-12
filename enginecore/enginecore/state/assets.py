@@ -729,13 +729,13 @@ class ServerWithBMC(Server):
         ipmi_dir = os.path.join(get_temp_workplace_dir(), str(asset_info["key"]))
         os.makedirs(ipmi_dir)
 
-        sensors = self.StateManagerCls.get_sensor_definitions(asset_info["key"])
         self._sensor_repo = SensorRepository(asset_info["key"], enable_thermal=True)
 
-        # TODO: pass sensor repo to IPMIAgent instead of kv
-        self._ipmi_agent = IPMIAgent(
-            asset_info["key"], ipmi_dir, ipmi_config=asset_info, sensors=sensors
-        )
+        # set up agents
+        ipmi_conf = {
+            k: asset_info[k] for k in asset_info if k in IPMIAgent.lan_conf_attributes
+        }
+        self._ipmi_agent = IPMIAgent(ipmi_dir, ipmi_conf, self._sensor_repo)
         self._storcli_emu = StorCLIEmulator(
             asset_info["key"], ipmi_dir, socket_port=asset_info["storcliPort"]
         )

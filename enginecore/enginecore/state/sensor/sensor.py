@@ -44,8 +44,11 @@ class Sensor:
         self._server_key = server_key
 
         self._s_specs = s_details["specs"]
+        self._s_address_space = s_details["address_space"]
+
         self._s_type = self._s_specs["type"]
         self._s_name = self._s_specs["name"]
+
         self._s_group = SensorGroups[self._s_specs["group"]]
 
         self._th_sensor_t = {}
@@ -510,6 +513,17 @@ class Sensor:
                 if k in self._s_specs
             ]
         )
+
+    @property
+    def specs(self):
+        return self._s_specs
+
+    @property
+    def address(self):
+        """Get sensor address"""
+        if not "index" in self._s_specs:
+            return self._s_specs["address"]
+        return hex(int(self._s_address_space["address"], 16) + self._s_specs["index"])
 
     @sensor_value.setter
     def sensor_value(self, new_value):

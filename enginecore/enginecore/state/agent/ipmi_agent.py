@@ -18,63 +18,49 @@ class IPMIAgent(Agent):
     """Python wrapper around ipmi_sim program"""
 
     supported_sensors = dict.fromkeys(SUPPORTED_SENSORS, "")
+    lan_conf_attributes = [
+        "host",
+        "port",
+        "user",
+        "password",
+        "vmport",
+        "num_components",
+    ]
 
-    def __init__(self, key, ipmi_dir, ipmi_config, sensors):
+    def __init__(self, ipmi_dir, ipmi_config, sensor_repo):
         super(IPMIAgent, self).__init__()
-        self._asset_key = key
+
         self._ipmi_dir = ipmi_dir
-
-        # a workaround: https://stackoverflow.com/a/28055993
-        # pylint: disable=W0212
-        dir_util._path_created = {}
-        # pylint: enable=W0212
-
-        dir_util.copy_tree(os.environ.get("SIMENGINE_IPMI_TEMPL"), self._ipmi_dir)
+        self._sensor_repo = sensor_repo
+        self._init_ipmi_dir()
 
         # sensor, emu & lan configuration file paths
-        lan_conf = os.path.join(self._ipmi_dir, "lan.conf")
-        ipmisim_emu = os.path.join(self._ipmi_dir, "ipmisim1.emu")
-        sdr_main = os.path.join(
-            self._ipmi_dir, "emu_state", "ipmi_sim", "ipmisim1", "sdr.20.main"
-        )
-        sensor_def = os.path.join(self._ipmi_dir, "main.sdrs")
-
-        lib_path = os.path.join(
-            sysconfig.get_config_var("LIBDIR"), "simengine", "haos_extend.so"
-        )
 
         # Template options
         lan_conf_opt = {
-            "asset_key": key,
-            "extend_lib": lib_path,
-            "host": ipmi_config["host"],
-            "port": ipmi_config["port"],
-            "user": ipmi_config["user"],
-            "password": ipmi_config["password"],
-            "vmport": ipmi_config["vmport"],
+            "asset_key": self._sensor_repo.server_key,
+            "extend_lib": self.extend_plugin_path,
+            **ipmi_config,
         }
 
-        ipmisim_emu_opt = {
-            **{"ipmi_dir": self._ipmi_dir},
-            **IPMIAgent.supported_sensors,
-        }
+        ipmisim_emu_opt = {"ipmi_dir": self._ipmi_dir, **IPMIAgent.supported_sensors}
 
         main_sdr_opt = {
-            **{"ipmi_dir": self._ipmi_dir, "includes": ""},
+            "ipmi_dir": self._ipmi_dir,
+            "includes": "",
             **IPMIAgent.supported_sensors,
         }
 
         # initialize sensors
-        for i, sensor in enumerate(sensors):
+        for i, sensor_name in enumerate(sensor_repo.sensors):
 
-            s_specs = sensor["specs"]
+            sensor = sensor_repo.sensors[sensor_name]
 
-            if "index" in s_specs:
-                s_idx = hex(
-                    int(sensor["address_space"]["address"], 16) + s_specs["index"]
-                )
-            else:
-                s_idx = s_specs["address"]
+            # pp(sensor)
+            s_specs = sensor.specs
+            # pp(s_specs)
+
+            s_idx = sensor.address
 
             sensor_file = s_specs["name"]
 
@@ -156,14 +142,15 @@ class IPMIAgent(Agent):
             )
 
         # Substitute a template
-        self._substitute_template_file(lan_conf, lan_conf_opt)
-        self._substitute_template_file(ipmisim_emu, ipmisim_emu_opt)
-        self._substitute_template_file(sensor_def, main_sdr_opt)
+        self._substitute_template_file(self.lan_conf_path, lan_conf_opt)
+        self._substitute_template_file(self.ipmisim_emu_path, ipmisim_emu_opt)
+        self._substitute_template_file(self.sensor_def_path, main_sdr_opt)
 
-        # compile sensor definitions
-        os.system("sdrcomp -o {} {}".format(sdr_main, sensor_def))
-        subprocess.call(["chmod", "-R", "ugo+rwx", self._ipmi_dir])
+        self._compile_sensors()
+        self._update_permissions()
+
         self.start_agent()
+
         IPMIAgent.agent_num += 1
 
     def _substitute_template_file(self, filename, options):
@@ -173,15 +160,70 @@ class IPMIAgent(Agent):
             filein.seek(0)
             filein.write(template.substitute(options))
 
+    def _populate_template_files(self, lan_conf_opt, ipmisim_emu_opt, main_sdr_opt):
+        pass
+
+    def _init_ipmi_dir(self):
+        """Copy clean template files to the working ipmi directory"""
+
+        # a workaround: https://stackoverflow.com/a/28055993
+        # pylint: disable=W0212
+        dir_util._path_created = {}
+        # pylint: enable=W0212
+
+        dir_util.copy_tree(os.environ.get("SIMENGINE_IPMI_TEMPL"), self._ipmi_dir)
+
+    def _compile_sensors(self):
+        """Compile SDRs sensor definitions"""
+        os.system("sdrcomp -o {} {}".format(self.sdr_main_path, self.sensor_def_path))
+
+    def _update_permissions(self):
+        """Update recursively"""
+        subprocess.call(["chmod", "-R", "ugo+rwx", self._ipmi_dir])
+
+    @property
+    def lan_conf_path(self):
+        """Path to a config file containing communication parameters for the device"""
+        return os.path.join(self._ipmi_dir, "lan.conf")
+
+    @property
+    def ipmisim_emu_path(self):
+        """Path to a file containing .emu commands for creating IPMI system"""
+        return os.path.join(self._ipmi_dir, "ipmisim1.emu")
+
+    @property
+    def sdr_main_path(self):
+        """Path to the compiled IPMIsim sensors (compiled SDRs) """
+        return os.path.join(
+            self.emu_state_dir_path, "ipmi_sim", "ipmisim1", "sdr.20.main"
+        )
+
+    @property
+    def emu_state_dir_path(self):
+        """Path to the folder containing sensor compilations"""
+        return os.path.join(self._ipmi_dir, "emu_state")
+
+    @property
+    def sensor_def_path(self):
+        """Path to .sdrs file containing sensor definitions"""
+        return os.path.join(self._ipmi_dir, "main.sdrs")
+
+    @property
+    def extend_plugin_path(self):
+        """Path to the compiled .c simengine extension of IPMIsim"""
+        return os.path.join(
+            sysconfig.get_config_var("LIBDIR"), "simengine", "haos_extend.so"
+        )
+
     def start_agent(self):
-        """ Logic for starting up the agent """
+        """Start up new ipmi_sim process"""
 
-        # start a new one
-        lan_conf = os.path.join(self._ipmi_dir, "lan.conf")
-        ipmisim_emu = os.path.join(self._ipmi_dir, "ipmisim1.emu")
-        state_dir = os.path.join(self._ipmi_dir, "emu_state")
-
-        cmd = ["ipmi_sim", "-c", lan_conf, "-f", ipmisim_emu, "-s", state_dir, "-n"]
+        cmd = (
+            ["ipmi_sim"]
+            + ["-c", self.lan_conf_path]
+            + ["-f", self.ipmisim_emu_path]
+            + ["-s", self.emu_state_dir_path, "-n"]
+        )
 
         logging.info("Starting agent: %s", " ".join(cmd))
 
