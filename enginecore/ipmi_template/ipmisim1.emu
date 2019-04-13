@@ -61,6 +61,8 @@ ${psuCurrent}
 ${psuPower}
 ${psuVoltage}
 ${psuTemperature}
+${psuInletTemperature}
+
 
 # ===========
 # MEMORY 
@@ -77,8 +79,9 @@ ${cpuTemperature}
 # ===========
 ${caseFan}
 ${Ambient}
+${Systemboard}
 ${RAIDControllerTemperature}
-
+${BBU}
 
 mc_enable 0x30
 

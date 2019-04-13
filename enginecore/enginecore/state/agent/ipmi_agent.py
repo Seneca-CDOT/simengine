@@ -15,14 +15,131 @@ from enginecore.state.agent.agent import Agent
 
 
 class IPMIAgent(Agent):
-    """Python wrapper around ipmi_sim program"""
+    """Python wrapper managing ipmi_sim program that takes SensorRepository & translates it into ipmi_sim 
+    sensor definitions.
+    """
 
     supported_sensors = dict.fromkeys(SUPPORTED_SENSORS, "")
+    lan_conf_attributes = [
+        "host",
+        "port",
+        "user",
+        "password",
+        "vmport",
+        "num_components",
+    ]
 
-    def __init__(self, key, ipmi_dir, ipmi_config, sensors):
+    def __init__(self, ipmi_dir, ipmi_config, sensor_repo, bmc_address="0x20"):
+        """Initialize ipmi_sim working environment, define sensors based on sensor repository
+        and start ipmi_sim program.
+        Args:
+            ipmi_dir(str): path to simulator's work environment
+            ipmi_config(dict): connection & network device configuration (see IPMIAgent.lan_conf_attributes)
+            sensor_repo(SensorRepository): BMC sensors belonging to a particular server
+            bmc_address(str): baseboard address to be used
+        """
         super(IPMIAgent, self).__init__()
-        self._asset_key = key
+
         self._ipmi_dir = ipmi_dir
+        self._ipmi_config = ipmi_config
+        self._sensor_repo = sensor_repo
+        self._bmc_address = bmc_address
+
+        # initialize ipmi_sim environment
+        self._init_ipmi_dir()
+        self._init_sensor_defs()
+        self._compile_sensors()
+        self._update_permissions()
+
+        # start process
+        self.start_agent()
+
+        IPMIAgent.agent_num += 1
+
+    def _substitute_template_file(self, filename, options):
+        """Update file using templating
+        Args:
+            filename(str): path to a template file to be populated
+            options(dict): contains template key/values
+        """
+        with open(filename, "r+", encoding="utf-8") as filein:
+            template = Template(filein.read())
+            filein.seek(0)
+            filein.write(template.substitute(options))
+
+    def _init_sensor_defs(self):
+        """Populate template files with sensors"""
+
+        # Template options
+        lan_conf_opt = {
+            "asset_key": self._sensor_repo.server_key,
+            "extend_lib": self.extend_plugin_path,
+            **self._ipmi_config,
+        }
+
+        ipmisim_emu_opt = {"ipmi_dir": self._ipmi_dir, **IPMIAgent.supported_sensors}
+
+        sdrs_opt = {
+            "ipmi_dir": self._ipmi_dir,
+            "includes": "",
+            **IPMIAgent.supported_sensors,
+        }
+
+        # initialize sensors
+        for i, sensor_name in enumerate(self._sensor_repo.sensors):
+
+            sensor = self._sensor_repo.sensors[sensor_name]
+            s_type = sensor.sensor_type
+
+            index = str(sensor.index + 1) if sensor.index else ""
+
+            # define a few variables (sensor index, id and address)
+            sdrs_opt[s_type] += 'define IDX "{}" \n'.format(index)
+            sdrs_opt[s_type] += 'define ID_STR "{}" \n'.format(i)
+            sdrs_opt[s_type] += 'define ADDR "{}" \n'.format(sensor.address)
+
+            sensor_th = sensor.thresholds
+
+            # add thresholds definition
+            for th_type in sensor.thresholds_types:
+                th_value = sensor_th[th_type] if th_type in sensor_th else 0
+                sdrs_opt[s_type] += 'define {} "{}"\n'.format(th_type.upper(), th_value)
+
+                sdrs_opt[s_type] += 'define R_{} "{}"\n'.format(
+                    th_type.upper(), th_type in sensor_th
+                )
+
+            sdrs_opt[s_type] += 'define C_NAME "{}" \n'.format(sensor.name)
+            sdrs_opt[s_type] += 'include "{}/{}.sdrs" \n'.format(self._ipmi_dir, s_type)
+
+            # add sensor .emu command in format:
+            # sensor_add <address & type> <poll file location>
+            ipmisim_emu_opt[s_type] += "sensor_add {} 0 {} {} {} ".format(
+                self._bmc_address,
+                sensor.address,
+                sensor.event,
+                sensor.event_reading_type,
+            )
+            ipmisim_emu_opt[
+                s_type
+            ] += 'poll 2000 file $TEMP_IPMI_DIR"/sensor_dir/{}" \n'.format(sensor.name)
+
+        # Set server-specific includes
+        if self._ipmi_config["num_components"] == 2:
+            ipmisim_emu_opt["includes"] = 'include "{}"'.format(
+                os.path.join(self._ipmi_dir, "ipmisim1_psu.emu")
+            )
+            sdrs_opt["includes"] = 'include "{}"'.format(
+                os.path.join(self._ipmi_dir, "main_dual_psu.sdrs")
+            )
+
+        # populate templates with options
+        self._substitute_template_file(self.lan_conf_path, lan_conf_opt)
+        self._substitute_template_file(self.ipmisim_emu_path, ipmisim_emu_opt)
+        self._substitute_template_file(self.sensor_def_path, sdrs_opt)
+
+    def _init_ipmi_dir(self):
+        """Copy clean template files to the working ipmi directory"""
 
         # a workaround: https://stackoverflow.com/a/28055993
         # pylint: disable=W0212
@@ -31,157 +148,57 @@ class IPMIAgent(Agent):
 
         dir_util.copy_tree(os.environ.get("SIMENGINE_IPMI_TEMPL"), self._ipmi_dir)
 
-        # sensor, emu & lan configuration file paths
-        lan_conf = os.path.join(self._ipmi_dir, "lan.conf")
-        ipmisim_emu = os.path.join(self._ipmi_dir, "ipmisim1.emu")
-        sdr_main = os.path.join(
-            self._ipmi_dir, "emu_state", "ipmi_sim", "ipmisim1", "sdr.20.main"
-        )
-        sensor_def = os.path.join(self._ipmi_dir, "main.sdrs")
+    def _compile_sensors(self):
+        """Compile SDRs sensor definitions"""
+        os.system("sdrcomp -o {} {}".format(self.sdr_main_path, self.sensor_def_path))
 
-        lib_path = os.path.join(
+    def _update_permissions(self):
+        """Update recursively"""
+        subprocess.call(["chmod", "-R", "ugo+rwx", self._ipmi_dir])
+
+    @property
+    def lan_conf_path(self):
+        """Path to a config file containing communication parameters for the device"""
+        return os.path.join(self._ipmi_dir, "lan.conf")
+
+    @property
+    def ipmisim_emu_path(self):
+        """Path to a file containing .emu commands for creating IPMI system"""
+        return os.path.join(self._ipmi_dir, "ipmisim1.emu")
+
+    @property
+    def sdr_main_path(self):
+        """Path to the compiled IPMIsim sensors (compiled SDRs) """
+        return os.path.join(
+            self.emu_state_dir_path, "ipmi_sim", "ipmisim1", "sdr.20.main"
+        )
+
+    @property
+    def emu_state_dir_path(self):
+        """Path to the folder containing sensor compilations"""
+        return os.path.join(self._ipmi_dir, "emu_state")
+
+    @property
+    def sensor_def_path(self):
+        """Path to .sdrs file containing sensor definitions"""
+        return os.path.join(self._ipmi_dir, "main.sdrs")
+
+    @property
+    def extend_plugin_path(self):
+        """Path to the compiled .c simengine extension of IPMIsim"""
+        return os.path.join(
             sysconfig.get_config_var("LIBDIR"), "simengine", "haos_extend.so"
         )
 
-        # Template options
-        lan_conf_opt = {
-            "asset_key": key,
-            "extend_lib": lib_path,
-            "host": ipmi_config["host"],
-            "port": ipmi_config["port"],
-            "user": ipmi_config["user"],
-            "password": ipmi_config["password"],
-            "vmport": ipmi_config["vmport"],
-        }
-
-        ipmisim_emu_opt = {
-            **{"ipmi_dir": self._ipmi_dir},
-            **IPMIAgent.supported_sensors,
-        }
-
-        main_sdr_opt = {
-            **{"ipmi_dir": self._ipmi_dir, "includes": ""},
-            **IPMIAgent.supported_sensors,
-        }
-
-        # initialize sensors
-        for i, sensor in enumerate(sensors):
-
-            s_specs = sensor["specs"]
-
-            if "index" in s_specs:
-                s_idx = hex(
-                    int(sensor["address_space"]["address"], 16) + s_specs["index"]
-                )
-            else:
-                s_idx = s_specs["address"]
-
-            sensor_file = s_specs["name"]
-
-            index = str(s_specs["index"] + 1) if "index" in s_specs else ""
-
-            main_sdr_opt[s_specs["type"]] += 'define IDX "{}" \n'.format(index)
-
-            main_sdr_opt[s_specs["type"]] += 'define ID_STR "{}" \n'.format(i)
-            main_sdr_opt[s_specs["type"]] += 'define ADDR "{}" \n'.format(s_idx)
-
-            main_sdr_opt[s_specs["type"]] += 'define LNR "{}"  \n'.format(
-                s_specs["lnr"] if "lnr" in s_specs else 0
-            )
-            main_sdr_opt[s_specs["type"]] += 'define LCR "{}"  \n'.format(
-                s_specs["lcr"] if "lcr" in s_specs else 0
-            )
-            main_sdr_opt[s_specs["type"]] += 'define LNC "{}"  \n'.format(
-                s_specs["lnc"] if "lnc" in s_specs else 0
-            )
-            main_sdr_opt[s_specs["type"]] += 'define UNC "{}"  \n'.format(
-                s_specs["unc"] if "unc" in s_specs else 0
-            )
-            main_sdr_opt[s_specs["type"]] += 'define UCR "{}"  \n'.format(
-                s_specs["ucr"] if "ucr" in s_specs else 0
-            )
-            main_sdr_opt[s_specs["type"]] += 'define UNR "{}"  \n'.format(
-                s_specs["unr"] if "unr" in s_specs else 0
-            )
-
-            # Specify if sensor values should be returned:
-            main_sdr_opt[s_specs["type"]] += 'define R_LNR "{}"  \n'.format(
-                "lnr" in s_specs
-            )
-            main_sdr_opt[s_specs["type"]] += 'define R_LCR "{}"  \n'.format(
-                "lcr" in s_specs
-            )
-            main_sdr_opt[s_specs["type"]] += 'define R_LNC "{}"  \n'.format(
-                "lnc" in s_specs
-            )
-            main_sdr_opt[s_specs["type"]] += 'define R_UNC "{}"  \n'.format(
-                "unc" in s_specs
-            )
-            main_sdr_opt[s_specs["type"]] += 'define R_UCR "{}"  \n'.format(
-                "ucr" in s_specs
-            )
-            main_sdr_opt[s_specs["type"]] += 'define R_UNR "{}"  \n'.format(
-                "unr" in s_specs
-            )
-
-            # s_name = s_specs['name'].format(index='"$IDX"')
-
-            main_sdr_opt[s_specs["type"]] += 'define C_NAME "{}" \n'.format(
-                s_specs["name"]
-            )
-            main_sdr_opt[s_specs["type"]] += 'include "{}/{}.sdrs" \n'.format(
-                self._ipmi_dir, s_specs["type"]
-            )
-
-            #  0x20  0   0x74    3     1
-            e_type = s_specs["eventReadingType"] if "eventReadingType" in s_specs else 1
-            s_idx_2 = 8 if "eventReadingType" in s_specs else 3
-
-            ipmisim_emu_opt[
-                s_specs["type"]
-            ] += "sensor_add 0x20  0   {}   {}     {} poll 2000 ".format(
-                s_idx, s_idx_2, e_type
-            )
-            ipmisim_emu_opt[
-                s_specs["type"]
-            ] += 'file $TEMP_IPMI_DIR"/sensor_dir/{}" \n'.format(sensor_file)
-
-        # Set server-specific includes
-        if ipmi_config["num_components"] == 2:
-            ipmisim_emu_opt["includes"] = 'include "{}"'.format(
-                os.path.join(self._ipmi_dir, "ipmisim1_psu.emu")
-            )
-            main_sdr_opt["includes"] = 'include "{}"'.format(
-                os.path.join(self._ipmi_dir, "main_dual_psu.sdrs")
-            )
-
-        # Substitute a template
-        self._substitute_template_file(lan_conf, lan_conf_opt)
-        self._substitute_template_file(ipmisim_emu, ipmisim_emu_opt)
-        self._substitute_template_file(sensor_def, main_sdr_opt)
-
-        # compile sensor definitions
-        os.system("sdrcomp -o {} {}".format(sdr_main, sensor_def))
-        subprocess.call(["chmod", "-R", "ugo+rwx", self._ipmi_dir])
-        self.start_agent()
-        IPMIAgent.agent_num += 1
-
-    def _substitute_template_file(self, filename, options):
-        """Update file using python templating """
-        with open(filename, "r+", encoding="utf-8") as filein:
-            template = Template(filein.read())
-            filein.seek(0)
-            filein.write(template.substitute(options))
-
     def start_agent(self):
-        """ Logic for starting up the agent """
+        """Start up new ipmi_sim process"""
 
-        # start a new one
-        lan_conf = os.path.join(self._ipmi_dir, "lan.conf")
-        ipmisim_emu = os.path.join(self._ipmi_dir, "ipmisim1.emu")
-        state_dir = os.path.join(self._ipmi_dir, "emu_state")
-
-        cmd = ["ipmi_sim", "-c", lan_conf, "-f", ipmisim_emu, "-s", state_dir, "-n"]
+        cmd = (
+            ["ipmi_sim"]
+            + ["-c", self.lan_conf_path]
+            + ["-f", self.ipmisim_emu_path]
+            + ["-s", self.emu_state_dir_path, "-n"]
+        )
 
         logging.info("Starting agent: %s", " ".join(cmd))
 

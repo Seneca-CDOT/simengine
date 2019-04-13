@@ -7,8 +7,11 @@ SUPPORTED_SENSORS = [
     "psuPower",
     "psuCurrent",
     "psuTemperature",
+    "psuInletTemperature",
     "memoryTemperature",
     "Ambient",
     "RAIDControllerTemperature",
     "cpuTemperature",
+    "Systemboard",
+    "BBU",
 ]

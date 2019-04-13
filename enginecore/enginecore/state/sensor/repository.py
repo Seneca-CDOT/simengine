@@ -128,3 +128,13 @@ class SensorRepository:
     def sensor_dir(self):
         """Get temp IPMI state dir"""
         return self._sensor_dir
+
+    @property
+    def sensors(self):
+        """Get all sensors in a sensor repo"""
+        return self._sensors
+
+    @property
+    def server_key(self):
+        """Get key of the server repo belongs to"""
+        return self._server_key

@@ -1,3 +1,4 @@
+# Front panel temp sensor
 sdr type 1
 	sensor_owner_id		0x20
 	sensor_owner_lun	0
@@ -6,7 +7,7 @@ sdr type 1
 	sensor_number		$ADDR
 	entity_instance		$ID_STR
 
-	entity_id		add-in_card
+	entity_id		system_board
 
 	init_scanning		true
 	init_events		true

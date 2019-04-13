@@ -5,11 +5,11 @@
         "sensorDefinitions": [
             {
                 "thresholds": {
-                    "lnr": 0, 
-                    "lcr": 200, 
-                    "lnc": 300, 
+                    "lnr": 0,
+                    "lcr": 200,
+                    "lnc": 300,
                     "unc": 1000,
-                    "ucr": 1200, 
+                    "ucr": 1200,
                     "unr": 1500
                 },
                 "defaultValue": 1200,
@@ -18,8 +18,8 @@
             },
             {
                 "thresholds": {
-                    "lcr": 200, 
-                    "lnc": 300, 
+                    "lcr": 200,
+                    "lnc": 300,
                     "unc": 1000,
                     "ucr": 1200
                 },
@@ -29,8 +29,8 @@
             },
             {
                 "thresholds": {
-                    "lcr": 200, 
-                    "lnc": 300, 
+                    "lcr": 200,
+                    "lnc": 300,
                     "unc": 1000,
                     "ucr": 1200
                 },
@@ -54,7 +54,7 @@
             "powerConsumption": 30,
             "powerSource": 120
         }
-    ], 
+    ],
     "psuStatus": {
         "group": "psu",
         "addressSpace": "0x8",
@@ -69,10 +69,10 @@
             {
                 "thresholds": {},
                 "defaultValue": "0x01",
-                "offValue": "0x08", 
+                "offValue": "0x08",
                 "name": "PSU{index} status"
             }
-        ] 
+        ]
     },
     "psuCurrent": {
         "group": "current",
@@ -90,7 +90,7 @@
                 "offValue": 0,
                 "name": "PSU{index} current"
             }
-        ] 
+        ]
     },
     "psuVoltage": {
         "group": "voltage",
@@ -108,7 +108,7 @@
                 "offValue": 0,
                 "name": "PSU{index} voltage"
             }
-        ] 
+        ]
     },
     "psuPower": {
         "group": "wattage",
@@ -126,7 +126,7 @@
                 "offValue": 0,
                 "name": "PSU{index} power"
             }
-        ] 
+        ]
     },
     "psuTemperature": {
         "group": "temperature",
@@ -144,7 +144,7 @@
                 "offValue": 0,
                 "name": "PSU{index} temperature"
             }
-        ] 
+        ]
     },
     "memoryTemperature": {
         "group": "temperature",
@@ -152,7 +152,7 @@
         "sensorDefinitions": [
             {
                 "thresholds": {
-                    "ucr": 78, 
+                    "ucr": 78,
                     "unr": 82
                 },
                 "defaultValue": 0,
@@ -161,7 +161,7 @@
             },
             {
                 "thresholds": {
-                    "ucr": 78, 
+                    "ucr": 78,
                     "unr": 82
                 },
                 "defaultValue": 0,
@@ -170,7 +170,7 @@
             },
             {
                 "thresholds": {
-                    "ucr": 78, 
+                    "ucr": 78,
                     "unr": 82
                 },
                 "defaultValue": 0,
@@ -179,7 +179,7 @@
             },
             {
                 "thresholds": {
-                    "ucr": 78, 
+                    "ucr": 78,
                     "unr": 82
                 },
                 "defaultValue": 0,
@@ -188,7 +188,7 @@
             },
             {
                 "thresholds": {
-                    "ucr": 78, 
+                    "ucr": 78,
                     "unr": 82
                 },
                 "defaultValue": 0,
@@ -197,7 +197,7 @@
             },
             {
                 "thresholds": {
-                    "ucr": 78, 
+                    "ucr": 78,
                     "unr": 82
                 },
                 "defaultValue": 0,
@@ -206,7 +206,7 @@
             },
             {
                 "thresholds": {
-                    "ucr": 78, 
+                    "ucr": 78,
                     "unr": 82
                 },
                 "defaultValue": 0,
@@ -215,25 +215,25 @@
             },
             {
                 "thresholds": {
-                    "ucr": 78, 
+                    "ucr": 78,
                     "unr": 82
                 },
                 "defaultValue": 0,
                 "offValue": 0,
                 "name": "Mem H"
             }
-        ] 
-    }, 
+        ]
+    },
     "Ambient": {
         "group": "temperature",
         "addressSpace": "0x21",
         "sensorDefinitions": [
             {
                 "thresholds": {
-                    "lcr": 1.000, 
-                    "lnc": 6.000, 
-                    "unc": 37.000,
-                    "ucr": 42.000
+                    "lcr": 1.0,
+                    "lnc": 6.0,
+                    "unc": 37.0,
+                    "ucr": 42.0
                 },
                 "defaultValue": 0,
                 "offValue": 0,
@@ -247,8 +247,8 @@
         "sensorDefinitions": [
             {
                 "thresholds": {
-                    "unc": 110.000,
-                    "ucr": 115.000
+                    "unc": 110.0,
+                    "ucr": 115.0
                 },
                 "defaultValue": 0,
                 "offValue": 0,
@@ -277,6 +277,60 @@
                 "defaultValue": 0,
                 "offValue": 0,
                 "name": "CPU{index} temperature"
+            }
+        ]
+    },
+    "Systemboard": {
+        "group": "temperature",
+        "sensorDefinitions": [
+            {
+                "thresholds": {
+                    "unc": 75.0,
+                    "ucr": 80.0
+                },
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "Systemboard",
+                "address": "0x26"
+            }
+        ]
+    },
+    "psuInletTemperature": {
+        "group": "temperature",
+        "addressSpace": "0x31",
+        "sensorDefinitions": [
+            {
+                "thresholds": {
+                    "unc": 57.0,
+                    "ucr": 61.0
+                },
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "PSU{index} Inlet"
+            },
+            {
+                "thresholds": {
+                    "unc": 57.0,
+                    "ucr": 61.0
+                },
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "PSU{index} Inlet"
+            }
+        ]
+    },
+    "BBU": {
+        "group": "temperature",
+        "sensorDefinitions": [
+            {
+                "thresholds": {
+                    "unc": 50.0,
+                    "ucr": 55.0
+                },
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "BBU temperature",
+                "address": "0x41"
             }
         ]
     }
