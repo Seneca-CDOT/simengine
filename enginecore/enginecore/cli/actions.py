@@ -3,6 +3,7 @@
 import argparse
 import sys
 import os
+import operator
 from datetime import datetime as dt
 from enginecore.state.net.state_client import StateClient
 from enginecore.tools.recorder import Recorder
@@ -23,9 +24,102 @@ def print_action_list(action_details):
         )
 
 
+def try_date_format(date_str, date_format):
+    """Try to apply a specific date format
+    Args:
+        date_str: date to be parsed
+        date_format: will be applied to date_str
+    """
+    try:
+        return dt.strptime(date_str, date_format)
+    except ValueError:
+        return None
+
+
+def get_date_from_str(date_str):
+    """CLI either accepts today's time as 17:35:38 or full date as 2019-04-11 17:35:38
+    Args:
+        date_str: provided date to be parsed
+    Returns:
+        None if parsing failed, else parsed date
+    """
+
+    parsed_date = try_date_format(date_str, "%H:%M:%S")
+    if parsed_date:
+        parsed_date = dt.combine(dt.now(), parsed_date.time())
+    else:
+        parsed_date = try_date_format(date_str, "%Y-%m-%d %H:%M:%S")
+
+    return parsed_date
+
+
+def get_index_from_range_opt(range_opt, actions, start_opt=True):
+    """Analyze range option, find index for rand_opt if it is a date string
+    Args:
+        rand_opt: either index of an action or date string in format 
+                  "%H:%M:%S" or "%Y-%m-%d %H:%M:%S"
+        actions(list): list of action history
+        start_opt: indicates if the index provided is the starting point of a slice
+    Returns:
+        int: index of the starting or ending action
+    """
+
+    # action index was provided - return number
+    if range_opt is None or range_opt.isdigit():
+        return int(range_opt) if range_opt else None
+
+    # try to parse a date
+    range_date = get_date_from_str(range_opt)
+    if not range_date:
+        return None
+
+    # find actions within the date range
+    filter_actions_by_date = lambda d, op: list(
+        filter(lambda x: op(dt.fromtimestamp(x["timestamp"]), d), actions)
+    )
+    filtered_actions = filter_actions_by_date(
+        range_date, operator.ge if start_opt else operator.le
+    )
+
+    if not filtered_actions:
+        return None
+
+    border_date_action = (min if start_opt else max)(
+        filtered_actions, key=lambda x: x["number"]
+    )
+    range_idx = border_date_action["number"] if border_date_action else None
+
+    if not start_opt and range_idx is not None:
+        range_idx = range_idx + 1
+
+    return range_idx
+
+
+def get_action_slice(start, end):
+    """Parse start & end range specifiers
+    Args:
+        start: start index or starting datestring or time string in a format "%H:%M:%S" or "%Y-%m-%d %H:%M:%S"
+        end: end index or end date/time in a format "%H:%M:%S" or "%Y-%m-%d %H:%M:%S"
+    Returns:
+        slice: range of actions
+    """
+
+    try:
+        return slice(int(start), int(end))
+    except (ValueError, TypeError):
+
+        # attemp to parse dates if one/both of the range options are non digits
+        all_actions = StateClient.list_actions(slice(None, None))
+
+        start = get_index_from_range_opt(start, all_actions)
+        end = get_index_from_range_opt(end, all_actions, start_opt=False)
+
+        return slice(start, end)
+
+
 def dry_run_actions(args):
     """Do a dry run of action replay without changing of affecting assets' states"""
-    action_slc = slice(args["start"], args["end"])
+    action_slc = get_action_slice(args["start"], args["end"])
     action_details = StateClient.list_actions(action_slc)
     try:
         Recorder.perform_dry_run(action_details, action_slc)
@@ -41,12 +135,13 @@ def range_args():
     common_args.add_argument(
         "-s",
         "--start",
-        type=int,
-        help="Starting at this action number (range specifier)",
+        help="Starting at this action number, or at this time today (format %H:%M:%S) or date (%Y-%m-%d %H:%M:%S)",
     )
 
     common_args.add_argument(
-        "-e", "--end", type=int, help="Ending at this action number (range specifier)"
+        "-e",
+        "--end",
+        help="Ending at this action number, or at this time today (format %H:%M:%S) or date (%Y-%m-%d %H:%M:%S)",
     )
 
     return common_args
@@ -59,7 +154,7 @@ def handle_file_command(args, client_request_func):
     """
     client_request_func(
         os.path.abspath(os.path.expanduser(args["filename"])),
-        slice(args["start"], args["end"]),
+        get_action_slice(args["start"], args["end"]),
     )
 
 
@@ -163,28 +258,28 @@ def actions_command(actions_group):
     replay_action.set_defaults(
         func=lambda args: [
             print_action_list(
-                StateClient.list_actions(slice(args["start"], args["end"]))
+                StateClient.list_actions(get_action_slice(args["start"], args["end"]))
             )
             if args["list"]
             else None,
-            StateClient.replay_actions(slice(args["start"], args["end"])),
+            StateClient.replay_actions(get_action_slice(args["start"], args["end"])),
         ]
     )
 
     clear_action.set_defaults(
         func=lambda args: [
             print_action_list(
-                StateClient.list_actions(slice(args["start"], args["end"]))
+                StateClient.list_actions(get_action_slice(args["start"], args["end"]))
             )
             if args["list"]
             else None,
-            StateClient.clear_actions(slice(args["start"], args["end"])),
+            StateClient.clear_actions(get_action_slice(args["start"], args["end"])),
         ]
     )
 
     list_action.set_defaults(
         func=lambda args: print_action_list(
-            StateClient.list_actions(slice(args["start"], args["end"]))
+            StateClient.list_actions(get_action_slice(args["start"], args["end"]))
         )
     )
 
