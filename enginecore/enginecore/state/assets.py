@@ -776,37 +776,35 @@ class ServerWithBMC(Server):
         """Sample cpu load every 5 seconds """
 
         cpu_time_1 = 0
-        sample_rate = 5
+        sample_rate_sec = 5
+
+        # get the delta between two samples
+        ns_to_sec = lambda x: x / 1e9
+        calc_cpu_load = lambda t1, t2: min(
+            100 * (abs(ns_to_sec(t2) - ns_to_sec(t1)) / sample_rate_sec), 100
+        )
 
         while True:
             if self.state.status and self.state.vm_is_active():
 
+                # more details on libvirt api:
                 # https://stackoverflow.com/questions/40468370/what-does-cpu-time-represent-exactly-in-libvirt
                 cpu_stats = self.state.get_cpu_stats()[0]
                 cpu_time_2 = cpu_stats["cpu_time"] - (
                     cpu_stats["user_time"] + cpu_stats["system_time"]
                 )
 
-                ns_to_sec = lambda x: x / 1e9
-
                 if cpu_time_1:
-                    self.state.update_cpu_load(
-                        100
-                        * abs(ns_to_sec(cpu_time_2) - ns_to_sec(cpu_time_1))
-                        / sample_rate
-                    )
-                    logging.info(
-                        "New CPU load (percentage): %s%% for server[%s]",
-                        self.state.cpu_load,
-                        self.state.key,
-                    )
+                    self.state.update_cpu_load(calc_cpu_load(cpu_time_1, cpu_time_2))
+                    cpu_i = "server[{0.key}] CPU load:{0.cpu_load}%".format(self.state)
+                    logging.info(cpu_i)
 
                 cpu_time_1 = cpu_time_2
             else:
                 cpu_time_1 = 0
                 self.state.update_cpu_load(0)
 
-            time.sleep(sample_rate)
+            time.sleep(sample_rate_sec)
 
     def add_sensor_thermal_impact(self, source, target, event):
         """Add new thermal relationship at the runtime"""
