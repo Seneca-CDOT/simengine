@@ -9,6 +9,7 @@ import sys
 import neo4j.exceptions as db_error
 
 from enginecore import cli
+from enginecore.state.net.state_client import StateClient
 
 ################ Define Command line options & arguments
 
@@ -72,5 +73,9 @@ try:
 except db_error.ConstraintError as error:
     print("Database constraint was violated: ")
     print(error, file=sys.stderr)
+except ConnectionRefusedError as conn_err:
+    print(conn_err, file=sys.stderr)
+    print("  Error connecting to socket server at:", file=sys.stderr)
+    print(" ", StateClient.get_connection_str(), file=sys.stderr)
 except argparse.ArgumentTypeError as error:
     print(error, file=sys.stderr)

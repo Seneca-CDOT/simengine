@@ -13,24 +13,23 @@ class StateClient:
     socket_conf = {
         "host": os.environ.get("SIMENGINE_SOCKET_HOST", "0.0.0.0"),
         "port": os.environ.get("SIMENGINE_SOCKET_PORT", int(8000)),
+        "path": os.environ.get("SIMENGINE_SOCKET_PATH", "simengine"),
     }
 
     def __init__(self, key: str):
         self._asset_key = key
-        self._ws_client = StateClient.get_ws_client()
+        self._ws_client = StateClient._get_ws_client()
 
     @classmethod
-    def get_ws_client(cls):
+    def _get_ws_client(cls):
         """Connect to the simengine ws server
         Returns:
             WebSocket: ws client
         """
-        return create_connection(
-            "ws://{host}:{port}/simengine".format(**StateClient.socket_conf)
-        )
+        return create_connection(cls.get_connection_str())
 
     @classmethod
-    def send_request(cls, request, data=None, ws_client=None):
+    def _send_request(cls, request, data=None, ws_client=None):
         """Send request to the simengine websocket server
         Args:
             request(ClientToServerRequests): request name
@@ -38,13 +37,18 @@ class StateClient:
             ws_client(WebSocket): web socket / client, this method initializes one if not provided
         """
         if not ws_client:
-            ws_client = StateClient.get_ws_client()
+            ws_client = StateClient._get_ws_client()
 
         ws_client.send(json.dumps({"request": request.name, "payload": data}))
 
+    @classmethod
+    def get_connection_str(cls):
+        """Return formatted socket URL for connection"""
+        return "ws://{host}:{port}/{path}".format(**StateClient.socket_conf)
+
     def power_up(self):
         """Send power up request to ws-simengine"""
-        StateClient.send_request(
+        StateClient._send_request(
             ClientToServerRequests.set_power,
             {"status": 1, "key": self._asset_key},
             self._ws_client,
@@ -55,7 +59,7 @@ class StateClient:
         Args:
             hard(bool): flag for abrupt poweroff
         """
-        StateClient.send_request(
+        StateClient._send_request(
             ClientToServerRequests.set_power,
             {"status": 0, "key": self._asset_key, "hard": hard},
             self._ws_client,
@@ -75,7 +79,7 @@ class StateClient:
             sensor_name(str): name of the sensor to be updated
             sensor_value(any): new sensor value
         """
-        StateClient.send_request(
+        StateClient._send_request(
             ClientToServerRequests.set_sensor_status,
             {
                 "key": self._asset_key,
@@ -91,7 +95,7 @@ class StateClient:
             controller(int): controller number cv belongs to
             cv_props(dict): new replacement status of the vault & write-through flag
         """
-        StateClient.send_request(
+        StateClient._send_request(
             ClientToServerRequests.set_cv_replacement_status,
             {"key": self._asset_key, "controller": controller, **cv_props},
             self._ws_client,
@@ -103,7 +107,7 @@ class StateClient:
             controller(int): controller number to be updated
             ctrl_props(dict): including "alarm", correctable & uncorrectable errors as "mem_c_errors", "mem_uc_errors"
         """
-        StateClient.send_request(
+        StateClient._send_request(
             ClientToServerRequests.set_controller_status,
             {"key": self._asset_key, "controller": controller, **ctrl_props},
             self._ws_client,
@@ -116,7 +120,7 @@ class StateClient:
             drive_id(int): unique drive id (DID) of drive to be updated
             pd_props(dict): including 'media_error_count', 'other_error_count', 'predictive_error_count' or 'state'
         """
-        StateClient.send_request(
+        StateClient._send_request(
             ClientToServerRequests.set_physical_drive_status,
             {
                 "key": self._asset_key,
@@ -130,19 +134,19 @@ class StateClient:
     @classmethod
     def power_outage(cls):
         """Send power outage request to ws-simengine (init blackout)"""
-        StateClient.send_request(ClientToServerRequests.set_mains, {"mains": 0})
+        StateClient._send_request(ClientToServerRequests.set_mains, {"mains": 0})
 
     @classmethod
     def set_ambient(cls, degrees):
         """Send power outage request to ws-simengine (init blackout)"""
-        StateClient.send_request(
+        StateClient._send_request(
             ClientToServerRequests.set_ambient, {"degrees": degrees}
         )
 
     @classmethod
     def power_restore(cls):
         """Send power restore request to ws-simengine"""
-        StateClient.send_request(ClientToServerRequests.set_mains, {"mains": 1})
+        StateClient._send_request(ClientToServerRequests.set_mains, {"mains": 1})
 
     @classmethod
     def replay_actions(cls, slc=slice(None, None)):
@@ -150,7 +154,7 @@ class StateClient:
         Args:
             slc(slice): range of actions to be performed, replays all if not provided
         """
-        StateClient.send_request(
+        StateClient._send_request(
             ClientToServerRequests.replay_actions,
             {"range": {"start": slc.start, "stop": slc.stop}},
         )
@@ -161,7 +165,7 @@ class StateClient:
         Args:
             slc(slice): range of actions to be deleted, removes all if not provided
         """
-        StateClient.send_request(
+        StateClient._send_request(
             ClientToServerRequests.clear_actions,
             {"range": {"start": slc.start, "stop": slc.stop}},
         )
@@ -174,9 +178,9 @@ class StateClient:
         Returns:
             list: array of dicts containing action details (name, timestamp)
         """
-        ws_client = StateClient.get_ws_client()
+        ws_client = StateClient._get_ws_client()
 
-        StateClient.send_request(
+        StateClient._send_request(
             ClientToServerRequests.get_actions,
             {"range": {"start": slc.start, "stop": slc.stop}},
             ws_client=ws_client,
@@ -191,7 +195,7 @@ class StateClient:
             filename: .json file that will contain actions
             slc: save only this range of actions. Will save all if not provided
         """
-        StateClient.send_request(
+        StateClient._send_request(
             ClientToServerRequests.save_actions,
             {"filename": filename, "range": {"start": slc.start, "stop": slc.stop}},
         )
@@ -203,7 +207,7 @@ class StateClient:
             filename: .json file containing recorded action history
             slc: load only this range of actions
         """
-        StateClient.send_request(
+        StateClient._send_request(
             ClientToServerRequests.load_actions,
             {"filename": filename, "range": {"start": slc.start, "stop": slc.stop}},
         )
@@ -214,7 +218,7 @@ class StateClient:
         Args:
             enabled: indicates off/on status
         """
-        StateClient.send_request(
+        StateClient._send_request(
             ClientToServerRequests.set_recorder_status, {"enabled": enabled}
         )
 
@@ -224,18 +228,23 @@ class StateClient:
         Returns:
             dictionary containg "enabled" & "replaying" recorder indicators
         """
-        ws_client = StateClient.get_ws_client()
+        ws_client = StateClient._get_ws_client()
 
-        StateClient.send_request(
+        StateClient._send_request(
             ClientToServerRequests.get_recorder_status, ws_client=ws_client
         )
 
         return json.loads(ws_client.recv())["payload"]["status"]
 
     @classmethod
-    def rand_actions(cls, args: dict):
+    def rand_actions(cls, rand_options: dict):
         """Request Sim-Engine to perform random action
         Args:
-            args: TODO
+            rand_options: options for the randomizer such as num of iteration 'count' or time period 
+                          'seconds', asset filter 'asset_keys' and parameters for pauses in-between
+                           actions ('min_nap' and 'nap_time')
+
         """
-        StateClient.send_request(ClientToServerRequests.exec_rand_actions, {**args})
+        StateClient._send_request(
+            ClientToServerRequests.exec_rand_actions, {**rand_options}
+        )
