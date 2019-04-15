@@ -65,9 +65,13 @@ try:
         options.validate(vars(options))
 
     # check if key is valid
-    if "asset_key" in options and not IStateManager.asset_exists(options["asset_key"]):
+    if (
+        "asset_key" in options
+        and options["asset_key"]
+        and not IStateManager.asset_exists(options["asset_key"])
+    ):
         raise argparse.ArgumentTypeError(
-            "Asset under key {} does not exist!".format(options["asset_key"])
+            'Asset under key "{}" does not exist!'.format(options["asset_key"])
         )
 
     # execute action associated with the CLI command
@@ -82,9 +86,11 @@ try:
 except db_error.ConstraintError as error:
     print("Database constraint was violated: ")
     print(error, file=sys.stderr)
+
 except ConnectionRefusedError as conn_err:
     print(conn_err, file=sys.stderr)
     print("  Error connecting to socket server at:", file=sys.stderr)
     print(" ", StateClient.get_connection_str(), file=sys.stderr)
+
 except argparse.ArgumentTypeError as error:
     print(error, file=sys.stderr)
