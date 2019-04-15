@@ -359,6 +359,15 @@ class IStateManager:
             )
 
     @classmethod
+    def asset_exists(cls, key):
+        """Check if asset with the key exists"""
+        graph_ref = GraphReference()
+
+        with graph_ref.get_session() as session:
+            asset_info = GraphReference.get_asset_and_components(session, key)
+            return asset_info is not None
+
+    @classmethod
     def set_play_path(cls, path):
         """Update play folder containing scripts"""
 

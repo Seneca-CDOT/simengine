@@ -347,6 +347,10 @@ class GraphReference:
         )
 
         record = results.single()
+
+        if not record:
+            return None
+
         asset = dict(record["asset"])
         asset["labels"] = record["labels"]
 
