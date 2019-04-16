@@ -347,6 +347,10 @@ class GraphReference:
         )
 
         record = results.single()
+
+        if not record:
+            return None
+
         asset = dict(record["asset"])
         asset["labels"] = record["labels"]
 
@@ -652,6 +656,8 @@ class GraphReference:
             controller(int): controller number
             did(int): drive id 
             properties(dict): e.g. 'media_error_count', 'other_error_count', 'predictive_error_count' or 'state'
+        Returns:
+            bool: True if properties were updated, False if controller and/or did are invalid 
         """
         query = []
 
@@ -685,8 +691,11 @@ class GraphReference:
 
         set_stm = qh.get_set_stm(properties, node_name="pd", supported_attr=s_attr)
         query.append("SET {}".format(set_stm))
+        query.append("RETURN ctrl, pd")
 
-        session.run("\n".join(query))
+        result = session.run("\n".join(query)).single()
+
+        return (result and result.get("ctrl") and result.get("pd")) is not None
 
     @classmethod
     def set_controller_prop(cls, session, server_key, controller, properties):
@@ -696,6 +705,8 @@ class GraphReference:
             server_key(int): key of the server controller belongs to
             controller(int): controller number
             properties(dict): settable controller props e.g. 'mem_c_errors', 'mem_uc_errors', 'alarm'
+        Returns:
+            bool: True if properties were updated, False if controller number is invalid
         """
         query = []
 
@@ -711,8 +722,11 @@ class GraphReference:
 
         set_stm = qh.get_set_stm(properties, node_name="ctrl", supported_attr=s_attr)
         query.append("SET {}".format(set_stm))
+        query.append("RETURN ctrl")
 
-        session.run("\n".join(query))
+        result = session.run("\n".join(query)).single()
+
+        return (result and result.get("ctrl")) is not None
 
     @classmethod
     def get_storcli_details(cls, session, server_key):
@@ -873,6 +887,8 @@ class GraphReference:
             session:  database session
             server_key(int): key of the server cachevault belongs to
             controller(int): controller num
+        Returns:
+            bool: True if properties were updated, False if controller number is invalid
         """
 
         query = []
@@ -892,8 +908,10 @@ class GraphReference:
         )
 
         query.append("SET {}".format(set_stm))
+        query.append("RETURN ctrl, cv")
 
-        session.run("\n".join(query))
+        result = session.run("\n".join(query)).single()
+        return (result and result.get("ctrl") and result.get("cv")) is not None
 
     @classmethod
     def add_to_hd_component_temperature(cls, session, target, temp_change, limit):

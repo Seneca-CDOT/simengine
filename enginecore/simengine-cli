@@ -9,6 +9,8 @@ import sys
 import neo4j.exceptions as db_error
 
 from enginecore import cli
+from enginecore.state.net.state_client import StateClient
+from enginecore.state.api import IStateManager
 
 ################ Define Command line options & arguments
 
@@ -56,21 +58,39 @@ cli.actions_command(
 )
 
 try:
-    options = argparser.parse_args()
+    options = vars(argparser.parse_args())
 
     # if validation is present
-    if hasattr(options, "validate"):
+    if "validate" in options:
         options.validate(vars(options))
+
+    # check if key is valid
+    if (
+        "asset_key" in options
+        and options["asset_key"]
+        and not IStateManager.asset_exists(options["asset_key"])
+    ):
+        raise argparse.ArgumentTypeError(
+            'Asset under key "{}" does not exist!'.format(options["asset_key"])
+        )
+
     # execute action associated with the CLI command
-    if hasattr(options, "func"):
+    if "func" in options:
         # remove func from cli attributes & execute it
-        cmd_callback = options.func
-        del options.func
-        cmd_callback(vars(options))
+        cmd_callback = options["func"]
+        del options["func"]
+        cmd_callback(options)
     else:
         argparser.print_help()
+
 except db_error.ConstraintError as error:
     print("Database constraint was violated: ")
     print(error, file=sys.stderr)
+
+except ConnectionRefusedError as conn_err:
+    print(conn_err, file=sys.stderr)
+    print("  Error connecting to socket server at:", file=sys.stderr)
+    print(" ", StateClient.get_connection_str(), file=sys.stderr)
+
 except argparse.ArgumentTypeError as error:
     print(error, file=sys.stderr)
