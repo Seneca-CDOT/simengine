@@ -1,4 +1,5 @@
 """MISC: exposes various system's state props configurations """
+import argparse
 
 from enginecore.state.net.state_client import StateClient
 from enginecore.state.assets import Asset
@@ -63,6 +64,60 @@ def configure_command(configure_state_group):
             args["sensor_name"], args["runtime_value"]
         )
     )
+
+    conf_rand_action = conf_state_subp.add_parser(
+        "randomizer", help="Configure randomized options for actions"
+    )
+
+    conf_rand_action.add_argument(
+        "-k",
+        "--asset-key",
+        type=int,
+        help="Unique asset key (Required if randomized options are associated with an asset)",
+    )
+
+    conf_rand_action.add_argument(
+        "-s",
+        "--start-value",
+        type=int,
+        required=True,
+        help="Start range value for randomized option",
+    )
+
+    conf_rand_action.add_argument(
+        "-e",
+        "--end-value",
+        type=int,
+        required=True,
+        help="End range value for randomized option",
+    )
+
+    conf_rand_action.add_argument(
+        "-o",
+        "--option",
+        required=True,
+        help="Option/Argument to be configured",
+        choices=[
+            "pd-media-error-count",
+            "pd-other-error-count",
+            "pd-predictive-error-count",
+            "ctrl-memory-correctable-errors",
+            "ctrl-memory-uncorrectable-errors",
+            "ambient",
+        ],
+    )
+
+    conf_rand_action.set_defaults(validate=validate_randomizer_options)
+
+    conf_rand_action.set_defaults(func=lambda args: print("cmd options processing"))
+
+
+def validate_randomizer_options(args):
+    """Check if asset key was supplied for some options"""
+    if args["option"] != "ambient" and not args["asset_key"]:
+        raise argparse.ArgumentTypeError(
+            'Asset key is required for "{option}" option!'.format(**args)
+        )
 
 
 def configure_battery(key, kwargs):
