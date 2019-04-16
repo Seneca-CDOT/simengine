@@ -62,7 +62,8 @@ try:
 
     # if validation is present
     if "validate" in options:
-        options.validate(vars(options))
+        options["validate"](options)
+        del options["validate"]
 
     # check if key is valid
     if (
