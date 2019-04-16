@@ -94,6 +94,8 @@ class StateClient:
         Args:
             controller(int): controller number cv belongs to
             cv_props(dict): new replacement status of the vault & write-through flag
+        Returns:
+            bool: status indicating if request was succesfully executed
         """
         StateClient._send_request(
             ClientToServerRequests.set_cv_replacement_status,
@@ -101,11 +103,15 @@ class StateClient:
             self._ws_client,
         )
 
+        return json.loads(self._ws_client.recv())["payload"]["executed"]
+
     def set_controller_prop(self, controller, ctrl_props):
         """Request simengine socket server to update controller properties such as memory counts, alarms
         Args:
             controller(int): controller number to be updated
             ctrl_props(dict): including "alarm", correctable & uncorrectable errors as "mem_c_errors", "mem_uc_errors"
+        Returns:
+            bool: status indicating if request was succesfully executed
         """
         StateClient._send_request(
             ClientToServerRequests.set_controller_status,
@@ -113,12 +119,16 @@ class StateClient:
             self._ws_client,
         )
 
+        return json.loads(self._ws_client.recv())["payload"]["executed"]
+
     def set_physical_drive_prop(self, controller, drive_id, drive_props):
         """Request simengine socket server to update status of a physical drive 
         Args:
             controller(int): controller physical drive belongs to
             drive_id(int): unique drive id (DID) of drive to be updated
             pd_props(dict): including 'media_error_count', 'other_error_count', 'predictive_error_count' or 'state'
+        Returns:
+            bool: status indicating if request was succesfully executed
         """
         StateClient._send_request(
             ClientToServerRequests.set_physical_drive_status,
@@ -130,6 +140,8 @@ class StateClient:
             },
             self._ws_client,
         )
+
+        return json.loads(self._ws_client.recv())["payload"]["executed"]
 
     @classmethod
     def power_outage(cls):

@@ -55,6 +55,12 @@ class WebSocket(Component):
             )
         )
 
+    def _cmd_executed_response(self, sock, executed):
+        """Update client on command execution status (if the request went through or not)"""
+        self._write_data(
+            sock, ServerToClientRequests.cmd_executed_status, {"executed": executed}
+        )
+
     @handler(ClientToServerRequests.set_power.name)
     def _handle_power_request(self, details):
         """Power up/down asset"""
@@ -208,33 +214,41 @@ class WebSocket(Component):
         )
 
     @handler(ClientToServerRequests.set_cv_replacement_status.name)
-    def _handle_cv_repl_request(self, detials):
+    def _handle_cv_repl_request(self, details):
         """Update cv details upon a request"""
 
-        payload = detials["payload"]
-        IStateManager.get_state_manager_by_key(payload["key"]).set_cv_replacement(
+        payload = details["payload"]
+        executed = IStateManager.get_state_manager_by_key(
+            payload["key"]
+        ).set_cv_replacement(
             payload["controller"],
             payload["replacement_required"],
             payload["write_through_fail"],
         )
+
+        self._cmd_executed_response(details["client"], executed)
 
     @handler(ClientToServerRequests.set_controller_status.name)
     def _handle_ctrl_update_request(self, details):
         """Update RAID controller when requested"""
 
         payload = details["payload"]
-        IStateManager.get_state_manager_by_key(payload["key"]).set_controller_prop(
-            payload["controller"], payload
-        )
+        executed = IStateManager.get_state_manager_by_key(
+            payload["key"]
+        ).set_controller_prop(payload["controller"], payload)
+
+        self._cmd_executed_response(details["client"], executed)
 
     @handler(ClientToServerRequests.set_physical_drive_status.name)
     def _handle_pd_update_request(self, details):
         """Update data related to physical drives when requested"""
         payload = details["payload"]
 
-        IStateManager.get_state_manager_by_key(payload["key"]).set_physical_drive_prop(
-            payload["controller"], payload["drive_id"], payload
-        )
+        executed = IStateManager.get_state_manager_by_key(
+            payload["key"]
+        ).set_physical_drive_prop(payload["controller"], payload["drive_id"], payload)
+
+        self._cmd_executed_response(details["client"], executed)
 
     @handler(ClientToServerRequests.exec_rand_actions.name)
     def _handle_rand_act(self, details):

@@ -5,6 +5,12 @@ import argparse
 from enginecore.state.net.state_client import StateClient
 
 
+def process_cmd_result(executed):
+    """Process executed command, display error if execution was unsuccessful"""
+    if not executed:
+        print("Could not process the request!")
+
+
 def storage_command(storage_group):
     """Manage server storage space"""
 
@@ -103,8 +109,10 @@ def pd_command(pd_group):
     )
 
     set_pd_action.set_defaults(
-        func=lambda args: StateClient(args["asset_key"]).set_physical_drive_prop(
-            args["controller"], args["drive_id"], args
+        func=lambda args: process_cmd_result(
+            StateClient(args["asset_key"]).set_physical_drive_prop(
+                args["controller"], args["drive_id"], args
+            )
         )
     )
 
@@ -150,8 +158,8 @@ def controller_command(ctrl_group):
     )
 
     set_ctrl_action.set_defaults(
-        func=lambda args: StateClient(args["asset_key"]).set_controller_prop(
-            args["controller"], args
+        func=lambda args: process_cmd_result(
+            StateClient(args["asset_key"]).set_controller_prop(args["controller"], args)
         )
     )
 
@@ -181,7 +189,7 @@ def cv_command(cv_group):
     )
 
     set_cv_action.set_defaults(
-        func=lambda args: StateClient(args["asset_key"]).set_cv_replacement(
-            args["controller"], args
+        func=lambda args: process_cmd_result(
+            StateClient(args["asset_key"]).set_cv_replacement(args["controller"], args)
         )
     )

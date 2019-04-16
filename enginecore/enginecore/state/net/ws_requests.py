@@ -19,6 +19,8 @@ class ServerToClientRequests(Enum):
     action_list = 6
     # recorder status
     recorder_status = 7
+    # command status
+    cmd_executed_status = 8
 
 
 class ClientToServerRequests(Enum):
