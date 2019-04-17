@@ -79,10 +79,13 @@ class ISystemEnvironment:
 
     @classmethod
     def get_ambient_props(cls) -> tuple:
-        """Get runtime ambient properties (ambient behaviour description)"""
+        """Get runtime ambient properties (ambient behaviour description)
+        Returns:
+            thermal parameters for up/down events, randomizer ambient properties
+            returns None if System Environment hasn't been initialized yet
+        """
         graph_ref = GraphReference()
         with graph_ref.get_session() as session:
-            # props = GraphReference.get_ambient_props(session)
             return GraphReference.get_ambient_props(session)
 
     @classmethod

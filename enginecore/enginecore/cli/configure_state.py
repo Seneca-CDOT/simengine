@@ -2,7 +2,12 @@
 import argparse
 
 from enginecore.state.net.state_client import StateClient
-from enginecore.state.api import IStateManager, IUPSStateManager, ISystemEnvironment
+from enginecore.state.api import (
+    IStateManager,
+    IUPSStateManager,
+    ISystemEnvironment,
+    IBMCServerStateManager,
+)
 
 
 def configure_command(configure_state_group):
@@ -109,9 +114,7 @@ def configure_command(configure_state_group):
 
     conf_rand_action.set_defaults(validate=validate_randomizer_options)
 
-    conf_rand_action.set_defaults(
-        func=lambda args: ISystemEnvironment.set_ambient_props(args)
-    )
+    conf_rand_action.set_defaults(func=handle_configure_randomizer)
 
 
 def validate_randomizer_options(args):
@@ -120,6 +123,25 @@ def validate_randomizer_options(args):
         raise argparse.ArgumentTypeError(
             'Asset key is required for "{option}" option!'.format(**args)
         )
+
+
+def handle_configure_randomizer(args):
+    """Callback for CLI command for configuring randomizer"""
+
+    if args["option"] == "ambient":
+        ISystemEnvironment.set_ambient_props(args)
+        return
+
+    server_manager = IStateManager.get_state_manager_by_key(args["asset_key"])
+    if not isinstance(server_manager, IBMCServerStateManager):
+        raise argparse.ArgumentTypeError(
+            "Asset [{}] is not a server!".format(args["asset_key"])
+        )
+
+    server_manager.set_storage_randomizer_prop(
+        IBMCServerStateManager.StorageRandProps[args["option"].replace("-", "_")],
+        slice(args["start"], args["end"]),
+    )
 
 
 def configure_battery(key, kwargs):

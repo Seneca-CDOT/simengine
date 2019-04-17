@@ -645,6 +645,25 @@ class GraphReference:
         session.run("\n".join(query))
 
     @classmethod
+    def set_storage_randomizer_prop(cls, session, server_key, proptype, slc):
+        print("setting storage props!")
+
+        query = []
+        query.append(
+            "MATCH (:ServerWithBMC {{ key: {} }})-[:SUPPORTS_STORCLI]->(strcli:Storcli)".format(
+                server_key
+            )
+        )
+
+        query.append(
+            "SET strcli.{}='{}'".format(
+                proptype, json.dumps({"start": slc.start, "end": slc.stop})
+            )
+        )
+
+        session.run("\n".join(query))
+
+    @classmethod
     def get_thermal_cpu_details(cls, session, server_key):
         """Get ALL thermal relationships between a CPU and server sensors
         Args:

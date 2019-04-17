@@ -2,6 +2,7 @@
 import json
 import random
 import libvirt
+from enum import Enum
 
 from enginecore.model.graph_reference import GraphReference
 import enginecore.model.system_modeler as sys_modeler
@@ -61,21 +62,14 @@ class IBMCServerStateManager(IServerStateManager):
         to storcli64.
     """
 
-    def get_cpu_stats(self) -> list:
-        """Get VM cpu stats (user_time, cpu_time etc. (see libvirt api))
-        Returns:
-            cpu statistics for all CPUs
-        """
-        return self._vm.getCPUStats(True)
+    class StorageRandProps(Enum):
+        """Settable randomizable options for server storage devices"""
 
-    def get_server_drives(self, controller_num):
-        """Get all the drives that are in the server"""
-        with self._graph_ref.get_session() as session:
-            return GraphReference.get_all_drives(session, self.key, controller_num)
-
-    def get_fan_sensors(self):
-        """Retrieve sensors of type "fan" """
-        return SensorRepository(self.key).get_sensors_by_group(SensorGroups.fan)
+        pd_media_error_count = 0
+        pd_other_error_count = 1
+        pd_predictive_error_count = 2
+        ctrl_memory_correctable_errors = 3
+        ctrl_memory_uncorrectable_errors = 4
 
     def _get_rand_fan_sensor_value(self, sensor_name: str) -> int:
         """Get random fan sensor value (if sensor thresholds are present)
@@ -106,6 +100,30 @@ class IBMCServerStateManager(IServerStateManager):
         return round(
             random.randrange(thresholds[lowest_th], thresholds[highest_th]) * 0.1
         )
+
+    def get_cpu_stats(self) -> list:
+        """Get VM cpu stats (user_time, cpu_time etc. (see libvirt api))
+        Returns:
+            cpu statistics for all CPUs
+        """
+        return self._vm.getCPUStats(True)
+
+    def get_server_drives(self, controller_num):
+        """Get all the drives that are in the server"""
+        with self._graph_ref.get_session() as session:
+            return GraphReference.get_all_drives(session, self.key, controller_num)
+
+    def get_fan_sensors(self):
+        """Retrieve sensors of type "fan" """
+        return SensorRepository(self.key).get_sensors_by_group(SensorGroups.fan)
+
+    def set_storage_randomizer_prop(self, proptype: StorageRandProps, slc: slice):
+        """Update properties of randomized storage arguments"""
+
+        with self._graph_ref.get_session() as session:
+            return GraphReference.set_storage_randomizer_prop(
+                session, self.key, proptype.name, slc
+            )
 
     @record
     @Randomizer.randomize_method(
