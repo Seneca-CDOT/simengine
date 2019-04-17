@@ -51,7 +51,7 @@ class SystemEnvironment(Component):
         amb_props = sm.StateManager.get_ambient_props()
 
         if not amb_props:  # set up default values on the first run
-            shared_attr = {"degrees": 1, "rate": 20}
+            shared_attr = {"degrees": 1, "rate": 20, "start": 19, "end": 28}
             sm.StateManager.set_ambient_props(
                 {**shared_attr, **{"event": "down", "pause_at": 28}}
             )
@@ -72,7 +72,7 @@ class SystemEnvironment(Component):
             temp_op(callable): calculate new temperature
         """
 
-        amb_props = sm.StateManager.get_ambient_props()[event]
+        amb_props = sm.StateManager.get_ambient_props()[0][event]
 
         while True:
 
@@ -94,7 +94,7 @@ class SystemEnvironment(Component):
                     logging.info(msg_format, current_temp, new_temp)
                     sm.StateManager.set_ambient(new_temp)
 
-            amb_props = sm.StateManager.get_ambient_props()[event]
+            amb_props = sm.StateManager.get_ambient_props()[0][event]
 
     def _launch_temp_warming(self):
         """Start the process of raising ambient"""

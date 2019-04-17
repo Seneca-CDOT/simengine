@@ -2,7 +2,7 @@
 import argparse
 
 from enginecore.state.net.state_client import StateClient
-from enginecore.state.assets import Asset
+from enginecore.state.api import IStateManager, IUPSStateManager, ISystemEnvironment
 
 
 def configure_command(configure_state_group):
@@ -78,7 +78,7 @@ def configure_command(configure_state_group):
 
     conf_rand_action.add_argument(
         "-s",
-        "--start-value",
+        "--start",
         type=int,
         required=True,
         help="Start range value for randomized option",
@@ -86,7 +86,7 @@ def configure_command(configure_state_group):
 
     conf_rand_action.add_argument(
         "-e",
-        "--end-value",
+        "--end",
         type=int,
         required=True,
         help="End range value for randomized option",
@@ -109,7 +109,9 @@ def configure_command(configure_state_group):
 
     conf_rand_action.set_defaults(validate=validate_randomizer_options)
 
-    conf_rand_action.set_defaults(func=lambda args: print("cmd options processing"))
+    conf_rand_action.set_defaults(
+        func=lambda args: ISystemEnvironment.set_ambient_props(args)
+    )
 
 
 def validate_randomizer_options(args):
@@ -122,9 +124,18 @@ def validate_randomizer_options(args):
 
 def configure_battery(key, kwargs):
     """Udpate runtime battery status"""
+
+    state_manager = IStateManager.get_state_manager_by_key(key)
+
+    if not isinstance(state_manager, IUPSStateManager):
+        raise argparse.ArgumentTypeError("Asset [{}] is not a ups!".format(key))
+
+    if (kwargs["drain_speed"] and kwargs["charge_speed"]) is None:
+        raise argparse.ArgumentTypeError(
+            'Must provide "--drain-speed" or "--charge-speed"'
+        )
+
     if kwargs["drain_speed"] is not None:
-        state_manager = Asset.get_state_manager_by_key(key)
         state_manager.set_drain_speed_factor(kwargs["drain_speed"])
     if kwargs["charge_speed"] is not None:
-        state_manager = Asset.get_state_manager_by_key(key)
         state_manager.set_charge_speed_factor(kwargs["charge_speed"])
