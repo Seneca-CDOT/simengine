@@ -70,6 +70,7 @@ try:
         "asset_key" in options
         and options["asset_key"]
         and not IStateManager.asset_exists(options["asset_key"])
+        and "new_asset" not in options
     ):
         raise argparse.ArgumentTypeError(
             'Asset under key "{}" does not exist!'.format(options["asset_key"])
