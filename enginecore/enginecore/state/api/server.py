@@ -102,7 +102,9 @@ class IBMCServerStateManager(IServerStateManager):
         )
 
     def _get_rand_pd_properties(self) -> list:
-        """Get randomizable PD properties"""
+        """Get random settable physical drive attributes such as error counts occured while
+        reading/writing & pd state
+        """
 
         rand_err = lambda prop: random.randrange(
             *self.get_storage_radnomizer_prop(prop)
@@ -115,6 +117,27 @@ class IBMCServerStateManager(IServerStateManager):
             {
                 "predictive_error_count": rand_err(
                     self.StorageRandProps.pd_predictive_error_count
+                )
+            },
+        ]
+
+    def _get_rand_ctrl_props(self) -> list:
+        """Get random settable controller attributes such as alarm state & memory errors"""
+
+        rand_err = lambda prop: random.randrange(
+            *self.get_storage_radnomizer_prop(prop)
+        )
+
+        return [
+            {"alarm": random.choice(["on", "off", "missing"])},
+            {
+                "mem_c_errors": rand_err(
+                    self.StorageRandProps.ctrl_memory_correctable_errors
+                )
+            },
+            {
+                "mem_uc_errors": rand_err(
+                    self.StorageRandProps.ctrl_memory_uncorrectable_errors
                 )
             },
         ]
@@ -205,13 +228,7 @@ class IBMCServerStateManager(IServerStateManager):
         arg_defaults=ChainedArgs(
             [
                 lambda self: random.randrange(0, self.controller_count),
-                lambda self, _: random.choice(
-                    [
-                        {"alarm": random.choice(["on", "off", "missing"])},
-                        {"mem_c_errors": random.randrange(0, 10)},
-                        {"mem_uc_errors": random.randrange(0, 10)},
-                    ]
-                ),
+                lambda self, _: random.choice(self._get_rand_ctrl_props()),
             ]
         )()
     )
