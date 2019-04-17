@@ -646,7 +646,13 @@ class GraphReference:
 
     @classmethod
     def set_storage_randomizer_prop(cls, session, server_key, proptype, slc):
-        print("setting storage props!")
+        """Update randranges for randomized argument
+        Args:
+            session: db session
+            server_key: key of an asset that will have storage randoption configured
+            proptype: name of a property
+            slc: slice indicating start of random range and end of rando range
+        """
 
         query = []
         query.append(
@@ -662,6 +668,31 @@ class GraphReference:
         )
 
         session.run("\n".join(query))
+
+    @classmethod
+    def get_storage_randomizer_prop(cls, session, server_key, proptype):
+        """Get randranges for configurable randomized arguments
+        Args:
+            session: graph db session
+            server_key: key of a server holding randrange parameters
+            proptype: storage property (e.g. physical drive error counts)
+        """
+        default_range = (0, 10)
+        query = []
+        query.append(
+            "MATCH (:ServerWithBMC {{ key: {} }})-[:SUPPORTS_STORCLI]->(strcli:Storcli)".format(
+                server_key
+            )
+        )
+
+        query.append("RETURN strcli.{} as randprop".format(proptype))
+        record = session.run("\n".join(query)).single().get("randprop")
+
+        if not record:
+            return default_range
+
+        rand_props = json.loads(record)
+        return (rand_props["start"], rand_props["end"]) if rand_props else default_range
 
     @classmethod
     def get_thermal_cpu_details(cls, session, server_key):

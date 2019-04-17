@@ -101,6 +101,24 @@ class IBMCServerStateManager(IServerStateManager):
             random.randrange(thresholds[lowest_th], thresholds[highest_th]) * 0.1
         )
 
+    def _get_rand_pd_properties(self) -> list:
+        """Get randomizable PD properties"""
+
+        rand_err = lambda prop: random.randrange(
+            *self.get_storage_radnomizer_prop(prop)
+        )
+
+        return [
+            {"state": random.choice(["Onln", "Offln"])},
+            {"media_error_count": rand_err(self.StorageRandProps.pd_media_error_count)},
+            {"other_error_count": rand_err(self.StorageRandProps.pd_other_error_count)},
+            {
+                "predictive_error_count": rand_err(
+                    self.StorageRandProps.pd_predictive_error_count
+                )
+            },
+        ]
+
     def get_cpu_stats(self) -> list:
         """Get VM cpu stats (user_time, cpu_time etc. (see libvirt api))
         Returns:
@@ -123,6 +141,13 @@ class IBMCServerStateManager(IServerStateManager):
         with self._graph_ref.get_session() as session:
             return GraphReference.set_storage_randomizer_prop(
                 session, self.key, proptype.name, slc
+            )
+
+    def get_storage_radnomizer_prop(self, proptype: StorageRandProps) -> slice:
+        """Get a randrange associated with a particular storage device"""
+        with self._graph_ref.get_session() as session:
+            return GraphReference.get_storage_randomizer_prop(
+                session, self.key, proptype.name
             )
 
     @record
@@ -158,14 +183,7 @@ class IBMCServerStateManager(IServerStateManager):
                         map(lambda x: x["DID"], self.get_server_drives(ctrl_num)["pd"])
                     )
                 ),
-                lambda self, _: random.choice(
-                    [
-                        {"state": random.choice(["Onln", "Offln"])},
-                        {"media_error_count": random.randrange(0, 10)},
-                        {"other_error_count": random.randrange(0, 10)},
-                        {"predictive_error_count": random.randrange(0, 10)},
-                    ]
-                ),
+                lambda self, _: random.choice(self._get_rand_pd_properties()),
             ]
         )()
     )
