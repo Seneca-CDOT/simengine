@@ -399,3 +399,29 @@ Result:
 2) [2019-04-11 11:12:41] IBMCServerStateManager(5).set_cv_replacement(0, 'No', True)
 3) [2019-04-11 11:12:43] IBMCServerStateManager(5).power_up()
 ```
+
+**Tweaking Random Ranges**
+
+Some numeric values, such as ambient and controller/disk errors, are always generated within a certain range.
+
+Querying default numeric range parameters for random generator:
+
+```bash
+$ simengine-cli configure-state randomizer  --list --asset-key=5
+Ambient random arguments: range from 19 to 28
+Server:[5] random arguments:
+  -- pd-media-error-count: range from 0 to 10
+  -- pd-other-error-count: range from 0 to 10
+  -- pd-predictive-error-count: range from 0 to 10
+  -- ctrl-memory-correctable-errors: range from 0 to 10
+  -- ctrl-memory-uncorrectable-errors: range from 0 to 10
+```
+
+You can tweak these parameters by providing option to be updated, start and end range specifiers (in this case, memory correctable errors for a controller will be within 33 to 80 numeric range):
+
+```bash
+$ simengine-cli configure-state randomizer --option=ctrl-memory-correctable-errors \
+                                          --start=33 \
+                                          --end=80 \
+                                          --asset-key=5 # optional for ambient
+```

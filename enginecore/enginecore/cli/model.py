@@ -290,6 +290,7 @@ def create_command(create_asset_group):
     )
 
     create_asset_parent.add_argument("-n", "--name", help="Name displayed on the UI")
+    create_asset_parent.set_defaults(new_asset=True)
 
     # snmp group parent will contain snmp-specific args
     create_snmp_parent = argparse.ArgumentParser(add_help=False)

@@ -62,13 +62,15 @@ try:
 
     # if validation is present
     if "validate" in options:
-        options.validate(vars(options))
+        options["validate"](options)
+        del options["validate"]
 
     # check if key is valid
     if (
         "asset_key" in options
         and options["asset_key"]
         and not IStateManager.asset_exists(options["asset_key"])
+        and "new_asset" not in options
     ):
         raise argparse.ArgumentTypeError(
             'Asset under key "{}" does not exist!'.format(options["asset_key"])

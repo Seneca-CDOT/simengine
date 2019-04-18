@@ -45,7 +45,9 @@ class ISystemEnvironment:
 
     @classmethod
     @record
-    @Randomizer.randomize_method((lambda _: random.randrange(18, 35),))
+    @Randomizer.randomize_method(
+        (lambda self: random.randrange(*self.get_ambient_props()[1].values()),)
+    )
     def set_ambient(cls, value):
         """Update ambient value"""
         old_temp = cls.get_ambient()
@@ -76,12 +78,15 @@ class ISystemEnvironment:
         return int(cls.get_store().get("mains-source").decode())
 
     @classmethod
-    def get_ambient_props(cls):
-        """Get runtime ambient properties (ambient behaviour description)"""
+    def get_ambient_props(cls) -> tuple:
+        """Get runtime ambient properties (ambient behaviour description)
+        Returns:
+            thermal parameters for up/down events, randomizer ambient properties
+            returns None if System Environment hasn't been initialized yet
+        """
         graph_ref = GraphReference()
         with graph_ref.get_session() as session:
-            props = GraphReference.get_ambient_props(session)
-            return props
+            return GraphReference.get_ambient_props(session)
 
     @classmethod
     def set_ambient_props(cls, props):

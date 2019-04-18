@@ -2,6 +2,7 @@
 import json
 import random
 import libvirt
+from enum import Enum
 
 from enginecore.model.graph_reference import GraphReference
 import enginecore.model.system_modeler as sys_modeler
@@ -61,21 +62,14 @@ class IBMCServerStateManager(IServerStateManager):
         to storcli64.
     """
 
-    def get_cpu_stats(self) -> list:
-        """Get VM cpu stats (user_time, cpu_time etc. (see libvirt api))
-        Returns:
-            cpu statistics for all CPUs
-        """
-        return self._vm.getCPUStats(True)
+    class StorageRandProps(Enum):
+        """Settable randomizable options for server storage devices"""
 
-    def get_server_drives(self, controller_num):
-        """Get all the drives that are in the server"""
-        with self._graph_ref.get_session() as session:
-            return GraphReference.get_all_drives(session, self.key, controller_num)
-
-    def get_fan_sensors(self):
-        """Retrieve sensors of type "fan" """
-        return SensorRepository(self.key).get_sensors_by_group(SensorGroups.fan)
+        pd_media_error_count = 0
+        pd_other_error_count = 1
+        pd_predictive_error_count = 2
+        ctrl_memory_correctable_errors = 3
+        ctrl_memory_uncorrectable_errors = 4
 
     def _get_rand_fan_sensor_value(self, sensor_name: str) -> int:
         """Get random fan sensor value (if sensor thresholds are present)
@@ -106,6 +100,78 @@ class IBMCServerStateManager(IServerStateManager):
         return round(
             random.randrange(thresholds[lowest_th], thresholds[highest_th]) * 0.1
         )
+
+    def _get_rand_pd_properties(self) -> list:
+        """Get random settable physical drive attributes such as error counts occured while
+        reading/writing & pd state
+        """
+
+        rand_err = lambda prop: random.randrange(
+            *self.get_storage_radnomizer_prop(prop)
+        )
+
+        return [
+            {"state": random.choice(["Onln", "Offln"])},
+            {"media_error_count": rand_err(self.StorageRandProps.pd_media_error_count)},
+            {"other_error_count": rand_err(self.StorageRandProps.pd_other_error_count)},
+            {
+                "predictive_error_count": rand_err(
+                    self.StorageRandProps.pd_predictive_error_count
+                )
+            },
+        ]
+
+    def _get_rand_ctrl_props(self) -> list:
+        """Get random settable controller attributes such as alarm state & memory errors"""
+
+        rand_err = lambda prop: random.randrange(
+            *self.get_storage_radnomizer_prop(prop)
+        )
+
+        return [
+            {"alarm": random.choice(["on", "off", "missing"])},
+            {
+                "mem_c_errors": rand_err(
+                    self.StorageRandProps.ctrl_memory_correctable_errors
+                )
+            },
+            {
+                "mem_uc_errors": rand_err(
+                    self.StorageRandProps.ctrl_memory_uncorrectable_errors
+                )
+            },
+        ]
+
+    def get_cpu_stats(self) -> list:
+        """Get VM cpu stats (user_time, cpu_time etc. (see libvirt api))
+        Returns:
+            cpu statistics for all CPUs
+        """
+        return self._vm.getCPUStats(True)
+
+    def get_server_drives(self, controller_num):
+        """Get all the drives that are in the server"""
+        with self._graph_ref.get_session() as session:
+            return GraphReference.get_all_drives(session, self.key, controller_num)
+
+    def get_fan_sensors(self):
+        """Retrieve sensors of type "fan" """
+        return SensorRepository(self.key).get_sensors_by_group(SensorGroups.fan)
+
+    def set_storage_randomizer_prop(self, proptype: StorageRandProps, slc: slice):
+        """Update properties of randomized storage arguments"""
+
+        with self._graph_ref.get_session() as session:
+            return GraphReference.set_storage_randomizer_prop(
+                session, self.key, proptype.name, slc
+            )
+
+    def get_storage_radnomizer_prop(self, proptype: StorageRandProps) -> slice:
+        """Get a randrange associated with a particular storage device"""
+        with self._graph_ref.get_session() as session:
+            return GraphReference.get_storage_randomizer_prop(
+                session, self.key, proptype.name
+            )
 
     @record
     @Randomizer.randomize_method(
@@ -140,14 +206,7 @@ class IBMCServerStateManager(IServerStateManager):
                         map(lambda x: x["DID"], self.get_server_drives(ctrl_num)["pd"])
                     )
                 ),
-                lambda self, _: random.choice(
-                    [
-                        {"state": random.choice(["Onln", "Offln"])},
-                        {"media_error_count": random.randrange(0, 10)},
-                        {"other_error_count": random.randrange(0, 10)},
-                        {"predictive_error_count": random.randrange(0, 10)},
-                    ]
-                ),
+                lambda self, _: random.choice(self._get_rand_pd_properties()),
             ]
         )()
     )
@@ -169,13 +228,7 @@ class IBMCServerStateManager(IServerStateManager):
         arg_defaults=ChainedArgs(
             [
                 lambda self: random.randrange(0, self.controller_count),
-                lambda self, _: random.choice(
-                    [
-                        {"alarm": random.choice(["on", "off", "missing"])},
-                        {"mem_c_errors": random.randrange(0, 10)},
-                        {"mem_uc_errors": random.randrange(0, 10)},
-                    ]
-                ),
+                lambda self, _: random.choice(self._get_rand_ctrl_props()),
             ]
         )()
     )

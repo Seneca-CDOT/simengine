@@ -588,38 +588,111 @@ class GraphReference:
 
     @classmethod
     def get_ambient_props(cls, session):
-        """Get properties belonging to ambient """
+        """Get properties of system environment
+        Args:
+            session: Graph Database session
+        Returns:
+            tuple: ambient events' and system environment props, None if SysEnv is not initialized yet 
+        """
 
         results = session.run(
-            "MATCH (sys:SystemEnvironment)-[:HAS_PROP]->(props:EnvProp) RETURN props"
+            "MATCH (sys:SystemEnvironment)-[:HAS_PROP]->(props:EnvProp) RETURN sys, collect(props) as props"
         )
 
         amp_props = {}
+        record = results.single()
 
-        for record in results:
-            event_prop = dict(record.get("props"))
-            amp_props[event_prop["event"]] = event_prop
+        if not record:
+            return None
 
-        return amp_props
+        for event_prop in record.get("props"):
+            amp_props[event_prop["event"]] = dict(event_prop)
+
+        sys_env = dict(record.get("sys"))
+        sys_env_props = ["start", "end"]
+
+        return (amp_props, {k: v for (k, v) in sys_env.items() if k in sys_env_props})
 
     @classmethod
     def set_ambient_props(cls, session, properties):
         """Save ambient properties """
 
         query = []
-        s_attr = ["event", "degrees", "rate", "pause_at", "sref"]
+        # list supported properties (both SysEnv and EnvProp)
+        s_attr_prop = ["event", "degrees", "rate", "pause_at", "sref"]
+        s_attr_sys_env = ["start", "end"]
 
+        # find single node representing physical system environment
         query.append("MERGE (sys:SystemEnvironment { sref: 1 })")
+
+        # event property associated with either wallpower going down or up
+        if "event" in properties:
+            query.append(
+                'MERGE (sys)-[:HAS_PROP]->(env:EnvProp {{ event: "{}" }})'.format(
+                    properties["event"]
+                )
+            )
+
+        # set event & sys environment props if provided
+        set_stm = []
+        set_stm.append(
+            qh.get_set_stm(properties, node_name="sys", supported_attr=s_attr_sys_env)
+        )
+
+        set_stm.append(qh.get_set_stm(properties, "env", s_attr_prop))
+        query.extend(map(lambda x: "SET {}".format(x) if x else "", set_stm))
+
+        session.run("\n".join(query))
+
+    @classmethod
+    def set_storage_randomizer_prop(cls, session, server_key, proptype, slc):
+        """Update randranges for randomized argument
+        Args:
+            session: db session
+            server_key: key of an asset that will have storage randoption configured
+            proptype: name of a property
+            slc: slice indicating start of random range and end of rando range
+        """
+
+        query = []
         query.append(
-            'MERGE (sys)-[:HAS_PROP]->(env:EnvProp {{ event: "{}" }})'.format(
-                properties["event"]
+            "MATCH (:ServerWithBMC {{ key: {} }})-[:SUPPORTS_STORCLI]->(strcli:Storcli)".format(
+                server_key
             )
         )
 
-        set_stm = qh.get_set_stm(properties, node_name="env", supported_attr=s_attr)
-        query.append("SET {}".format(set_stm))
+        query.append(
+            "SET strcli.{}='{}'".format(
+                proptype, json.dumps({"start": slc.start, "end": slc.stop})
+            )
+        )
 
         session.run("\n".join(query))
+
+    @classmethod
+    def get_storage_randomizer_prop(cls, session, server_key, proptype):
+        """Get randranges for configurable randomized arguments
+        Args:
+            session: graph db session
+            server_key: key of a server holding randrange parameters
+            proptype: storage property (e.g. physical drive error counts)
+        """
+        default_range = (0, 10)
+        query = []
+        query.append(
+            "MATCH (:ServerWithBMC {{ key: {} }})-[:SUPPORTS_STORCLI]->(strcli:Storcli)".format(
+                server_key
+            )
+        )
+
+        query.append("RETURN strcli.{} as randprop".format(proptype))
+        record = session.run("\n".join(query)).single().get("randprop")
+
+        if not record:
+            return default_range
+
+        rand_props = json.loads(record)
+        return (rand_props["start"], rand_props["end"]) if rand_props else default_range
 
     @classmethod
     def get_thermal_cpu_details(cls, session, server_key):
