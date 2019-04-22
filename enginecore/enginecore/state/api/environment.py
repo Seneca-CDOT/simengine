@@ -44,6 +44,21 @@ class ISystemEnvironment:
         return int(temp.decode()) if temp else 0
 
     @classmethod
+    def get_voltage(cls):
+        """Get Wall-power voltage"""
+        voltage = cls.get_store().get("voltage")
+        return float(voltage.decode()) if voltage else 120.0
+
+    @classmethod
+    def set_voltage(cls, value):
+        """Update voltage"""
+        old_voltage = cls.get_voltage()
+        cls.get_store().set("voltage", str(float(value)))
+        cls.get_store().publish(
+            RedisChannels.voltage_update_channel, "{}-{}".format(old_voltage, value)
+        )
+
+    @classmethod
     @record
     @Randomizer.randomize_method(
         (lambda self: random.randrange(*self.get_ambient_props()[1].values()),)

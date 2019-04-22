@@ -102,6 +102,7 @@ class StateListener(Component):
             RedisChannels.state_update_channel,  # power state changes
             RedisChannels.mains_update_channel,  # wall power updates
             RedisChannels.model_update_channel,  # model changes
+            RedisChannels.voltage_update_channel,  # wallpower voltage changes
         )
 
         # Battery Channel
@@ -508,6 +509,8 @@ class StateListener(Component):
                 asset_key, asset_type, asset_status = data.split("-")
                 if asset_type in Asset.get_supported_assets():
                     self._handle_state_update(int(asset_key), asset_status)
+            elif channel == RedisChannels.voltage_update_channel:
+                print("Voltage changed")
 
             elif channel == RedisChannels.mains_update_channel:
 
