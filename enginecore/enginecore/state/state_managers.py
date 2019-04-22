@@ -156,7 +156,10 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
                 db_s, int(self._asset_key), "HighPrecOutputLoad"
             )
 
-            value_hp = abs((1000 * (load * 120)) / self.output_capacity)
+            value_hp = abs(
+                (1000 * (load * state_api.ISystemEnvironment.get_voltage()))
+                / self.output_capacity
+            )
 
             if oid_adv:
                 self._update_oid_value(
@@ -248,7 +251,7 @@ class PDUStateManager(state_api.IPDUStateManager, StateManager):
         """
         super(PDUStateManager, self).update_load(load)
         self._update_current(load)
-        self._update_wattage(load * 120)
+        self._update_wattage(load * state_api.ISystemEnvironment.get_voltage())
 
 
 class OutletStateManager(state_api.IOutletStateManager, StateManager):

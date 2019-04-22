@@ -16,13 +16,8 @@ import redis
 from circuits.web import Logger, Server, Static
 from circuits.web.dispatchers import WebSocketsDispatcher
 
-from enginecore.state.assets import (
-    Asset,
-    SystemEnvironment,
-    PowerEventResult,
-    LoadEventResult,
-)
-from enginecore.state.state_managers import StateManager
+from enginecore.state.assets import Asset, Room, PowerEventResult, LoadEventResult
+from enginecore.state.api import ISystemEnvironment
 from enginecore.state.event_map import PowerEventManager
 from enginecore.state.net.ws_server import WebSocket
 from enginecore.state.net.ws_requests import ServerToClientRequests
@@ -55,10 +50,7 @@ class StateListener(Component):
 
         # assets will store all the devices/items including PDUs, switches etc.
         self._assets = {}
-        self._sys_environ = SystemEnvironment().register(self)
-
-        # set default state
-        StateManager.power_restore()
+        self._sys_environ = Room().register(self)
 
         # init graph db instance
         logging.info("Initializing neo4j connection...")
@@ -137,18 +129,19 @@ class StateListener(Component):
 
         with self._graph_ref.get_session() as session:
             assets = GraphReference.get_assets_and_children(session)
-            for asset in assets:
-                try:
-                    self._assets[asset["key"]] = Asset.get_supported_assets()[
-                        asset["type"]
-                    ](asset).register(self)
 
-                    # leaf nodes will trigger load updates
-                    if not asset["children"]:
-                        leaf_nodes.append(asset["key"])
+        for asset in assets:
+            try:
+                self._assets[asset["key"]] = Asset.get_supported_assets()[
+                    asset["type"]
+                ](asset).register(self)
 
-                except StopIteration:
-                    logging.error("Detected asset that is not supported")
+                # leaf nodes will trigger load updates
+                if not asset["children"]:
+                    leaf_nodes.append(asset["key"])
+
+            except StopIteration:
+                logging.error("Detected asset that is not supported")
 
         # initialize load by dispatching load update
         for key in leaf_nodes:
@@ -171,8 +164,25 @@ class StateListener(Component):
                 ServerToClientRequests.asset_upd, {"key": asset_key, "load": new_load}
             )
 
-        StateManager.set_ambient(21)
-        # self._handle_ambient_update(new_temp=StateManager.get_ambient(), old_temp=0)
+        ISystemEnvironment.set_ambient(21)
+
+    def _handle_wallpower_update(self, power_up=True):
+        """Change status of wall-powered assets (outlets)
+        Args:
+            power_up(bool): indicates if new wallpower status is powered up
+        """
+        with self._graph_ref.get_session() as session:
+            mains_out_keys = GraphReference.get_mains_powered_outlets(session)
+
+        mains_out = {k: self._assets[k] for k in mains_out_keys if k}
+
+        for _, outlet in mains_out.items():
+            if not power_up and outlet.state.status != 0:
+                outlet.state.shut_down()
+                outlet.state.publish_power()
+            elif power_up and outlet.state.status != 1:
+                outlet.state.power_up()
+                outlet.state.publish_power()
 
     def _handle_oid_update(self, asset_key, oid, value):
         """React to OID update in redis store 
@@ -261,29 +271,29 @@ class StateListener(Component):
         with self._graph_ref.get_session() as session:
             parent_assets = GraphReference.get_parent_assets(session, child_key)
 
-            for parent_info in parent_assets:
-                parent = self._assets[parent_info["key"]]
-                child = self._assets[child_key]
+        for parent_info in parent_assets:
+            parent = self._assets[parent_info["key"]]
+            child = self._assets[child_key]
 
-                # load was already updated for ups parent
-                if child.state.asset_type == "ups" and not parent.state.status:
-                    return
+            # load was already updated for ups parent
+            if child.state.asset_type == "ups" and not parent.state.status:
+                return
 
-                parent_load_change = load_change * parent.state.draw_percentage
-                # logging.info(
-                #     "child [%s] load update: %s; updating %s load for [%s]",
-                # child_key, load_change, parent.state.load, parent.key
-                # )
+            parent_load_change = load_change * parent.state.draw_percentage
+            # logging.info(
+            #     "child [%s] load update: %s; updating %s load for [%s]",
+            # child_key, load_change, parent.state.load, parent.key
+            # )
 
-                if increased:
-                    event = PowerEventManager.map_load_increased_by(
-                        parent_load_change, child_key
-                    )
-                else:
-                    event = PowerEventManager.map_load_decreased_by(
-                        parent_load_change, child_key
-                    )
-                self.fire(event, parent)
+            if increased:
+                event = PowerEventManager.map_load_increased_by(
+                    parent_load_change, child_key
+                )
+            else:
+                event = PowerEventManager.map_load_decreased_by(
+                    parent_load_change, child_key
+                )
+            self.fire(event, parent)
 
     def _chain_power_update(self, event_result):
         """React to power state event by analysing the parent, child & neighbouring assets
@@ -510,35 +520,25 @@ class StateListener(Component):
                 if asset_type in Asset.get_supported_assets():
                     self._handle_state_update(int(asset_key), asset_status)
             elif channel == RedisChannels.voltage_update_channel:
-                print("Voltage changed")
+                old_voltage, new_voltage = map(float, data.split("-"))
+                logging.info(
+                    'System voltage change from "%s" to "%s"', old_voltage, new_voltage
+                )
+
+                # react to voltage drop or voltage restoration
+                if new_voltage < ISystemEnvironment.get_min_voltage():
+                    self._handle_wallpower_update(power_up=False)
+                elif old_voltage <= ISystemEnvironment.get_min_voltage() < new_voltage:
+                    self._handle_wallpower_update(power_up=True)
 
             elif channel == RedisChannels.mains_update_channel:
+                new_state = int(data)
 
-                with self._graph_ref.get_session() as session:
-                    mains_out_keys = GraphReference.get_mains_powered_outlets(session)
-                    mains_out = {
-                        out_key: self._assets[out_key]
-                        for out_key in mains_out_keys
-                        if out_key
-                    }
+                self._notify_client(
+                    ServerToClientRequests.mains_upd, {"mains": new_state}
+                )
 
-                    new_state = int(data)
-
-                    self._notify_client(
-                        ServerToClientRequests.mains_upd, {"mains": new_state}
-                    )
-                    self.fire(
-                        PowerEventManager.map_mains_event(data), self._sys_environ
-                    )
-
-                    for _, outlet in mains_out.items():
-
-                        if new_state == 0 and outlet.state.status != 0:
-                            outlet.state.shut_down()
-                            outlet.state.publish_power()
-                        elif new_state == 1 and outlet.state.status != 1:
-                            outlet.state.power_up()
-                            outlet.state.publish_power()
+                self.fire(PowerEventManager.map_mains_event(data), self._sys_environ)
 
             elif channel == RedisChannels.oid_update_channel:
                 value = (self._redis_store.get(data)).decode()

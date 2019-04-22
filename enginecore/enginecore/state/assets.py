@@ -38,11 +38,11 @@ LoadEventResult = namedtuple(
 LoadEventResult.__new__.__defaults__ = (None,) * len(PowerEventResult._fields)
 
 
-class SystemEnvironment(Component):
+class Room(Component):
     """Represents hardware's environment (Room/ServerRack)"""
 
     def __init__(self):
-        super(SystemEnvironment, self).__init__()
+        super(Room, self).__init__()
 
         # threads to track
         self._temp_warming_t = None
@@ -58,6 +58,8 @@ class SystemEnvironment(Component):
             sm.StateManager.set_ambient_props(
                 {**shared_attr, **{"event": "up", "pause_at": 21}}
             )
+
+        sm.StateManager.power_restore()
 
         self._launch_temp_warming()
         self._launch_temp_cooling()
