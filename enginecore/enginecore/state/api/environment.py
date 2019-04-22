@@ -54,6 +54,12 @@ class ISystemEnvironment:
         """Update voltage"""
         old_voltage = cls.get_voltage()
         cls.get_store().set("voltage", str(float(value)))
+
+        if old_voltage == 0.0 and old_voltage < value:
+            cls.get_store().publish(RedisChannels.mains_update_channel, "1")
+        elif value == 0.0:
+            cls.get_store().publish(RedisChannels.mains_update_channel, "0")
+
         cls.get_store().publish(
             RedisChannels.voltage_update_channel, "{}-{}".format(old_voltage, value)
         )
@@ -94,7 +100,6 @@ class ISystemEnvironment:
     def power_outage(cls):
         """Simulate complete power outage/restoration"""
         cls.set_voltage(0.0)
-        cls.get_store().publish(RedisChannels.mains_update_channel, "0")
 
     @classmethod
     @record
@@ -102,7 +107,6 @@ class ISystemEnvironment:
     def power_restore(cls):
         """Simulate complete power restoration"""
         cls.set_voltage(120.0)
-        cls.get_store().publish(RedisChannels.mains_update_channel, "1")
 
     @classmethod
     def mains_status(cls):

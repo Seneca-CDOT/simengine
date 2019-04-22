@@ -16,7 +16,17 @@ import enginecore.tools.query_helpers as qh
 GRAPH_REF = GraphReference()
 
 # attributes shared by all the assets
-CREATE_SHARED_ATTR = ["x", "y", "name", "type", "key", "off_delay", "on_delay"]
+CREATE_SHARED_ATTR = [
+    "x",
+    "y",
+    "name",
+    "type",
+    "key",
+    "off_delay",
+    "on_delay",
+    "volt_power_timeout",
+    "min_voltage",
+]
 # Labels used by the app
 SIMENGINE_NODE_LABELS = []
 SIMENGINE_NODE_LABELS.extend(["Asset", "StageLayout", "SystemEnvironment", "EnvProp"])

@@ -92,3 +92,15 @@ class AmbientDecreased(Event):
     """Ambient temperature dropped"""
 
     pass
+
+
+class VoltageIncreased(Event):
+    """Voltage spike/increase"""
+
+    pass
+
+
+class VoltageDecreased(Event):
+    """Voltage drop"""
+
+    pass

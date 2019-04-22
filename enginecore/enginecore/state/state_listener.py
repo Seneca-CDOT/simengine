@@ -9,6 +9,7 @@ handled by individual assets.
 import json
 import logging
 import os
+import functools
 
 from circuits import Component, Event, Timer, Worker, Debugger, task
 import redis
@@ -526,10 +527,13 @@ class StateListener(Component):
                 )
 
                 # react to voltage drop or voltage restoration
-                if new_voltage < ISystemEnvironment.get_min_voltage():
+                if new_voltage == 0.0:
                     self._handle_wallpower_update(power_up=False)
-                elif old_voltage <= ISystemEnvironment.get_min_voltage() < new_voltage:
+                elif old_voltage < ISystemEnvironment.get_min_voltage() <= new_voltage:
                     self._handle_wallpower_update(power_up=True)
+
+                event = PowerEventManager.map_voltage_event(old_voltage, new_voltage)
+                list(map(lambda asset: self.fire(event, asset), self._assets.values()))
 
             elif channel == RedisChannels.mains_update_channel:
                 new_state = int(data)
