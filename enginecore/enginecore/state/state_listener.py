@@ -9,7 +9,6 @@ handled by individual assets.
 import json
 import logging
 import os
-import functools
 
 from circuits import Component, Event, Timer, Worker, Debugger, task
 import redis
@@ -17,7 +16,9 @@ import redis
 from circuits.web import Logger, Server, Static
 from circuits.web.dispatchers import WebSocketsDispatcher
 
-from enginecore.state.assets import Asset, Room, PowerEventResult, LoadEventResult
+from enginecore.state.assets import Asset, PowerEventResult, LoadEventResult
+from enginecore.state.qassets.room import ServerRoom
+
 from enginecore.state.api import ISystemEnvironment
 from enginecore.state.event_map import PowerEventManager
 from enginecore.state.net.ws_server import WebSocket
@@ -51,7 +52,7 @@ class StateListener(Component):
 
         # assets will store all the devices/items including PDUs, switches etc.
         self._assets = {}
-        self._sys_environ = Room().register(self)
+        self._sys_environ = ServerRoom().register(self)
 
         # init graph db instance
         logging.info("Initializing neo4j connection...")
@@ -83,6 +84,8 @@ class StateListener(Component):
         ### Register Assets ###
         self._subscribe_to_channels()
         self._reload_model(force_snmp_init)
+
+        print(self._sys_environ)
 
     def _subscribe_to_channels(self):
         """Subscribe to redis channels"""

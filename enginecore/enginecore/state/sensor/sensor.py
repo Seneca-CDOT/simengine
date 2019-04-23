@@ -554,17 +554,15 @@ class Sensor:
 
     def start_thermal_impact(self):
         """Enable thread execution responsible for thermal updates"""
-        logging.info("Sensor:[%s] - initializing thermal processes", self._s_name)
+        # logging.info("Sensor:[%s] - initializing thermal processes", self._s_name)
         self._init_thermal_impact()
         self.enable_thermal_impact()
 
     def enable_thermal_impact(self):
-        logging.info("Sensor:[%s] - enabling thermal impact", self._s_name)
         self._s_thermal_event.set()
 
     def disable_thermal_impact(self):
         """Disable thread execution responsible for thermal updates"""
-        logging.info("Sensor:[%s] - disabling thermal impact", self._s_name)
         self._s_thermal_event.clear()
 
     def set_to_off(self):

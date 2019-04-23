@@ -38,102 +38,6 @@ LoadEventResult = namedtuple(
 LoadEventResult.__new__.__defaults__ = (None,) * len(PowerEventResult._fields)
 
 
-class Room(Component):
-    """Represents hardware's environment (Room/ServerRack)"""
-
-    def __init__(self):
-        super(Room, self).__init__()
-
-        # threads to track
-        self._temp_warming_t = None
-        self._temp_cooling_t = None
-
-        amb_props = sm.StateManager.get_ambient_props()
-
-        if not amb_props:  # set up default values on the first run
-            shared_attr = {"degrees": 1, "rate": 20, "start": 19, "end": 28}
-            sm.StateManager.set_ambient_props(
-                {**shared_attr, **{"event": "down", "pause_at": 28}}
-            )
-            sm.StateManager.set_ambient_props(
-                {**shared_attr, **{"event": "up", "pause_at": 21}}
-            )
-
-        sm.StateManager.power_restore()
-
-        self._launch_temp_warming()
-        self._launch_temp_cooling()
-
-    def _keep_changing_temp(self, event, env, bound_op, temp_op):
-        """Change room temperature until limit is reached or AC state changes
-        
-        Args:
-            event(str): on up/down event
-            env(callable): update while the environment is in certain condition
-            bound_op(callable): operator; reached max/min
-            temp_op(callable): calculate new temperature
-        """
-
-        amb_props = sm.StateManager.get_ambient_props()[0][event]
-
-        while True:
-
-            time.sleep(amb_props["rate"])
-            if env():
-                # get old & calculate new temp values
-                current_temp = sm.StateManager.get_ambient()
-                new_temp = temp_op(current_temp, amb_props["degrees"])
-                needs_update = False
-
-                msg_format = "Sys Environment: ambient (%s) will be updated to %s"
-
-                needs_update = bound_op(new_temp, amb_props["pauseAt"])
-                if not needs_update and bound_op(current_temp, amb_props["pauseAt"]):
-                    new_temp = amb_props["pauseAt"]
-                    needs_update = True
-
-                if needs_update:
-                    logging.info(msg_format, current_temp, new_temp)
-                    sm.StateManager.set_ambient(new_temp)
-
-            amb_props = sm.StateManager.get_ambient_props()[0][event]
-
-    def _launch_temp_warming(self):
-        """Start the process of raising ambient"""
-
-        run_thread_until = lambda: not sm.StateManager.mains_status()
-        self._temp_warming_t = Thread(
-            target=self._keep_changing_temp,
-            kwargs={
-                "env": run_thread_until,
-                "temp_op": operator.add,
-                "bound_op": operator.lt,
-                "event": "down",
-            },
-            name="temp_warming",
-        )
-
-        self._temp_warming_t.daemon = True
-        self._temp_warming_t.start()
-
-    def _launch_temp_cooling(self):
-        """Start the process of cooling room temperature"""
-
-        self._temp_cooling_t = Thread(
-            target=self._keep_changing_temp,
-            kwargs={
-                "env": sm.StateManager.mains_status,
-                "temp_op": operator.sub,
-                "bound_op": operator.gt,
-                "event": "up",
-            },
-            name="temp_cooling",
-        )
-
-        self._temp_cooling_t.daemon = True
-        self._temp_cooling_t.start()
-
-
 class Asset(Component):
     """Abstract Asset Class """
 
@@ -241,25 +145,25 @@ class Asset(Component):
         msg = "Asset:[{}] load {} was decreased by {}, new load={};"
         return self._update_load(decreased_by, lambda old, change: old - change, msg)
 
-    @handler("VoltageIncreased")
-    def on_voltage_increase(self, event, *args, **kwargs):
-        """React to voltage spikes"""
+    # @handler("VoltageIncreased")
+    # def on_voltage_increase(self, event, *args, **kwargs):
+    #     """React to voltage spikes"""
 
-        if self.state.status:
-            return
+    #     if self.state.status:
+    #         return
 
-        min_voltage, _ = self.state.min_voltage_prop()
-        if min_voltage and kwargs["new_value"] >= min_voltage:
-            self.state.power_up()
-            self.state.publish_power()
+    #     min_voltage, _ = self.state.min_voltage_prop()
+    #     if min_voltage and kwargs["new_value"] >= min_voltage:
+    #         self.state.power_up()
+    #         self.state.publish_power()
 
-    @handler("VoltageDecreased")
-    def on_voltage_drop(self, event, *args, **kwargs):
-        min_voltage, power_off_timeout = self.state.min_voltage_prop()
-        if min_voltage and kwargs["new_value"] < min_voltage and self.state.status:
-            time.sleep(power_off_timeout)
-            self.state.power_off()
-            self.state.publish_power()
+    # @handler("VoltageDecreased")
+    # def on_voltage_drop(self, event, *args, **kwargs):
+    #     min_voltage, power_off_timeout = self.state.min_voltage_prop()
+    #     if min_voltage and kwargs["new_value"] < min_voltage and self.state.status:
+    #         time.sleep(power_off_timeout)
+    #         self.state.power_off()
+    #         self.state.publish_power()
 
     @classmethod
     def get_supported_assets(cls):
@@ -746,6 +650,7 @@ class ServerWithBMC(Server):
     StateManagerCls = sm.BMCServerStateManager
 
     def __init__(self, asset_info):
+        super(ServerWithBMC, self).__init__(asset_info)
 
         # create state directory
         ipmi_dir = os.path.join(get_temp_workplace_dir(), str(asset_info["key"]))
@@ -761,7 +666,6 @@ class ServerWithBMC(Server):
         self._storcli_emu = StorCLIEmulator(
             asset_info["key"], ipmi_dir, socket_port=asset_info["storcliPort"]
         )
-        super(ServerWithBMC, self).__init__(asset_info)
 
         self.state.update_agent(self._ipmi_agent.pid)
 
