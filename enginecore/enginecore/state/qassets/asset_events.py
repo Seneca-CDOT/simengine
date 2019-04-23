@@ -7,11 +7,11 @@ from circuits import Event
 
 
 class ButtonPowerDownPressed(Event):
-    """On Asset Did Power Down (equivalent to power button press) """
+    """On Asset Did Power Down (equivalent to power button press by a user) """
 
 
 class ButtonPowerUpPressed(Event):
-    """On Asset Did Power Up  (equivalent to power button press) """
+    """On Asset Did Power Up (equivalent to power button press by a user) """
 
 
 class ParentAssetPowerDown(Event):
@@ -51,13 +51,13 @@ class ChildAssetLoadDecreased(Event):
 
 
 class VoltageIncreased(Event):
-    """Voltage spike/increase"""
+    """Voltage spike/increase for the Asset"""
 
     pass
 
 
 class VoltageDecreased(Event):
-    """Voltage drop"""
+    """Voltage drop for the Asset"""
 
     pass
 

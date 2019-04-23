@@ -16,7 +16,8 @@ import redis
 from circuits.web import Logger, Server, Static
 from circuits.web.dispatchers import WebSocketsDispatcher
 
-from enginecore.state.assets import Asset, PowerEventResult, LoadEventResult
+from enginecore.state.qassets.asset import Asset
+from enginecore.state.qassets.event_results import PowerEventResult, LoadEventResult
 from enginecore.state.qassets.room import ServerRoom
 
 from enginecore.state.api import ISystemEnvironment

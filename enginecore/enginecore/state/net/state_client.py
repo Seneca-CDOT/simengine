@@ -1,4 +1,5 @@
 """SimEngine web socket server client interface
+This client can be used to communicate recordable commands to the simengine websocket;
 """
 
 import json

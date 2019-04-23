@@ -1,5 +1,8 @@
-from collections import namedtuple
+"""Aggregates Assets' responses to certain events
+For example, PowerEventResult will be returned to the dispatcher in case the dispatched event was handled succesfully
+"""
 
+from collections import namedtuple
 
 PowerEventResult = namedtuple(
     "PowerEventResult", "old_state new_state asset_key asset_type"

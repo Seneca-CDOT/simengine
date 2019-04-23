@@ -5,7 +5,7 @@ from threading import Thread
 import logging
 
 from circuits import Component
-import enginecore.state.state_managers as sm
+import enginecore.state.qassets.state_managers as sm
 
 
 class ServerRoom(Component):
