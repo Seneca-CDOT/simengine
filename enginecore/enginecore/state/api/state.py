@@ -66,10 +66,12 @@ class IStateManager:
         """Asset wattage (assumes power-source to be 120v)"""
         return self.load * ISystemEnvironment.get_voltage()
 
-    @property
-    def min_voltage_prop(self) -> tuple:
+    def min_voltage_prop(self):
         """Get minimum voltage required and the poweroff timeout associated with it"""
-        print(self._asset_info)
+
+        if not "minVoltage" in self._asset_info:
+            return None, None
+
         return self._asset_info["minVoltage"], self._asset_info["voltPowerTimeout"]
 
     @property

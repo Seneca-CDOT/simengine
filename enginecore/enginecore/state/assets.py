@@ -248,17 +248,17 @@ class Asset(Component):
         if self.state.status:
             return
 
-        min_voltage, _ = self.state.min_voltage_prop
-        if kwargs["new_value"] >= min_voltage:
+        min_voltage, _ = self.state.min_voltage_prop()
+        if min_voltage and kwargs["new_value"] >= min_voltage:
             self.state.power_up()
             self.state.publish_power()
 
     @handler("VoltageDecreased")
     def on_voltage_drop(self, event, *args, **kwargs):
-        min_voltage, power_off_timeout = self.state.min_voltage_prop
-        if kwargs["new_value"] < min_voltage and self.state.status:
+        min_voltage, power_off_timeout = self.state.min_voltage_prop()
+        if min_voltage and kwargs["new_value"] < min_voltage and self.state.status:
             time.sleep(power_off_timeout)
-            self.state.power_up()
+            self.state.power_off()
             self.state.publish_power()
 
     @classmethod
