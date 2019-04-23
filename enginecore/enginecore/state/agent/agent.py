@@ -31,3 +31,6 @@ class Agent:
         """
         self._process = process
         atexit.register(self.stop_agent)
+
+    def __str__(self):
+        return "Agent #{0.agent_num}: {0.pid}".format(self)

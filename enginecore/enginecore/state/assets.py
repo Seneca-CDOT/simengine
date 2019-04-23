@@ -766,18 +766,11 @@ class ServerWithBMC(Server):
         self.state.update_agent(self._ipmi_agent.pid)
 
         agent_info = self.state.agent
-        if not agent_info[1]:
-            logging.error(
-                "Asset:[%s] - agent process (%s) failed to start!",
-                self.state.key,
-                agent_info[0],
-            )
-        else:
-            logging.info(
-                "Asset:[%s] - agent process (%s) is up & running",
-                self.state.key,
-                agent_info[0],
-            )
+        log_msg = "is up & running" if agent_info[1] else "failed to start!"
+        logging.info(
+            "Asset:[%s] - agent process (%s) %s", self.state.key, agent_info[0], log_msg
+        )
+        logging.info(self._ipmi_agent)
 
         self.state.update_cpu_load(0)
         self._cpu_load_t = None
