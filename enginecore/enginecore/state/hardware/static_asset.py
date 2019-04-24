@@ -4,7 +4,7 @@
 # pylint: disable=W0613
 
 from circuits import handler
-import enginecore.state.hardware.state_managers as sm
+import enginecore.state.hardware.internal_state as in_state
 from enginecore.state.hardware.asset import Asset
 
 from enginecore.state.hardware.asset_definition import register_asset
@@ -14,7 +14,7 @@ from enginecore.state.hardware.asset_definition import register_asset
 class StaticAsset(Asset):
 
     channel = "engine-static"
-    StateManagerCls = sm.StaticDeviceStateManager
+    StateManagerCls = in_state.StaticDeviceStateManager
 
     def __init__(self, asset_info):
         super(StaticAsset, self).__init__(self.StateManagerCls(asset_info))

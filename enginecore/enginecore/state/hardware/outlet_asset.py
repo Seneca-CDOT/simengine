@@ -8,7 +8,7 @@ import time
 
 from circuits import handler
 
-import enginecore.state.hardware.state_managers as sm
+import enginecore.state.hardware.internal_state as in_state
 from enginecore.state.hardware.asset import Asset
 from enginecore.state.hardware import event_results
 
@@ -19,7 +19,7 @@ from enginecore.state.hardware.asset_definition import register_asset
 class Outlet(Asset):
 
     channel = "engine-outlet"
-    StateManagerCls = sm.OutletStateManager
+    StateManagerCls = in_state.OutletStateManager
 
     def __init__(self, asset_info):
         super(Outlet, self).__init__(Outlet.StateManagerCls(asset_info))
@@ -30,12 +30,16 @@ class Outlet(Asset):
     def on_signal_down_received(self, event, *args, **kwargs):
         """Outlet may have multiple OIDs associated with the state 
         (if if one is updated, other ones should be updated as well)"""
-        self.state.set_parent_oid_states(sm.OutletStateManager.OutletState.switchOff)
+        self.state.set_parent_oid_states(
+            in_state.OutletStateManager.OutletState.switchOff
+        )
 
     @handler("SignalUp", priority=1)
     def on_signal_up_received(self, event, *args, **kwargs):
         """Outlet may have multiple OIDs associated with the state"""
-        self.state.set_parent_oid_states(sm.OutletStateManager.OutletState.switchOn)
+        self.state.set_parent_oid_states(
+            in_state.OutletStateManager.OutletState.switchOn
+        )
 
     @handler("ParentAssetPowerDown", "SignalDown")
     def on_power_off_request_received(self, event, *args, **kwargs):

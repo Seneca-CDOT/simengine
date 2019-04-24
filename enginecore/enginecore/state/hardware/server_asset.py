@@ -15,7 +15,7 @@ from circuits import handler
 
 from enginecore.state.hardware.static_asset import StaticAsset
 from enginecore.state.hardware.asset_definition import register_asset
-import enginecore.state.hardware.state_managers as sm
+import enginecore.state.hardware.internal_state as in_state
 
 from enginecore.state.agent import IPMIAgent, StorCLIEmulator
 from enginecore.state.sensor.repository import SensorRepository
@@ -27,7 +27,7 @@ class Server(StaticAsset):
     """Asset controlling a VM (without IPMI support)"""
 
     channel = "engine-server"
-    StateManagerCls = sm.ServerStateManager
+    StateManagerCls = in_state.ServerStateManager
 
     def __init__(self, asset_info):
         super(Server, self).__init__(asset_info)
@@ -39,7 +39,7 @@ class ServerWithBMC(Server):
     """Asset controlling a VM with BMC/IPMI and StorCLI support"""
 
     channel = "engine-bmc"
-    StateManagerCls = sm.BMCServerStateManager
+    StateManagerCls = in_state.BMCServerStateManager
 
     def __init__(self, asset_info):
         super(ServerWithBMC, self).__init__(asset_info)
@@ -60,12 +60,6 @@ class ServerWithBMC(Server):
         )
 
         self.state.update_agent(self._ipmi_agent.pid)
-
-        agent_info = self.state.agent
-        log_msg = "is up & running" if agent_info[1] else "failed to start!"
-        logging.info(
-            "Asset:[%s] - agent process (%s) %s", self.state.key, agent_info[0], log_msg
-        )
         logging.info(self._ipmi_agent)
 
         self.state.update_cpu_load(0)
@@ -185,7 +179,7 @@ class PSU(StaticAsset):
     """PSU """
 
     channel = "engine-psu"
-    StateManagerCls = sm.PSUStateManager
+    StateManagerCls = in_state.PSUStateManager
 
     def __init__(self, asset_info):
         super(PSU, self).__init__(asset_info)

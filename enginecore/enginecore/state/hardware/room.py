@@ -6,7 +6,7 @@ import logging
 
 from circuits import Component
 
-import enginecore.state.hardware.state_managers as sm
+import enginecore.state.hardware.internal_state as in_state
 
 # Import all hardware assets in order for them to be registered
 # pylint: disable=unused-import
@@ -33,19 +33,19 @@ class ServerRoom(Component):
         self._temp_warming_t = None
         self._temp_cooling_t = None
 
-        amb_props = sm.StateManager.get_ambient_props()
+        amb_props = in_state.StateManager.get_ambient_props()
 
         # set up default values on the first run (if not set by the user)
         if not amb_props:
             shared_attr = {"degrees": 1, "rate": 20, "start": 19, "end": 28}
-            sm.StateManager.set_ambient_props(
+            in_state.StateManager.set_ambient_props(
                 {**shared_attr, **{"event": "down", "pause_at": 28}}
             )
-            sm.StateManager.set_ambient_props(
+            in_state.StateManager.set_ambient_props(
                 {**shared_attr, **{"event": "up", "pause_at": 21}}
             )
 
-        sm.StateManager.power_restore()
+        in_state.StateManager.power_restore()
 
         self._init_thermal_threads()
 
@@ -61,7 +61,9 @@ class ServerRoom(Component):
         """
 
         # ambient props contains details like min/max temperature value, increase/decrease steps etc.
-        get_amb_event_props = lambda: sm.StateManager.get_ambient_props()[0][event]
+        get_amb_event_props = lambda: in_state.StateManager.get_ambient_props()[0][
+            event
+        ]
         amb_props = get_amb_event_props()
 
         while True:
@@ -75,7 +77,7 @@ class ServerRoom(Component):
                 continue
 
             # get old & calculate new temperature values
-            current_temp = sm.StateManager.get_ambient()
+            current_temp = in_state.StateManager.get_ambient()
             new_temp = temp_op(current_temp, amb_props["degrees"])
             needs_update = False
 
@@ -90,7 +92,7 @@ class ServerRoom(Component):
             # update ambient
             if needs_update:
                 logging.info(msg_format, current_temp, new_temp)
-                sm.StateManager.set_ambient(new_temp)
+                in_state.StateManager.set_ambient(new_temp)
 
             amb_props = get_amb_event_props()
 
@@ -114,7 +116,7 @@ class ServerRoom(Component):
         self._temp_warming_t = self._launch_thermal_thread(
             "temp_warming",
             {
-                "env": lambda: not sm.StateManager.mains_status(),
+                "env": lambda: not in_state.StateManager.mains_status(),
                 "temp_op": operator.add,
                 "bound_op": operator.lt,
                 "event": "down",
@@ -123,7 +125,7 @@ class ServerRoom(Component):
         self._temp_cooling_t = self._launch_thermal_thread(
             "temp_cooling",
             {
-                "env": sm.StateManager.mains_status,
+                "env": in_state.StateManager.mains_status,
                 "temp_op": operator.sub,
                 "bound_op": operator.gt,
                 "event": "up",
@@ -132,7 +134,7 @@ class ServerRoom(Component):
 
     def __str__(self):
 
-        wall_power_status = sm.StateManager.mains_status()
+        wall_power_status = in_state.StateManager.mains_status()
         horizontal_line = "-" * 20
 
         th_warming_status = (

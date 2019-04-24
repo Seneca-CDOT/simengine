@@ -12,7 +12,7 @@ from datetime import datetime as dt
 
 from threading import Thread
 from circuits import handler
-import enginecore.state.hardware.state_managers as sm
+import enginecore.state.hardware.internal_state as in_state
 from enginecore.state.hardware.asset import Asset
 from enginecore.state.hardware.snmp_asset import SNMPSim
 
@@ -29,7 +29,7 @@ class UPS(Asset, SNMPSim):
     """
 
     channel = "engine-ups"
-    StateManagerCls = sm.UPSStateManager
+    StateManagerCls = in_state.UPSStateManager
 
     def __init__(self, asset_info):
         Asset.__init__(self, UPS.StateManagerCls(asset_info))
@@ -63,20 +63,7 @@ class UPS(Asset, SNMPSim):
 
         # set temp on start
         self._state.update_temperature(7)
-
-        agent_info = self.state.agent
-        if not agent_info[1]:
-            logging.error(
-                "Asset:[%s] - agent process (%s) failed to start!",
-                self.state.key,
-                agent_info[0],
-            )
-        else:
-            logging.info(
-                "Asset:[%s] - agent process (%s) is up & running",
-                self.state.key,
-                agent_info[0],
-            )
+        logging.info(self._snmp_agent)
 
     def _cacl_time_left(self, wattage):
         """Approximate runtime estimation based on current battery level"""
@@ -130,7 +117,7 @@ class UPS(Asset, SNMPSim):
             if seconds_on_battery > 5 and not blackout:
                 blackout = True
                 self.state.update_transfer_reason(
-                    sm.UPSStateManager.InputLineFailCause.blackout
+                    in_state.UPSStateManager.InputLineFailCause.blackout
                 )
 
             time.sleep(1)
@@ -183,9 +170,11 @@ class UPS(Asset, SNMPSim):
         self._start_time_battery = dt.now()
 
         # update state details
-        self.state.update_ups_output_status(sm.UPSStateManager.OutputStatus.onBattery)
+        self.state.update_ups_output_status(
+            in_state.UPSStateManager.OutputStatus.onBattery
+        )
         self.state.update_transfer_reason(
-            sm.UPSStateManager.InputLineFailCause.deepMomentarySag
+            in_state.UPSStateManager.InputLineFailCause.deepMomentarySag
         )
 
         # launch a thread
@@ -202,9 +191,11 @@ class UPS(Asset, SNMPSim):
         self.state.update_time_on_battery(0)
 
         # update state details
-        self.state.update_ups_output_status(sm.UPSStateManager.OutputStatus.onLine)
+        self.state.update_ups_output_status(
+            in_state.UPSStateManager.OutputStatus.onLine
+        )
         self.state.update_transfer_reason(
-            sm.UPSStateManager.InputLineFailCause.noTransfer
+            in_state.UPSStateManager.InputLineFailCause.noTransfer
         )
 
         # launch a thread
@@ -230,7 +221,7 @@ class UPS(Asset, SNMPSim):
             return
 
         # Battery is dead
-        self.state.update_ups_output_status(sm.UPSStateManager.OutputStatus.off)
+        self.state.update_ups_output_status(in_state.UPSStateManager.OutputStatus.off)
 
         e_result = self.power_off()
         event.success = e_result.new_state != e_result.old_state
@@ -240,7 +231,7 @@ class UPS(Asset, SNMPSim):
     @handler("SignalDown")
     def on_signal_down_received(self, event, *args, **kwargs):
         """UPS can be powered down by snmp command"""
-        self.state.update_ups_output_status(sm.UPSStateManager.OutputStatus.off)
+        self.state.update_ups_output_status(in_state.UPSStateManager.OutputStatus.off)
 
         if "graceful" in kwargs and kwargs["graceful"]:
             e_result = self.shut_down()

@@ -54,12 +54,9 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         Args:
             charge_level(int): new battery level (between 0 & 1000)
         """
-        charge_level = 0 if charge_level < 0 else charge_level
-        charge_level = (
-            self._max_battery_level
-            if charge_level > self._max_battery_level
-            else charge_level
-        )
+        # make sure new charge level is within acceptable range
+        charge_level = max(charge_level, 0)
+        charge_level = min(charge_level, self._max_battery_level)
 
         StateManager.get_store().set(self.redis_key + ":battery", int(charge_level))
         self._update_battery_oids(charge_level, self.battery_level)

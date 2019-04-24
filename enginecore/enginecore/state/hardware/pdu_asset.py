@@ -8,7 +8,7 @@ Plus there's an SNMP agent running in the background
 import logging
 
 from circuits import handler
-import enginecore.state.hardware.state_managers as sm
+import enginecore.state.hardware.internal_state as in_state
 from enginecore.state.hardware.asset import Asset
 from enginecore.state.hardware.snmp_asset import SNMPSim
 
@@ -24,7 +24,7 @@ class PDU(Asset, SNMPSim):
     """
 
     channel = "engine-pdu"
-    StateManagerCls = sm.PDUStateManager
+    StateManagerCls = in_state.PDUStateManager
 
     def __init__(self, asset_info):
         Asset.__init__(self, PDU.StateManagerCls(asset_info))
@@ -33,20 +33,7 @@ class PDU(Asset, SNMPSim):
         )
 
         self.state.update_agent(self._snmp_agent.pid)
-
-        agent_info = self.state.agent
-        if not agent_info[1]:
-            logging.error(
-                "Asset:[%s] - agent process (%s) failed to start!",
-                self.state.key,
-                agent_info[0],
-            )
-        else:
-            logging.info(
-                "Asset:[%s] - agent process (%s) is up & running",
-                self.state.key,
-                agent_info[0],
-            )
+        logging.info(self._snmp_agent)
 
     @handler("ParentAssetPowerDown")
     def on_parent_asset_power_down(self, event, *args, **kwargs):

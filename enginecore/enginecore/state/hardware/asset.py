@@ -7,7 +7,6 @@
 import logging
 
 from circuits import Component, handler
-import enginecore.state.hardware.state_managers as sm
 from enginecore.state.hardware import event_results
 from enginecore.state.hardware.asset_definition import SUPPORTED_ASSETS
 
@@ -123,13 +122,3 @@ class Asset(Component):
     def get_supported_assets(cls):
         """Get factory containing registered assets"""
         return SUPPORTED_ASSETS
-
-    @classmethod
-    def get_state_manager_by_key(cls, key):
-        """Get a state manager specific to the asset type
-        Args:
-            key(int): asset key
-        Returns:
-            StateManager: instance of the StateManager sub-class
-        """
-        return sm.StateManager.get_state_manager_by_key(key, cls.get_supported_assets())
