@@ -7,9 +7,9 @@
 import logging
 
 from circuits import Component, handler
-import enginecore.state.qassets.state_managers as sm
-from enginecore.state.qassets import event_results
-from enginecore.state.qassets.asset_definition import SUPPORTED_ASSETS
+import enginecore.state.hardware.state_managers as sm
+from enginecore.state.hardware import event_results
+from enginecore.state.hardware.asset_definition import SUPPORTED_ASSETS
 
 
 class Asset(Component):

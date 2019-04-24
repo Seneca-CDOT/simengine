@@ -1,5 +1,5 @@
 """ Various helper functions """
-from enginecore.state.qassets.asset_definition import SUPPORTED_ASSETS
+from enginecore.state.hardware.asset_definition import SUPPORTED_ASSETS
 
 
 def format_as_redis_key(key, oid, key_formatted=True):

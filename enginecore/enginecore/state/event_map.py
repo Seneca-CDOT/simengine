@@ -1,5 +1,5 @@
 """ Maps redis events to circuit events """
-from enginecore.state.qassets import asset_events as events
+from enginecore.state.hardware import asset_events as events
 
 
 class PowerEventManager:

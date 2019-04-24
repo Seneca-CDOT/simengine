@@ -2,7 +2,7 @@
 & determines if the event affects other (connected) assets
 
 The daemon initializes a WebSocket & Redis event listener component
-and reacts to state updates by dispatching cuircuit events that are, in turn,
+and reacts to state updates by dispatching circuits events that are, in turn,
 handled by individual assets.
 
 """
@@ -16,9 +16,8 @@ import redis
 from circuits.web import Logger, Server, Static
 from circuits.web.dispatchers import WebSocketsDispatcher
 
-from enginecore.state.qassets.asset import Asset
-from enginecore.state.qassets.event_results import PowerEventResult, LoadEventResult
-from enginecore.state.qassets.room import ServerRoom
+from enginecore.state.hardware.event_results import PowerEventResult, LoadEventResult
+from enginecore.state.hardware.room import ServerRoom, Asset
 
 from enginecore.state.api import ISystemEnvironment
 from enginecore.state.event_map import PowerEventManager

@@ -4,10 +4,10 @@
 # pylint: disable=W0613
 
 from circuits import handler
-import enginecore.state.qassets.state_managers as sm
-from enginecore.state.qassets.asset import Asset
+import enginecore.state.hardware.state_managers as sm
+from enginecore.state.hardware.asset import Asset
 
-from enginecore.state.qassets.asset_definition import register_asset
+from enginecore.state.hardware.asset_definition import register_asset
 
 
 @register_asset
@@ -22,10 +22,12 @@ class StaticAsset(Asset):
 
     @handler("ParentAssetPowerDown")
     def on_parent_asset_power_down(self, event, *args, **kwargs):
+        """Powers off on parent offline"""
         return self.power_off()
 
     @handler("ParentAssetPowerUp")
     def on_power_up_request_received(self):
+        """Powers on on parent going online"""
         return self.power_up()
 
 

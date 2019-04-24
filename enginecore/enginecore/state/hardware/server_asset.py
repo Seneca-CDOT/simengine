@@ -13,9 +13,9 @@ from threading import Thread
 
 from circuits import handler
 
-from enginecore.state.qassets.static_asset import StaticAsset
-from enginecore.state.qassets.asset_definition import register_asset
-import enginecore.state.qassets.state_managers as sm
+from enginecore.state.hardware.static_asset import StaticAsset
+from enginecore.state.hardware.asset_definition import register_asset
+import enginecore.state.hardware.state_managers as sm
 
 from enginecore.state.agent import IPMIAgent, StorCLIEmulator
 from enginecore.state.sensor.repository import SensorRepository

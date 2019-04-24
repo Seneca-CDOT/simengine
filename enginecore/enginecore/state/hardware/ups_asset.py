@@ -12,11 +12,11 @@ from datetime import datetime as dt
 
 from threading import Thread
 from circuits import handler
-import enginecore.state.qassets.state_managers as sm
-from enginecore.state.qassets.asset import Asset
-from enginecore.state.qassets.snmp_asset import SNMPSim
+import enginecore.state.hardware.state_managers as sm
+from enginecore.state.hardware.asset import Asset
+from enginecore.state.hardware.snmp_asset import SNMPSim
 
-from enginecore.state.qassets.asset_definition import register_asset
+from enginecore.state.hardware.asset_definition import register_asset
 
 
 @register_asset
@@ -118,7 +118,7 @@ class UPS(Asset, SNMPSim):
             battery_level = battery_level - (
                 self._calc_battery_discharge() * self._drain_speed_factor
             )
-            seconds_on_battery = (dt.datetime.now() - self._start_time_battery).seconds
+            seconds_on_battery = (dt.now() - self._start_time_battery).seconds
 
             # update state details
             self.state.update_battery(battery_level)
@@ -180,7 +180,7 @@ class UPS(Asset, SNMPSim):
     def _launch_battery_drain(self):
         """Start a thread that will decrease battery level """
 
-        self._start_time_battery = dt.datetime.now()
+        self._start_time_battery = dt.now()
 
         # update state details
         self.state.update_ups_output_status(sm.UPSStateManager.OutputStatus.onBattery)

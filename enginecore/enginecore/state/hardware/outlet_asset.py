@@ -8,11 +8,11 @@ import time
 
 from circuits import handler
 
-import enginecore.state.qassets.state_managers as sm
-from enginecore.state.qassets.asset import Asset
-from enginecore.state.qassets import event_results
+import enginecore.state.hardware.state_managers as sm
+from enginecore.state.hardware.asset import Asset
+from enginecore.state.hardware import event_results
 
-from enginecore.state.qassets.asset_definition import register_asset
+from enginecore.state.hardware.asset_definition import register_asset
 
 
 @register_asset

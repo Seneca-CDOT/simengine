@@ -5,7 +5,19 @@ from threading import Thread
 import logging
 
 from circuits import Component
-import enginecore.state.qassets.state_managers as sm
+
+import enginecore.state.hardware.state_managers as sm
+
+# Import all hardware assets in order for them to be registered
+# pylint: disable=unused-import
+from enginecore.state.hardware.asset import Asset
+from enginecore.state.hardware.ups_asset import UPS
+from enginecore.state.hardware.pdu_asset import PDU
+from enginecore.state.hardware.server_asset import Server, ServerWithBMC, PSU
+from enginecore.state.hardware.static_asset import StaticAsset, Lamp
+from enginecore.state.hardware.outlet_asset import Outlet
+
+# pylint: enable=unused-import
 
 
 class ServerRoom(Component):

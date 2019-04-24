@@ -8,11 +8,11 @@ Plus there's an SNMP agent running in the background
 import logging
 
 from circuits import handler
-import enginecore.state.qassets.state_managers as sm
-from enginecore.state.qassets.asset import Asset
-from enginecore.state.qassets.snmp_asset import SNMPSim
+import enginecore.state.hardware.state_managers as sm
+from enginecore.state.hardware.asset import Asset
+from enginecore.state.hardware.snmp_asset import SNMPSim
 
-from enginecore.state.qassets.asset_definition import register_asset
+from enginecore.state.hardware.asset_definition import register_asset
 
 
 @register_asset

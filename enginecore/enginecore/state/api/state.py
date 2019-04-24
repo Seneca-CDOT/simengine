@@ -9,7 +9,7 @@ from enginecore.model.graph_reference import GraphReference
 from enginecore.tools.utils import format_as_redis_key
 from enginecore.state.redis_channels import RedisChannels
 
-from enginecore.state.qassets.asset_definition import SUPPORTED_ASSETS
+from enginecore.state.hardware.asset_definition import SUPPORTED_ASSETS
 from enginecore.tools.recorder import RECORDER as record
 from enginecore.tools.randomizer import Randomizer
 from enginecore.state.api.environment import ISystemEnvironment
