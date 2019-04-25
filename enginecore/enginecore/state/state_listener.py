@@ -371,7 +371,7 @@ class StateListener(Component):
         """
 
         child_load = child_asset.state.load * updated_asset.state.draw_percentage
-        child_load_event = (
+        get_child_load_event = lambda new_state: (
             PowerEventManager.map_load_decreased_by,
             PowerEventManager.map_load_increased_by,
         )[new_state](child_load, child_asset.key)
@@ -387,7 +387,7 @@ class StateListener(Component):
                 child_asset.state.asset_type == "ups"
                 and child_asset.state.battery_level
             ):
-                self.fire(child_load_event, updated_asset)
+                self.fire(get_child_load_event(new_state), updated_asset)
 
         # check upstream & branching power
         # alternative power source is available, therefore the load needs to be re-distributed
@@ -398,14 +398,14 @@ class StateListener(Component):
                 alt_parent_asset.key,
             )
 
-            # increase power on the neighbouring power stream (how much updated asset was drawing)
-            self.fire(child_load_event, alt_parent_asset)
+            # increase/decrease power on the neighbouring power stream (how much updated asset was drawing)
+            self.fire(get_child_load_event(new_state ^ 1), alt_parent_asset)
 
-            # change load up the node path that powers the updated asset
-            event = PowerEventManager.map_child_event(
+            # change load up the node power stream (power source of the updated node)
+            load_child_event = PowerEventManager.map_child_event(
                 str(new_state), child_load, updated_asset.key
             )
-            self.fire(event, updated_asset)
+            self.fire(load_child_event, updated_asset)
 
     def _chain_power_update(self, event_result):
         """React to power state event by analysing the parent, child & neighbouring assets
@@ -425,86 +425,17 @@ class StateListener(Component):
                 session, updated_asset.key
             )
 
+        alt_parent_asset = self._assets[_2nd_parent["key"]] if _2nd_parent else None
+
         # Meaning it's a leaf node -> update load up the power chain if needed
         if not children and parent_assets:
             self._process_leaf_node_power_event(updated_asset, new_state, parent_assets)
 
         # Check assets down the power stream (assets powered by the updated asset)
         for child in children:
-            child_asset = self._assets[child["key"]]
-            second_parent_up = False
-            second_parent_asset = None
-
-            # check if there's an alternative power source of the child asset
-            """
-                e.g.
-                (psu1)  (psu2)
-                \       /
-                [pow]  [pow]
-                    \   /
-                    (server) <- child
-            """
-            if _2nd_parent:
-                second_parent_asset = self._assets[int(_2nd_parent["key"])]
-                second_parent_up = second_parent_asset.state.status
-
-            # power up/down child assets if there's no alternative power source
-            if not second_parent_up:
-                event = PowerEventManager.map_parent_event(str(new_state))
-                self.fire(event, child_asset)
-
-                # Special case for UPS
-                if (
-                    child_asset.state.asset_type == "ups"
-                    and child_asset.state.battery_level
-                ):
-                    node_load = (
-                        child_asset.state.load * updated_asset.state.draw_percentage
-                    )
-
-                    # ups won't be powered off but the load has to change anyways
-                    if not new_state:
-                        load_upd = PowerEventManager.map_load_decreased_by(
-                            node_load, child_asset.key
-                        )
-                    else:
-                        load_upd = PowerEventManager.map_load_increased_by(
-                            node_load, child_asset.key
-                        )
-
-                    self.fire(load_upd, updated_asset)
-
-            # check upstream & branching power
-            # alternative power source is available, therefore the load needs to be re-directed
-            else:
-                logging.info(
-                    "Asset[%s] has alternative parent[%s]",
-                    child_asset.key,
-                    second_parent_asset.key,
-                )
-
-                # find out how much load the 2nd parent should take
-                # (how much updated asset was drawing)
-                node_load = child_asset.state.load * updated_asset.state.draw_percentage
-
-                # logging.info('Child load : {}'.format(node_load))
-                if int(new_state) == 0:
-                    alt_branch_event = PowerEventManager.map_load_increased_by(
-                        node_load, child_asset.key
-                    )
-                else:
-                    alt_branch_event = PowerEventManager.map_load_decreased_by(
-                        node_load, child_asset.key
-                    )
-
-                # increase power on the neighbouring power stream
-                self.fire(alt_branch_event, second_parent_asset)
-
-                # change load up the node path that powers the updated asset
-                event = PowerEventManager.map_child_event(
-                    str(new_state), node_load, updated_asset.key
-                )
-                self.fire(event, updated_asset)
+            self._process_int_node_power_event(
+                updated_asset, self._assets[child["key"]], new_state, alt_parent_asset
+            )
 
     def _notify_client(self, client_request, data):
         """Notify the WebSocket client(s) of any changes in asset states 
