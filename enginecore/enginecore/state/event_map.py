@@ -2,7 +2,7 @@
 from enginecore.state.hardware import asset_events as events
 
 
-class PowerEventManager:
+class PowerEventMap:
     """This helper maps redis values of OIDs or asset states to circuit events """
 
     STATE_SPECS = {
@@ -22,7 +22,7 @@ class PowerEventManager:
     @classmethod
     def get_state_specs(cls):
         """Map OID & their values to events"""
-        return PowerEventManager.STATE_SPECS
+        return PowerEventMap.STATE_SPECS
 
     @classmethod
     def map_asset_event(cls, value):

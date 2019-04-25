@@ -10,7 +10,7 @@ import json
 import logging
 import os
 
-from circuits import Component, Event, Timer, Worker, Debugger, task
+from circuits import Component, Event, Timer, Worker, Debugger  # , task
 import redis
 
 from circuits.web import Logger, Server, Static
@@ -20,7 +20,7 @@ from enginecore.state.hardware.event_results import PowerEventResult, LoadEventR
 from enginecore.state.hardware.room import ServerRoom, Asset
 
 from enginecore.state.api import ISystemEnvironment
-from enginecore.state.event_map import PowerEventManager
+from enginecore.state.event_map import PowerEventMap
 from enginecore.state.net.ws_server import WebSocket
 from enginecore.state.net.ws_requests import ServerToClientRequests
 
@@ -210,7 +210,7 @@ class StateListener(Component):
 
             for key in affected_keys:
                 self.fire(
-                    PowerEventManager.get_state_specs()[oid_name][oid_value_name],
+                    PowerEventMap.get_state_specs()[oid_name][oid_value_name],
                     self._assets[key],
                 )
 
@@ -230,8 +230,7 @@ class StateListener(Component):
         )
         for a_key in self._assets:
             self.fire(
-                PowerEventManager.map_ambient_event(old_temp, new_temp),
-                self._assets[a_key],
+                PowerEventMap.map_ambient_event(old_temp, new_temp), self._assets[a_key]
             )
 
     def _handle_state_update(self, asset_key, asset_status):
@@ -250,50 +249,49 @@ class StateListener(Component):
         )
 
         # fire-up power events down the power stream
-        self.fire(PowerEventManager.map_asset_event(asset_status), updated_asset)
+        self.fire(PowerEventMap.map_asset_event(asset_status), updated_asset)
         self._chain_power_update(
             PowerEventResult(asset_key=asset_key, new_state=asset_status)
         )
 
-    def _chain_load_update(self, event_result, increased=True):
-        """React to load update event by propogating the load changes up the power stream
+    def _chain_load_update(self, event_result: LoadEventResult, increased: bool = True):
+        """React to load update event by propogating the load changes 
+        up the power stream
         
         Args:
-            event_result(LoadEventResult): contains data about load update event such as key of 
-                                           the affected asset, its old load, new load and load change 
-            increased(bool): true if load was incresed
+            event_result: contains data about load update event such as key of 
+                          the affected asset, its old load, new load and load change 
+            increased(optional): true if load was increased
 
         Example:
-            when a leaf node is powered down, its load is set to 0 -> parent assets get updated load values
+            when a leaf node is powered down, its load is set to 0 
+            & parent assets get updated load values
         """
         load_change = event_result.load_change
-        child_key = int(event_result.asset_key)
 
         if not load_change:
             return
 
+        child_asset = self._assets[int(event_result.asset_key)]
+        child_event = (
+            PowerEventMap.map_load_increased_by
+            if increased
+            else PowerEventMap.map_load_decreased_by
+        )
+
         with self._graph_ref.get_session() as session:
-            parent_assets = GraphReference.get_parent_assets(session, child_key)
+            parent_assets = GraphReference.get_parent_assets(session, child_asset.key)
 
         for parent_info in parent_assets:
             parent = self._assets[parent_info["key"]]
-            child = self._assets[child_key]
 
             # load was already updated for ups parent
-            if child.state.asset_type == "ups" and not parent.state.status:
+            if child_asset.state.asset_type == "ups" and not parent.state.status:
                 return
 
+            # notify parent node of child asset load update
             parent_load_change = load_change * parent.state.draw_percentage
-
-            if increased:
-                event = PowerEventManager.map_load_increased_by(
-                    parent_load_change, child_key
-                )
-            else:
-                event = PowerEventManager.map_load_decreased_by(
-                    parent_load_change, child_key
-                )
-            self.fire(event, parent)
+            self.fire(child_event(parent_load_change, child_asset.key), parent)
 
     def _process_leaf_node_power_event(
         self, updated_asset: Asset, new_state: int, parent_assets: list
@@ -334,8 +332,8 @@ class StateListener(Component):
             # fire load increase/decrease depending on the new state of the updated asset
             self.fire(
                 (
-                    PowerEventManager.map_load_decreased_by,
-                    PowerEventManager.map_load_increased_by,
+                    PowerEventMap.map_load_decreased_by,
+                    PowerEventMap.map_load_increased_by,
                 )[new_state](load_upd, updated_asset.key),
                 parent_asset,
             )
@@ -372,13 +370,13 @@ class StateListener(Component):
 
         child_load = child_asset.state.load * updated_asset.state.draw_percentage
         get_child_load_event = lambda new_state: (
-            PowerEventManager.map_load_decreased_by,
-            PowerEventManager.map_load_increased_by,
+            PowerEventMap.map_load_decreased_by,
+            PowerEventMap.map_load_increased_by,
         )[new_state](child_load, child_asset.key)
 
         # power up/down child assets if there's no alternative power source
         if not (alt_parent_asset and alt_parent_asset.state.status):
-            event = PowerEventManager.map_parent_event(str(new_state))
+            event = PowerEventMap.map_parent_event(str(new_state))
             self.fire(event, child_asset)
 
             # Special case for UPS
@@ -390,7 +388,8 @@ class StateListener(Component):
                 self.fire(get_child_load_event(new_state), updated_asset)
 
         # check upstream & branching power
-        # alternative power source is available, therefore the load needs to be re-distributed
+        # alternative power source is available,
+        # therefore the load needs to be re-distributed
         else:
             logging.info(
                 "Asset[%s] has alternative parent[%s]",
@@ -398,23 +397,27 @@ class StateListener(Component):
                 alt_parent_asset.key,
             )
 
-            # increase/decrease power on the neighbouring power stream (how much updated asset was drawing)
+            # increase/decrease power on the neighbouring power stream
+            # (how much updated asset was drawing)
             self.fire(get_child_load_event(new_state ^ 1), alt_parent_asset)
 
             # change load up the node power stream (power source of the updated node)
-            load_child_event = PowerEventManager.map_child_event(
+            load_child_event = PowerEventMap.map_child_event(
                 str(new_state), child_load, updated_asset.key
             )
             self.fire(load_child_event, updated_asset)
 
     def _chain_power_update(self, event_result):
-        """React to power state event by analysing the parent, child & neighbouring assets
+        """React to power state event by analysing the parent,
+        child & neighbouring assets
         
         Args:
-            event_result(PowerEventResult): contains data about power state update event such as key of 
-                                           the affected asset, its old state & new state
+            event_result(PowerEventResult): contains data about power state update 
+                                            event such as key of the affected asset, 
+                                            its old state & new state
         Example:
-            when a node is powered down, the assets it powers should be powered down as well
+            when a node is powered down, 
+            the assets it powers should be powered down as well
         """
 
         updated_asset = self._assets[int(event_result.asset_key)]
@@ -534,7 +537,7 @@ class StateListener(Component):
                 elif old_voltage < ISystemEnvironment.get_min_voltage() <= new_voltage:
                     self._handle_wallpower_update(power_up=True)
 
-                event = PowerEventManager.map_voltage_event(old_voltage, new_voltage)
+                event = PowerEventMap.map_voltage_event(old_voltage, new_voltage)
                 list(map(lambda asset: self.fire(event, asset), self._assets.values()))
 
             elif channel == RedisChannels.mains_update_channel:
@@ -544,7 +547,7 @@ class StateListener(Component):
                     ServerToClientRequests.mains_upd, {"mains": new_state}
                 )
 
-                self.fire(PowerEventManager.map_mains_event(data), self._sys_environ)
+                self.fire(PowerEventMap.map_mains_event(data), self._sys_environ)
 
             elif channel == RedisChannels.oid_update_channel:
                 value = (self._redis_store.get(data)).decode()
@@ -624,7 +627,9 @@ class StateListener(Component):
     ############### Load Events - Callbacks (called only on success)
 
     def _load_success(self, event_result, increased=True):
-        """Handle load event changes by dispatching load update events up the power stream"""
+        """Handle load event changes by dispatching 
+        load update events up the power stream
+        """
         self._chain_load_update(event_result, increased)
         if event_result.load_change:
             ckey = int(event_result.asset_key)
