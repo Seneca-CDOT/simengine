@@ -329,7 +329,8 @@ class StateListener(Component):
             )
 
             load_upd = offline_parents_load + leaf_node_amp
-            # fire load increase/decrease depending on the new state of the updated asset
+            # fire load increase/decrease depending on the
+            # new state of the updated asset
             self.fire(
                 (
                     PowerEventMap.map_load_decreased_by,
@@ -355,7 +356,7 @@ class StateListener(Component):
             updated_asset: internal node whose power state has been changed
             child_asset: child node of the updated asset
             new_state: new state of the updated asset
-            alt_parent_asset(optional): second (or altertnative) parent of the child asset
+            alt_parent_asset: second (or altertnative) parent of the child asset
 
         Example:
             if (psu1) went down, its child (server) will be powered off depending

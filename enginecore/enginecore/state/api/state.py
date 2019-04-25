@@ -3,6 +3,7 @@
 import time
 import os
 import subprocess
+
 import redis
 
 from enginecore.model.graph_reference import GraphReference
@@ -81,7 +82,7 @@ class IStateManager:
         Returns:
             int: 1 if on, 0 if off
         """
-        return int(IStateManager.get_store().get(self.redis_key))
+        return int(IStateManager.get_store().get(self.redis_key + ":state"))
 
     @property
     def agent(self):
@@ -98,7 +99,8 @@ class IStateManager:
     @record
     @Randomizer.randomize_method()
     def shut_down(self):
-        """Implements state logic for graceful power-off event, sleeps for the pre-configured time
+        """Implements state logic for graceful power-off event,
+        sleeps for the pre-configured time
             
         Returns:
             int: Asset's status after power-off operation
@@ -123,7 +125,8 @@ class IStateManager:
     @record
     @Randomizer.randomize_method()
     def power_up(self):
-        """Implements state logic for power up, sleeps for the pre-configured time & resets boot time
+        """Implements state logic for power up;
+        sleeps for the pre-configured time & resets boot time
         
         Returns:
             int: Asset's status after power-on operation
@@ -162,7 +165,7 @@ class IStateManager:
 
     def _set_redis_asset_state(self, state, publish=True):
         """Update redis value of the asset power status"""
-        IStateManager.get_store().set(self.redis_key, state)
+        IStateManager.get_store().set(self.redis_key + ":state", state)
         if publish:
             self._publish_power()
 
@@ -188,7 +191,9 @@ class IStateManager:
         return redis_store.get(rkey).decode().split("|")[1]
 
     def _reset_boot_time(self):
-        """Reset device start time (used to calculate uptime)"""
+        """Reset device start time (this redis key/value is used to calculate uptime)
+        (see snmppub.lua)
+        """
         IStateManager.get_store().set(
             str(self._asset_key) + ":start_time", int(time.time())
         )
@@ -242,7 +247,8 @@ class IStateManager:
             msg (str, optional): Error message to be printed
         
         Returns: 
-            bool: True if parent keys are missing or all parents were verified with parent_down clause 
+            bool: True if parent keys are missing or all parents 
+                  were verified with parent_down clause 
         """
         if not keys:
             return True
@@ -297,9 +303,10 @@ class IStateManager:
     @classmethod
     def _get_assets_states(cls, assets, flatten=True):
         """Query redis store and find states for each asset
-        
+
         Args:
-            flatten(bool): If false, the returned assets in the dict will have their child-components nested
+            flatten(bool): If false, the returned assets in the dict
+                           will have their child-components nested
         Returns:
             dict: Current information on assets including their states, load etc.
         """
@@ -335,7 +342,8 @@ class IStateManager:
         """Get states of all system components 
         
         Args:
-            flatten(bool): If false, the returned assets in the dict will have their child-components nested
+            flatten(bool): If false, the returned assets in the dict 
+                           will have their child-components nested
         
         Returns:
             dict: Current information on assets including their states, load etc.

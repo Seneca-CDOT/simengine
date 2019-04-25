@@ -1,8 +1,8 @@
 """Contains extended versions of State Managers located in api module;
-Internal States are meant to be manipulated by the hardware assets (server_asset, ups_asset etc.)
+Internal States are meant to be manipulated by 
+the hardware assets (server_asset, ups_asset etc.)
 So they expose extra functionality on top of the api components
 """
-
 from enum import Enum
 
 import pysnmp.proto.rfc1902 as snmp_data_types

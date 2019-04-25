@@ -52,7 +52,7 @@ def initialize(force_snmp_init=False):
             init_from_snmprec = (
                 not redis_store.exists("{}-{}".format(asset_key, asset_type))
             ) or force_snmp_init
-            redis_store.set("{}-{}".format(asset_key, asset_type), "1")
+            redis_store.set("{}-{}:state".format(asset_key, asset_type), "1")
             formatted_key = asset_key.zfill(10)
             temp_ordering_key = formatted_key + "-temp_oids_ordering"
 
