@@ -361,8 +361,10 @@ class IStateManager:
     @classmethod
     def get_state_manager_by_key(cls, key, supported_assets=None):
         """Infer asset manager from key"""
+        from enginecore.state.hardware.room import Asset
+
         if not supported_assets:
-            supported_assets = SUPPORTED_ASSETS
+            supported_assets = Asset.get_supported_assets()
 
         graph_ref = GraphReference()
 
