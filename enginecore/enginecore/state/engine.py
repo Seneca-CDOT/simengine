@@ -385,8 +385,6 @@ class Engine(Component):
             the assets it powers should be powered down as well
         """
 
-        logging.info("\n------>")
-        logging.info(event_result)
         updated_asset = self._assets[int(event_result.asset_key)]
         new_state = int(event_result.new_state)
 

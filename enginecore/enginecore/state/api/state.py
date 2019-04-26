@@ -255,7 +255,7 @@ class IStateManager:
         if not keys:
             return True
 
-        parent_values = IStateManager.get_store().mget(keys)
+        parent_values = IStateManager.get_store().mget([k + ":state" for k in keys])
         pdown = 0
         pdown_msg = ""
         for rkey, rvalue in zip(keys, parent_values):
