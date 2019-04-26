@@ -1,10 +1,9 @@
 """Engine monitors any updates to assets/OIDs 
 & determines if the event affects other (connected) assets
 
-The daemon initializes a WebSocket & Redis event listener component
+The daemon initializes a WebSocket, handles redis channel update
 and reacts to state updates by dispatching circuits events that are, in turn,
-handled by individual assets.
-
+are processed by individual assets.
 """
 import logging
 import os

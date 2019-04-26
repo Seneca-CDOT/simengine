@@ -1,13 +1,9 @@
-"""StateListener monitors any updates to assets/OIDs 
-& determines if the event affects other (connected) assets
-
-The daemon initializes a WebSocket & Redis event listener component
-and reacts to state updates by dispatching circuits events that are, in turn,
-handled by individual assets.
-
+"""StateListener subscribes to redis channels and passes published data
+to the Engine for further processing;
 """
 import json
 import logging
+import os
 
 from circuits import Component, Event, Timer
 import redis
@@ -15,7 +11,7 @@ import redis
 from enginecore.state.redis_channels import RedisChannels
 from enginecore.state.engine import Engine
 
-
+# TODO: fix action recorder set ambient!
 class StateListener(Component):
     """Top-level component that instantiates assets 
     & maps redis events to circuit events
@@ -27,20 +23,18 @@ class StateListener(Component):
         # Use redis pub/sub communication
         logging.info("Initializing redis connection...")
 
-        self._redis_store = redis.StrictRedis(host="localhost", port=6379)
-
-        # set up a web socket server
-        # socket_conf = {
-        #     "host": os.environ.get("SIMENGINE_SOCKET_HOST"),
-        #     "port": int(os.environ.get("SIMENGINE_SOCKET_PORT")),
-        # }
+        redis_conf = {
+            "host": os.environ.get("SIMENGINE_REDIS_HOST"),
+            "port": int(os.environ.get("SIMENGINE_REDIS_PORT")),
+        }
+        self._redis_store = redis.StrictRedis(**redis_conf)
 
         self._pubsub_streams = {}
         for stream_name in ["power", "thermal", "battery", "snmp"]:
             self._pubsub_streams[stream_name] = self._redis_store.pubsub()
 
         self._subscribe_to_channels()
-        self._engine = Engine().register(self)
+        self._engine = Engine(debug, force_snmp_init).register(self)
 
     def _subscribe_to_channels(self):
         """Subscribe to redis channels"""

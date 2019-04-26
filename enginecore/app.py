@@ -77,9 +77,17 @@ def configure_env(relative=False):
         "SIMENGINE_SOCKET_PORT", str(8000)
     )
 
+    os.environ["SIMENGINE_REDIS_HOST"] = os.environ.get(
+        "SIMENGINE_REDIS_HOST", "0.0.0.0"
+    )
+    os.environ["SIMENGINE_REDIS_PORT"] = os.environ.get(
+        "SIMENGINE_REDIS_PORT", str(6379)
+    )
+
     os.environ["SIMENGINE_SNMP_SHA"] = os.environ.get(
         "SIMENGINE_SNMP_SHA",
-        # str(os.popen('/usr/local/bin/redis-cli script load "$(cat {})"'.format(lua_script_path)).read())
+        # str(os.popen('/usr/local/bin/redis-cli script load "$(cat {})"'
+        # .format(lua_script_path)).read())
         str(
             os.popen('redis-cli script load "$(cat {})"'.format(lua_script_path)).read()
         ),
