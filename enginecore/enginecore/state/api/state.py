@@ -318,7 +318,7 @@ class IStateManager:
             return None
 
         asset_values = cls.get_store().mget(
-            list(map(lambda k: "{}-{}".format(k, assets[k]["type"]), asset_keys))
+            list(map(lambda k: "{}-{}:state".format(k, assets[k]["type"]), asset_keys))
         )
 
         for rkey, rvalue in zip(assets, asset_values):

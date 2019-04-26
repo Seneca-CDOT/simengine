@@ -36,7 +36,7 @@ class Engine(Component):
     """Top-level component that instantiates assets 
     & maps redis events to circuit events"""
 
-    def __init__(self, debug=False, force_snmp_init=False):
+    def __init__(self, debug=False, force_snmp_init=True):
         super(Engine, self).__init__()
 
         ### Set-up WebSocket & Redis listener ###
@@ -385,6 +385,8 @@ class Engine(Component):
             the assets it powers should be powered down as well
         """
 
+        logging.info("\n------>")
+        logging.info(event_result)
         updated_asset = self._assets[int(event_result.asset_key)]
         new_state = int(event_result.new_state)
 
