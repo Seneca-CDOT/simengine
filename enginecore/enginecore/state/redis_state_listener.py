@@ -9,19 +9,11 @@ handled by individual assets.
 import json
 import logging
 
-from circuits import Component, Event, Timer, handler
+from circuits import Component, Event, Timer
 import redis
 
 from enginecore.state.redis_channels import RedisChannels
-
-
-class Engine(Component):
-    channel = "engine"
-
-    @handler(RedisChannels.state_update_channel)
-    def handle_state_update(self, data):
-        print("Handling state updates")
-        print(data)
+from enginecore.state.engine import Engine
 
 
 class StateListener(Component):
@@ -43,12 +35,12 @@ class StateListener(Component):
         #     "port": int(os.environ.get("SIMENGINE_SOCKET_PORT")),
         # }
 
-        self._bat_pubsub = self._redis_store.pubsub()
-        self._state_pubsub = self._redis_store.pubsub()
-        self._thermal_pubsub = self._redis_store.pubsub()
+        self._pubsub_streams = {}
+        for stream_name in ["power", "thermal", "battery", "snmp"]:
+            self._pubsub_streams[stream_name] = self._redis_store.pubsub()
 
-        self._engine = Engine().register(self)
         self._subscribe_to_channels()
+        self._engine = Engine().register(self)
 
     def _subscribe_to_channels(self):
         """Subscribe to redis channels"""
@@ -56,23 +48,15 @@ class StateListener(Component):
         logging.info("Initializing redis subscriptions...")
 
         # State Channels
-        self._state_pubsub.psubscribe(
-            RedisChannels.oid_update_channel,  # snmp oid updates
+        self._pubsub_streams["power"].psubscribe(
             RedisChannels.state_update_channel,  # power state changes
             RedisChannels.mains_update_channel,  # wall power updates
             RedisChannels.model_update_channel,  # model changes
             RedisChannels.voltage_update_channel,  # wallpower voltage changes
         )
 
-        # Battery Channel
-        self._bat_pubsub.psubscribe(
-            RedisChannels.battery_update_channel,  # battery level updates
-            RedisChannels.battery_conf_drain_channel,  # update drain speed (factor)
-            RedisChannels.battery_conf_charge_channel,  # update charge speed (factor)
-        )
-
         # Thermal Channels
-        self._thermal_pubsub.psubscribe(
+        self._pubsub_streams["thermal"].psubscribe(
             RedisChannels.ambient_update_channel,  # on ambient changes
             RedisChannels.sensor_conf_th_channel,  # new sensor->sensor relationship
             RedisChannels.cpu_usg_conf_th_channel,  # new cpu_usage->sensor relationship
@@ -80,6 +64,17 @@ class StateListener(Component):
             RedisChannels.str_cv_conf_th_channel,
             # new sensor->phys_drive relationship
             RedisChannels.str_drive_conf_th_channel,
+        )
+
+        # Battery Channel
+        self._pubsub_streams["battery"].psubscribe(
+            RedisChannels.battery_update_channel,  # battery level updates
+            RedisChannels.battery_conf_drain_channel,  # update drain speed (factor)
+            RedisChannels.battery_conf_charge_channel,  # update charge speed (factor)
+        )
+
+        self._pubsub_streams["snmp"].psubscribe(
+            RedisChannels.oid_update_channel  # snmp oid updates
         )
 
     def monitor_redis(self, pubsub_group):
@@ -108,15 +103,15 @@ class StateListener(Component):
 
     def started(self, _):
         """
-            Called on start: initialized redis subscriptions
+            Called on start: initialize redis subscriptions
         """
 
         logging.info("Initializing pub/sub event handlers...")
 
         # timers will be monitoring new published messages every .5 seconds
-        for group in [self._state_pubsub, self._bat_pubsub, self._thermal_pubsub]:
+        for stream in self._pubsub_streams.values():
             Timer(
-                0.5, Event.create("monitor_redis", pubsub_group=group), persist=True
+                0.5, Event.create("monitor_redis", pubsub_group=stream), persist=True
             ).register(self)
 
 

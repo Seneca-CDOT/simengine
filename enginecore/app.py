@@ -7,7 +7,8 @@ import sys
 import logging
 from logging import handlers
 
-from enginecore.state.state_listener import StateListener
+from enginecore.state.redis_state_listener import StateListener
+
 
 FORMAT = "[%(threadName)s, %(asctime)s, %(module)s:%(lineno)s] %(message)s"
 DEV_FORMAT = "[%(threadName)s, %(asctime)s, %(module)s:%(lineno)s] %(message)s"
@@ -118,6 +119,7 @@ def run():
     configure_env(relative=args["develop"])
 
     # run daemon
+    # StateListener(debug=args["verbose"], force_snmp_init=args["reload_data"]).run()
     StateListener(debug=args["verbose"], force_snmp_init=args["reload_data"]).run()
 
 

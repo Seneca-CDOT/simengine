@@ -1,4 +1,4 @@
-"""StateListener monitors any updates to assets/OIDs 
+"""Engine monitors any updates to assets/OIDs 
 & determines if the event affects other (connected) assets
 
 The daemon initializes a WebSocket & Redis event listener component
@@ -6,11 +6,10 @@ and reacts to state updates by dispatching circuits events that are, in turn,
 handled by individual assets.
 
 """
-import json
 import logging
 import os
 
-from circuits import Component, Event, Timer, Worker, Debugger  # , task
+from circuits import Component, Event, Worker, Debugger, handler  # , task
 import redis
 
 from circuits.web import Logger, Server, Static
@@ -33,11 +32,12 @@ class NotifyClient(Event):
     """Notify websocket clients of any data updates"""
 
 
-class StateListener(Component):
-    """Top-level component that instantiates assets & maps redis events to circuit events"""
+class Engine(Component):
+    """Top-level component that instantiates assets 
+    & maps redis events to circuit events"""
 
     def __init__(self, debug=False, force_snmp_init=False):
-        super(StateListener, self).__init__()
+        super(Engine, self).__init__()
 
         ### Set-up WebSocket & Redis listener ###
         logging.info("Starting simengine daemon...")
@@ -45,10 +45,6 @@ class StateListener(Component):
         # Use redis pub/sub communication
         logging.info("Initializing redis connection...")
         self._redis_store = redis.StrictRedis(host="localhost", port=6379)
-
-        self._bat_pubsub = self._redis_store.pubsub()
-        self._state_pubsub = self._redis_store.pubsub()
-        self._thermal_pubsub = self._redis_store.pubsub()
 
         # assets will store all the devices/items including PDUs, switches etc.
         self._assets = {}
@@ -82,40 +78,9 @@ class StateListener(Component):
         WebSocketsDispatcher("/simengine").register(self._server)
 
         ### Register Assets ###
-        self._subscribe_to_channels()
         self._reload_model(force_snmp_init)
 
-        print(self._sys_environ)
-
-    def _subscribe_to_channels(self):
-        """Subscribe to redis channels"""
-
-        logging.info("Initializing redis subscriptions...")
-
-        # State Channels
-        self._state_pubsub.psubscribe(
-            RedisChannels.oid_update_channel,  # snmp oid updates
-            RedisChannels.state_update_channel,  # power state changes
-            RedisChannels.mains_update_channel,  # wall power updates
-            RedisChannels.model_update_channel,  # model changes
-            RedisChannels.voltage_update_channel,  # wallpower voltage changes
-        )
-
-        # Battery Channel
-        self._bat_pubsub.psubscribe(
-            RedisChannels.battery_update_channel,  # battery level updates
-            RedisChannels.battery_conf_drain_channel,  # update drain speed (factor)
-            RedisChannels.battery_conf_charge_channel,  # update charge speed (factor)
-        )
-
-        # Thermal Channels
-        self._thermal_pubsub.psubscribe(
-            RedisChannels.ambient_update_channel,  # on ambient changes
-            RedisChannels.sensor_conf_th_channel,  # new sensor->sensor relationship
-            RedisChannels.cpu_usg_conf_th_channel,  # new cpu_usage->sensor relationship
-            RedisChannels.str_cv_conf_th_channel,  # new sensor->cache_vault relationship
-            RedisChannels.str_drive_conf_th_channel,  # new sensor->phys_drive relationship
-        )
+        logging.info("Physical Environment:\n%s", self._sys_environ)
 
     def _reload_model(self, force_snmp_init=True):
         """Re-create system topology (instantiate assets based on graph ref)"""
@@ -240,12 +205,11 @@ class StateListener(Component):
             asset_status(str): updated status of the asset under asset key
         """
 
-        updated_asset = self._assets[int(asset_key)]
+        updated_asset = self._assets[asset_key]
 
         # write to a web socket
         self._notify_client(
-            ServerToClientRequests.asset_upd,
-            {"key": asset_key, "status": int(asset_status)},
+            ServerToClientRequests.asset_upd, {"key": asset_key, "status": asset_status}
         )
 
         # fire-up power events down the power stream
@@ -272,7 +236,7 @@ class StateListener(Component):
         if not load_change:
             return
 
-        child_asset = self._assets[int(event_result.asset_key)]
+        child_asset = self._assets[event_result.asset_key]
         child_event = (
             PowerEventMap.map_load_increased_by
             if increased
@@ -377,7 +341,7 @@ class StateListener(Component):
 
         # power up/down child assets if there's no alternative power source
         if not (alt_parent_asset and alt_parent_asset.state.status):
-            event = PowerEventMap.map_parent_event(str(new_state))
+            event = PowerEventMap.map_parent_event(new_state)
             self.fire(event, child_asset)
 
             # Special case for UPS
@@ -404,7 +368,7 @@ class StateListener(Component):
 
             # change load up the node power stream (power source of the updated node)
             load_child_event = PowerEventMap.map_child_event(
-                str(new_state), child_load, updated_asset.key
+                new_state, child_load, updated_asset.key
             )
             self.fire(load_child_event, updated_asset)
 
@@ -453,174 +417,93 @@ class StateListener(Component):
             NotifyClient({"request": client_request.name, "payload": data}), self._ws
         )
 
-    def monitor_battery(self):
-        """Monitor battery in a separate pub/sub stream"""
-        message = self._bat_pubsub.get_message()
+    # -- Handle Power Changes --
+    @handler(RedisChannels.state_update_channel)
+    def on_asset_power_state_change(self, data):
+        """On user changing asset status"""
+        self._handle_state_update(data["key"], data["status"])
 
-        # validate message
-        if (
-            (not message)
-            or ("data" not in message)
-            or (not isinstance(message["data"], bytes))
-        ):
-            return
+    @handler(RedisChannels.voltage_update_channel)
+    def on_voltage_state_change(self, data):
+        """React to voltage drop or voltage restoration"""
 
-        data = message["data"].decode("utf-8")
-        channel = message["channel"].decode()
+        new_voltage = data["new_voltage"]
+        old_voltage = data["old_voltage"]
 
-        try:
-            logging.info(
-                "[REDIS:BATTERY] Received a message in channel [%s]: %s", channel, data
-            )
+        if new_voltage == 0.0:
+            self._handle_wallpower_update(power_up=False)
+        elif old_voltage < ISystemEnvironment.get_min_voltage() <= new_voltage:
+            self._handle_wallpower_update(power_up=True)
 
-            if channel == RedisChannels.battery_update_channel:
-                asset_key, _ = data.split("-")
-                self._notify_client(
-                    ServerToClientRequests.asset_upd,
-                    {
-                        "key": int(asset_key),
-                        "battery": self._assets[int(asset_key)].state.battery_level,
-                    },
-                )
+        event = PowerEventMap.map_voltage_event(old_voltage, new_voltage)
+        # list(map(lambda asset: self.fire(event, asset), self._assets.values()))
 
-            elif channel == RedisChannels.battery_conf_charge_channel:
-                asset_key, _ = data.split("-")
-                _, speed = data.split("|")
-                self._assets[int(asset_key)].charge_speed_factor = float(speed)
-            elif channel == RedisChannels.battery_conf_drain_channel:
-                asset_key, _ = data.split("-")
-                _, speed = data.split("|")
-                self._assets[int(asset_key)].drain_speed_factor = float(speed)
+    @handler(RedisChannels.mains_update_channel)
+    def on_wallpower_state_change(self, data):
+        """On balckouts/power restorations"""
 
-        # TODO: this error is ttoo generic (doesn't apply to all the monitoring functions)
-        except KeyError as error:
-            logging.error("Detected unregistered asset under key [%s]", error)
+        self._notify_client(ServerToClientRequests.mains_upd, {"mains": data["status"]})
+        self.fire(PowerEventMap.map_mains_event(data["status"]), self._sys_environ)
 
-    def monitor_state(self):
-        """ listens to redis events """
+    @handler(RedisChannels.oid_update_channel)
+    def on_snmp_device_oid_change(self, data):
+        """React to OID getting updated through SNMP interface"""
+        value = (self._redis_store.get(data)).decode()
+        asset_key, oid = data.split("-")
+        self._handle_oid_update(int(asset_key), oid, value)
 
-        message = self._state_pubsub.get_message()
+    @handler(RedisChannels.model_update_channel)
+    def on_model_reload_reqeust(self, _):
+        """Detect topology changes to the system architecture"""
+        self._reload_model()
 
-        # validate message
-        if (
-            (not message)
-            or ("data" not in message)
-            or (not isinstance(message["data"], bytes))
-        ):
-            return
+    # -- Battery Updates --
+    @handler(RedisChannels.battery_update_channel)
+    def on_battery_level_change(self, data):
+        """On UPS battery charge drop/increase"""
+        self._notify_client(
+            ServerToClientRequests.asset_upd,
+            {
+                "key": data["key"],
+                "battery": self._assets[data["key"]].state.battery_level,
+            },
+        )
 
-        data = message["data"].decode("utf-8")
+    @handler(RedisChannels.battery_conf_charge_channel)
+    def on_battery_charge_factor_up(self, data):
+        """On UPS battery charge increase"""
+        self._assets[data["key"]].charge_speed_factor = data["factor"]
 
-        # interpret the published message
-        # "state-upd" indicates that certain asset was powered on/off by the interface(s)
-        # "oid-upd" is published when SNMPsim updates an OID
-        channel = message["channel"].decode()
+    @handler(RedisChannels.battery_conf_drain_channel)
+    def on_battery_charge_factor_down(self, data):
+        """On UPS battery charge increase"""
+        self._assets[data["key"]].drain_speed_factor = data["factor"]
 
-        try:
+    # -- Thermal Updates --
+    @handler(RedisChannels.ambient_update_channel)
+    def on_ambient_temperature_change(self, data):
+        """Ambient updated"""
+        self._handle_ambient_update(data["new_ambient"], data["old_ambient"])
 
-            logging.info(
-                "[REDIS:POWER] Received a message in channel [%s]: %s", channel, data
-            )
+    @handler(RedisChannels.sensor_conf_th_channel)
+    def on_new_sensor_thermal_impact(self, data):
+        """Add new thermal impact (sensor to sensor)"""
+        self._assets[data["key"]].add_sensor_thermal_impact(**data["relationship"])
 
-            if channel == RedisChannels.state_update_channel:
-                asset_key, asset_type, asset_status = data.split("-")
-                if asset_type in Asset.get_supported_assets():
-                    self._handle_state_update(int(asset_key), asset_status)
-            elif channel == RedisChannels.voltage_update_channel:
-                old_voltage, new_voltage = map(float, data.split("-"))
-                logging.info(
-                    'System voltage change from "%s" to "%s"', old_voltage, new_voltage
-                )
+    @handler(RedisChannels.cpu_usg_conf_th_channel)
+    def on_new_cpu_thermal_impact(self, data):
+        """Add new thermal impact (cpu load to sensor)"""
+        self._assets[data["key"]].add_cpu_thermal_impact(**data["relationship"])
 
-                # react to voltage drop or voltage restoration
-                if new_voltage == 0.0:
-                    self._handle_wallpower_update(power_up=False)
-                elif old_voltage < ISystemEnvironment.get_min_voltage() <= new_voltage:
-                    self._handle_wallpower_update(power_up=True)
+    @handler(RedisChannels.str_cv_conf_th_channel)
+    def on_new_cv_thermal_impact(self, data):
+        """Add new thermal impact (sensor to cv)"""
+        self._assets[data["key"]].add_storage_cv_thermal_impact(**data["relationship"])
 
-                event = PowerEventMap.map_voltage_event(old_voltage, new_voltage)
-                list(map(lambda asset: self.fire(event, asset), self._assets.values()))
-
-            elif channel == RedisChannels.mains_update_channel:
-                new_state = int(data)
-
-                self._notify_client(
-                    ServerToClientRequests.mains_upd, {"mains": new_state}
-                )
-
-                self.fire(PowerEventMap.map_mains_event(data), self._sys_environ)
-
-            elif channel == RedisChannels.oid_update_channel:
-                value = (self._redis_store.get(data)).decode()
-                asset_key, oid = data.split("-")
-                self._handle_oid_update(int(asset_key), oid, value)
-
-            elif channel == RedisChannels.model_update_channel:
-                self._state_pubsub.unsubscribe()
-                self._bat_pubsub.unsubscribe()
-
-                self._reload_model()
-                self._subscribe_to_channels()
-
-        except KeyError as error:
-            logging.error("Detected unregistered asset under key [%s]", error)
-
-    def monitor_thermal(self):
-        """Monitor thermal updates in a separate pub/sub channel"""
-
-        message = self._thermal_pubsub.get_message()
-
-        # validate message
-        if (
-            (not message)
-            or ("data" not in message)
-            or (not isinstance(message["data"], bytes))
-        ):
-            return
-
-        data = message["data"].decode("utf-8")
-        channel = message["channel"].decode()
-
-        try:
-            logging.info(
-                "[REDIS:THERMAL] Received a message in channel [%s]: %s", channel, data
-            )
-
-            if channel == RedisChannels.ambient_update_channel:
-                old_temp, new_temp = map(float, data.split("-"))
-                self._handle_ambient_update(new_temp=float(new_temp), old_temp=old_temp)
-            elif channel == RedisChannels.sensor_conf_th_channel:
-                new_rel = json.loads(data)
-                self._assets[new_rel["key"]].add_sensor_thermal_impact(
-                    **new_rel["relationship"]
-                )
-            elif channel == RedisChannels.cpu_usg_conf_th_channel:
-                new_rel = json.loads(data)
-                self._assets[new_rel["key"]].add_cpu_thermal_impact(
-                    **new_rel["relationship"]
-                )
-            elif channel == RedisChannels.str_cv_conf_th_channel:
-                new_rel = json.loads(data)
-                self._assets[new_rel["key"]].add_storage_cv_thermal_impact(
-                    **new_rel["relationship"]
-                )
-            elif channel == RedisChannels.str_drive_conf_th_channel:
-                new_rel = json.loads(data)
-                self._assets[new_rel["key"]].add_storage_pd_thermal_impact(
-                    **new_rel["relationship"]
-                )
-
-        except KeyError as error:
-            logging.error("Detected unregistered asset under key [%s]", error)
-
-    def started(self, *args):
-        """
-            Called on start
-        """
-        logging.info("Initializing pub/sub event handlers...")
-        Timer(0.5, Event.create("monitor_state"), persist=True).register(self)
-        Timer(0.5, Event.create("monitor_battery"), persist=True).register(self)
-        Timer(0.5, Event.create("monitor_thermal"), persist=True).register(self)
+    @handler(RedisChannels.str_drive_conf_th_channel)
+    def on_new_hd_thermal_impact(self, data):
+        """Add new thermal impact (sensor to physical drive)"""
+        self._assets[data["key"]].add_storage_pd_thermal_impact(**data["relationship"])
 
     # **Events are camel-case
     # pylint: disable=C0103,W0613
@@ -659,7 +542,8 @@ class StateListener(Component):
     ############### Power Events - Callbacks
 
     def _power_success(self, event_result):
-        """Handle power event success by dispatching power events down the power stream"""
+        """Handle power event success by dispatching  
+        power events down the power stream"""
         self._notify_client(
             ServerToClientRequests.asset_upd,
             {"key": event_result.asset_key, "status": int(event_result.new_state)},
@@ -694,7 +578,3 @@ class StateListener(Component):
             ServerToClientRequests.asset_upd,
             {"key": e_result.asset_key, "status": e_result.new_state},
         )
-
-
-if __name__ == "__main__":
-    StateListener().run()
