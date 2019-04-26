@@ -13,7 +13,7 @@ class RedisChannels:
 
     # power
     load_update_channel = "load-upd"
-    state_update_channel = "state_upd"
+    state_update_channel = "state-upd"
     mains_update_channel = "mains-upd"
     voltage_update_channel = "voltage-upd"
 

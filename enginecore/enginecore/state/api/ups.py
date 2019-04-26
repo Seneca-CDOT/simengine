@@ -1,5 +1,6 @@
 """UPS asset interface """
 import time
+import json
 from enum import Enum
 
 import pysnmp.proto.rfc1902 as snmp_data_types
@@ -35,8 +36,9 @@ class IUPSStateManager(IStateManager):
 
     def _update_battery_process_speed(self, process_channel, factor):
         """Speed up/slow down battery related process"""
-        rkey = "{}|{}".format(self.redis_key, factor)
-        IStateManager.get_store().publish(process_channel, rkey)
+        IStateManager.get_store().publish(
+            process_channel, json.dumps({"key": self.key, "factor": factor})
+        )
 
     def _reset_power_off_oid(self):
         """Reset upsAdvControlUpsOff to 1 """

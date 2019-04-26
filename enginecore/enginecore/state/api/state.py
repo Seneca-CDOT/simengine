@@ -3,6 +3,7 @@
 import time
 import os
 import subprocess
+import json
 
 import redis
 
@@ -147,7 +148,8 @@ class IStateManager:
     def _publish_load(self):
         """Publish load changes """
         IStateManager.get_store().publish(
-            RedisChannels.load_update_channel, self.redis_key
+            RedisChannels.load_update_channel,
+            json.dumps({"key": self.key, "load": self.load}),
         )
 
     def _sleep_delay(self, delay_type):
@@ -171,17 +173,17 @@ class IStateManager:
 
     def _set_state_on(self):
         """Set state to online"""
-        self._set_redis_asset_state("1")
+        self._set_redis_asset_state(1)
 
     def _set_state_off(self):
         """Set state to offline"""
-        self._set_redis_asset_state("0")
+        self._set_redis_asset_state(0)
 
     def _publish_power(self):
         """Notify daemon of power updates"""
         IStateManager.get_store().publish(
             RedisChannels.state_update_channel,
-            "{}-{}".format(self.redis_key, self.status),
+            json.dumps({"key": self.key, "status": self.status}),
         )
 
     def _get_oid_value(self, oid, key):

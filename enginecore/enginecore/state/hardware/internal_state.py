@@ -3,6 +3,7 @@ Internal States are meant to be manipulated by
 the hardware assets (server_asset, ups_asset etc.)
 So they expose extra functionality on top of the api components
 """
+import json
 from enum import Enum
 
 import pysnmp.proto.rfc1902 as snmp_data_types
@@ -202,7 +203,7 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
     def _publish_battery(self):
         """Publish battery update"""
         StateManager.get_store().publish(
-            RedisChannels.battery_update_channel, self.redis_key
+            RedisChannels.battery_update_channel, json.dumps({"key": self.key})
         )
 
 

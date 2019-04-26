@@ -9,7 +9,7 @@ handled by individual assets.
 import json
 import logging
 
-from circuits import Component, Event, Timer, handler  # , task
+from circuits import Component, Event, Timer, handler
 import redis
 
 from enginecore.state.redis_channels import RedisChannels
@@ -31,6 +31,7 @@ class StateListener(Component):
 
     def __init__(self, debug=False, force_snmp_init=False):
         super(StateListener, self).__init__()
+
         # Use redis pub/sub communication
         logging.info("Initializing redis connection...")
 
@@ -81,189 +82,42 @@ class StateListener(Component):
             RedisChannels.str_drive_conf_th_channel,
         )
 
-    def monitor_battery(self):
-        """Monitor battery in a separate pub/sub stream"""
-        message = self._bat_pubsub.get_message()
-
-        # validate message
-        if (
-            (not message)
-            or ("data" not in message)
-            or (not isinstance(message["data"], bytes))
-        ):
-            return
-
-        data = message["data"].decode("utf-8")
-        channel = message["channel"].decode()
-
-        try:
-            logging.info(
-                "[REDIS:BATTERY] Received a message in channel [%s]: %s", channel, data
-            )
-
-            if channel == RedisChannels.battery_update_channel:
-                asset_key, _ = data.split("-")
-                # self._notify_client(
-                #     ServerToClientRequests.asset_upd,
-                #     {
-                #         "key": int(asset_key),
-                #         "battery": self._assets[int(asset_key)].state.battery_level,
-                #     },
-                # )
-
-            elif channel == RedisChannels.battery_conf_charge_channel:
-                asset_key, _ = data.split("-")
-                _, speed = data.split("|")
-                # self._assets[int(asset_key)].charge_speed_factor = float(speed)
-            elif channel == RedisChannels.battery_conf_drain_channel:
-                asset_key, _ = data.split("-")
-                _, speed = data.split("|")
-                # self._assets[int(asset_key)].drain_speed_factor = float(speed)
-
-        # TODO: this error is ttoo generic (doesn't apply to all the monitoring functions)
-        except KeyError as error:
-            logging.error("Detected unregistered asset under key [%s]", error)
-
-    def _get_message_info(self, message):
-
-        # validate message
-        # if (
-        #     (not message)
-        #     or ("data" not in message)
-        #     or (not isinstance(message["data"], bytes))
-        # ):
-        #     return
-
-        data = message["data"].decode("utf-8")
-        channel = message["channel"].decode()
-
-    def monitor_state(self):
-        """ listens to redis events """
-
-        message = self._state_pubsub.get_message()
-
-        # validate message
-        if (
-            (not message)
-            or ("data" not in message)
-            or (not isinstance(message["data"], bytes))
-        ):
-            return
-
-        data = message["data"].decode("utf-8")
-
-        # interpret the published message
-        # "state-upd" indicates that certain asset was powered on/off by the interface(s)
-        # "oid-upd" is published when SNMPsim updates an OID
-        channel = message["channel"].decode()
-
-        try:
-
-            logging.info(
-                "[REDIS:POWER] Received a message in channel [%s]: %s", channel, data
-            )
-
-            self.fire(Event.create(channel, {}), self._engine)
-
-            if channel == RedisChannels.state_update_channel:
-                asset_key, asset_status = data.split("-")
-                # if asset_type in Asset.get_supported_assets():
-                # self._handle_state_update(int(asset_key), asset_status)
-            elif channel == RedisChannels.voltage_update_channel:
-                old_voltage, new_voltage = map(float, data.split("-"))
-                logging.info(
-                    'System voltage change from "%s" to "%s"', old_voltage, new_voltage
-                )
-
-                # react to voltage drop or voltage restoration
-                # if new_voltage == 0.0:
-                # self._handle_wallpower_update(power_up=False)
-                # elif old_voltage < ISystemEnvironment.get_min_voltage() <= new_voltage:
-                # self._handle_wallpower_update(power_up=True)
-
-                # event = PowerEventMap.map_voltage_event(old_voltage, new_voltage)
-                # list(map(lambda asset: self.fire(event, asset), self._assets.values()))
-
-            elif channel == RedisChannels.mains_update_channel:
-                new_state = int(data)
-
-                # self._notify_client(
-                #     ServerToClientRequests.mains_upd, {"mains": new_state}
-                # )
-
-                # self.fire(PowerEventMap.map_mains_event(data), self._sys_environ)
-
-            elif channel == RedisChannels.oid_update_channel:
-                value = (self._redis_store.get(data)).decode()
-                asset_key, oid = data.split("-")
-                # self._handle_oid_update(int(asset_key), oid, value)
-
-            elif channel == RedisChannels.model_update_channel:
-                self._state_pubsub.unsubscribe()
-                self._bat_pubsub.unsubscribe()
-
-                # self._reload_model()
-                self._subscribe_to_channels()
-
-        except KeyError as error:
-            logging.error("Detected unregistered asset under key [%s]", error)
-
-    def monitor_thermal(self):
-        """Monitor thermal updates in a separate pub/sub channel"""
-
-        message = self._thermal_pubsub.get_message()
-
-        # validate message
-        if (
-            (not message)
-            or ("data" not in message)
-            or (not isinstance(message["data"], bytes))
-        ):
-            return
-
-        data = message["data"].decode("utf-8")
-        channel = message["channel"].decode()
-
-        try:
-            logging.info(
-                "[REDIS:THERMAL] Received a message in channel [%s]: %s", channel, data
-            )
-
-            if channel == RedisChannels.ambient_update_channel:
-                old_temp, new_temp = map(float, data.split("-"))
-                # self._handle_ambient_update(new_temp=float(new_temp), old_temp=old_temp)
-            elif channel == RedisChannels.sensor_conf_th_channel:
-                new_rel = json.loads(data)
-                # self._assets[new_rel["key"]].add_sensor_thermal_impact(
-                #     **new_rel["relationship"]
-                # )
-            elif channel == RedisChannels.cpu_usg_conf_th_channel:
-                new_rel = json.loads(data)
-                # self._assets[new_rel["key"]].add_cpu_thermal_impact(
-                #     **new_rel["relationship"]
-                # )
-            elif channel == RedisChannels.str_cv_conf_th_channel:
-                new_rel = json.loads(data)
-                # self._assets[new_rel["key"]].add_storage_cv_thermal_impact(
-                #     **new_rel["relationship"]
-                # )
-            elif channel == RedisChannels.str_drive_conf_th_channel:
-                new_rel = json.loads(data)
-                # self._assets[new_rel["key"]].add_storage_pd_thermal_impact(
-                #     **new_rel["relationship"]
-                # )
-
-        except KeyError as error:
-            logging.error("Detected unregistered asset under key [%s]", error)
-
-    def started(self, *args):
+    def monitor_redis(self, pubsub_group):
+        """Monitors redis pubsub channels for new messages & dispatches
+        corresponding events to the Engine
+        Args:
+            pubsub_group (redis.client.PubSub): group of pubsub channels to be monitored
         """
-            Called on start
+
+        message = pubsub_group.get_message()
+        # validate message
+        if (
+            (not message)
+            or ("data" not in message)
+            or (not isinstance(message["data"], bytes))
+        ):
+            return
+
+        data = message["data"].decode("utf-8")
+        channel = message["channel"].decode()
+
+        logging.info("Received new message in channel [%s]:", channel)
+        logging.info(" > %s", data)
+
+        self.fire(Event.create(channel, json.loads(data)), self._engine)
+
+    def started(self, _):
         """
+            Called on start: initialized redis subscriptions
+        """
+
         logging.info("Initializing pub/sub event handlers...")
-        Timer(0.5, Event.create("monitor_state"), persist=True).register(self)
-        # Timer(0.5, Event.create("monitor_battery"), persist=True).register(self)
-        # Timer(0.5, Event.create("monitor_thermal"), persist=True).register(self)
+
+        # timers will be monitoring new published messages every .5 seconds
+        for group in [self._state_pubsub, self._bat_pubsub, self._thermal_pubsub]:
+            Timer(
+                0.5, Event.create("monitor_redis", pubsub_group=group), persist=True
+            ).register(self)
 
 
 if __name__ == "__main__":
