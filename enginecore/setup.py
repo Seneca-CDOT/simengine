@@ -12,6 +12,7 @@ setup(
         "neo4j-driver",
         "pysnmp",
         "libvirt-python==4.1.0",
+        "websocket-client",
     ],
     author="Seneca OSTEP & Alteeve",
     author_email="olga.belavina@senecacollege.ca",
