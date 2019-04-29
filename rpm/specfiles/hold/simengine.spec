@@ -11,7 +11,7 @@ Source0: https://github.com/Seneca-CDOT/%{name}/archive/%{gittag}/%{name}-%{vers
 
 Requires(pre): shadow-utils
 BuildRequires: OpenIPMI-devel, gcc, systemd
-Requires: neo4j, cypher-shell, redis, python-neo4j-driver, python-redis, python3-libvirt, OpenIPMI, OpenIPMI-lanserv, python3-redis, python2-redis, python3-pysnmp, python3-neo4j-driver, httpd
+Requires: neo4j, cypher-shell, redis, python-neo4j-driver, python-redis, python3-libvirt, OpenIPMI, OpenIPMI-lanserv, python3-websocket-client, python3-redis, python2-redis, python3-pysnmp, python3-neo4j-driver, httpd
 
 %description
 Simengine is a hardware simulation engine that models high-availability setups.
