@@ -370,7 +370,7 @@ class Sensor:
                     self._server_key,
                     relationship={
                         "source": self.name,
-                        "target": {"attribute": "name", "value": target},
+                        "target": {"attribute": "name", "value": '"{}"'.format(target)},
                         "event": event,
                     },
                 )
@@ -474,7 +474,11 @@ class Sensor:
             rel_details = GraphReference.get_sensor_thermal_rel(
                 session,
                 self._server_key,
-                relationship={"source": self.name, "target": target, "event": event},
+                relationship={
+                    "source": self.name,
+                    "target": {"attribute": "name", "value": '"{}"'.format(target)},
+                    "event": event,
+                },
             )
 
             if rel_details:

@@ -445,7 +445,7 @@ def handle_get_thermal_ambient(kwargs):
     else:
         print("Ambient: {}° ".format(ISystemEnvironment.get_ambient()))
 
-        ambient_props = ISystemEnvironment.get_ambient_props()
+        ambient_props, _ = ISystemEnvironment.get_ambient_props()
         if not ambient_props:
             print("Ambient event properties are not configured yet!")
             return
