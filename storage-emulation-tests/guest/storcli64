@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # storcli64 :: connector to emulate 'storcli64' storage tool
 #              by passing args to simengine and receiving
