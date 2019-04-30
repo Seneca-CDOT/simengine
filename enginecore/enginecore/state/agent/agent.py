@@ -10,6 +10,7 @@ class Agent:
 
     def __init__(self):
         self._process = None
+        Agent.agent_num += 1
 
     @property
     def pid(self):

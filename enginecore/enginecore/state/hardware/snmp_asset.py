@@ -7,8 +7,8 @@ from enginecore.state.agent import SNMPAgent
 class SNMPSim:
     """Snmp simulator running snmpsim program"""
 
-    def __init__(self, key, host, port):
-        self._snmp_agent = SNMPAgent(key, host, port)
+    def __init__(self, asset_key, snmp_conf):
+        self._snmp_agent = SNMPAgent(asset_key, snmp_conf)
 
     @handler("ButtonPowerDownPressed")
     def on_asset_did_power_off(self):

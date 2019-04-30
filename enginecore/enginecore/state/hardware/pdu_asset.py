@@ -29,7 +29,9 @@ class PDU(Asset, SNMPSim):
     def __init__(self, asset_info):
         Asset.__init__(self, PDU.StateManagerCls(asset_info))
         SNMPSim.__init__(
-            self, asset_info["key"], asset_info["host"], asset_info["port"]
+            self,
+            asset_info["key"],
+            snmp_conf={"host": asset_info["host"], "port": asset_info["port"]},
         )
 
         self.state.update_agent(self._snmp_agent.pid)
