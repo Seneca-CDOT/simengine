@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python
 #
 # storcli64 :: connector to emulate 'storcli64' storage tool
 #              by passing args to simengine and receiving
@@ -11,25 +11,36 @@
 #
 # Chris Tyler <chris.tyler@senecacollege.ca> 2018-12-06
 
+from __future__ import print_function
+
 import json
+import time
 import sys
 import os
 
-# Step 0: set up connection to simengine via virtio-serial connection
-# Select ONE of the following two lines to use socket or pipe communication
-# simengine = open("/dev/virtio-ports/systems.cdot.simengine.storage.pipe", "r+b", 0)
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
+def send_cmd(conn):
+    conn.write(bytes(json.dumps({"argv": sys.argv})))
+    return simengine.readline()
+
+# open a connection
 simengine = open("/dev/virtio-ports/systems.cdot.simengine.storage.net", "r+b", 0)
 
-# Step 1: encapsulate command-line arguments in json and send to socket
-simengine.write(bytes(json.dumps({"argv": sys.argv}), "UTF-8"))
+# wait for the daemon running on the host to respond:
+response_msg = send_cmd(simengine)
+while not response_msg:
+    response_msg = send_cmd(simengine)
+    time.sleep(1)
 
-# Step 2: wait for one line from the other end, deserialize, and output
-# the received values
-received = json.loads(simengine.readline())
+received = json.loads(response_msg)
+
+# print out storcli64 output
 if len(received["stdout"]) > 0:
     print(received["stdout"])
 if len(received["stderr"]) > 0:
-    print(received["stderr"], file=sys.stderr)
+    eprint(received["stderr"])
 
 # End: tidy and wrap
 simengine.close()
