@@ -1,5 +1,5 @@
 Name:      simengine-core
-Version:   3.21
+Version:   3.25
 Release:   1%{?dist}
 Summary:   SimEngine - Core
 URL:       https://github.com/Seneca-CDOT/simengine
@@ -11,7 +11,7 @@ License:   GPLv3+
 Source0: https://github.com/Seneca-CDOT/simengine/archive/%{gittag}/simengine-%{version}.tar.gz  
 
 BuildRequires: OpenIPMI-devel, gcc
-Requires: simengine-database, python3-libvirt, OpenIPMI, OpenIPMI-lanserv, python3-redis, python2-redis, python3-pysnmp, python3-neo4j-driver
+Requires: simengine-database, python3-libvirt, OpenIPMI, OpenIPMI-lanserv, python3-redis, python2-redis, python3-pysnmp, python3-neo4j-driver, python3-websocket-client
 
 %description
 Core files for SimEngine.
@@ -55,6 +55,15 @@ systemctl daemon-reload
 systemctl enable simengine-core.service --now
 
 %changelog
+* Tue Apr 30 2019 Olga Belavina <ol.belavina@gmail.com> - 3.25-1
+- new version
+
+* Mon Apr 29 2019 Olga Belavina <ol.belavina@gmail.com> - 3.24-1
+- new version
+
+* Fri Apr 26 2019 Olga Belavina <ol.belavina@gmail.com> - 3.23-1
+- new version
+
 * Fri Mar 15 2019 Chris Tyler <ctyler.fedora@gmail.com> - 3.21-1
 - new version
 

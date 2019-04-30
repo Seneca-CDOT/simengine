@@ -150,10 +150,7 @@ def update_command(update_asset_group):
     update_power_parent = argparse.ArgumentParser(add_help=False)
     update_power_parent.add_argument("--power-source", type=int)
     update_power_parent.add_argument(
-        "--power-consumption",
-        type=int,
-        help="Power consumption in Watts",
-        required=True,
+        "--power-consumption", type=int, help="Power consumption in Watts"
     )
 
     update_subp = update_asset_group.add_subparsers()

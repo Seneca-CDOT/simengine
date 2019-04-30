@@ -99,7 +99,7 @@ You can query all thermal relationships for a particular server:
 
 Or select a specific sensor:
 
-` simengine-cli thermal sensor get --asset-key=5 --sensor='Frnt_FAN2``' `
+`simengine-cli thermal sensor get --asset-key=5 --sensor='Frnt_FAN2'`
 
 ### Configuring Interrelationships
 
@@ -121,6 +121,29 @@ will set ‘Frnt_FAN2’ to cool down ‘Mem E’ temperature every 5 seconds by
 
 !!! note
     Most thermal cases require both ‘up’ and ‘down’ events configured (‘Frnt_FAN2’ going down should result in temperature spikes for Memory slot(s)).
+
+Second thermal option - increase memory temperature when fan is not operating:
+
+    simengine-cli thermal sensor set \
+          --asset-key=5 \
+          --source-sensor='Frnt_FAN2' \
+          --target-sensor='Mem E' \
+          --event=down \
+          --action=increase \
+          --rate=5 \
+          --degrees=1 \
+          --pause-at=39
+
+This thermal behaviour can be tested by setting RPM value of a Fan#2 to 0:
+
+`simengine-cli configure-state sensor -k5 -s'Frnt_FAN2' -r0`
+
+Sensor relationships outlined above can be deleted with the following commands:
+
+```bash
+simengine-cli thermal sensor delete -s'Frnt_FAN2' -t'Mem E' -e=down -k5
+simengine-cli thermal sensor delete -s'Frnt_FAN2' -t'Mem E' -e=up -k5
+```
 
 ### Model-Based Relationship
 

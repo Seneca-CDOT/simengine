@@ -11,7 +11,7 @@ This table summarises the general layout of the `simengine` system model we are 
 | 3       | ups01        | ups        | SNMP → reachable at 192.168.124.3 (default port 161) |
 | 4       | ups02        | ups        | SNMP → reachable at 192.168.124.4                    |
 | 5       | pdu01        | pdu        | SNMP → reachable at 192.168.124.5                    |
-| 6       | pdu02        | pdu        | SNMP → reachable at 192.168.124.3                    |
+| 6       | pdu02        | pdu        | SNMP → reachable at 192.168.124.6                    |
 | 7       | an-a01n01    | server-bmc | IPMI → reachable at localhost:9001 (or from the VM)  |
 | 8       | an-a01n02    | server-bmc | IPMI → reachable at localhost:9101 (or from the VM)  |
 | 9       | an-striker01 | server     |                                                      |

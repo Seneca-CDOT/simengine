@@ -17,7 +17,20 @@ To build all of the RPMs, first set the Version: in the spec files to a version
 that is tagged in the GitHub repoi (i.e., create a tag for version 20.6, and set
 Version: in the simengine\* spec files to 20.6), then run:
 
-     ${GitRepoBase}/rpm/specfiles/buildall
+     cd ${GitRepoBase)/rpm/specfiles
+     ./buildall
+
+### Building New RPMs
+
+To build a new set of RPMs, run the newtag script:
+
+     cd ${GitRepoBase}/rpm/specfiles
+     ./newtag
+     
+This will bump the product tag and adjust the Version: tags in the spec files, committing all of the changes to origin. Next, push both the code changes and the tag:
+
+     git push
+     git push --tag
 
 ## Python API
 
