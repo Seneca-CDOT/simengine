@@ -22,7 +22,7 @@ def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
 def send_cmd(conn):
-    conn.write(bytes(json.dumps({"argv": sys.argv})))
+    conn.write(str(json.dumps({"argv": sys.argv})).encode())
     return simengine.readline()
 
 # open a connection
