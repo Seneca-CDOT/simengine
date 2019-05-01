@@ -11,7 +11,7 @@ import redis
 from enginecore.state.redis_channels import RedisChannels
 from enginecore.state.engine import Engine
 
-# TODO: fix action recorder set ambient!
+
 class StateListener(Component):
     """Top-level component that instantiates assets 
     & maps redis events to circuit events

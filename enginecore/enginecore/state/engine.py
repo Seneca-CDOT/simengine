@@ -17,6 +17,7 @@ from circuits.web.dispatchers import WebSocketsDispatcher
 from enginecore.state.hardware.event_results import PowerEventResult, LoadEventResult
 from enginecore.state.hardware.room import ServerRoom, Asset
 
+from enginecore.tools.recorder import RECORDER
 from enginecore.state.api import ISystemEnvironment
 from enginecore.state.event_map import PowerEventMap
 from enginecore.state.net.ws_server import WebSocket
@@ -76,7 +77,7 @@ class Engine(Component):
         self._ws = WebSocket().register(self._server)
         WebSocketsDispatcher("/simengine").register(self._server)
 
-        ### Register Assets ###
+        # Register assets and reset power state
         self._reload_model(force_snmp_init)
 
         logging.info("Physical Environment:\n%s", self._sys_environ)
@@ -84,6 +85,7 @@ class Engine(Component):
     def _reload_model(self, force_snmp_init=True):
         """Re-create system topology (instantiate assets based on graph ref)"""
 
+        RECORDER.enabled = False
         logging.info("Initializing system topology...")
 
         self._assets = {}
@@ -133,6 +135,7 @@ class Engine(Component):
             )
 
         ISystemEnvironment.set_ambient(21)
+        RECORDER.enabled = True
 
     def _handle_wallpower_update(self, power_up=True):
         """Change status of wall-powered assets (outlets)
