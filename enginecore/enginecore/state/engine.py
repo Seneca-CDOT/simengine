@@ -235,9 +235,7 @@ class Engine(Component):
             PowerEventResult(asset_key=asset_key, new_state=asset_status)
         )
 
-    def _chain_voltage_update(
-        self, event_result: VoltageEventResult, increased: bool = True
-    ):
+    def _chain_voltage_update(self, event_result: VoltageEventResult):
         """Chain voltage updates down the power stream"""
 
         logging.info("VOLTAGE CHAIN")
@@ -302,7 +300,7 @@ class Engine(Component):
         Args:
             updated_asset: leaf node asset with new power state
             new_state: new power state
-            parent_assets: assets powering the leaf node
+            parent_assets: assets powering the leaf node (list of dictionaries not Assets)
         """
         offline_parents_load = 0
         online_parents = []
@@ -624,4 +622,6 @@ class Engine(Component):
             self._chain_voltage_update(e_result)
 
     def VoltageIncreased_success(self, evt, e_result):
-        pass
+        """When asset finished processing new voltage"""
+        if e_result.old_voltage != e_result.new_voltage:
+            self._chain_voltage_update(e_result)
