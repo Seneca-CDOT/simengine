@@ -14,7 +14,11 @@ import redis
 from circuits.web import Logger, Server, Static
 from circuits.web.dispatchers import WebSocketsDispatcher
 
-from enginecore.state.hardware.event_results import PowerEventResult, LoadEventResult
+from enginecore.state.hardware.event_results import (
+    PowerEventResult,
+    LoadEventResult,
+    VoltageEventResult,
+)
 from enginecore.state.hardware.room import ServerRoom, Asset
 
 from enginecore.tools.recorder import RECORDER
@@ -147,7 +151,7 @@ class Engine(Component):
 
         mains_out = {k: self._assets[k] for k in mains_out_keys if k}
 
-        for _, outlet in mains_out.items():
+        for outlet in mains_out.values():
             if not power_up and outlet.state.status != 0:
                 outlet.state.shut_down()
                 outlet.state.publish_power()
@@ -200,6 +204,17 @@ class Engine(Component):
                 PowerEventMap.map_ambient_event(old_temp, new_temp), self._assets[a_key]
             )
 
+    def _handle_voltage_update(self, old_voltage, new_voltage):
+        """let devices handle voltage updates"""
+
+        with self._graph_ref.get_session() as session:
+            mains_out_keys = GraphReference.get_mains_powered_outlets(session)
+
+        mains_out = {k: self._assets[k] for k in mains_out_keys if k}
+
+        for outlet in mains_out.values():
+            self.fire(PowerEventMap.map_voltage_event(old_voltage, new_voltage), outlet)
+
     def _handle_state_update(self, asset_key, asset_status):
         """React to asset state updates in redis store 
         Args:
@@ -219,6 +234,26 @@ class Engine(Component):
         self._chain_power_update(
             PowerEventResult(asset_key=asset_key, new_state=asset_status)
         )
+
+    def _chain_voltage_update(
+        self, event_result: VoltageEventResult, increased: bool = True
+    ):
+        """Chain voltage updates down the power stream"""
+
+        logging.info("VOLTAGE CHAIN")
+
+        with self._graph_ref.get_session() as session:
+            close_nodes = GraphReference.get_affected_assets(
+                session, event_result.asset_key
+            )
+
+        voltage_param = (event_result.old_voltage, event_result.new_voltage)
+
+        for child in close_nodes[0]:
+            self.fire(
+                PowerEventMap.map_voltage_event(*voltage_param),
+                self._assets[child["key"]],
+            )
 
     def _chain_load_update(self, event_result: LoadEventResult, increased: bool = True):
         """React to load update event by propogating the load changes 
@@ -388,8 +423,8 @@ class Engine(Component):
             the assets it powers should be powered down as well
         """
 
-        updated_asset = self._assets[int(event_result.asset_key)]
-        new_state = int(event_result.new_state)
+        updated_asset = self._assets[event_result.asset_key]
+        new_state = event_result.new_state
 
         with self._graph_ref.get_session() as session:
             children, parent_assets, _2nd_parent = GraphReference.get_affected_assets(
@@ -438,8 +473,8 @@ class Engine(Component):
         elif old_voltage < ISystemEnvironment.get_min_voltage() <= new_voltage:
             self._handle_wallpower_update(power_up=True)
 
-        event = PowerEventMap.map_voltage_event(old_voltage, new_voltage)
-        # list(map(lambda asset: self.fire(event, asset), self._assets.values()))
+        # event = PowerEventMap.map_voltage_event(old_voltage, new_voltage)
+        self._handle_voltage_update(old_voltage, new_voltage)
 
     @handler(RedisChannels.mains_update_channel)
     def on_wallpower_state_change(self, data):
@@ -581,3 +616,12 @@ class Engine(Component):
             ServerToClientRequests.asset_upd,
             {"key": e_result.asset_key, "status": e_result.new_state},
         )
+
+    def VoltageDecreased_success(self, evt, e_result):
+        """When asset finished processing new voltage
+        and it stayed online"""
+        if e_result.old_voltage != e_result.new_voltage:
+            self._chain_voltage_update(e_result)
+
+    def VoltageIncreased_success(self, evt, e_result):
+        pass

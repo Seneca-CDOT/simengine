@@ -203,7 +203,8 @@ class GraphReference:
             MATCH (asset:Asset) 
             OPTIONAL MATCH (asset)-[:HAS_COMPONENT]->(component:Component)
             OPTIONAL MATCH (asset)<-[:POWERED_BY]-(childAsset:Asset) 
-            RETURN asset, count(DISTINCT component) as num_components, collect(childAsset) as children 
+            RETURN asset, count(DISTINCT component) as num_components,
+                   collect(childAsset) as children 
             ORDER BY asset.key ASC
             """
         )
@@ -225,7 +226,8 @@ class GraphReference:
 
     @classmethod
     def get_assets_and_connections(cls, session, flatten=True):
-        """Get assets, their components (e.g. PDU outlets) and parent asset(s) that powers them
+        """Get assets, their components (e.g. PDU outlets)
+        and parent asset(s) that powers them
 
         Args:
             session: database session
@@ -239,7 +241,8 @@ class GraphReference:
             MATCH (asset:Asset) WHERE NOT (asset)<-[:HAS_COMPONENT]-(:Asset)
             OPTIONAL MATCH (asset)-[:POWERED_BY]->(p:Asset)
             OPTIONAL MATCH (asset)-[:HAS_COMPONENT]->(c) 
-            RETURN asset, collect(DISTINCT c) as children,  collect(DISTINCT p) as parent
+            RETURN asset, collect(DISTINCT c) as children, 
+            collect(DISTINCT p) as parent
             """
         )
 
@@ -298,19 +301,21 @@ class GraphReference:
             asset_key(int): key of the updated asset
         
         Returns:
-            tuple: consisting of 3 (optional) items: 1) child assets that are powered by the updated asset
-                                                     2) parent(s) of the updated asset
-                                                     3) second parent of the child assets  
+            tuple: consisting of 3 (optional) items:
+                    1) child assets that are powered by the updated asset
+                    2) parent(s) of the updated asset
+                    3) second parent of the child assets
         """
 
         # look up child nodes & parent node
         results = session.run(
             """
-            OPTIONAL MATCH  (parentAsset:Asset)<-[:POWERED_BY]-(updatedAsset { key: $key }) 
+            OPTIONAL MATCH (parentAsset:Asset)<-[:POWERED_BY]-(updatedAsset { key: $key }) 
             OPTIONAL MATCH (nextAsset:Asset)-[:POWERED_BY]->({ key: $key }) 
             OPTIONAL MATCH (nextAsset2ndParent)<-[:POWERED_BY]-(nextAsset) 
             WHERE updatedAsset.key <> nextAsset2ndParent.key 
-            RETURN collect(nextAsset) as childAssets, collect(parentAsset) as parentAsset, nextAsset2ndParent
+            RETURN collect(nextAsset) as childAssets,
+                   collect(parentAsset) as parentAsset, nextAsset2ndParent
             """,
             key=asset_key,
         )
@@ -336,7 +341,8 @@ class GraphReference:
             asset_key(int): query by key
         
         Returns:
-            dict: asset details with it's 'labels' and components as 'children' (sorted by key) 
+            dict: asset details with it's 'labels' 
+                  and components as 'children' (sorted by key) 
         """
         results = session.run(
             """
