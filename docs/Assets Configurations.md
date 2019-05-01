@@ -95,8 +95,8 @@ OID JSON structure:
         "dataType": 2, // DataType (e.g. 2-iteger, 67-Timeticks, 66-Gauge etc.)
         "defaultValue": 1, // Value set on engine start
         "oidDesc": { // Value to enum mappings
-          "`1`": "switchOn",
-          "`2`": "switchOff"
+          "1": "switchOn",
+          "2": "switchOff"
         }
     }
 
