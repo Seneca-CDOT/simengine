@@ -335,7 +335,8 @@ class Engine(Component):
                 (server) <- child
         """
 
-        child_load = child_asset.state.load * updated_asset.state.draw_percentage
+        child_load = child_asset.state.power_usage * updated_asset.state.draw_percentage
+
         get_child_load_event = lambda new_state: (
             PowerEventMap.map_load_decreased_by,
             PowerEventMap.map_load_increased_by,

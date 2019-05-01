@@ -121,14 +121,14 @@ class ServerWithBMC(Server):
         """Add new thermal cpu load & sensor relationship"""
         self._sensor_repo.get_sensor_by_name(target).add_cpu_thermal_impact()
 
-    def add_storage_cv_thermal_impact(self, source, controller, cv, event):
+    def add_storage_cv_thermal_impact(self, source, controller, cache_v, event):
         """Add new sensor & cachevault thermal relationship
         Args:
             source(str): name of the source sensor causing thermal changes
-            cv(str): serial number of the cachevault
+            cache_v(str): serial number of the cachevault
         """
         sensor = self._sensor_repo.get_sensor_by_name(source)
-        sensor.add_cv_thermal_impact(controller, cv, event)
+        sensor.add_cv_thermal_impact(controller, cache_v, event)
 
     def add_storage_pd_thermal_impact(self, source, controller, drive, event):
         """Add new sensor & physical drive thermal relationship
@@ -167,10 +167,12 @@ class ServerWithBMC(Server):
 
     @handler("ButtonPowerDownPressed")
     def on_asset_did_power_off(self):
+        """Set sensors to off values on power down (no power source)"""
         self._sensor_repo.shut_down_sensors()
 
     @handler("ButtonPowerUpPressed")
     def on_asset_did_power_on(self):
+        """Update senosrs on power online"""
         self._sensor_repo.power_up_sensors()
 
 
