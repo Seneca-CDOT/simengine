@@ -255,9 +255,10 @@ class IStateManager:
         if not keys:
             return True
 
-        parent_values = IStateManager.get_store().mget([k + ":state" for k in keys])
+        parent_values = IStateManager.get_store().mget(keys)
         pdown = 0
         pdown_msg = ""
+
         for rkey, rvalue in zip(keys, parent_values):
             if parent_down(rvalue, rkey):
                 pdown_msg += msg.format(rkey) + "\n"
@@ -285,7 +286,9 @@ class IStateManager:
         if not asset_keys and not ISystemEnvironment.power_source_available():
             not_affected_by_mains = False
 
-        assets_up = self._check_parents(asset_keys, lambda rvalue, _: rvalue == b"0")
+        assets_up = self._check_parents(
+            [k + ":state" for k in asset_keys], lambda rvalue, _: rvalue == b"0"
+        )
         oid_clause = (
             lambda rvalue, rkey: rvalue.split(b"|")[1].decode()
             == oid_keys[rkey]["switchOff"]
