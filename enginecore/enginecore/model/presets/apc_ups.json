@@ -114,12 +114,12 @@
         },
         "AdvOutputVoltage": {
             "OID": "1.3.6.1.4.1.318.1.1.1.4.2.1.0",
-            "dataType": 2,
+            "dataType": 66,
             "defaultValue": 0
         },
         "AdvInputLineVoltage": {
             "OID": "1.3.6.1.4.1.318.1.1.1.3.2.1.0",
-            "dataType": 2,
+            "dataType": 66,
             "defaultValue": 0
         },
         "InputLineFailCause": {
