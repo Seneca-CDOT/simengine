@@ -169,7 +169,9 @@ class UPS(Asset, SNMPSim):
 
             time.sleep(1)
 
-    def _launch_battery_drain(self):
+    def _launch_battery_drain(
+        self, t_reason=in_state.UPSStateManager.InputLineFailCause.deepMomentarySag
+    ):
         """Start a thread that will decrease battery level """
 
         self._start_time_battery = dt.now()
@@ -178,9 +180,7 @@ class UPS(Asset, SNMPSim):
         self.state.update_ups_output_status(
             in_state.UPSStateManager.OutputStatus.onBattery
         )
-        self.state.update_transfer_reason(
-            in_state.UPSStateManager.InputLineFailCause.deepMomentarySag
-        )
+        self.state.update_transfer_reason(t_reason)
 
         # launch a thread
         self._battery_drain_t = Thread(

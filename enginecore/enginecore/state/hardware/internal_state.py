@@ -195,23 +195,36 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         Args:
             voltage: new voltage value
         Returns:
-            bool: true if transfer to battery is needed
+            tuple: true if transfer to battery is needed, transfer reason
         """
 
         oid_in_adv, dt_in_adv, _ = self.get_asset_oid_by_name("AdvInputLineVoltage")
         oid_out_adv, dt_out_adv, _ = self.get_asset_oid_by_name("AdvOutputVoltage")
 
+        oid_voltage_value = snmp_data_types.Gauge32(int(voltage))
+
         if oid_in_adv:
-            self._update_oid_value(
-                oid_in_adv, dt_in_adv, snmp_data_types.Gauge32(int(voltage))
-            )
+            self._update_oid_value(oid_in_adv, dt_in_adv, oid_voltage_value)
 
         # retrieve thresholds:
-        oid_high_th, _, _ = self.get_asset_oid_by_name("AdvConfigLowTransferVolt")
+        oid_high_th, _, _ = self.get_asset_oid_by_name("AdvConfigHighTransferVolt")
         oid_low_th, _, _ = self.get_asset_oid_by_name("AdvConfigLowTransferVolt")
+
+        if not oid_high_th or not oid_low_th:
+            if oid_out_adv:
+                self._update_oid_value(oid_out_adv, dt_out_adv, oid_voltage_value)
+
+            return False, None
 
         high_th = self._get_oid_value(oid_high_th)
         low_th = self._get_oid_value(oid_low_th)
+
+        # new voltage value is within the threasholds
+        if oid_out_adv and (low_th < voltage < high_th):
+            self._update_oid_value(oid_out_adv, dt_out_adv, oid_voltage_value)
+            return False, None
+
+        return True, 0 if voltage <= low_th else 1
 
     def _publish_battery(self):
         """Publish battery update"""
