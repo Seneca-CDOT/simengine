@@ -80,7 +80,8 @@ class UPS(Asset, SNMPSim):
         return (close_timeleft * int(close_wattage)) / wattage  # inverse proportion
 
     def _calc_battery_discharge(self):
-        """Approximate battery discharge per second based on the runtime model & current wattage draw
+        """Approximate battery discharge per second based on 
+        the runtime model & current wattage draw
 
         Returns:
             float: discharge per second 
@@ -100,7 +101,8 @@ class UPS(Asset, SNMPSim):
         battery_level = self.state.battery_level
         blackout = False
 
-        # keep draining battery while its level remains above 0, UPS is on and parent is down
+        # keep draining battery while its level remains above 0
+        # UPS is on and parent is down
         while battery_level > 0 and self.state.status and not parent_up():
 
             # calculate new battery level
@@ -135,7 +137,8 @@ class UPS(Asset, SNMPSim):
                 
         Args:
             parent_up(callable): indicates if the upstream power is available
-            power_up_on_charge(boolean): indicates if the asset should be powered up when min charge level is achieved
+            power_up_on_charge(boolean): indicates if the asset should be powered up
+                                         when min charge level is achieved
 
         """
 
@@ -270,6 +273,18 @@ class UPS(Asset, SNMPSim):
     @handler("AmbientDecreased", "AmbientIncreased")
     def on_ambient_updated(self, event, *args, **kwargs):
         self._state.update_temperature(7)
+
+    @handler("VoltageDecreased")
+    def on_voltage_decreased(self, event, *args, **kwargs):
+        # update output voltage if needed
+        # upsAdvOutputVoltage
+        self.state.process_voltage(kwargs["new_value"])
+
+    @handler("VoltageIncreased")
+    def on_voltage_increased(self, event, *args, **kwargs):
+        # update output voltage if needed
+        # upsAdvOutputVoltage
+        self.state.process_voltage(kwargs["new_value"])
 
     @property
     def charge_speed_factor(self):

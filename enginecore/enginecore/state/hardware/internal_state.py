@@ -46,7 +46,8 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         )
 
     def update_battery(self, charge_level):
-        """Updates battery level, checks for the charge level being in valid range, sets battery-related OIDs
+        """Updates battery level, checks for the charge level
+        being in valid range, sets battery-related OIDs
         and publishes changes;
 
         Args:
@@ -80,7 +81,8 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         self._update_oid_by_name("TimeOnBattery", snmp_data_types.TimeTicks, timeticks)
 
     def update_time_left(self, timeticks):
-        """Update OIDs associated with UPS runtime (estimation of how long UPS will be operating)
+        """Update OIDs associated with UPS runtime
+        (estimation of how long UPS will be operating)
         
         Args:
             timeticks(int): time left
@@ -99,7 +101,8 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         )
 
     def update_transfer_reason(self, status):
-        """Update UPS transfer reason; UPS can switch its mode to 'on battery' for multiple reasons
+        """Update UPS transfer reason;
+        UPS can switch its mode to 'on battery' for multiple reasons
         (e.g. Voltage drop, upstream power failure etc.)
         Args:
             status(InputLineFailCause): new transfer cause
@@ -114,16 +117,8 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         Args:
             load(float): new load in AMPs
         """
-        with self._graph_ref.get_session() as db_s:
-            # 100%
-            oid_adv, dt_adv, _ = GraphReference.get_asset_oid_by_name(
-                db_s, int(self._asset_key), "AdvOutputCurrent"
-            )
-
-            # 1000 (/10=%)
-            oid_hp, dt_hp, _ = GraphReference.get_asset_oid_by_name(
-                db_s, int(self._asset_key), "HighPrecOutputCurrent"
-            )
+        oid_adv, dt_adv, _ = self.get_asset_oid_by_name("AdvOutputCurrent")
+        oid_hp, dt_hp, _ = self.get_asset_oid_by_name("HighPrecOutputCurrent")
 
         if oid_adv:
             self._update_oid_value(oid_adv, dt_adv, snmp_data_types.Gauge32(load))
@@ -138,17 +133,8 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
             load(float): new load in AMPs
         """
 
-        with self._graph_ref.get_session() as db_s:
-            # 100%
-            oid_adv, dt_adv, _ = GraphReference.get_asset_oid_by_name(
-                db_s, int(self._asset_key), "AdvOutputLoad"
-            )
-
-            # 1000 (/10=%)
-            oid_hp, dt_hp, _ = GraphReference.get_asset_oid_by_name(
-                db_s, int(self._asset_key), "HighPrecOutputLoad"
-            )
-
+        oid_adv, dt_adv, _ = self.get_asset_oid_by_name("AdvOutputLoad")
+        oid_hp, dt_hp, _ = self.get_asset_oid_by_name("HighPrecOutputLoad")
         value_hp = abs(
             (1000 * (load * state_api.ISystemEnvironment.get_voltage()))
             / self.output_capacity
@@ -167,19 +153,11 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         Args:
             charge_level(int): new battery level (between 0 & 1000)
         """
-        with self._graph_ref.get_session() as db_s:
-            # 100%
-            oid_adv, dt_adv, _ = GraphReference.get_asset_oid_by_name(
-                db_s, int(self._asset_key), "AdvBatteryCapacity"
-            )
-            # 1000 (/10=%)
-            oid_hp, dt_hp, _ = GraphReference.get_asset_oid_by_name(
-                db_s, int(self._asset_key), "HighPrecBatteryCapacity"
-            )
-            # low/good
-            oid_basic, dt_basic, oid_spec = GraphReference.get_asset_oid_by_name(
-                db_s, int(self._asset_key), "BasicBatteryStatus"
-            )
+
+        # 100%
+        oid_adv, dt_adv, _ = self.get_asset_oid_by_name("AdvBatteryCapacity")
+        oid_hp, dt_hp, _ = self.get_asset_oid_by_name("HighPrecBatteryCapacity")
+        oid_basic, dt_basic, oid_spec = self.get_asset_oid_by_name("BasicBatteryStatus")
 
         if oid_adv:
             self._update_oid_value(
@@ -188,17 +166,52 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         if oid_hp:
             self._update_oid_value(oid_hp, dt_hp, snmp_data_types.Gauge32(charge_level))
 
-        if oid_basic:
-            if charge_level <= 100:
-                low_bat_value = oid_spec["batteryLow"]
-                self._update_oid_value(
-                    oid_basic, dt_basic, snmp_data_types.Integer32(low_bat_value)
-                )
-            elif old_level <= 100 and charge_level > 100:
-                norm_bat_value = oid_spec["batteryNormal"]
-                self._update_oid_value(
-                    oid_basic, dt_basic, snmp_data_types.Integer32(norm_bat_value)
-                )
+        if not oid_basic:
+            return
+
+        if charge_level <= 100:
+            low_bat_value = oid_spec["batteryLow"]
+            self._update_oid_value(
+                oid_basic, dt_basic, snmp_data_types.Integer32(low_bat_value)
+            )
+        elif old_level <= 100 < charge_level:
+            norm_bat_value = oid_spec["batteryNormal"]
+            self._update_oid_value(
+                oid_basic, dt_basic, snmp_data_types.Integer32(norm_bat_value)
+            )
+
+    def get_asset_oid_by_name(self, oid_name):
+        """Get oid by oid name"""
+
+        with self._graph_ref.get_session() as db_s:
+            oid_details = GraphReference.get_asset_oid_by_name(
+                db_s, int(self._asset_key), oid_name
+            )
+
+        return oid_details
+
+    def process_voltage(self, voltage):
+        """Update oids associated with UPS voltage
+        Args:
+            voltage: new voltage value
+        Returns:
+            bool: true if transfer to battery is needed
+        """
+
+        oid_in_adv, dt_in_adv, _ = self.get_asset_oid_by_name("AdvInputLineVoltage")
+        oid_out_adv, dt_out_adv, _ = self.get_asset_oid_by_name("AdvOutputVoltage")
+
+        if oid_in_adv:
+            self._update_oid_value(
+                oid_in_adv, dt_in_adv, snmp_data_types.Gauge32(int(voltage))
+            )
+
+        # retrieve thresholds:
+        oid_high_th, _, _ = self.get_asset_oid_by_name("AdvConfigLowTransferVolt")
+        oid_low_th, _, _ = self.get_asset_oid_by_name("AdvConfigLowTransferVolt")
+
+        high_th = self._get_oid_value(oid_high_th)
+        low_th = self._get_oid_value(oid_low_th)
 
     def _publish_battery(self):
         """Publish battery update"""

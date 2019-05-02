@@ -131,12 +131,12 @@ class Asset(Component):
             new_voltage=kwargs["new_value"],
         )
 
-        min_voltage, _ = self.state.min_voltage_prop()
+        # min_voltage, _ = self.state.min_voltage_prop()
 
-        if kwargs["new_value"] >= min_voltage and not self.state.status:
-            self.state.power_up()
-            self.state.publish_power()
-            event.success = False
+        # if kwargs["new_value"] >= min_voltage and not self.state.status:
+        #     self.state.power_up()
+        #     self.state.publish_power()
+        #     event.success = False
 
         return e_result
 
@@ -151,15 +151,15 @@ class Asset(Component):
             new_voltage=kwargs["new_value"],
         )
 
-        min_voltage, power_off_timeout = self.state.min_voltage_prop()
-        if kwargs["new_value"] < min_voltage and self.state.status:
+        # min_voltage, power_off_timeout = self.state.min_voltage_prop()
+        # if kwargs["new_value"] < min_voltage and self.state.status:
 
-            if power_off_timeout:
-                time.sleep(power_off_timeout)
+        #     if power_off_timeout:
+        #         time.sleep(power_off_timeout)
 
-            self.state.power_off()
-            self.state.publish_power()
-            event.success = False
+        #     self.state.power_off()
+        #     self.state.publish_power()
+        #     event.success = False
 
         return e_result
 

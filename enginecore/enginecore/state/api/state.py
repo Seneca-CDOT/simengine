@@ -186,8 +186,11 @@ class IStateManager:
             json.dumps({"key": self.key, "status": self.status}),
         )
 
-    def _get_oid_value(self, oid, key):
+    def _get_oid_value(self, oid, key=None):
         """Retrieve value for a specific OID """
+        if key is None:
+            key = self.key
+
         redis_store = IStateManager.get_store()
         rkey = format_as_redis_key(str(key), oid, key_formatted=False)
         return redis_store.get(rkey).decode().split("|")[1]
