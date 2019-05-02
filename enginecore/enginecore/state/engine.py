@@ -167,6 +167,7 @@ class Engine(Component):
             value(str): OID value in snmpsim format "datatype|value"
         """
         if asset_key not in self._assets:
+            logging.warning("Asset [%s] does not exist!", asset_key)
             return
 
         oid = oid.replace(" ", "")
@@ -176,14 +177,20 @@ class Engine(Component):
                 session, asset_key, oid
             )
 
-            oid_value_name = oid_details["specs"][oid_value]
-            oid_name = oid_details["name"]
+        if not oid_details:
+            logging.warning(
+                "OID:[%s] for asset:[%s] cannot be processed by engine!", oid, asset_key
+            )
+            return
 
-            for key in affected_keys:
-                self.fire(
-                    PowerEventMap.get_state_specs()[oid_name][oid_value_name],
-                    self._assets[key],
-                )
+        oid_value_name = oid_details["specs"][oid_value]
+        oid_name = oid_details["name"]
+
+        for key in affected_keys:
+            self.fire(
+                PowerEventMap.get_state_specs()[oid_name][oid_value_name],
+                self._assets[key],
+            )
 
         logging.info("oid changed:")
         logging.info(">" + oid + ": " + oid_value)
