@@ -123,8 +123,7 @@ class Asset(Component):
 
     @handler("VoltageIncreased")
     def on_voltage_increase(self, event, *args, **kwargs):
-        print("\n", "VOLTAGE InCREASED", event, kwargs, args, "\n")
-
+        """Handle input power voltage increase"""
         e_result = event_results.VoltageEventResult(
             asset_key=self.state.key,
             asset_type=self.state.asset_type,
@@ -133,16 +132,18 @@ class Asset(Component):
         )
 
         min_voltage, _ = self.state.min_voltage_prop()
+
         if kwargs["new_value"] >= min_voltage and not self.state.status:
             self.state.power_up()
             self.state.publish_power()
-            # event.success = False
+            event.success = False
 
         return e_result
 
     @handler("VoltageDecreased")
     def on_voltage_decrease(self, event, *args, **kwargs):
-        print("\n", "VOLTAGE deCREASED", event, kwargs, args, "\n")
+        """Handle input power voltage drop"""
+
         e_result = event_results.VoltageEventResult(
             asset_key=self.state.key,
             asset_type=self.state.asset_type,
@@ -152,7 +153,10 @@ class Asset(Component):
 
         min_voltage, power_off_timeout = self.state.min_voltage_prop()
         if kwargs["new_value"] < min_voltage and self.state.status:
-            time.sleep(power_off_timeout)
+
+            if power_off_timeout:
+                time.sleep(power_off_timeout)
+
             self.state.power_off()
             self.state.publish_power()
             event.success = False

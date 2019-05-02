@@ -72,7 +72,7 @@ class IStateManager:
         """Get minimum voltage required and the poweroff timeout associated with it"""
 
         if not "minVoltage" in self._asset_info:
-            return None, None
+            return 90, None
 
         return self._asset_info["minVoltage"], self._asset_info["voltPowerTimeout"]
 
