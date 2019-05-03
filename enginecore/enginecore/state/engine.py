@@ -245,7 +245,7 @@ class Engine(Component):
     def _chain_voltage_update(self, event_result: VoltageEventResult):
         """Chain voltage updates down the power stream"""
 
-        logging.info("VOLTAGE CHAIN")
+        # logging.info("VOLTAGE CHAIN")
 
         with self._graph_ref.get_session() as session:
             close_nodes = GraphReference.get_affected_assets(

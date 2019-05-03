@@ -195,6 +195,16 @@ class IStateManager:
         rkey = format_as_redis_key(str(key), oid, key_formatted=False)
         return redis_store.get(rkey).decode().split("|")[1]
 
+    def _get_oid_by_name(self, oid_name):
+        """Get oid by oid name"""
+
+        with self._graph_ref.get_session() as db_s:
+            oid_details = GraphReference.get_asset_oid_by_name(
+                db_s, int(self._asset_key), oid_name
+            )
+
+        return oid_details
+
     def _reset_boot_time(self):
         """Reset device start time (this redis key/value is used to calculate uptime)
         (see snmppub.lua)
