@@ -630,5 +630,4 @@ class Engine(Component):
 
     def VoltageIncreased_success(self, evt, e_result):
         """When asset finished processing new voltage"""
-        if e_result.old_voltage != e_result.new_voltage:
-            self._chain_voltage_update(e_result)
+        self._chain_voltage_update(e_result)

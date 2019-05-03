@@ -111,6 +111,14 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
             "InputLineFailCause", snmp_data_types.Integer, status.name, use_spec=True
         )
 
+    def get_transfer_reason(self):
+        """Retrieve last transfer reason (why switched from input power to battery)
+        Returns:
+            InputLineFailCause: last transfer cause
+        """
+        oid_treason, _, _ = self._get_oid_by_name("InputLineFailCause")
+        return self.InputLineFailCause(int(self._get_oid_value(oid_treason)))
+
     def _update_current_oids(self, load):
         """Update OIDs associated with UPS Output - Current in AMPs
         
@@ -179,11 +187,6 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
             self._update_oid_value(
                 oid_basic, dt_basic, snmp_data_types.Integer32(norm_bat_value)
             )
-
-    # @property
-    # def input_voltage(self):
-    #     oid_in_adv, _, _ = self._get_oid_by_name("AdvInputLineVoltage")
-    #     return int(self._get_oid_value(oid_in_adv))
 
     def process_voltage(self, voltage):
         """Update oids associated with UPS voltage

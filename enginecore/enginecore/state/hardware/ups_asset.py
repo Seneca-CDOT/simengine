@@ -91,6 +91,20 @@ class UPS(Asset, SNMPSim):
         fp_estimated_timeleft = self._calc_full_power_time_left(wattage)
         return self.state.battery_max_level / (fp_estimated_timeleft * 60)
 
+    def _increase_transfer_severity(self):
+
+        last_reason = self.state.get_transfer_reason()
+
+        if last_reason == self.state.InputLineFailCause.smallMomentarySag:
+            new_reason = self.state.InputLineFailCause.brownout
+        elif last_reason == self.state.InputLineFailCause.deepMomentarySag:
+            new_reason = self.state.InputLineFailCause.blackout
+        else:
+            logging.warning("The UPS is not in line fail state: %s", last_reason.name)
+            return
+
+        self.state.update_transfer_reason(new_reason)
+
     def _drain_battery(self, parent_up):
         """When parent is not available -> drain battery 
         
@@ -99,7 +113,7 @@ class UPS(Asset, SNMPSim):
         """
 
         battery_level = self.state.battery_level
-        blackout = False
+        outage = False
 
         # keep draining battery while its level remains above 0
         # UPS is on and parent is down
@@ -118,11 +132,9 @@ class UPS(Asset, SNMPSim):
             )
             self.state.update_time_on_battery(seconds_on_battery * 100)
 
-            if seconds_on_battery > 5 and not blackout:
-                blackout = True
-                self.state.update_transfer_reason(
-                    in_state.UPSStateManager.InputLineFailCause.blackout
-                )
+            if seconds_on_battery > 5 and not outage:
+                outage = True
+                self._increase_transfer_severity()
 
             time.sleep(1)
 
@@ -278,13 +290,28 @@ class UPS(Asset, SNMPSim):
     def on_voltage_decreased(self, event, *args, **kwargs):
         # update output voltage if needed
         # upsAdvOutputVoltage
-        self.state.process_voltage(kwargs["new_value"])
+        should_transfer, reason = self.state.process_voltage(kwargs["new_value"])
+        print("\n", "VOLTAGE DECREASED")
+        print(should_transfer, reason)
+        print(self.state.get_transfer_reason())
 
     @handler("VoltageIncreased")
     def on_voltage_increased(self, event, *args, **kwargs):
-        # update output voltage if needed
-        # upsAdvOutputVoltage
-        self.state.process_voltage(kwargs["new_value"])
+        """On voltage increase, analyze new voltage and determine if
+        it's within the acceptable range
+        """
+
+        should_transfer, reason = self.state.process_voltage(kwargs["new_value"])
+        current_power_state = self.state.get_transfer_reason()
+
+        if (
+            not should_transfer
+            and current_power_state != self.state.InputLineFailCause.noTransfer
+        ):
+            self.state.update_transfer_reason(self.state.InputLineFailCause.noTransfer)
+
+        print("\n", "VOLTAGE INCREASED")
+        print(should_transfer, reason)
 
     @property
     def charge_speed_factor(self):
