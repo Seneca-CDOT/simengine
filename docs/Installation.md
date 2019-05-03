@@ -52,7 +52,7 @@ OpenIPMI-devel: LGPLv2+ and GPLv2+ or BSD
 redis: BSD and MIT
 ```
 
-SimEngine is using Neo4j Community Edition ([GPL v3 license](http://www.gnu.org/licenses/quick-guide-gplv3.html)), licensing details can found on this page: https://neo4j.com/licensing/
+SimEngine is using Neo4j Community Edition ([GPL v3 license](http://www.gnu.org/licenses/quick-guide-gplv3.html)), licensing details can found on this official neo4j support [page](https://neo4j.com/licensing/).
 
 Python PIP Dependencies:
 
