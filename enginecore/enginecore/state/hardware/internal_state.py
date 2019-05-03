@@ -196,35 +196,54 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
             voltage: new voltage value
         Returns:
             tuple: true if transfer to battery is needed, transfer reason
+        Raises:
+            ValueError: if UPS has no voltage OIDs defined
+                        or transfer reason cannot be determined
         """
 
         oid_in_adv, dt_in_adv, _ = self.get_asset_oid_by_name("AdvInputLineVoltage")
         oid_out_adv, dt_out_adv, _ = self.get_asset_oid_by_name("AdvOutputVoltage")
 
+        if not oid_in_adv or not oid_out_adv:
+            raise ValueError("UPS doesn't support voltage OIDs!")
+
         oid_voltage_value = snmp_data_types.Gauge32(int(voltage))
 
-        if oid_in_adv:
-            self._update_oid_value(oid_in_adv, dt_in_adv, oid_voltage_value)
+        # update input OID parameter
+        self._update_oid_value(oid_in_adv, dt_in_adv, oid_voltage_value)
 
         # retrieve thresholds:
         oid_high_th, _, _ = self.get_asset_oid_by_name("AdvConfigHighTransferVolt")
         oid_low_th, _, _ = self.get_asset_oid_by_name("AdvConfigLowTransferVolt")
 
+        # update output OID value if thresholds are not supported
         if not oid_high_th or not oid_low_th:
-            if oid_out_adv:
-                self._update_oid_value(oid_out_adv, dt_out_adv, oid_voltage_value)
+            self._update_oid_value(oid_out_adv, dt_out_adv, oid_voltage_value)
 
             return False, None
 
-        high_th = self._get_oid_value(oid_high_th)
-        low_th = self._get_oid_value(oid_low_th)
+        high_th = int(self._get_oid_value(oid_high_th))
+        low_th = int(self._get_oid_value(oid_low_th))
 
         # new voltage value is within the threasholds
-        if oid_out_adv and (low_th < voltage < high_th):
+        if low_th < voltage < high_th:
             self._update_oid_value(oid_out_adv, dt_out_adv, oid_voltage_value)
             return False, None
 
-        return True, 0 if voltage <= low_th else 1
+        # new voltage should cause line transfer:
+        output_volt_value = int(self._get_oid_value(oid_out_adv))
+        _40percent_of_rated_out = output_volt_value * 0.4
+
+        if _40percent_of_rated_out <= voltage < low_th:
+            transfer_reason = self.InputLineFailCause.smallMomentarySag
+        elif 0 <= voltage < _40percent_of_rated_out:
+            transfer_reason = self.InputLineFailCause.deepMomentarySag
+        elif voltage >= high_th:
+            transfer_reason = self.InputLineFailCause.highLineVoltage
+        else:
+            raise ValueError("Unknow transfer reason!")
+
+        return True, transfer_reason
 
     def _publish_battery(self):
         """Publish battery update"""
