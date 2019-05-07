@@ -8,7 +8,6 @@ import json
 import redis
 
 from enginecore.model.graph_reference import GraphReference
-from enginecore.tools.utils import format_as_redis_key
 from enginecore.state.redis_channels import RedisChannels
 
 from enginecore.state.hardware.asset_definition import SUPPORTED_ASSETS
@@ -186,25 +185,6 @@ class IStateManager:
             json.dumps({"key": self.key, "status": self.status}),
         )
 
-    def _get_oid_value(self, oid, key=None):
-        """Retrieve value for a specific OID """
-        if key is None:
-            key = self.key
-
-        redis_store = IStateManager.get_store()
-        rkey = format_as_redis_key(str(key), oid, key_formatted=False)
-        return redis_store.get(rkey).decode().split("|")[1]
-
-    def _get_oid_by_name(self, oid_name):
-        """Get oid by oid name"""
-
-        with self._graph_ref.get_session() as db_s:
-            oid_details = GraphReference.get_asset_oid_by_name(
-                db_s, int(self._asset_key), oid_name
-            )
-
-        return oid_details
-
     def _reset_boot_time(self):
         """Reset device start time (this redis key/value is used to calculate uptime)
         (see snmppub.lua)
@@ -212,44 +192,6 @@ class IStateManager:
         IStateManager.get_store().set(
             str(self._asset_key) + ":start_time", int(time.time())
         )
-
-    def _update_oid_by_name(self, oid_name, oid_type, value, use_spec=False):
-        """Update a specific oid
-        Args:
-            oid_name(str): oid name defined in device preset file
-            oid_type(rfc1902): oid type (rfc1902 specs)
-            value(str): oid value or spec parameter if use_spec is set to True
-            use_spec:
-        Returns:
-            bool: true if oid was successfully updated
-        """
-
-        with self._graph_ref.get_session() as db_s:
-            oid, data_type, oid_spec = GraphReference.get_asset_oid_by_name(
-                db_s, int(self._asset_key), oid_name
-            )
-
-            if oid:
-                new_oid_value = oid_spec[value] if use_spec and oid_spec else value
-                self._update_oid_value(oid, data_type, oid_type(new_oid_value))
-                return True
-
-            return False
-
-    def _update_oid_value(self, oid, data_type, oid_value):
-        """Update oid with a new value
-        
-        Args:
-            oid(str): SNMP object id
-            data_type(int): Data type in redis format
-            oid_value(object): OID value in rfc1902 format 
-        """
-        redis_store = IStateManager.get_store()
-
-        rvalue = "{}|{}".format(data_type, oid_value)
-        rkey = format_as_redis_key(str(self._asset_key), oid, key_formatted=False)
-
-        redis_store.set(rkey, rvalue)
 
     def _check_parents(
         self, keys, parent_down, msg="Cannot perform the action: [{}] parent is off"

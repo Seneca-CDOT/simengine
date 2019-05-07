@@ -65,15 +65,6 @@ class SNMPAgent(Agent):
             pub.write(snmpsim_config)
             priv.write(snmpsim_config)
 
-        uid = pwd.getpwnam("nobody").pw_uid
-        gid = grp.getgrnam("nobody").gr_gid
-
-        os.chmod(rec_public_path, 0o777)
-        os.chmod(rec_private_path, 0o777)
-
-        os.chown(rec_public_path, uid, gid)
-        os.chown(rec_private_path, uid, gid)
-
     def start_agent(self):
         """Logic for starting up the agent """
 

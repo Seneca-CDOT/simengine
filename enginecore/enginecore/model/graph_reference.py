@@ -130,7 +130,7 @@ class GraphReference:
             oid_name(str): OID name
         Returns:
             tuple: str as SNMP OID that belongs to the asset, 
-                   followed by an int as datatype, followed by optional state details; 
+                   followed by optional state details; 
                    returns None if there's no such OID
         """
 
@@ -155,19 +155,21 @@ class GraphReference:
             if (record and record["oid_details"])
             else None
         )
-        oid_data_type = details["dataType"] if oid_info else None
 
-        return oid_info, oid_data_type, v_specs
+        return oid_info, v_specs
 
     @classmethod
     def get_component_oid_by_name(cls, session, component_key, oid_name):
-        """Get OID that is associated with a particular component (by human-readable name)
+        """Get OID that is associated with a particular component
+        (by human-readable name)
+
         Args:
             session: database session
             component_key(int): key of the component
             oid_name(str): OID name
         Returns:
-            tuple: SNMP OID that belongs to the enclosing asset (as str), key of the asset component belongs to (int)
+            tuple: SNMP OID that belongs to the enclosing asset (as str);
+                   key of the asset component belongs to (int)
         """
 
         result = session.run(

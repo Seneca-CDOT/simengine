@@ -3,17 +3,14 @@ import time
 import json
 from enum import Enum
 
-import pysnmp.proto.rfc1902 as snmp_data_types
-from enginecore.model.graph_reference import GraphReference
-
 from enginecore.state.redis_channels import RedisChannels
 from enginecore.state.api.state import IStateManager
-
+from enginecore.state.api.snmp_state import ISnmpDeviceStateManager
 from enginecore.tools.randomizer import Randomizer
 
 
 @Randomizer.register
-class IUPSStateManager(IStateManager):
+class IUPSStateManager(ISnmpDeviceStateManager):
     """Handles UPS state logic """
 
     class OutputStatus(Enum):
@@ -83,7 +80,7 @@ class IUPSStateManager(IStateManager):
     def _reset_power_off_oid(self):
         """Reset upsAdvControlUpsOff to 1 """
         # TODO different vendors may assign other values (not 1)
-        self._update_oid_by_name("PowerOff", snmp_data_types.Integer, 1)
+        self._update_oid_by_name("PowerOff", 1)
 
     @property
     def battery_level(self):
@@ -119,6 +116,16 @@ class IUPSStateManager(IStateManager):
         """UPS rated capacity"""
         return self._asset_info["outputPowerCapacity"]
 
+    @property
+    def rated_output_threshold(self):
+        if "ratedOutputPercentage" in self._asset_info:
+            ro_percent = self._asset_info["ratedOutputPercentage"]
+        else:
+            ro_percent = 0.4
+
+        in_voltage_oid = self._get_oid_by_name("AdvInputLineVoltage")
+        return ro_percent * int(self._get_oid_value(in_voltage_oid))
+
     @Randomizer.randomize_method()
     def shut_down(self):
         time.sleep(self.get_config_off_delay())
@@ -145,22 +152,15 @@ class IUPSStateManager(IStateManager):
         """Delay for power-off operation 
         (unlike 'hardware'-determined delay, this value can be configured by the user)
         """
-        with self._graph_ref.get_session() as db_s:
-            oid, _, _ = GraphReference.get_asset_oid_by_name(
-                db_s, int(self._asset_key), "AdvConfigShutoffDelay"
-            )
-            return int(self._get_oid_value(oid, key=self._asset_key))
+        oid = self._get_oid_by_name("AdvConfigShutoffDelay")
+        return int(self._get_oid_value(oid))
 
     def get_config_on_delay(self):
         """Power-on delay
         (unlike 'hardware'-determined delay, this value can be configured by the user)
         """
-
-        with self._graph_ref.get_session() as db_s:
-            oid, _, _ = GraphReference.get_asset_oid_by_name(
-                db_s, int(self._asset_key), "AdvConfigReturnDelay"
-            )
-            return int(self._get_oid_value(oid, key=self._asset_key))
+        oid = self._get_oid_by_name("AdvConfigReturnDelay")
+        return int(self._get_oid_value(oid))
 
     def set_drain_speed_factor(self, factor):
         """Speed up/slow down UPS battery draining process
