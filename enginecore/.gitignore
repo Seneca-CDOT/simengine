@@ -5,3 +5,4 @@ env
 .pypirc
 *.rdb
 info.log*
+.todos.json

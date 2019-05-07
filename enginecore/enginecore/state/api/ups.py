@@ -118,13 +118,32 @@ class IUPSStateManager(ISnmpDeviceStateManager):
 
     @property
     def rated_output_threshold(self):
+        """Threshold derived from the rated output used to determine
+        if transfer to battery is needed (see IUPSStateManager.InputLineFailCause)
+        """
+        ro_percent = 0.4
+
         if "ratedOutputPercentage" in self._asset_info:
             ro_percent = self._asset_info["ratedOutputPercentage"]
-        else:
-            ro_percent = 0.4
 
-        in_voltage_oid = self._get_oid_by_name("AdvInputLineVoltage")
+        in_voltage_oid = self._get_oid_by_name("AdvConfigRatedOutputVoltage")
         return ro_percent * int(self._get_oid_value(in_voltage_oid))
+
+    @property
+    def momentary_event_period(self):
+        """Power sag/spike time period. Momentary event
+        (see IUPSStateManager.InputLineFailCause) happens
+        before transfer reason is assigned an elevated severity.
+
+        Returns:
+            int: time period in seconds
+        """
+        t_period = 5  # seconds
+
+        if "momentaryEventTime" in self._asset_info:
+            t_period = self._asset_info["momentaryEventTime"]
+
+        return t_period
 
     @Randomizer.randomize_method()
     def shut_down(self):

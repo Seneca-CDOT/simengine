@@ -92,6 +92,9 @@ class UPS(Asset, SNMPSim):
         return self.state.battery_max_level / (fp_estimated_timeleft * 60)
 
     def _increase_transfer_severity(self):
+        """Increase severity of the input power event
+        (blackout, brownout etc. )
+        """
 
         last_reason = self.state.get_transfer_reason()
 
@@ -132,7 +135,7 @@ class UPS(Asset, SNMPSim):
             )
             self.state.update_time_on_battery(seconds_on_battery * 100)
 
-            if seconds_on_battery > 5 and not outage:
+            if seconds_on_battery > self.state.momentary_event_period and not outage:
                 outage = True
                 self._increase_transfer_severity()
 

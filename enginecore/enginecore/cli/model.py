@@ -95,6 +95,63 @@ def model_command(asset_group):
     drop_system_action.set_defaults(func=lambda args: sys_modeler.drop_model())
 
 
+def get_ups_command_parent():
+    """Aggregate ups arg options"""
+    ups_parent = argparse.ArgumentParser(add_help=False)
+
+    ups_parent.add_argument(
+        "--full-recharge-time",
+        type=float,
+        help="""Update recharge time for UPS, time taken (hours)
+        to recharge fully depleted battery""",
+        dest="full_recharge_time",
+    )
+
+    ups_parent.add_argument(
+        "--min-power-bat",
+        type=int,
+        help="""Minimum battery level required before
+        UPS output is powered on (where 1=0.1 percent)""",
+        dest="min_power_on_battery_level",
+        choices=range(0, 1001),
+        metavar="[0-1001]",
+    )
+
+    ups_parent.add_argument(
+        "--power-capacity",
+        type=int,
+        help="Output power capacity of the UPS",
+        dest="output_power_capacity",
+        choices=range(1, 5000),
+        metavar="[1-5000]",
+    )
+
+    ups_parent.add_argument(
+        "--runtime-graph",
+        help="""Sampled runtime graph for the UPS in .JSON key-value format
+        { wattage1: minutes, wattage2: minutes }""",
+        dest="runtime",
+    )
+
+    ups_parent.add_argument(
+        "--momentary-event-time",
+        help="""Time period (in seconds) before outage/brownout
+        state is assigned in case of input power failure
+        (waits "n" seconds after momentary cause for transfer reason)""",
+        type=int,
+    )
+
+    ups_parent.add_argument(
+        "--percent-of-rated-output",
+        help="""Percentage (between 0 and 1) of nominal output voltage from the UPS
+        in VAC which determines threshold for brownout vs blackout""",
+        type=float,
+        metavar="[0.0-1.0]",
+    )
+
+    return ups_parent
+
+
 def update_command(update_asset_group):
     """Update existing asset"""
 
@@ -116,10 +173,10 @@ def update_command(update_asset_group):
     )
 
     update_asset_parent.add_argument(
-        "-x", type=int, help="x - asset position on the dashboard", default=0
+        "-x", type=int, help="x - asset position on the dashboard"
     )
     update_asset_parent.add_argument(
-        "-y", type=int, help="y - asset position on the dashboard", default=0
+        "-y", type=int, help="y - asset position on the dashboard"
     )
 
     update_asset_parent.add_argument(
@@ -138,7 +195,6 @@ def update_command(update_asset_group):
     update_snmp_parent = argparse.ArgumentParser(add_help=False)
     update_snmp_parent.add_argument("--host", type=str, help="SNMP interface host")
     update_snmp_parent.add_argument("--port", type=int, help="SNMP interface port")
-    # update_snmp_parent.add_argument('--snmp-preset', type=str, help="Vendor-specific asset configurations")
 
     # server group
     update_server_parent = argparse.ArgumentParser(add_help=False)
@@ -171,38 +227,7 @@ def update_command(update_asset_group):
     update_ups_action = update_subp.add_parser(
         "ups",
         help="Update UPS properties",
-        parents=[update_asset_parent, update_snmp_parent],
-    )
-
-    update_ups_action.add_argument(
-        "--full-recharge-time",
-        type=float,
-        help="Update recharge time for UPS, time taken (hours) to recharge fully depleted battery",
-        dest="full_recharge_time",
-    )
-
-    update_ups_action.add_argument(
-        "--min-power-bat",
-        type=int,
-        help="Minimum battery level required before UPS output is powered on (where 1=0.1 percent)",
-        dest="min_power_on_battery_level",
-        choices=range(0, 1001),
-        metavar="[0-1001]",
-    )
-
-    update_ups_action.add_argument(
-        "--power-capacity",
-        type=int,
-        help="Output power capacity of the UPS",
-        dest="output_power_capacity",
-        choices=range(1, 5000),
-        metavar="[1-5000]",
-    )
-
-    update_ups_action.add_argument(
-        "--runtime-graph",
-        help="Sampled runtime graph for the UPS in .JSON key-value format { wattage1: minutes, wattage2: minutes } ",
-        dest="runtime",
+        parents=[update_asset_parent, update_snmp_parent, get_ups_command_parent()],
     )
 
     ## Server
@@ -361,7 +386,7 @@ def create_command(create_asset_group):
     create_ups_action = create_subp.add_parser(
         "ups",
         help="Create UPS asset",
-        parents=[create_asset_parent, create_snmp_parent],
+        parents=[create_asset_parent, create_snmp_parent, get_ups_command_parent()],
     )
 
     create_ups_action.add_argument(
@@ -370,7 +395,8 @@ def create_command(create_asset_group):
     create_ups_action.add_argument(
         "--power-consumption",
         type=int,
-        help="Power consumption in Watts (how much UPS draws when not powering anything)",
+        help="""Power consumption in Watts
+          (how much UPS draws when not powering anything)""",
         default=24,
     )
 

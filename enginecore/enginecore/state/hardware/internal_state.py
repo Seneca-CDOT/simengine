@@ -217,11 +217,11 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
             return False, None
 
         # new voltage should cause line transfer:
-        _40percent_of_rated_out = int(self._get_oid_value(oid_out_adv)) * 0.4
+        r_out_threshold = self.rated_output_threshold
 
-        if _40percent_of_rated_out <= voltage <= low_th:
+        if r_out_threshold <= voltage <= low_th:
             transfer_reason = self.InputLineFailCause.smallMomentarySag
-        elif 0 <= voltage < _40percent_of_rated_out:
+        elif 0 <= voltage < r_out_threshold:
             transfer_reason = self.InputLineFailCause.deepMomentarySag
         elif voltage >= high_th:
             transfer_reason = self.InputLineFailCause.highLineVoltage
