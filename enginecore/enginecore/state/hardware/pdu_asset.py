@@ -27,15 +27,8 @@ class PDU(Asset, SNMPSim):
     StateManagerCls = in_state.PDUStateManager
 
     def __init__(self, asset_info):
-        Asset.__init__(self, PDU.StateManagerCls(asset_info))
-        SNMPSim.__init__(
-            self,
-            asset_info["key"],
-            snmp_conf={"host": asset_info["host"], "port": asset_info["port"]},
-        )
-
-        self.state.update_agent(self._snmp_agent.pid)
-        logging.info(self._snmp_agent)
+        Asset.__init__(self, state=PDU.StateManagerCls(asset_info))
+        SNMPSim.__init__(self, self._state)
 
     @handler("ParentAssetPowerDown")
     def on_parent_asset_power_down(self, event, *args, **kwargs):

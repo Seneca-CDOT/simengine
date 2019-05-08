@@ -32,14 +32,8 @@ class UPS(Asset, SNMPSim):
     StateManagerCls = in_state.UPSStateManager
 
     def __init__(self, asset_info):
-        Asset.__init__(self, UPS.StateManagerCls(asset_info))
-        SNMPSim.__init__(
-            self,
-            asset_info["key"],
-            snmp_conf={"host": asset_info["host"], "port": asset_info["port"]},
-        )
-
-        self.state.update_agent(self._snmp_agent.pid)
+        Asset.__init__(self, state=UPS.StateManagerCls(asset_info))
+        SNMPSim.__init__(self, self._state)
 
         # Store known { wattage: time_remaining } key/value pairs (runtime graph)
         self._runtime_details = json.loads(asset_info["runtime"])
@@ -65,7 +59,6 @@ class UPS(Asset, SNMPSim):
 
         # set temp on start
         self._state.update_temperature(7)
-        logging.info(self._snmp_agent)
 
     def _cacl_time_left(self, wattage):
         """Approximate runtime estimation based on current battery level"""

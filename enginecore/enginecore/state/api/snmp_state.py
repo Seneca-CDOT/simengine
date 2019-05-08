@@ -11,6 +11,11 @@ class ISnmpDeviceStateManager(IStateManager):
 
     ObjectIdentity = namedtuple("ObjectIdentity", "oid specs")
 
+    @property
+    def snmp_config(self):
+        """Snmp lan configurations"""
+        return {"host": self._asset_info["host"], "port": self._asset_info["port"]}
+
     def _update_oid_by_name(self, oid_name, value, use_spec=False):
         """Update a specific oid
         Args:
