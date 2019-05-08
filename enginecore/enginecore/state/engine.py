@@ -307,7 +307,8 @@ class Engine(Component):
         Args:
             updated_asset: leaf node asset with new power state
             new_state: new power state
-            parent_assets: assets powering the leaf node (list of dictionaries not Assets)
+            parent_assets: assets powering the leaf node
+                           (list of dictionaries, not Assets)
         """
         offline_parents_load = 0
         online_parents = []
@@ -384,7 +385,9 @@ class Engine(Component):
 
         # power up/down child assets if there's no alternative power source
         if not (alt_parent_asset and alt_parent_asset.state.status):
-            event = PowerEventMap.map_parent_event(new_state)
+            event = PowerEventMap.map_voltage_event(
+                new_value=new_state * 120, old_value=(new_state ^ 1) * 120
+            )
             self.fire(event, child_asset)
 
             # Special case for UPS

@@ -14,6 +14,8 @@ import enginecore.state.api as state_api
 
 
 class StateManager(state_api.IStateManager, state_api.ISystemEnvironment):
+    """Exposes private logic to assets"""
+
     def update_agent(self, pid):
         """Set agent PID"""
         StateManager.get_store().set(self.redis_key + ":agent", pid)
@@ -30,7 +32,7 @@ class StateManager(state_api.IStateManager, state_api.ISystemEnvironment):
         """Publish state changes (expose method to the assets) """
         super()._publish_power()
 
-    def _set_redis_asset_state(self, state):
+    def _set_redis_asset_state(self, state, publish=False):
         """Update redis value of the asset power status"""
         super()._set_redis_asset_state(state, publish=False)
 

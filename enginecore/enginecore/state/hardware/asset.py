@@ -18,6 +18,8 @@ class Asset(Component):
     def __init__(self, state):
         super(Asset, self).__init__()
         self._state = state
+        self._state_reason = self.state.PowerStateReason.turned_on
+
         self.state.reset_boot_time()
         self.state.update_load(0)
 
@@ -30,6 +32,24 @@ class Asset(Component):
     def state(self):
         """State manager instance"""
         return self._state
+
+    @property
+    def power_on_when_ac_restore(self):
+        """Indicates if asset should power up when input power is present"""
+        return True
+
+    @property
+    def state_reason(self):
+        """"""
+        return self._state_reason
+
+    @state_reason.setter
+    def state_reason(self, value):
+        """"""
+        self._state_reason = value
+        logging.info(
+            "New power state %s due to power event %s", self.state.status, value
+        )
 
     def power_up(self):
         """Power up this asset 
@@ -121,9 +141,22 @@ class Asset(Component):
         msg = "Asset:[{}] load {} was decreased by {}, new load={};"
         return self._update_load(decreased_by, lambda old, change: old - change, msg)
 
+    @handler("ButtonPowerDownPressed")
+    def on_btn_power_down(self, event):
+        """When user presses power button to turn asset off"""
+        self.state_reason = event.name
+
+    @handler("ButtonPowerUpPressed")
+    def on_btn_power_up(self, event):
+        """When user preses power button to turn asset on"""
+        self.state_reason = event.name
+
     @handler("VoltageIncreased")
     def on_voltage_increase(self, event, *args, **kwargs):
         """Handle input power voltage increase"""
+
+        print("VOLTAGE INCREASED!")
+
         e_result = event_results.VoltageEventResult(
             asset_key=self.state.key,
             asset_type=self.state.asset_type,
@@ -131,19 +164,17 @@ class Asset(Component):
             new_voltage=kwargs["new_value"],
         )
 
-        # min_voltage, _ = self.state.min_voltage_prop()
+        min_voltage, _ = self.state.min_voltage_prop()
 
-        # if kwargs["new_value"] >= min_voltage and not self.state.status:
-        #     self.state.power_up()
-        #     self.state.publish_power()
-        #     event.success = False
+        if kwargs["new_value"] >= min_voltage and not self.state.status:
+            self.on_power_up_request_received(event, args, kwargs)
 
         return e_result
 
     @handler("VoltageDecreased")
     def on_voltage_decrease(self, event, *args, **kwargs):
         """Handle input power voltage drop"""
-
+        print("VOLTAGE DECREASED!")
         e_result = event_results.VoltageEventResult(
             asset_key=self.state.key,
             asset_type=self.state.asset_type,
@@ -151,17 +182,23 @@ class Asset(Component):
             new_voltage=kwargs["new_value"],
         )
 
-        # min_voltage, power_off_timeout = self.state.min_voltage_prop()
-        # if kwargs["new_value"] < min_voltage and self.state.status:
+        min_voltage, power_off_timeout = self.state.min_voltage_prop()
+        if kwargs["new_value"] < min_voltage and self.state.status:
 
-        #     if power_off_timeout:
-        #         time.sleep(power_off_timeout)
+            if power_off_timeout:
+                time.sleep(power_off_timeout)
 
-        #     self.state.power_off()
-        #     self.state.publish_power()
-        #     event.success = False
+            self.on_power_off_request_received(event, args, kwargs)
 
         return e_result
+
+    def on_power_up_request_received(self, event, *args, **kwargs):
+        """Called on voltage spike"""
+        raise NotImplementedError
+
+    def on_power_off_request_received(self, event, *args, **kwargs):
+        """Called on voltage drop"""
+        raise NotImplementedError
 
     @classmethod
     def get_supported_assets(cls):

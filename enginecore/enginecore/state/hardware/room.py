@@ -60,11 +60,10 @@ class ServerRoom(Component):
             temp_op(callable): calculate new temperature
         """
 
-        # ambient props contains details like min/max temperature value, increase/decrease steps etc.
-        get_amb_event_props = lambda: in_state.StateManager.get_ambient_props()[0][
-            event
-        ]
-        amb_props = get_amb_event_props()
+        # ambient props contains details like min/max temperature value;
+        # increase/decrease steps etc.
+        get_amb_props = lambda: in_state.StateManager.get_ambient_props()[0][event]
+        amb_props = get_amb_props()
 
         while True:
 
@@ -73,7 +72,7 @@ class ServerRoom(Component):
             # check if room environment matches the conditions
             # required for ambient update
             if not env():
-                amb_props = get_amb_event_props()
+                amb_props = get_amb_props()
                 continue
 
             # get old & calculate new temperature values
@@ -94,7 +93,7 @@ class ServerRoom(Component):
                 logging.info(msg_format, current_temp, new_temp)
                 in_state.StateManager.set_ambient(new_temp)
 
-            amb_props = get_amb_event_props()
+            amb_props = get_amb_props()
 
     def _launch_thermal_thread(self, name, th_kwargs):
         """Start up a thread that will be changing ambient depending on environment

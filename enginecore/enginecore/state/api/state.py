@@ -1,6 +1,7 @@
 """Interface for asset state management"""
 
 import time
+from enum import Enum
 import os
 import subprocess
 import json
@@ -21,6 +22,16 @@ class IStateManager:
     """Base class for all the state managers """
 
     redis_store = None
+
+    class PowerStateReason(Enum):
+        """Describes reason behind asset power state"""
+
+        ac_restored = 1
+        ac_lost = 2
+        turned_on = 3
+        turned_off = 4
+        signal_on = 5
+        signal_off = 6
 
     def __init__(self, asset_info):
         self._graph_ref = GraphReference()
