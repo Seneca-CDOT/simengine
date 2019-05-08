@@ -93,6 +93,11 @@ class IUPSStateManager(ISnmpDeviceStateManager):
         return self._max_battery_level
 
     @property
+    def on_battery(self):
+        """Indicates if UPS is powered by battery at the moment"""
+        return self.get_transfer_reason() != self.InputLineFailCause.noTransfer
+
+    @property
     def wattage(self):
         return (self.load + self.idle_ups_amp) * self._asset_info["powerSource"]
 
@@ -166,6 +171,14 @@ class IUPSStateManager(ISnmpDeviceStateManager):
             self._reset_power_off_oid()
 
         return powered
+
+    def get_transfer_reason(self):
+        """Retrieve last transfer reason (why switched from input power to battery)
+        Returns:
+            InputLineFailCause: last transfer cause
+        """
+        oid_t_reason = self._get_oid_by_name("InputLineFailCause")
+        return self.InputLineFailCause(int(self._get_oid_value(oid_t_reason)))
 
     def get_config_off_delay(self):
         """Delay for power-off operation 

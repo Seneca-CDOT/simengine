@@ -107,14 +107,6 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         """
         self._update_oid_by_name("InputLineFailCause", status.name, use_spec=True)
 
-    def get_transfer_reason(self):
-        """Retrieve last transfer reason (why switched from input power to battery)
-        Returns:
-            InputLineFailCause: last transfer cause
-        """
-        oid_t_reason = self._get_oid_by_name("InputLineFailCause")
-        return self.InputLineFailCause(int(self._get_oid_value(oid_t_reason)))
-
     def _update_current_oids(self, load):
         """Update OIDs associated with UPS Output - Current in AMPs
         
