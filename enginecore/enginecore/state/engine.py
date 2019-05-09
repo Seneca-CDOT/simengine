@@ -385,8 +385,9 @@ class Engine(Component):
 
         # power up/down child assets if there's no alternative power source
         if not (alt_parent_asset and alt_parent_asset.state.status):
+            in_volt = updated_asset.input_voltage
             event = PowerEventMap.map_voltage_event(
-                new_value=new_state * 120, old_value=(new_state ^ 1) * 120
+                new_value=new_state * in_volt, old_value=(new_state ^ 1) * in_volt
             )
             self.fire(event, child_asset)
 
@@ -418,14 +419,14 @@ class Engine(Component):
             )
             self.fire(load_child_event, updated_asset)
 
-    def _chain_power_update(self, event_result):
+    def _chain_power_update(self, event_result: PowerEventResult):
         """React to power state event by analysing the parent,
         child & neighbouring assets
         
         Args:
-            event_result(PowerEventResult): contains data about power state update 
-                                            event such as key of the affected asset, 
-                                            its old state & new state
+            event_result: contains data about power state update 
+                          event such as key of the affected asset, 
+                          its old state & new state
         Example:
             when a node is powered down, 
             the assets it powers should be powered down as well
@@ -625,12 +626,21 @@ class Engine(Component):
             {"key": e_result.asset_key, "status": e_result.new_state},
         )
 
-    def VoltageDecreased_success(self, evt, e_result):
+    def VoltageDecreased_success(self, evt, event_results):
         """When asset finished processing new voltage
         and it stayed online"""
-        if e_result.old_voltage != e_result.new_voltage:
-            self._chain_voltage_update(e_result)
+        volt_e_result, power_e_result = event_results
 
-    def VoltageIncreased_success(self, evt, e_result):
+        if power_e_result and power_e_result.new_state != power_e_result.old_state:
+            self._power_success(power_e_result)
+        else:
+            self._chain_voltage_update(volt_e_result)
+
+    def VoltageIncreased_success(self, evt, event_results):
         """When asset finished processing new voltage"""
-        self._chain_voltage_update(e_result)
+        volt_e_result, power_e_result = event_results
+
+        if power_e_result and power_e_result.new_state != power_e_result.old_state:
+            self._power_success(power_e_result)
+        else:
+            self._chain_voltage_update(volt_e_result)

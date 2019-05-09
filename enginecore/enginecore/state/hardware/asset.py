@@ -10,6 +10,7 @@ import time
 from circuits import Component, handler
 from enginecore.state.hardware import event_results
 from enginecore.state.hardware.asset_definition import SUPPORTED_ASSETS
+from enginecore.state.hardware import asset_events
 
 
 class Asset(Component):
@@ -19,6 +20,7 @@ class Asset(Component):
         super(Asset, self).__init__()
         self._state = state
         self._state_reason = self.state.PowerStateReason.turned_on
+        self._input_voltage = 0
 
         self.state.reset_boot_time()
         self.state.update_load(0)
@@ -43,12 +45,20 @@ class Asset(Component):
         """"""
         return self._state_reason
 
+    @property
+    def input_voltage(self):
+        """Input power voltage"""
+        return self._input_voltage
+
     @state_reason.setter
     def state_reason(self, value):
         """"""
         self._state_reason = value
         logging.info(
-            "New power state %s due to power event %s", self.state.status, value
+            "Asset:[%s] power state set to %s due to event <%s>",
+            self.key,
+            self.state.status,
+            value.__name__,
         )
 
     def power_up(self):
@@ -144,20 +154,19 @@ class Asset(Component):
     @handler("ButtonPowerDownPressed")
     def on_btn_power_down(self, event):
         """When user presses power button to turn asset off"""
-        self.state_reason = event.name
+        self.state_reason = asset_events.ButtonPowerDownPressed
 
     @handler("ButtonPowerUpPressed")
     def on_btn_power_up(self, event):
         """When user preses power button to turn asset on"""
-        self.state_reason = event.name
+        self.state_reason = asset_events.ButtonPowerUpPressed
 
     @handler("VoltageIncreased")
     def on_voltage_increase(self, event, *args, **kwargs):
         """Handle input power voltage increase"""
 
-        print("VOLTAGE INCREASED!")
-
-        e_result = event_results.VoltageEventResult(
+        power_event_result = None
+        volt_event_result = event_results.VoltageEventResult(
             asset_key=self.state.key,
             asset_type=self.state.asset_type,
             old_voltage=kwargs["old_value"],
@@ -165,32 +174,43 @@ class Asset(Component):
         )
 
         min_voltage, _ = self.state.min_voltage_prop()
+        self._input_voltage = kwargs["new_value"]
 
         if kwargs["new_value"] >= min_voltage and not self.state.status:
-            self.on_power_up_request_received(event, args, kwargs)
+            power_event_result = self.on_power_up_request_received(event, args, kwargs)
+            if power_event_result.new_state != power_event_result.old_state:
+                self.state_reason = asset_events.VoltageIncreased
 
-        return e_result
+        print("VOLTAGE INCREASED! {}, in[{}]".format(self.key, self.input_voltage))
+
+        return volt_event_result, power_event_result
 
     @handler("VoltageDecreased")
     def on_voltage_decrease(self, event, *args, **kwargs):
         """Handle input power voltage drop"""
-        print("VOLTAGE DECREASED!")
-        e_result = event_results.VoltageEventResult(
+
+        power_event_result = None
+        volt_event_result = event_results.VoltageEventResult(
             asset_key=self.state.key,
             asset_type=self.state.asset_type,
             old_voltage=kwargs["old_value"],
             new_voltage=kwargs["new_value"],
         )
 
+        self._input_voltage = kwargs["new_value"]
         min_voltage, power_off_timeout = self.state.min_voltage_prop()
         if kwargs["new_value"] < min_voltage and self.state.status:
 
             if power_off_timeout:
                 time.sleep(power_off_timeout)
 
-            self.on_power_off_request_received(event, args, kwargs)
+            power_event_result = self.on_power_off_request_received(event, args, kwargs)
+            if power_event_result.new_state != power_event_result.old_state:
+                self.state_reason = asset_events.VoltageDecreased
 
-        return e_result
+        print("VOLTAGE DECREASED {}, in[{}]".format(self.key, self.input_voltage))
+
+        return volt_event_result, power_event_result
 
     def on_power_up_request_received(self, event, *args, **kwargs):
         """Called on voltage spike"""
