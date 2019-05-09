@@ -20,13 +20,11 @@ class StaticAsset(Asset):
         super(StaticAsset, self).__init__(self.StateManagerCls(asset_info))
         self.state.update_load(self.state.power_usage)
 
-    @handler("ParentAssetPowerDown")
-    def on_parent_asset_power_down(self, event, *args, **kwargs):
+    def on_power_off_request_received(self, event, *args, **kwargs):
         """Powers off on parent offline"""
         return self.power_off()
 
-    @handler("ParentAssetPowerUp")
-    def on_power_up_request_received(self):
+    def on_power_up_request_received(self, event, *args, **kwargs):
         """Powers on on parent going online"""
         return self.power_up()
 

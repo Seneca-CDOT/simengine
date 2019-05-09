@@ -597,6 +597,14 @@ class Engine(Component):
         )
         self._chain_power_update(event_result)
 
+    def _voltage_success(self, event_results):
+        volt_e_result, power_e_result = event_results
+
+        if power_e_result and power_e_result.new_state != power_e_result.old_state:
+            self._power_success(power_e_result)
+        else:
+            self._chain_voltage_update(volt_e_result)
+
     # Notify child asset of any parent events of interest
     def ParentAssetPowerDown_success(self, evt, event_result):
         """When assets parent successfully powered down """
@@ -629,18 +637,8 @@ class Engine(Component):
     def VoltageDecreased_success(self, evt, event_results):
         """When asset finished processing new voltage
         and it stayed online"""
-        volt_e_result, power_e_result = event_results
-
-        if power_e_result and power_e_result.new_state != power_e_result.old_state:
-            self._power_success(power_e_result)
-        else:
-            self._chain_voltage_update(volt_e_result)
+        self._voltage_success(event_results)
 
     def VoltageIncreased_success(self, evt, event_results):
         """When asset finished processing new voltage"""
-        volt_e_result, power_e_result = event_results
-
-        if power_e_result and power_e_result.new_state != power_e_result.old_state:
-            self._power_success(power_e_result)
-        else:
-            self._chain_voltage_update(volt_e_result)
+        self._voltage_success(event_results)

@@ -55,9 +55,9 @@ class Asset(Component):
         """"""
         self._state_reason = value
         logging.info(
-            "Asset:[%s] power state set to %s due to event <%s>",
+            "Asset:[%s][%s] due to event <%s>",
             self.key,
-            self.state.status,
+            "online" if self.state.status else "offline",
             value.__name__,
         )
 
@@ -183,6 +183,9 @@ class Asset(Component):
 
         print("VOLTAGE INCREASED! {}, in[{}]".format(self.key, self.input_voltage))
 
+        if not self.state.status:
+            event.success = False
+
         return volt_event_result, power_event_result
 
     @handler("VoltageDecreased")
@@ -196,6 +199,12 @@ class Asset(Component):
             old_voltage=kwargs["old_value"],
             new_voltage=kwargs["new_value"],
         )
+
+        if (
+            not self.state.status
+            and self.state_reason != asset_events.ButtonPowerDownPressed
+        ):
+            event.success = False
 
         self._input_voltage = kwargs["new_value"]
         min_voltage, power_off_timeout = self.state.min_voltage_prop()
