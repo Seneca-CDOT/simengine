@@ -193,7 +193,7 @@ def configure_battery(key, kwargs):
     if not isinstance(state_manager, IUPSStateManager):
         raise argparse.ArgumentTypeError("Asset [{}] is not a ups!".format(key))
 
-    if (kwargs["drain_speed"] and kwargs["charge_speed"]) is None:
+    if kwargs["drain_speed"] is None and kwargs["charge_speed"] is None:
         raise argparse.ArgumentTypeError(
             'Must provide "--drain-speed" or "--charge-speed"'
         )
