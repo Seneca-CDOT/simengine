@@ -35,6 +35,9 @@ class UPS(Asset, SNMPSim):
         Asset.__init__(self, state=UPS.StateManagerCls(asset_info))
         SNMPSim.__init__(self, self._state)
 
+        super().removeHandler(super().on_voltage_increase)
+        super().removeHandler(super().on_voltage_decrease)
+
         # Store known { wattage: time_remaining } key/value pairs (runtime graph)
         self._runtime_details = json.loads(asset_info["runtime"])
 
@@ -225,8 +228,8 @@ class UPS(Asset, SNMPSim):
         self._battery_charge_t.start()
 
     ##### React to any events of the connected components #####
-    @handler("ParentAssetPowerDown")
-    def on_parent_asset_power_down(self, event, *args, **kwargs):
+    # @handler("ParentAssetPowerDown")
+    def _on_parent_asset_power_down(self, event, *args, **kwargs):
         """Upstream power was lost"""
 
         # If battery is still alive -> keep UPS up
@@ -243,8 +246,8 @@ class UPS(Asset, SNMPSim):
 
         return e_result
 
-    @handler("ParentAssetPowerUp")
-    def on_power_up_request_received(self, event, *args, **kwargs):
+    # @handler("ParentAssetPowerUp")
+    def _on_power_up_request_received(self, event, *args, **kwargs):
         """Input power was restored"""
 
         battery_level = self.state.battery_level
@@ -287,31 +290,41 @@ class UPS(Asset, SNMPSim):
         self._state.update_temperature(7)
 
     @handler("VoltageDecreased")
-    def on_voltage_decreased(self, event, *args, **kwargs):
+    def on_voltage_decrease(self, event, *args, **kwargs):
         """Handle voltage drop, transfer to battery if needed"""
+
+        power_event_result = None
+        volt_event_result = self._get_voltage_event_result(kwargs)
 
         should_transfer, reason = self.state.process_voltage(kwargs["new_value"])
 
-        if should_transfer:
+        if self.state.battery_level and should_transfer:
             self._launch_battery_drain(reason)
+            event.success = False
 
         print(should_transfer, reason)
         print(self.state.get_transfer_reason())
 
+        return volt_event_result, power_event_result
+
     @handler("VoltageIncreased")
-    def on_voltage_increased(self, event, *args, **kwargs):
+    def on_voltage_increase(self, event, *args, **kwargs):
         """On voltage increase, analyze new voltage and determine if
         it's within the acceptable range
         """
+        power_event_result = None
+        volt_event_result = self._get_voltage_event_result(kwargs)
 
         should_transfer, reason = self.state.process_voltage(kwargs["new_value"])
 
         if not should_transfer and self.state.on_battery:
-            self._launch_battery_charge()
+            battery_level = self.state.battery_level
+            self._launch_battery_charge(power_up_on_charge=(not battery_level))
 
         elif should_transfer:
             self._launch_battery_drain(reason)
-            # event.sucess = False
+
+        return volt_event_result, power_event_result
 
     @property
     def charge_speed_factor(self):

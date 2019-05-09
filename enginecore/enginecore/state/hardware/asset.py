@@ -161,17 +161,22 @@ class Asset(Component):
         """When user preses power button to turn asset on"""
         self.state_reason = asset_events.ButtonPowerUpPressed
 
+    def _get_voltage_event_result(self, event_details):
+        """Get formatted voltage event result"""
+
+        return event_results.VoltageEventResult(
+            asset_key=self.state.key,
+            asset_type=self.state.asset_type,
+            old_voltage=event_details["old_value"],
+            new_voltage=event_details["new_value"],
+        )
+
     @handler("VoltageIncreased")
     def on_voltage_increase(self, event, *args, **kwargs):
         """Handle input power voltage increase"""
 
         power_event_result = None
-        volt_event_result = event_results.VoltageEventResult(
-            asset_key=self.state.key,
-            asset_type=self.state.asset_type,
-            old_voltage=kwargs["old_value"],
-            new_voltage=kwargs["new_value"],
-        )
+        volt_event_result = self._get_voltage_event_result(kwargs)
 
         min_voltage, _ = self.state.min_voltage_prop()
         self._input_voltage = kwargs["new_value"]
@@ -193,12 +198,7 @@ class Asset(Component):
         """Handle input power voltage drop"""
 
         power_event_result = None
-        volt_event_result = event_results.VoltageEventResult(
-            asset_key=self.state.key,
-            asset_type=self.state.asset_type,
-            old_voltage=kwargs["old_value"],
-            new_voltage=kwargs["new_value"],
-        )
+        volt_event_result = self._get_voltage_event_result(kwargs)
 
         if (
             not self.state.status
