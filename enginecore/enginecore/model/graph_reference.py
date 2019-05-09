@@ -3,6 +3,7 @@
 import os
 import json
 import time
+from functools import lru_cache
 
 from neo4j.v1 import GraphDatabase, basic_auth
 from enginecore.tools.utils import format_as_redis_key
@@ -295,6 +296,7 @@ class GraphReference:
         return assets
 
     @classmethod
+    @lru_cache(maxsize=32)
     def get_affected_assets(cls, session, asset_key):
         """Get information about assets affected by a change in parent's state
 

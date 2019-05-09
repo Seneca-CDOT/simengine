@@ -36,9 +36,8 @@ class PDU(Asset, SNMPSim):
 
         e_result = self.power_off()
 
-        if e_result.new_state == e_result.old_state:
-            event.success = False
-        else:
+        event.success = e_result.new_state != e_result.old_state
+        if event.success:
             self._snmp_agent.stop_agent()
 
         return e_result
@@ -48,5 +47,8 @@ class PDU(Asset, SNMPSim):
         """Power up PDU when upstream power source is restored """
         e_result = self.power_up()
         event.success = e_result.new_state != e_result.old_state
+        if event.success:
+            self._snmp_agent.start_agent()
+            self._state.update_agent(self._snmp_agent.pid)
 
         return e_result

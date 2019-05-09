@@ -207,11 +207,8 @@ class Asset(Component):
             event.success = False
 
         self._input_voltage = kwargs["new_value"]
-        min_voltage, power_off_timeout = self.state.min_voltage_prop()
+        min_voltage, _ = self.state.min_voltage_prop()
         if kwargs["new_value"] < min_voltage and self.state.status:
-
-            if power_off_timeout:
-                time.sleep(power_off_timeout)
 
             power_event_result = self.on_power_off_request_received(event, args, kwargs)
             if power_event_result.new_state != power_event_result.old_state:

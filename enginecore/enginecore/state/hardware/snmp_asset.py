@@ -11,7 +11,9 @@ class SNMPSim:
 
     def __init__(self, state):
         self._snmp_agent = SNMPAgent(state.key, state.snmp_config)
-        state.update_agent(self._snmp_agent.pid)
+
+        self._state = state
+        self._state.update_agent(self._snmp_agent.pid)
 
         logging.info(self._snmp_agent)
 
@@ -27,3 +29,4 @@ class SNMPSim:
     def on_asset_did_power_on(self):
         """Restart agent when upstream power is restored"""
         self._snmp_agent.start_agent()
+        self._state.update_agent(self._snmp_agent.pid)
