@@ -320,6 +320,11 @@ class UPS(Asset, SNMPSim):
         if not should_transfer and self.state.on_battery:
             battery_level = self.state.battery_level
             self._launch_battery_charge(power_up_on_charge=(not battery_level))
+            if battery_level:
+                power_event_result = self.power_up()
+                # event.success = (
+                #     power_event_result.new_state != power_event_result.old_state
+                # )
 
         elif should_transfer:
             self._launch_battery_drain(reason)

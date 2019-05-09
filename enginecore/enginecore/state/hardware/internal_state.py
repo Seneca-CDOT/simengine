@@ -176,6 +176,7 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
             voltage: new voltage value
         Returns: 
             tuple: true if transfer to battery is needed, transfer reason
+                   (see state.api.ups.UPS.InputLineFailCause)
         Raises:
             ValueError: if UPS has no voltage OIDs defined
                         or transfer reason cannot be determined
@@ -213,10 +214,10 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         # new voltage should cause line transfer:
         r_out_threshold = self.rated_output_threshold
 
-        if r_out_threshold <= voltage <= low_th:
-            transfer_reason = self.InputLineFailCause.smallMomentarySag
-        elif 0 <= voltage < r_out_threshold:
+        if 0 <= voltage < r_out_threshold:
             transfer_reason = self.InputLineFailCause.deepMomentarySag
+        elif r_out_threshold <= voltage <= low_th:
+            transfer_reason = self.InputLineFailCause.smallMomentarySag
         elif voltage >= high_th:
             transfer_reason = self.InputLineFailCause.highLineVoltage
         else:

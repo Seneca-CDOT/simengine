@@ -598,6 +598,8 @@ class Engine(Component):
         self._chain_power_update(event_result)
 
     def _voltage_success(self, event_results):
+        """Process voltage event results"""
+
         volt_e_result, power_e_result = event_results
 
         if power_e_result and power_e_result.new_state != power_e_result.old_state:
