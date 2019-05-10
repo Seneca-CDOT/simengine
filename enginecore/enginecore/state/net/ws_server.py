@@ -107,12 +107,15 @@ class WebSocket(Component):
 
     @handler(ClientToServerRequests.subscribe.name)
     def _handle_subscribe_request(self, details):
-        """Subscribe a web-socket client to system updates (e.g. battery or status changes) """
+        """Subscribe a web-socket client to system updates
+        (e.g. battery or status changes)
+        """
         self._data_subscribers.append(details["client"])
 
     @handler(ClientToServerRequests.get_sys_status.name)
     def _handle_status_request(self, details):
-        """Get overall system status/details including hardware assets, environment state & play details
+        """Get overall system status/details including hardware assets;
+        environment state & play details
         """
 
         assets = IStateManager.get_system_status(flatten=False)
@@ -329,7 +332,8 @@ class WebSocket(Component):
 
     @handler("NotifyClient")
     def notify_client(self, data):
-        """This handler is called upon state changes & is meant to notify web-client of any events 
+        """This handler is called upon state changes 
+        and is meant to notify web-client of any events 
         
         Args:
             data: data to be sent to ws clients

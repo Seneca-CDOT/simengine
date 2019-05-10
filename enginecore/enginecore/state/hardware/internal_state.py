@@ -24,6 +24,10 @@ class StateManager(state_api.IStateManager, state_api.ISystemEnvironment):
         """Update load """
         super()._update_load(load)
 
+    def update_input_voltage(self, voltage):
+        """Update asset input voltage"""
+        super()._update_input_voltage(voltage)
+
     def reset_boot_time(self):
         """Reset the boot time to now"""
         super()._reset_boot_time()

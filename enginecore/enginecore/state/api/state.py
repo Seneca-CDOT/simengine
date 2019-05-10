@@ -96,6 +96,11 @@ class IStateManager:
         return int(IStateManager.get_store().get(self.redis_key + ":state"))
 
     @property
+    def input_voltage(self):
+        """Asset input voltage in Volts"""
+        return float(IStateManager.get_store().get(self.redis_key + ":in-voltage"))
+
+    @property
     def agent(self):
         """Agent instance details (if supported)
         
@@ -148,6 +153,11 @@ class IStateManager:
             self._reset_boot_time()
             self._set_state_on()
         return self.status
+
+    def _update_input_voltage(self, voltage):
+        """"""
+        voltage = voltage if voltage >= 0 else 0
+        IStateManager.get_store().set(self.redis_key + ":in-voltage", voltage)
 
     def _update_load(self, load):
         """Update amps"""
@@ -227,7 +237,7 @@ class IStateManager:
 
         for rkey, rvalue in zip(keys, parent_values):
             if parent_down(rvalue, rkey):
-                pdown_msg += msg.format(rkey) + "\n"
+                pdown_msg += msg.format(rkey)
                 pdown += 1
 
         if pdown == len(keys):
@@ -255,13 +265,20 @@ class IStateManager:
         assets_up = self._check_parents(
             [k + ":state" for k in asset_keys], lambda rvalue, _: rvalue == b"0"
         )
+
+        min_volt_value, _ = self.min_voltage_prop()
+        enough_voltage = self._check_parents(
+            [k + ":in-voltage" for k in asset_keys],
+            lambda rvalue, _: float(rvalue) < min_volt_value,
+        )
+
         oid_clause = (
             lambda rvalue, rkey: rvalue.split(b"|")[1].decode()
             == oid_keys[rkey]["switchOff"]
         )
         oids_on = self._check_parents(oid_keys.keys(), oid_clause)
 
-        return assets_up and oids_on and not_affected_by_mains
+        return assets_up and enough_voltage and oids_on and not_affected_by_mains
 
     @classmethod
     def get_store(cls):

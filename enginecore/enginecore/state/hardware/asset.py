@@ -20,7 +20,7 @@ class Asset(Component):
         super(Asset, self).__init__()
         self._state = state
         self._state_reason = asset_events.ButtonPowerUpPressed
-        self._input_voltage = 0
+        self.state.update_input_voltage(0)
 
         self.state.reset_boot_time()
         self.state.update_load(0)
@@ -39,11 +39,6 @@ class Asset(Component):
     def power_on_when_ac_restore(self):
         """Indicates if asset should power up when input power is present"""
         return True
-
-    @property
-    def input_voltage(self):
-        """Input power voltage"""
-        return self._input_voltage
 
     @property
     def state_reason(self):
@@ -187,7 +182,7 @@ class Asset(Component):
         volt_event_result = self._get_voltage_event_result(kwargs)
 
         min_voltage, _ = self.state.min_voltage_prop()
-        self._input_voltage = kwargs["new_value"]
+        self.state.update_input_voltage(kwargs["new_value"])
 
         if (
             kwargs["new_value"] >= min_voltage
@@ -200,7 +195,7 @@ class Asset(Component):
 
         print(
             "VOLTAGE INCREASED! {}, in[{}] - {}".format(
-                self.key, self.input_voltage, self.state_reason.__name__
+                self.key, self.state.input_voltage, self.state_reason.__name__
             )
         )
 
@@ -219,7 +214,7 @@ class Asset(Component):
         if not self.state.status and self.power_state_caused_by_user:
             event.success = False
 
-        self._input_voltage = kwargs["new_value"]
+        self.state.update_input_voltage(kwargs["new_value"])
         min_voltage, _ = self.state.min_voltage_prop()
         if kwargs["new_value"] < min_voltage and self.state.status:
 
@@ -229,7 +224,7 @@ class Asset(Component):
 
         print(
             "VOLTAGE DECREASED {}, in[{}] - {}".format(
-                self.key, self.input_voltage, self.state_reason.__name__
+                self.key, self.state.input_voltage, self.state_reason.__name__
             )
         )
 
