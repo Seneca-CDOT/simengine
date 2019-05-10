@@ -289,24 +289,6 @@ class UPS(Asset, SNMPSim):
     def on_ambient_updated(self, event, *args, **kwargs):
         self._state.update_temperature(7)
 
-    @handler("VoltageDecreased")
-    def on_voltage_decrease(self, event, *args, **kwargs):
-        """Handle voltage drop, transfer to battery if needed"""
-
-        power_event_result = None
-        volt_event_result = self._get_voltage_event_result(kwargs)
-
-        should_transfer, reason = self.state.process_voltage(kwargs["new_value"])
-
-        if self.state.battery_level and should_transfer:
-            self._launch_battery_drain(reason)
-            event.success = False
-
-        print(should_transfer, reason)
-        print(self.state.get_transfer_reason())
-
-        return volt_event_result, power_event_result
-
     @handler("VoltageIncreased")
     def on_voltage_increase(self, event, *args, **kwargs):
         """On voltage increase, analyze new voltage and determine if
@@ -328,6 +310,24 @@ class UPS(Asset, SNMPSim):
 
         elif should_transfer:
             self._launch_battery_drain(reason)
+
+        return volt_event_result, power_event_result
+
+    @handler("VoltageDecreased")
+    def on_voltage_decrease(self, event, *args, **kwargs):
+        """Handle voltage drop, transfer to battery if needed"""
+
+        power_event_result = None
+        volt_event_result = self._get_voltage_event_result(kwargs)
+
+        should_transfer, reason = self.state.process_voltage(kwargs["new_value"])
+
+        if self.state.battery_level and should_transfer:
+            self._launch_battery_drain(reason)
+            event.success = False
+
+        print(should_transfer, reason)
+        print(self.state.get_transfer_reason())
 
         return volt_event_result, power_event_result
 

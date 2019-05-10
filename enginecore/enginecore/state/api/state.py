@@ -232,16 +232,14 @@ class IStateManager:
             return True
 
         parent_values = IStateManager.get_store().mget(keys)
-        pdown = 0
-        pdown_msg = ""
+        pdown_msg = []
 
         for rkey, rvalue in zip(keys, parent_values):
             if parent_down(rvalue, rkey):
-                pdown_msg += msg.format(rkey)
-                pdown += 1
+                pdown_msg.append(msg.format(rkey))
 
-        if pdown == len(keys):
-            print(pdown_msg)
+        if len(pdown_msg) == len(keys):
+            print("\n".join(pdown_msg))
             return False
 
         return True

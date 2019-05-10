@@ -174,6 +174,16 @@ class Asset(Component):
             new_voltage=event_details["new_value"],
         )
 
+    @handler("VoltageIncreased", "VoltageDecreased", priority=-1)
+    def detect_input_voltage(self, event, *args, **kwargs):
+        """Update input voltage"""
+        self.state.update_input_voltage(kwargs["new_value"])
+        print(
+            "VOLTAGE {} {}, in[{}]".format(
+                event.name, self.key, self.state.input_voltage
+            )
+        )
+
     @handler("VoltageIncreased")
     def on_voltage_increase(self, event, *args, **kwargs):
         """Handle input power voltage increase"""
@@ -182,8 +192,8 @@ class Asset(Component):
         volt_event_result = self._get_voltage_event_result(kwargs)
 
         min_voltage, _ = self.state.min_voltage_prop()
-        self.state.update_input_voltage(kwargs["new_value"])
 
+        # power up asset it has died previously due to underpower
         if (
             kwargs["new_value"] >= min_voltage
             and not self.state.status
@@ -192,12 +202,6 @@ class Asset(Component):
             power_event_result = self.on_power_up_request_received(event, args, kwargs)
             if power_event_result.new_state != power_event_result.old_state:
                 self.state_reason = asset_events.VoltageIncreased
-
-        print(
-            "VOLTAGE INCREASED! {}, in[{}] - {}".format(
-                self.key, self.state.input_voltage, self.state_reason.__name__
-            )
-        )
 
         if not self.state.status:
             event.success = False
@@ -211,22 +215,16 @@ class Asset(Component):
         power_event_result = None
         volt_event_result = self._get_voltage_event_result(kwargs)
 
+        # asset was already powered down, no need to propagate voltage
         if not self.state.status and self.power_state_caused_by_user:
             event.success = False
 
-        self.state.update_input_voltage(kwargs["new_value"])
+        # does asset need to be powered down due to low voltage?
         min_voltage, _ = self.state.min_voltage_prop()
         if kwargs["new_value"] < min_voltage and self.state.status:
-
             power_event_result = self.on_power_off_request_received(event, args, kwargs)
             if power_event_result.new_state != power_event_result.old_state:
                 self.state_reason = asset_events.VoltageDecreased
-
-        print(
-            "VOLTAGE DECREASED {}, in[{}] - {}".format(
-                self.key, self.state.input_voltage, self.state_reason.__name__
-            )
-        )
 
         return volt_event_result, power_event_result
 
