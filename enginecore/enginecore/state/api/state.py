@@ -252,13 +252,13 @@ class IStateManager:
             bool: True if parents are available
         """
 
-        not_affected_by_mains = True
+        affected_by_mains = False
         asset_keys, oid_keys = GraphReference.get_parent_keys(
             self._graph_ref.get_session(), self._asset_key
         )
 
         if not asset_keys and not ISystemEnvironment.power_source_available():
-            not_affected_by_mains = False
+            affected_by_mains = True
 
         assets_up = self._check_parents(
             [k + ":state" for k in asset_keys], lambda rvalue, _: rvalue == b"0"
@@ -276,7 +276,7 @@ class IStateManager:
         )
         oids_on = self._check_parents(oid_keys.keys(), oid_clause)
 
-        return assets_up and enough_voltage and oids_on and not_affected_by_mains
+        return assets_up and enough_voltage and oids_on and not affected_by_mains
 
     @classmethod
     def get_store(cls):

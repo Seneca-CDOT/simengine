@@ -135,6 +135,7 @@ class UPS(Asset, SNMPSim):
 
         # kill the thing if still breathing
         if self.state.status and self.state.on_battery:
+            logging.info("killing ups\n")
             self._snmp_agent.stop_agent()
             self.state.power_off()
             self.state.publish_power()
@@ -155,7 +156,7 @@ class UPS(Asset, SNMPSim):
         while (
             battery_level < self.state.battery_max_level and not self.state.on_battery
         ):
-
+            print("on battery : ", battery_level)
             # calculate new battery level
             battery_level = battery_level + (
                 self._charge_per_second * self._charge_speed_factor
