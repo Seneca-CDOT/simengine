@@ -19,7 +19,7 @@ class Asset(Component):
     def __init__(self, state):
         super(Asset, self).__init__()
         self._state = state
-        self._state_reason = self.state.PowerStateReason.turned_on
+        self._state_reason = asset_events.ButtonPowerUpPressed
         self._input_voltage = 0
 
         self.state.reset_boot_time()
@@ -41,24 +41,32 @@ class Asset(Component):
         return True
 
     @property
-    def state_reason(self):
-        """"""
-        return self._state_reason
-
-    @property
     def input_voltage(self):
         """Input power voltage"""
         return self._input_voltage
+
+    @property
+    def state_reason(self):
+        """"""
+        return self._state_reason
 
     @state_reason.setter
     def state_reason(self, value):
         """"""
         self._state_reason = value
-        logging.info(
-            "Asset:[%s][%s] due to event <%s>",
-            self.key,
-            "online" if self.state.status else "offline",
-            value.__name__,
+        # logging.info(
+        #     "Asset:[%s][%s] due to event <%s>",
+        #     self.key,
+        #     "online" if self.state.status else "offline",
+        #     value.__name__,
+        # )
+
+    @property
+    def power_state_caused_by_user(self):
+        """"""
+        return (
+            self.state_reason == asset_events.ButtonPowerDownPressed
+            or self.state_reason == asset_events.ButtonPowerUpPressed
         )
 
     def power_up(self):
@@ -118,7 +126,7 @@ class Asset(Component):
         new_load = arithmetic_op(old_load, load_change)
 
         if msg:
-            logging.info(msg.format(self.state.key, old_load, load_change, new_load))
+            pass  # logging.info(msg.format(self.state.key, old_load, load_change, new_load))
 
         self.state.update_load(new_load)
 
@@ -181,12 +189,20 @@ class Asset(Component):
         min_voltage, _ = self.state.min_voltage_prop()
         self._input_voltage = kwargs["new_value"]
 
-        if kwargs["new_value"] >= min_voltage and not self.state.status:
+        if (
+            kwargs["new_value"] >= min_voltage
+            and not self.state.status
+            and not self.power_state_caused_by_user
+        ):
             power_event_result = self.on_power_up_request_received(event, args, kwargs)
             if power_event_result.new_state != power_event_result.old_state:
                 self.state_reason = asset_events.VoltageIncreased
 
-        print("VOLTAGE INCREASED! {}, in[{}]".format(self.key, self.input_voltage))
+        print(
+            "VOLTAGE INCREASED! {}, in[{}] - {}".format(
+                self.key, self.input_voltage, self.state_reason.__name__
+            )
+        )
 
         if not self.state.status:
             event.success = False
@@ -200,10 +216,7 @@ class Asset(Component):
         power_event_result = None
         volt_event_result = self._get_voltage_event_result(kwargs)
 
-        if (
-            not self.state.status
-            and self.state_reason != asset_events.ButtonPowerDownPressed
-        ):
+        if not self.state.status and self.power_state_caused_by_user:
             event.success = False
 
         self._input_voltage = kwargs["new_value"]
@@ -214,7 +227,11 @@ class Asset(Component):
             if power_event_result.new_state != power_event_result.old_state:
                 self.state_reason = asset_events.VoltageDecreased
 
-        print("VOLTAGE DECREASED {}, in[{}]".format(self.key, self.input_voltage))
+        print(
+            "VOLTAGE DECREASED {}, in[{}] - {}".format(
+                self.key, self.input_voltage, self.state_reason.__name__
+            )
+        )
 
         return volt_event_result, power_event_result
 

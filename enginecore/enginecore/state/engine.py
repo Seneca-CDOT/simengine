@@ -245,8 +245,6 @@ class Engine(Component):
     def _chain_voltage_update(self, event_result: VoltageEventResult):
         """Chain voltage updates down the power stream"""
 
-        # logging.info("VOLTAGE CHAIN")
-
         with self._graph_ref.get_session() as session:
             close_nodes = GraphReference.get_affected_assets(
                 session, event_result.asset_key
@@ -479,7 +477,7 @@ class Engine(Component):
 
         if new_voltage == 0.0:
             self._handle_wallpower_update(power_up=False)
-        elif old_voltage < ISystemEnvironment.get_min_voltage() <= new_voltage:
+        elif 0 == old_voltage < new_voltage:
             self._handle_wallpower_update(power_up=True)
 
         # event = PowerEventMap.map_voltage_event(old_voltage, new_voltage)

@@ -70,21 +70,12 @@ class ISystemEnvironment:
         )
 
     @classmethod
-    def get_min_voltage(cls):
-        """Minimum voltage required for assets to function;
-        dropping below this point will result in assets getting powered down
-        Returns:
-            float: minimum voltage (in Volts)
-        """
-        return 90.0
-
-    @classmethod
     def power_source_available(cls):
         """Check if the mains is present and voltage is above minimum
         Returns:
             bool: true if assets can be powered up by the wall
         """
-        return cls.get_voltage() >= cls.get_min_voltage()
+        return cls.get_voltage() != 0.0
 
     @classmethod
     @record
