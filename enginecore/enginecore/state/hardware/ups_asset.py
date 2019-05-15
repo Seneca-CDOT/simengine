@@ -119,6 +119,7 @@ class UPS(Asset, SNMPSim):
                 self._calc_battery_discharge() * self._drain_speed_factor
             )
             seconds_on_battery = (dt.now() - self._start_time_battery).seconds
+            logging.info("on battery : %s", battery_level)
 
             # update state details
             self.state.update_battery(battery_level)
@@ -156,7 +157,7 @@ class UPS(Asset, SNMPSim):
         while (
             battery_level < self.state.battery_max_level and not self.state.on_battery
         ):
-            print("on battery : ", battery_level)
+            logging.info("on battery : %s", battery_level)
             # calculate new battery level
             battery_level = battery_level + (
                 self._charge_per_second * self._charge_speed_factor
@@ -187,6 +188,9 @@ class UPS(Asset, SNMPSim):
             logging.warning("Battery drain is already running!")
             return
 
+        if self._battery_charge_t:
+            assert not self._battery_charge_t.isAlive()
+
         self._start_time_battery = dt.now()
 
         # update state details
@@ -208,6 +212,9 @@ class UPS(Asset, SNMPSim):
         if self._battery_charge_t and self._battery_charge_t.isAlive():
             logging.warning("Battery is already charging!")
             return
+
+        if self._battery_drain_t:
+            assert not self._battery_drain_t.isAlive()
 
         self.state.update_time_on_battery(0)
 
@@ -282,9 +289,9 @@ class UPS(Asset, SNMPSim):
         """When user powers up UPS device"""
 
         if self.state.on_battery:
-            self._launch_battery_charge()
-        else:
             self._launch_battery_drain()
+        else:
+            self._launch_battery_charge()
 
     @handler("AmbientDecreased", "AmbientIncreased")
     def on_ambient_updated(self, event, *args, **kwargs):
@@ -309,7 +316,9 @@ class UPS(Asset, SNMPSim):
                 #     power_event_result.new_state != power_event_result.old_state
                 # )
 
-        elif should_transfer:
+        elif (
+            should_transfer and reason == self.state.InputLineFailCause.highLineVoltage
+        ):
             self._launch_battery_drain(reason)
 
         return volt_event_result, power_event_result
