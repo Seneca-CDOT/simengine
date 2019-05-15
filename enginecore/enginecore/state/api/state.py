@@ -2,6 +2,7 @@
 
 import time
 from enum import Enum
+from functools import lru_cache
 import os
 import subprocess
 import json
@@ -11,7 +12,6 @@ import redis
 from enginecore.model.graph_reference import GraphReference
 from enginecore.state.redis_channels import RedisChannels
 
-from enginecore.state.hardware.asset_definition import SUPPORTED_ASSETS
 from enginecore.tools.recorder import RECORDER as record
 from enginecore.tools.randomizer import Randomizer
 from enginecore.state.api.environment import ISystemEnvironment
@@ -310,8 +310,7 @@ class IStateManager:
         )
 
         for rkey, rvalue in zip(assets, asset_values):
-
-            asset_state = cls.get_state_manager_by_key(rkey, SUPPORTED_ASSETS)
+            asset_state = cls.get_state_manager_by_key(rkey)
 
             assets[rkey]["status"] = int(rvalue)
             assets[rkey]["load"] = asset_state.load
@@ -346,6 +345,7 @@ class IStateManager:
             return cls._get_assets_states(assets, flatten)
 
     @classmethod
+    @lru_cache(maxsize=32)
     def get_state_manager_by_key(cls, key, supported_assets=None):
         """Infer asset manager from key"""
         from enginecore.state.hardware.room import Asset
@@ -356,14 +356,14 @@ class IStateManager:
         graph_ref = GraphReference()
 
         with graph_ref.get_session() as session:
-
             asset_info = GraphReference.get_asset_and_components(session, key)
-            sm_mro = supported_assets[asset_info["type"]].StateManagerCls.mro()
 
-            module = ".".join(__name__.split(".")[:-1])  # api module
-            return next(filter(lambda x: x.__module__.startswith(module), sm_mro))(
-                asset_info
-            )
+        sm_mro = supported_assets[asset_info["type"]].StateManagerCls.mro()
+
+        module = ".".join(__name__.split(".")[:-1])  # api module
+        return next(filter(lambda x: x.__module__.startswith(module), sm_mro))(
+            asset_info
+        )
 
     @classmethod
     def asset_exists(cls, key):
