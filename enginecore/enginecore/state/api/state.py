@@ -101,6 +101,11 @@ class IStateManager:
         return float(IStateManager.get_store().get(self.redis_key + ":in-voltage"))
 
     @property
+    def output_voltage(self):
+        """Output voltage for the device"""
+        return self.input_voltage
+
+    @property
     def agent(self):
         """Agent instance details (if supported)
         
@@ -252,23 +257,22 @@ class IStateManager:
             bool: True if parents are available
         """
 
-        affected_by_mains = False
         asset_keys, oid_keys = GraphReference.get_parent_keys(
             self._graph_ref.get_session(), self._asset_key
         )
 
+        # if wall-powered, check the mains
         if not asset_keys and not ISystemEnvironment.power_source_available():
-            affected_by_mains = True
+            return False
 
-        assets_up = self._check_parents(
-            [k + ":state" for k in asset_keys], lambda rvalue, _: rvalue == b"0"
-        )
-
+        state_managers = list(map(self.get_state_manager_by_key, asset_keys))
         min_volt_value = self.min_voltage_prop()
-        enough_voltage = self._check_parents(
-            [k + ":in-voltage" for k in asset_keys],
-            lambda rvalue, _: float(rvalue) <= min_volt_value,
+
+        # check if power is present
+        enough_voltage = len(
+            list(filter(lambda sm: sm.output_voltage > min_volt_value, state_managers))
         )
+        assets_up = len(list(filter(lambda sm: sm.status, state_managers)))
 
         oid_clause = (
             lambda rvalue, rkey: rvalue.split(b"|")[1].decode()
@@ -276,7 +280,7 @@ class IStateManager:
         )
         oids_on = self._check_parents(oid_keys.keys(), oid_clause)
 
-        return assets_up and enough_voltage and oids_on and not affected_by_mains
+        return assets_up and enough_voltage and oids_on
 
     @classmethod
     def get_store(cls):
@@ -339,8 +343,7 @@ class IStateManager:
 
             # cache assets
             assets = GraphReference.get_assets_and_connections(session, flatten)
-            assets = cls._get_assets_states(assets, flatten)
-            return assets
+            return cls._get_assets_states(assets, flatten)
 
     @classmethod
     def get_state_manager_by_key(cls, key, supported_assets=None):

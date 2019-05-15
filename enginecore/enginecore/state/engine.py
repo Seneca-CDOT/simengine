@@ -383,9 +383,9 @@ class Engine(Component):
 
         # power up/down child assets if there's no alternative power source
         if not (alt_parent_asset and alt_parent_asset.state.status):
-            in_volt = updated_asset.state.input_voltage
+            out_volt = updated_asset.state.output_voltage
             event = PowerEventMap.map_voltage_event(
-                new_value=new_state * in_volt, old_value=(new_state ^ 1) * in_volt
+                new_value=new_state * out_volt, old_value=(new_state ^ 1) * out_volt
             )
             self.fire(event, child_asset)
 

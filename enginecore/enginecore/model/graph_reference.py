@@ -57,7 +57,8 @@ class GraphReference:
             session: database session
             asset_key(int): key of the affected node
         Returns:
-            tuple: parent asset keys & parent OIDs with state specs that directly affect the node (formatted for Redis)
+            tuple: parent asset keys & parent OIDs with state specs that 
+                   directly affect the node (formatted for Redis)
         """
         results = session.run(
             """
@@ -71,15 +72,8 @@ class GraphReference:
         asset_keys = []
         oid_keys = {}
         for record in results:
-
-            asset_type = record["parent"]["type"]
-
             asset_key = record["parent"].get("key")
-            asset_keys.append(
-                "{asset_key}-{property}".format(
-                    asset_key=asset_key, property=asset_type.lower()
-                )
-            )
+            asset_keys.append(asset_key)
 
             if record["oid"] and record["oid_details"]:
                 oid = record["oid"].get("OID")

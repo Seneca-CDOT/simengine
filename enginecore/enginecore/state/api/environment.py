@@ -1,6 +1,8 @@
 """Tools for managing virtual system environment"""
 import random
+import math
 import json
+
 import redis
 
 from enginecore.model.graph_reference import GraphReference
@@ -75,7 +77,7 @@ class ISystemEnvironment:
         Returns:
             bool: true if assets can be powered up by the wall
         """
-        return cls.get_voltage() != 0.0
+        return math.isclose(cls.get_voltage(), 0.0)
 
     @classmethod
     @record

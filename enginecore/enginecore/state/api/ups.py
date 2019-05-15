@@ -98,6 +98,10 @@ class IUPSStateManager(ISnmpDeviceStateManager):
         return self.get_transfer_reason() != self.InputLineFailCause.noTransfer
 
     @property
+    def output_voltage(self):
+        return self.input_voltage if not self.on_battery else self.status * 120
+
+    @property
     def wattage(self):
         return (self.load + self.idle_ups_amp) * self._asset_info["powerSource"]
 

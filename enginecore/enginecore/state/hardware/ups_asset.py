@@ -305,9 +305,9 @@ class UPS(Asset, SNMPSim):
         """When user powers up UPS device"""
 
         if self.state.on_battery:
-            self._launch_battery_drain()
+            self._launch_battery_drain(t_reason=self.state.get_transfer_reason())
         else:
-            self._launch_battery_charge()
+            self._launch_battery_charge(power_up_on_charge=True)
 
     @handler("AmbientDecreased", "AmbientIncreased")
     def on_ambient_updated(self, event, *args, **kwargs):
@@ -351,9 +351,6 @@ class UPS(Asset, SNMPSim):
         if self.state.battery_level and should_transfer:
             self._launch_battery_drain(reason)
             event.success = False
-
-        print(should_transfer, reason)
-        print(self.state.get_transfer_reason())
 
         return volt_event_result, power_event_result
 
