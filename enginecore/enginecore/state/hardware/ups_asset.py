@@ -143,7 +143,6 @@ class UPS(Asset, SNMPSim):
 
         # kill the thing if still breathing
         if self.state.status and self.state.on_battery:
-            logging.info("killing ups\n")
             self._snmp_agent.stop_agent()
             self.state.power_off()
             self.state.publish_power()
@@ -211,9 +210,9 @@ class UPS(Asset, SNMPSim):
         )
         self.state.update_transfer_reason(t_reason)
 
-        while self._battery_charge_t and not self._battery_charge_t.isAlive():
-            logging.warning("Waiting for the battery drain..")
-            time.sleep(0.3)
+        # wait for other thread to finish
+        if self._battery_charge_t:
+            self._battery_charge_t.join()
 
         # launch a thread
         self._battery_drain_t = Thread(
@@ -239,9 +238,9 @@ class UPS(Asset, SNMPSim):
             in_state.UPSStateManager.InputLineFailCause.noTransfer
         )
 
-        while self._battery_drain_t and self._battery_drain_t.isAlive():
-            logging.warning("Waiting for the battery drain..")
-            time.sleep(0.3)
+        # wait for battery drain thread to wrap up before charging
+        if self._battery_drain_t:
+            self._battery_drain_t.join()
 
         # launch a thread
         self._battery_charge_t = Thread(
