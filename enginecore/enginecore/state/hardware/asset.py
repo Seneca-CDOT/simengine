@@ -191,11 +191,11 @@ class Asset(Component):
         power_event_result = None
         volt_event_result = self._get_voltage_event_result(kwargs)
 
-        min_voltage, _ = self.state.min_voltage_prop()
+        min_voltage = self.state.min_voltage_prop()
 
         # power up asset it has died previously due to underpower
         if (
-            kwargs["new_value"] >= min_voltage
+            kwargs["new_value"] > min_voltage
             and not self.state.status
             and not self.power_state_caused_by_user
         ):
@@ -220,8 +220,8 @@ class Asset(Component):
             event.success = False
 
         # does asset need to be powered down due to low voltage?
-        min_voltage, _ = self.state.min_voltage_prop()
-        if kwargs["new_value"] < min_voltage and self.state.status:
+        min_voltage = self.state.min_voltage_prop()
+        if kwargs["new_value"] <= min_voltage and self.state.status:
             power_event_result = self.on_power_off_request_received(event, args, kwargs)
             if power_event_result.new_state != power_event_result.old_state:
                 self.state_reason = asset_events.VoltageDecreased

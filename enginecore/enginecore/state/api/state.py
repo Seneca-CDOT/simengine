@@ -82,9 +82,9 @@ class IStateManager:
         """Get minimum voltage required and the poweroff timeout associated with it"""
 
         if not "minVoltage" in self._asset_info:
-            return 90, None
+            return 0
 
-        return self._asset_info["minVoltage"], self._asset_info["voltPowerTimeout"]
+        return self._asset_info["minVoltage"]
 
     @property
     def status(self):
@@ -264,10 +264,10 @@ class IStateManager:
             [k + ":state" for k in asset_keys], lambda rvalue, _: rvalue == b"0"
         )
 
-        min_volt_value, _ = self.min_voltage_prop()
+        min_volt_value = self.min_voltage_prop()
         enough_voltage = self._check_parents(
             [k + ":in-voltage" for k in asset_keys],
-            lambda rvalue, _: float(rvalue) < min_volt_value,
+            lambda rvalue, _: float(rvalue) <= min_volt_value,
         )
 
         oid_clause = (

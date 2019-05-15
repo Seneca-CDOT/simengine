@@ -178,18 +178,14 @@ def update_command(update_asset_group):
     update_asset_parent.add_argument(
         "-y", type=int, help="y - asset position on the dashboard"
     )
-
-    update_asset_parent.add_argument(
-        "--min-voltage", type=float, help="Minimum voltage value for asset to function"
-    )
-
-    update_asset_parent.add_argument(
-        "--volt-power-timeout",
-        type=float,
-        help="Number of seconds asset wll stay online before falling over due \
-             to voltage drop below the minimum (--min-voltage)",
-    )
     update_asset_parent.add_argument("-n", "--name", help="Name displayed on the UI")
+
+    update_volt_parent = argparse.ArgumentParser(add_help=False)
+    update_volt_parent.add_argument(
+        "--min-voltage",
+        type=float,
+        help="Voltage value below/at which asset stops functioning",
+    )
 
     # snmp group parent will contain snmp-specific args
     update_snmp_parent = argparse.ArgumentParser(add_help=False)
@@ -220,28 +216,43 @@ def update_command(update_asset_group):
     update_pdu_action = update_subp.add_parser(
         "pdu",
         help="Update PDU properties",
-        parents=[update_asset_parent, update_snmp_parent],
+        parents=[update_asset_parent, update_volt_parent, update_snmp_parent],
     )
 
     ## UPS
     update_ups_action = update_subp.add_parser(
         "ups",
         help="Update UPS properties",
-        parents=[update_asset_parent, update_snmp_parent, get_ups_command_parent()],
+        parents=[
+            update_asset_parent,
+            update_volt_parent,
+            update_snmp_parent,
+            get_ups_command_parent(),
+        ],
     )
 
     ## Server
     update_server_action = update_subp.add_parser(
         "server",
         help="Update Server properties",
-        parents=[update_asset_parent, update_server_parent, update_power_parent],
+        parents=[
+            update_asset_parent,
+            update_volt_parent,
+            update_server_parent,
+            update_power_parent,
+        ],
     )
 
     ## Server BMC
     update_server_bmc_action = update_subp.add_parser(
         "server-bmc",
         help="Update Server-With BMC properties",
-        parents=[update_asset_parent, update_server_parent, update_power_parent],
+        parents=[
+            update_asset_parent,
+            update_volt_parent,
+            update_server_parent,
+            update_power_parent,
+        ],
     )
 
     update_server_bmc_action.add_argument(
@@ -263,7 +274,7 @@ def update_command(update_asset_group):
     update_static_action = update_subp.add_parser(
         "static",
         help="Update Static Asset properties",
-        parents=[update_asset_parent, update_power_parent],
+        parents=[update_asset_parent, update_volt_parent, update_power_parent],
     )
 
     update_static_action.add_argument(
@@ -274,7 +285,7 @@ def update_command(update_asset_group):
     update_lamp_action = update_subp.add_parser(
         "lamp",
         help="Update lamp Asset properties",
-        parents=[update_asset_parent, update_power_parent],
+        parents=[update_asset_parent, update_volt_parent, update_power_parent],
     )
 
     update_actions.extend(
@@ -312,21 +323,6 @@ def create_command(create_asset_group):
     )
 
     create_asset_parent.add_argument(
-        "--min-voltage",
-        type=float,
-        help="Minimum voltage value for asset to function",
-        default=90.0,
-    )
-
-    create_asset_parent.add_argument(
-        "--volt-power-timeout",
-        type=float,
-        help="Number of seconds asset wll stay online before falling over due \
-             to voltage drop below the minimum (--min-voltage)",
-        default=0.7,
-    )
-
-    create_asset_parent.add_argument(
         "--off-delay", type=int, help="Power on delay in ms", default=0
     )
 
@@ -339,6 +335,14 @@ def create_command(create_asset_group):
 
     create_asset_parent.add_argument("-n", "--name", help="Name displayed on the UI")
     create_asset_parent.set_defaults(new_asset=True)
+
+    create_volt_parent = argparse.ArgumentParser(add_help=False)
+    create_volt_parent.add_argument(
+        "--min-voltage",
+        type=float,
+        help="Voltage value below/at which asset stops functioning",
+        default=90.0,
+    )
 
     # snmp group parent will contain snmp-specific args
     create_snmp_parent = argparse.ArgumentParser(add_help=False)
@@ -379,14 +383,19 @@ def create_command(create_asset_group):
     create_pdu_action = create_subp.add_parser(
         "pdu",
         help="Create PDU asset",
-        parents=[create_asset_parent, create_snmp_parent],
+        parents=[create_asset_parent, create_volt_parent, create_snmp_parent],
     )
 
     ## UPS
     create_ups_action = create_subp.add_parser(
         "ups",
         help="Create UPS asset",
-        parents=[create_asset_parent, create_snmp_parent, get_ups_command_parent()],
+        parents=[
+            create_asset_parent,
+            create_volt_parent,
+            create_snmp_parent,
+            get_ups_command_parent(),
+        ],
     )
 
     create_ups_action.add_argument(
@@ -404,7 +413,12 @@ def create_command(create_asset_group):
     create_server_action = create_subp.add_parser(
         "server",
         help="Create a server asset (VM)",
-        parents=[create_asset_parent, create_server_parent, create_power_parent],
+        parents=[
+            create_asset_parent,
+            create_volt_parent,
+            create_server_parent,
+            create_power_parent,
+        ],
     )
 
     create_server_action.add_argument(
@@ -414,8 +428,9 @@ def create_command(create_asset_group):
         "--psu-load",
         nargs="+",
         type=float,
-        help="""PSU(s) load distribution (the downstream power is multiplied by the value, e.g. 
-        for 2 PSUs if '--psu-load 0.5 0.5', load is divivided equally) \n""",
+        help="""PSU(s) load distribution (the downstream power is multiplied
+        by the value, e.g.  for 2 PSUs if '--psu-load 0.5 0.5',
+        load is divivided equally) \n""",
     )
 
     create_server_action.add_argument(
@@ -438,7 +453,12 @@ def create_command(create_asset_group):
     create_server_bmc_action = create_subp.add_parser(
         "server-bmc",
         help="Create a server asset (VM) that supports IPMI interface",
-        parents=[create_asset_parent, create_server_parent, create_power_parent],
+        parents=[
+            create_asset_parent,
+            create_volt_parent,
+            create_server_parent,
+            create_power_parent,
+        ],
     )
 
     create_server_bmc_action.add_argument(
@@ -496,7 +516,7 @@ def create_command(create_asset_group):
     create_static_action = create_subp.add_parser(
         "static",
         help="Add static (dummy) asset",
-        parents=[create_asset_parent, create_power_parent],
+        parents=[create_asset_parent, create_volt_parent, create_power_parent],
     )
 
     create_static_action.add_argument(
@@ -507,7 +527,7 @@ def create_command(create_asset_group):
     create_lamp_action = create_subp.add_parser(
         "lamp",
         help="Used for power demonstrations",
-        parents=[create_asset_parent, create_power_parent],
+        parents=[create_asset_parent, create_volt_parent, create_power_parent],
     )
 
     create_outlet_action.set_defaults(

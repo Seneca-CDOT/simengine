@@ -24,7 +24,6 @@ CREATE_SHARED_ATTR = [
     "key",
     "off_delay",
     "on_delay",
-    "volt_power_timeout",
     "min_voltage",
 ]
 # Labels used by the app

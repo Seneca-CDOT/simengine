@@ -108,7 +108,10 @@ class UPS(Asset, SNMPSim):
         """
 
         battery_level = self.state.battery_level
+        old_battery_lvl = -1
+
         outage = False
+        to_adv_percentage = lambda x: int(x * 0.1)
 
         # keep draining battery while its level remains above 0
         # UPS is on and parent is down
@@ -118,8 +121,11 @@ class UPS(Asset, SNMPSim):
             battery_level = battery_level - (
                 self._calc_battery_discharge() * self._drain_speed_factor
             )
+
+            if to_adv_percentage(battery_level) != to_adv_percentage(old_battery_lvl):
+                logging.info("on battery: %s %%", to_adv_percentage(battery_level))
+
             seconds_on_battery = (dt.now() - self._start_time_battery).seconds
-            logging.info("on battery : %s", battery_level)
 
             # update state details
             self.state.update_battery(battery_level)
@@ -132,6 +138,7 @@ class UPS(Asset, SNMPSim):
                 outage = True
                 self._increase_transfer_severity()
 
+            old_battery_lvl = battery_level
             time.sleep(1)
 
         # kill the thing if still breathing
@@ -151,17 +158,24 @@ class UPS(Asset, SNMPSim):
         """
 
         battery_level = self.state.battery_level
+        old_battery_lvl = -1
         powered = False
+
+        to_adv_percentage = lambda x: int(x * 0.1)
 
         # keep charging battery while its level is less than max & parent is up
         while (
             battery_level < self.state.battery_max_level and not self.state.on_battery
         ):
-            logging.info("on battery : %s", battery_level)
             # calculate new battery level
             battery_level = battery_level + (
                 self._charge_per_second * self._charge_speed_factor
             )
+
+            if to_adv_percentage(battery_level) != to_adv_percentage(old_battery_lvl):
+                logging.info(
+                    "charging battery: %s %%", to_adv_percentage(battery_level)
+                )
 
             # update state details
             self.state.update_battery(battery_level)
@@ -177,6 +191,7 @@ class UPS(Asset, SNMPSim):
                 powered = e_result.new_state
                 self.state.publish_power()
 
+            old_battery_lvl = battery_level
             time.sleep(1)
 
     def _launch_battery_drain(
@@ -188,9 +203,6 @@ class UPS(Asset, SNMPSim):
             logging.warning("Battery drain is already running!")
             return
 
-        if self._battery_charge_t:
-            assert not self._battery_charge_t.isAlive()
-
         self._start_time_battery = dt.now()
 
         # update state details
@@ -198,6 +210,10 @@ class UPS(Asset, SNMPSim):
             in_state.UPSStateManager.OutputStatus.onBattery
         )
         self.state.update_transfer_reason(t_reason)
+
+        while self._battery_charge_t and not self._battery_charge_t.isAlive():
+            logging.warning("Waiting for the battery drain..")
+            time.sleep(0.3)
 
         # launch a thread
         self._battery_drain_t = Thread(
@@ -213,9 +229,6 @@ class UPS(Asset, SNMPSim):
             logging.warning("Battery is already charging!")
             return
 
-        if self._battery_drain_t:
-            assert not self._battery_drain_t.isAlive()
-
         self.state.update_time_on_battery(0)
 
         # update state details
@@ -225,6 +238,10 @@ class UPS(Asset, SNMPSim):
         self.state.update_transfer_reason(
             in_state.UPSStateManager.InputLineFailCause.noTransfer
         )
+
+        while self._battery_drain_t and self._battery_drain_t.isAlive():
+            logging.warning("Waiting for the battery drain..")
+            time.sleep(0.3)
 
         # launch a thread
         self._battery_charge_t = Thread(
