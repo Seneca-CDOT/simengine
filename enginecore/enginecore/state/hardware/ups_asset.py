@@ -35,6 +35,7 @@ class UPS(Asset, SNMPSim):
         Asset.__init__(self, state=UPS.StateManagerCls(asset_info))
         SNMPSim.__init__(self, self._state)
 
+        # remove default logic for handling input voltage updates
         super().removeHandler(super().on_voltage_increase)
         super().removeHandler(super().on_voltage_decrease)
 
@@ -255,41 +256,6 @@ class UPS(Asset, SNMPSim):
         self._battery_charge_t.daemon = True
         self._battery_charge_t.start()
 
-    ##### React to any events of the connected components #####
-    # @handler("ParentAssetPowerDown")
-    def _on_parent_asset_power_down(self, event, *args, **kwargs):
-        """Upstream power was lost"""
-
-        # If battery is still alive -> keep UPS up
-        if self.state.battery_level:
-            self._launch_battery_drain()
-            event.success = False
-            return
-
-        # Battery is dead
-        self.state.update_ups_output_status(in_state.UPSStateManager.OutputStatus.off)
-
-        e_result = self.power_off()
-        event.success = e_result.new_state != e_result.old_state
-
-        return e_result
-
-    # @handler("ParentAssetPowerUp")
-    def _on_power_up_request_received(self, event, *args, **kwargs):
-        """Input power was restored"""
-
-        battery_level = self.state.battery_level
-        self._launch_battery_charge(power_up_on_charge=(not battery_level))
-
-        if battery_level:
-            e_result = self.power_up()
-            event.success = e_result.new_state != e_result.old_state
-
-            return e_result
-
-        event.success = False
-        return None
-
     @handler("SignalDown")
     def on_signal_down_received(self, event, *args, **kwargs):
         """UPS can be powered down by snmp command"""
@@ -391,3 +357,11 @@ class UPS(Asset, SNMPSim):
         # re-calculate time left based on updated load
         self.state.update_time_left(self._cacl_time_left(self.state.wattage) * 60 * 100)
         return upd_result
+
+    def on_power_up_request_received(self, event, *args, **kwargs):
+        """Called on voltage spike"""
+        raise NotImplementedError
+
+    def on_power_off_request_received(self, event, *args, **kwargs):
+        """Called on voltage drop"""
+        raise NotImplementedError

@@ -4,6 +4,7 @@ from collections import namedtuple
 from enginecore.state.api.state import IStateManager
 from enginecore.model.graph_reference import GraphReference
 from enginecore.tools.utils import format_as_redis_key
+from enginecore.state.state_initializer import get_temp_workplace_dir
 
 
 class ISnmpDeviceStateManager(IStateManager):
@@ -14,7 +15,12 @@ class ISnmpDeviceStateManager(IStateManager):
     @property
     def snmp_config(self):
         """Snmp lan configurations"""
-        return {"host": self._asset_info["host"], "port": self._asset_info["port"]}
+        a_info = self._asset_info
+        snmp_dir = (
+            a_info["work_dir"] if "work_dir" in a_info else get_temp_workplace_dir()
+        )
+
+        return {"host": a_info["host"], "port": a_info["port"], "work_dir": snmp_dir}
 
     def _update_oid_by_name(self, oid_name, value, use_spec=False):
         """Update a specific oid
