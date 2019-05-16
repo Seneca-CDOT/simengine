@@ -327,15 +327,16 @@ class UPS(Asset, SNMPSim):
 
         should_transfer, reason = self.state.process_voltage(kwargs["new_value"])
 
+        # transfer back to input power
         if not should_transfer and self.state.on_battery:
             battery_level = self.state.battery_level
             self._launch_battery_charge(power_up_on_charge=(not battery_level))
             if battery_level:
                 power_event_result = self.power_up()
-                # event.success = (
-                #     power_event_result.new_state != power_event_result.old_state
-                # )
-
+        # if on battery, stop voltage propagation
+        elif self.state.on_battery:
+            event.success = False
+        # voltage is too high, transfer to battery
         elif (
             should_transfer and reason == self.state.InputLineFailCause.highLineVoltage
         ):
@@ -358,6 +359,7 @@ class UPS(Asset, SNMPSim):
         if self.state.battery_level and should_transfer:
             self._launch_battery_drain(reason)
             event.success = False
+        # voltage was too high but is okay now
         elif (
             self.state.get_transfer_reason() == high_line_t_reason
             and reason != high_line_t_reason
