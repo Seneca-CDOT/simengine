@@ -272,7 +272,7 @@ class IStateManager:
         enough_voltage = len(
             list(filter(lambda sm: sm.output_voltage > min_volt_value, state_managers))
         )
-        assets_up = len(list(filter(lambda sm: sm.status, state_managers)))
+        parent_assets_up = len(list(filter(lambda sm: sm.status, state_managers)))
 
         oid_clause = (
             lambda rvalue, rkey: rvalue.split(b"|")[1].decode()
@@ -280,7 +280,7 @@ class IStateManager:
         )
         oids_on = self._check_parents(oid_keys.keys(), oid_clause)
 
-        return assets_up and enough_voltage and oids_on
+        return (parent_assets_up and enough_voltage and oids_on) or (not asset_keys)
 
     @classmethod
     def get_store(cls):

@@ -77,7 +77,7 @@ class ISystemEnvironment:
         Returns:
             bool: true if assets can be powered up by the wall
         """
-        return math.isclose(cls.get_voltage(), 0.0)
+        return not math.isclose(cls.get_voltage(), 0.0)
 
     @classmethod
     @record
