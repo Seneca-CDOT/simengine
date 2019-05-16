@@ -98,7 +98,9 @@ class UPS(Asset, SNMPSim):
         elif last_reason == self.state.InputLineFailCause.deepMomentarySag:
             new_reason = self.state.InputLineFailCause.blackout
         else:
-            logging.warning("The UPS is not in line fail state: %s", last_reason.name)
+            logging.warning(
+                "The UPS is not in momentary line fail state: %s", last_reason.name
+            )
             return
 
         self.state.update_transfer_reason(new_reason)
@@ -200,6 +202,8 @@ class UPS(Asset, SNMPSim):
 
         if self._battery_drain_t and self._battery_drain_t.isAlive():
             logging.warning("Battery drain is already running!")
+            self.state.update_transfer_reason(t_reason)
+            self._increase_transfer_severity()
             return
 
         self._start_time_battery = dt.now()
