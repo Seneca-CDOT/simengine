@@ -346,11 +346,18 @@ class UPS(Asset, SNMPSim):
         power_event_result = None
         volt_event_result = self._get_voltage_event_result(kwargs)
 
+        battery_level = self.state.battery_level
         should_transfer, reason = self.state.process_voltage(kwargs["new_value"])
 
+        # voltage is low, transfer to battery
         if self.state.battery_level and should_transfer:
             self._launch_battery_drain(reason)
             event.success = False
+        elif (
+            self.state.get_transfer_reason()
+            == self.state.InputLineFailCause.highLineVoltage
+        ):
+            self._launch_battery_charge(power_up_on_charge=(not battery_level))
 
         return volt_event_result, power_event_result
 

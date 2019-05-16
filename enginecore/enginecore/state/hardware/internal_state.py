@@ -127,7 +127,6 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         if oid_hp:
             self._update_oid_value(oid_hp, snmp_data_types.Gauge32(load * 10))
 
-    # TODO: refactor both _update_load_perc_oids & _update_battery_oids, functions seem quite similair
     def _update_load_perc_oids(self, load):
         """Update OIDs associated with UPS Output - % of the power capacity
         
