@@ -151,7 +151,11 @@ def step_impl(context):
 
 @then('UPS transfer reason is set to "{t_reason}"')
 def step_impl(context, t_reason):
+    transfer_reason_oid = context.ups.state.get_oid_by_name("InputLineFailCause").oid
+    varbind_value = query_oid_value(transfer_reason_oid)
+    print(varbind_value)
     assert context.ups.state.get_transfer_reason().name == t_reason
+    assert varbind_value == t_reason
 
 
 @then('after "{seconds:d}" seconds, the transfer reason is set to "{t_reason}"')
