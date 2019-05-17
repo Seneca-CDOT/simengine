@@ -137,7 +137,7 @@ class UPS(Asset, SNMPSim):
             )
             self.state.update_time_on_battery(seconds_on_battery * 100)
 
-            if seconds_on_battery > self.state.momentary_event_period and not outage:
+            if seconds_on_battery >= self.state.momentary_event_period and not outage:
                 outage = True
                 self._increase_transfer_severity()
 
