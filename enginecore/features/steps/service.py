@@ -10,7 +10,7 @@ from enginecore.state.api.state import IStateManager
 from enginecore.model.system_modeler import create_ups, drop_model
 from enginecore.state.hardware.ups_asset import UPS
 from enginecore.state.hardware.asset_events import VoltageDecreased, VoltageIncreased
-
+from enginecore.state.event_map import PowerEventMap
 import enginecore.state.state_initializer as state_ini
 
 
@@ -115,6 +115,16 @@ def step_impl(context, low_threshold, volt, volt_change):
     context.engine.run()
 
 
+@when('voltage is set to "{volt:d}"')
+def step_impl(context, volt):
+
+    voltage_event = PowerEventMap.map_voltage_event(
+        old_value=context.ups.state.input_voltage, new_value=volt
+    )
+    context.engine.queue_event(voltage_event)
+    context.engine.run()
+
+
 @when('voltage "{volt}" spikes above "{high_threshold}" threshold by "{volt_change:d}"')
 def step_impl(context, high_threshold, volt, volt_change):
     high_oid = context.ups.state.get_oid_by_name(high_threshold).oid
@@ -129,9 +139,18 @@ def step_impl(context, high_threshold, volt, volt_change):
     context.engine.run()
 
 
-@then('ups transfers to battery with reason "{t_reason}"')
-def step_impl(context, t_reason):
+@then("UPS is on battery")
+def step_impl(context):
     assert context.ups.state.on_battery
+
+
+@then("UPS is not on battery")
+def step_impl(context):
+    assert not context.ups.state.on_battery
+
+
+@then('UPS transfer reason is set to "{t_reason}"')
+def step_impl(context, t_reason):
     assert context.ups.state.get_transfer_reason().name == t_reason
 
 

@@ -8,7 +8,8 @@ Feature: UPS Voltage Handling
         Given the system model is empty
         And UPS asset with key "190" is created
         When voltage "120" drops below "AdvConfigLowTransferVolt" threshold by "10"
-        Then ups transfers to battery with reason "smallMomentarySag"
+        Then UPS is on battery
+        And UPS transfer reason is set to "smallMomentarySag"
         And after "5" seconds, the transfer reason is set to "brownout"
 
     @snmp-behaviour
@@ -16,7 +17,8 @@ Feature: UPS Voltage Handling
         Given the system model is empty
         And UPS asset with key "190" is created
         When voltage "120" drops below "AdvConfigLowTransferVolt" threshold by "100"
-        Then ups transfers to battery with reason "deepMomentarySag"
+        Then UPS is on battery
+        And UPS transfer reason is set to "deepMomentarySag"
         And after "5" seconds, the transfer reason is set to "blackout"
 
     @snmp-behaviour
@@ -24,4 +26,24 @@ Feature: UPS Voltage Handling
         Given the system model is empty
         And UPS asset with key "190" is created
         When voltage "120" spikes above "AdvConfigHighTransferVolt" threshold by "10"
-        Then ups transfers to battery with reason "highLineVoltage"
+        Then UPS is on battery
+        And UPS transfer reason is set to "highLineVoltage"
+
+    @snmp-behaviour
+    Scenario: Voltage drops below threshold and then spikes back to normal
+        Given the system model is empty
+        And UPS asset with key "190" is created
+        When voltage "120" drops below "AdvConfigLowTransferVolt" threshold by "10"
+        And voltage is set to "110"
+        Then UPS is not on battery
+        And UPS transfer reason is set to "noTransfer"
+
+
+    @snmp-behaviour
+    Scenario: Voltage spikes above threshold and then drops back to normal
+        Given the system model is empty
+        And UPS asset with key "190" is created
+        When voltage "120" spikes above "AdvConfigHighTransferVolt" threshold by "10"
+        And voltage is set to "110"
+        Then UPS is not on battery
+        And UPS transfer reason is set to "noTransfer"
