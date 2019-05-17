@@ -135,8 +135,8 @@ class IUPSStateManager(ISnmpDeviceStateManager):
         if "ratedOutputPercentage" in self._asset_info:
             ro_percent = self._asset_info["ratedOutputPercentage"]
 
-        in_voltage_oid = self._get_oid_by_name("AdvConfigRatedOutputVoltage")
-        return ro_percent * int(self._get_oid_value(in_voltage_oid))
+        in_voltage_oid = self.get_oid_by_name("AdvConfigRatedOutputVoltage")
+        return ro_percent * int(self.get_oid_value(in_voltage_oid))
 
     @property
     def momentary_event_period(self):
@@ -181,22 +181,22 @@ class IUPSStateManager(ISnmpDeviceStateManager):
         Returns:
             InputLineFailCause: last transfer cause
         """
-        oid_t_reason = self._get_oid_by_name("InputLineFailCause")
-        return self.InputLineFailCause(int(self._get_oid_value(oid_t_reason)))
+        oid_t_reason = self.get_oid_by_name("InputLineFailCause")
+        return self.InputLineFailCause(int(self.get_oid_value(oid_t_reason)))
 
     def get_config_off_delay(self):
         """Delay for power-off operation 
         (unlike 'hardware'-determined delay, this value can be configured by the user)
         """
-        oid = self._get_oid_by_name("AdvConfigShutoffDelay")
-        return int(self._get_oid_value(oid))
+        oid = self.get_oid_by_name("AdvConfigShutoffDelay")
+        return int(self.get_oid_value(oid))
 
     def get_config_on_delay(self):
         """Power-on delay
         (unlike 'hardware'-determined delay, this value can be configured by the user)
         """
-        oid = self._get_oid_by_name("AdvConfigReturnDelay")
-        return int(self._get_oid_value(oid))
+        oid = self.get_oid_by_name("AdvConfigReturnDelay")
+        return int(self.get_oid_value(oid))
 
     def set_drain_speed_factor(self, factor):
         """Speed up/slow down UPS battery draining process

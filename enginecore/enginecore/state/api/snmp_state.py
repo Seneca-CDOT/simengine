@@ -63,7 +63,7 @@ class ISnmpDeviceStateManager(IStateManager):
 
         redis_store.set(rkey, rvalue)
 
-    def _get_oid_value(self, object_id, key=None):
+    def get_oid_value(self, object_id, key=None):
         """Retrieve value for a specific OID """
         if key is None:
             key = self.key
@@ -72,7 +72,7 @@ class ISnmpDeviceStateManager(IStateManager):
         rkey = format_as_redis_key(str(key), object_id.oid, key_formatted=False)
         return redis_store.get(rkey).decode().split("|")[1]
 
-    def _get_oid_by_name(self, oid_name):
+    def get_oid_by_name(self, oid_name):
         """Get oid by oid name"""
 
         with self._graph_ref.get_session() as db_s:

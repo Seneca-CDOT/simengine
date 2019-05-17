@@ -119,8 +119,8 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         Args:
             load(float): new load in AMPs
         """
-        oid_adv = self._get_oid_by_name("AdvOutputCurrent")
-        oid_hp = self._get_oid_by_name("HighPrecOutputCurrent")
+        oid_adv = self.get_oid_by_name("AdvOutputCurrent")
+        oid_hp = self.get_oid_by_name("HighPrecOutputCurrent")
 
         if oid_adv:
             self._update_oid_value(oid_adv, snmp_data_types.Gauge32(load))
@@ -134,8 +134,8 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
             load(float): new load in AMPs
         """
 
-        oid_adv = self._get_oid_by_name("AdvOutputLoad")
-        oid_hp = self._get_oid_by_name("HighPrecOutputLoad")
+        oid_adv = self.get_oid_by_name("AdvOutputLoad")
+        oid_hp = self.get_oid_by_name("HighPrecOutputLoad")
         value_hp = abs(
             (1000 * (load * state_api.ISystemEnvironment.get_voltage()))
             / self.output_capacity
@@ -154,9 +154,9 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         """
 
         # 100%
-        oid_adv = self._get_oid_by_name("AdvBatteryCapacity")
-        oid_hp = self._get_oid_by_name("HighPrecBatteryCapacity")
-        oid_basic = self._get_oid_by_name("BasicBatteryStatus")
+        oid_adv = self.get_oid_by_name("AdvBatteryCapacity")
+        oid_hp = self.get_oid_by_name("HighPrecBatteryCapacity")
+        oid_basic = self.get_oid_by_name("BasicBatteryStatus")
 
         if oid_adv:
             self._update_oid_value(oid_adv, snmp_data_types.Gauge32(charge_level / 10))
@@ -185,8 +185,8 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
                         or transfer reason cannot be determined
         """
 
-        oid_in_adv = self._get_oid_by_name("AdvInputLineVoltage")
-        oid_out_adv = self._get_oid_by_name("AdvOutputVoltage")
+        oid_in_adv = self.get_oid_by_name("AdvInputLineVoltage")
+        oid_out_adv = self.get_oid_by_name("AdvOutputVoltage")
 
         if not oid_in_adv or not oid_out_adv:
             raise ValueError("UPS doesn't support voltage OIDs!")
@@ -197,8 +197,8 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         self._update_oid_value(oid_in_adv, oid_voltage_value)
 
         # retrieve thresholds:
-        oid_high_th = self._get_oid_by_name("AdvConfigHighTransferVolt")
-        oid_low_th = self._get_oid_by_name("AdvConfigLowTransferVolt")
+        oid_high_th = self.get_oid_by_name("AdvConfigHighTransferVolt")
+        oid_low_th = self.get_oid_by_name("AdvConfigLowTransferVolt")
 
         # update output OID value if thresholds are not supported
         if not oid_high_th or not oid_low_th:
@@ -206,8 +206,8 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
 
             return False, None
 
-        high_th = int(self._get_oid_value(oid_high_th))
-        low_th = int(self._get_oid_value(oid_low_th))
+        high_th = int(self.get_oid_value(oid_high_th))
+        low_th = int(self.get_oid_value(oid_low_th))
 
         # new voltage value is within the threasholds
         if low_th < voltage < high_th:
@@ -240,7 +240,7 @@ class PDUStateManager(state_api.IPDUStateManager, StateManager):
 
     def _update_current(self, load):
         """Update OID associated with the current amp value """
-        oid = self._get_oid_by_name("AmpOnPhase")
+        oid = self.get_oid_by_name("AmpOnPhase")
 
         if not oid:
             return
@@ -249,7 +249,7 @@ class PDUStateManager(state_api.IPDUStateManager, StateManager):
 
     def _update_wattage(self, wattage):
         """Update OID associated with the current wattage draw """
-        oid = self._get_oid_by_name("WattageDraw")
+        oid = self.get_oid_by_name("WattageDraw")
 
         if not oid:
             return
@@ -276,7 +276,7 @@ class OutletStateManager(state_api.IOutletStateManager, StateManager):
         switchOff = 1
         switchOn = 2
 
-    def _get_oid_value_by_name(self, oid_name):
+    def get_oid_value_by_name(self, oid_name):
         """Get value under object id name"""
         with self._graph_ref.get_session() as session:
             oid, parent_key = GraphReference.get_component_oid_by_name(
@@ -284,7 +284,7 @@ class OutletStateManager(state_api.IOutletStateManager, StateManager):
             )
         if oid:
             oid = "{}.{}".format(oid, str(self.key)[-1])
-            return int(self._get_oid_value(oid, key=parent_key))
+            return int(self.get_oid_value(oid, key=parent_key))
 
         return 0
 
@@ -311,10 +311,10 @@ class OutletStateManager(state_api.IOutletStateManager, StateManager):
 
     # TODO: move to interface
     def get_config_off_delay(self):
-        return self._get_oid_value_by_name("OutletConfigPowerOffTime")
+        return self.get_oid_value_by_name("OutletConfigPowerOffTime")
 
     def get_config_on_delay(self):
-        return self._get_oid_value_by_name("OutletConfigPowerOnTime")
+        return self.get_oid_value_by_name("OutletConfigPowerOnTime")
 
 
 class StaticDeviceStateManager(state_api.IStaticDeviceManager, StateManager):
