@@ -1,5 +1,4 @@
 """ Various helper functions """
-from enginecore.state.hardware.asset_definition import SUPPORTED_ASSETS
 
 
 def format_as_redis_key(key, oid, key_formatted=True):
@@ -22,21 +21,3 @@ def format_as_redis_key(key, oid, key_formatted=True):
     key_and_oid += (oid_digits[-1]).rjust(10, " ")
 
     return key_and_oid
-
-
-def get_asset_type(labels):
-    """Find if any of the labels indicate asset type 
-    
-    Args:
-        labels(list): labels that are assigned to a particular node
-    
-    Returns:
-        string: supported asset label formatted for the state store
-    
-    Raises:
-        StopIteration: when asset type is either not supported or undefined in the graph ref
-    """
-
-    asset_label = set(SUPPORTED_ASSETS).intersection(map(lambda x: x.lower(), labels))
-
-    return next(iter(asset_label)).lower()

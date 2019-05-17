@@ -390,12 +390,7 @@ def create_command(create_asset_group):
     create_ups_action = create_subp.add_parser(
         "ups",
         help="Create UPS asset",
-        parents=[
-            create_asset_parent,
-            create_volt_parent,
-            create_snmp_parent,
-            get_ups_command_parent(),
-        ],
+        parents=[create_asset_parent, create_snmp_parent, get_ups_command_parent()],
     )
 
     create_ups_action.add_argument(

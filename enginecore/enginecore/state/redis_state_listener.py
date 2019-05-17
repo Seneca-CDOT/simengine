@@ -10,6 +10,7 @@ import redis
 
 from enginecore.state.redis_channels import RedisChannels
 from enginecore.state.engine import Engine
+from enginecore.state.state_initializer import configure_env
 
 
 class StateListener(Component):
@@ -19,6 +20,9 @@ class StateListener(Component):
 
     def __init__(self, debug=False, force_snmp_init=False):
         super(StateListener, self).__init__()
+
+        # env space configuration
+        configure_env(relative=debug)
 
         # Use redis pub/sub communication
         logging.info("Initializing redis connection...")

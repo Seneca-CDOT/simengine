@@ -41,59 +41,6 @@ def configure_logger(develop=False):
     root.addHandler(logfile_h)
 
 
-def configure_env(relative=False):
-    """Set-up defaults for the env vars if not defined 
-    (such as folder containing static .snmprec files, SHA of redis lua script)
-
-    Args:
-        relative(bool): used for the development version, enables relative paths
-    """
-
-    if relative:
-        static_path = os.path.abspath(os.path.join(os.pardir, "data"))
-        ipmi_templ_path = os.path.abspath("ipmi_template")
-        storcli_templ_path = os.path.abspath("storcli_template")
-        lua_script_path = os.path.join("script", "snmppub.lua")
-    else:
-        share_dir = os.path.join(os.sep, "usr", "share", "simengine")
-        static_path = os.path.join(share_dir, "data")
-        ipmi_templ_path = os.path.join(share_dir, "enginecore", "ipmi_template")
-        storcli_templ_path = os.path.join(share_dir, "enginecore", "storcli_template")
-        lua_script_path = os.path.join(share_dir, "enginecore", "script", "snmppub.lua")
-
-    os.environ["SIMENGINE_STATIC_DATA"] = os.environ.get(
-        "SIMENGINE_STATIC_DATA", static_path
-    )
-    os.environ["SIMENGINE_IPMI_TEMPL"] = os.environ.get(
-        "SIMENGINE_IPMI_TEMPL", ipmi_templ_path
-    )
-    os.environ["SIMENGINE_STORCLI_TEMPL"] = os.environ.get(
-        "SIMENGINE_STORCLI_TEMPL", storcli_templ_path
-    )
-    os.environ["SIMENGINE_SOCKET_HOST"] = os.environ.get(
-        "SIMENGINE_SOCKET_HOST", "0.0.0.0"
-    )
-    os.environ["SIMENGINE_SOCKET_PORT"] = os.environ.get(
-        "SIMENGINE_SOCKET_PORT", str(8000)
-    )
-
-    os.environ["SIMENGINE_REDIS_HOST"] = os.environ.get(
-        "SIMENGINE_REDIS_HOST", "0.0.0.0"
-    )
-    os.environ["SIMENGINE_REDIS_PORT"] = os.environ.get(
-        "SIMENGINE_REDIS_PORT", str(6379)
-    )
-
-    os.environ["SIMENGINE_SNMP_SHA"] = os.environ.get(
-        "SIMENGINE_SNMP_SHA",
-        # str(os.popen('/usr/local/bin/redis-cli script load "$(cat {})"'
-        # .format(lua_script_path)).read())
-        str(
-            os.popen('redis-cli script load "$(cat {})"'.format(lua_script_path)).read()
-        ),
-    )
-
-
 def run():
     """
     Initilize compnents' states in redis based on a reference model
@@ -123,11 +70,7 @@ def run():
     # logging config
     configure_logger(develop=args["develop"])
 
-    # env space configuration
-    configure_env(relative=args["develop"])
-
     # run daemon
-    # StateListener(debug=args["verbose"], force_snmp_init=args["reload_data"]).run()
     StateListener(debug=args["verbose"], force_snmp_init=args["reload_data"]).run()
 
 

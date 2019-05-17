@@ -613,6 +613,7 @@ def create_ups(
             "runtime",
             "power_source",
             "power_consumption",
+            "work_dir",
         ] + CREATE_SHARED_ATTR
 
         props_stm = qh.get_props_stm(

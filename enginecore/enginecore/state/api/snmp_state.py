@@ -17,7 +17,7 @@ class ISnmpDeviceStateManager(IStateManager):
         """Snmp lan configurations"""
         a_info = self._asset_info
         snmp_dir = (
-            a_info["work_dir"] if "work_dir" in a_info else get_temp_workplace_dir()
+            a_info["workDir"] if "workDir" in a_info else get_temp_workplace_dir()
         )
 
         return {"host": a_info["host"], "port": a_info["port"], "work_dir": snmp_dir}
