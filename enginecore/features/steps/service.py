@@ -72,8 +72,7 @@ class FakeEngine(Component):
 
 
 @given("the system model is empty")
-def step_impl(context):
-    # configure state
+def step_impl(_):
     drop_model()
 
 
@@ -102,27 +101,29 @@ def step_impl(context, key):
     assert context.ups.state.agent[1]
 
 
-@when('voltage drops below "{low_threshold}" threshold by "{volt:d}"')
-def step_impl(context, low_threshold, volt):
+@when('voltage "{volt}" drops below "{low_threshold}" threshold by "{volt_change:d}"')
+def step_impl(context, low_threshold, volt, volt_change):
     low_th_oid = context.ups.state.get_oid_by_name(low_threshold).oid
     low_th_value = query_oid_value(low_th_oid)
 
     assert low_th_value > 0
 
-    voltage_event = VoltageDecreased(old_value=120, new_value=int(low_th_value) - volt)
+    voltage_event = VoltageDecreased(
+        old_value=volt, new_value=int(low_th_value) - volt_change
+    )
     context.engine.queue_event(voltage_event)
     context.engine.run()
 
 
-@when('voltage spikes above "{high_threshold}" threshold by "{volt:d}"')
-def step_impl(context, high_threshold, volt):
+@when('voltage "{volt}" spikes above "{high_threshold}" threshold by "{volt_change:d}"')
+def step_impl(context, high_threshold, volt, volt_change):
     high_oid = context.ups.state.get_oid_by_name(high_threshold).oid
     high_value = query_oid_value(high_oid)
 
     assert high_value > 0
 
     context.voltage_event = VoltageIncreased(
-        old_value=120, new_value=int(high_value) + volt
+        old_value=volt, new_value=int(high_value) + volt_change
     )
     context.engine.queue_event(context.voltage_event)
     context.engine.run()

@@ -7,7 +7,7 @@ Feature: UPS Voltage Handling
     Scenario: Voltage drops slightly below low threshold thus causing brownout
         Given the system model is empty
         And UPS asset with key "190" is created
-        When voltage drops below "AdvConfigLowTransferVolt" threshold by "10"
+        When voltage "120" drops below "AdvConfigLowTransferVolt" threshold by "10"
         Then ups transfers to battery with reason "smallMomentarySag"
         And after "5" seconds, the transfer reason is set to "brownout"
 
@@ -15,7 +15,7 @@ Feature: UPS Voltage Handling
     Scenario: Voltage drops below low threshold thus causing blackout
         Given the system model is empty
         And UPS asset with key "190" is created
-        When voltage drops below "AdvConfigLowTransferVolt" threshold by "100"
+        When voltage "120" drops below "AdvConfigLowTransferVolt" threshold by "100"
         Then ups transfers to battery with reason "deepMomentarySag"
         And after "5" seconds, the transfer reason is set to "blackout"
 
@@ -23,5 +23,5 @@ Feature: UPS Voltage Handling
     Scenario: Voltage spikes above high-threshold
         Given the system model is empty
         And UPS asset with key "190" is created
-        When voltage spikes above "AdvConfigHighTransferVolt" threshold by "10"
+        When voltage "120" spikes above "AdvConfigHighTransferVolt" threshold by "10"
         Then ups transfers to battery with reason "highLineVoltage"
