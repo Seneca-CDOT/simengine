@@ -3,10 +3,6 @@ jobs:
     build:
         docker:
             - image: obelavina/simengine-base:0.0.1
-            # Specify service dependencies here if necessary
-            # CircleCI maintains a library of pre-built images
-            # documented at https://circleci.com/docs/2.0/circleci-images/
-            # - image: circleci/postgres:9.4
 
         working_directory: ~/repo/enginecore
 
@@ -54,6 +50,12 @@ jobs:
                   command: |
                       . venv/bin/activate
                       python3 -m unittest discover tests
+
+            - run:
+                  name: Running python BDD Behave scenarios
+                  command: |
+                      . venv/bin/activate
+                      behave
 
             - store_artifacts:
                   path: test-reports
