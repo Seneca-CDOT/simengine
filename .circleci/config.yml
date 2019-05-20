@@ -21,30 +21,36 @@ jobs:
                       # fallback to using the latest cache if no exact match is found
                       - v1-dependencies-
             - run:
-                  name: install simengine plugin library
+                  name: Installing simengine plugin library
                   command: |
                       mkdir /usr/lib64/simengine
                       gcc -shared -o /usr/lib64/simengine/haos_extend.so -fPIC ./ipmi_sim/haos_extend.c
 
             - run:
-                  name: install python3 dependencies
+                  name: Installing python3 dependencies
                   command: |
                       python3 -m venv venv
                       . venv/bin/activate
                       python3 -m pip install -r ./requirements.txt
                       python3 -m pip install -r ./dev-requirements.txt
             - run:
-                  name: install python2 dependencies
+                  name: Installing python2 dependencies
                   command: |
                       python2 -m pip install snmpsim
 
-            # - save_cache:
-            #       paths:
-            #           - ./venv
-            #       key: v1-dependencies-{{ checksum "requirements.txt" }}
+            - save_cache:
+                  paths:
+                      - ./venv
+                  key: v1-dependencies-{{ checksum "requirements.txt" }}
 
             - run:
-                  name: run tests
+                  name: Star neo4j inside the container
+                  command: |
+                      neo4j start
+                      sleep 5
+
+            - run:
+                  name: Running python unittests
                   command: |
                       . venv/bin/activate
                       python3 -m unittest discover tests
