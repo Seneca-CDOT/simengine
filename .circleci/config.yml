@@ -8,10 +8,11 @@ jobs:
             # documented at https://circleci.com/docs/2.0/circleci-images/
             # - image: circleci/postgres:9.4
 
-        working_directory: /usr/src/app
+        working_directory: ~/repo
 
         steps:
-            - checkout
+            - checkout:
+                  path: ~/repo/enginecore
 
             # # Download and cache dependencies
             - restore_cache:
