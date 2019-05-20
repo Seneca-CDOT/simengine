@@ -1,9 +1,10 @@
 FROM fedora:29
 
-# RUN dnf upgrade -y
 
 # install simengine-dnf packages
-RUN dnf install gzip ca-certificates openssh-server git libvirt OpenIPMI OpenIPMI-lanserv OpenIPMI-libs OpenIPMI-devel python3-libvirt gcc redis ipmitool -y
+RUN dnf upgrade -y \
+    && dnf install gzip ca-certificates openssh-server git libvirt libvirt-devel redhat-rpm-config OpenIPMI OpenIPMI-lanserv \
+    OpenIPMI-libs OpenIPMI-devel python3-libvirt gcc redis ipmitool python3-devel python2-devel -y
 
 # install neo4j
 RUN cd /tmp \
@@ -14,13 +15,16 @@ RUN cd /tmp \
     && echo $'[neo4j]\nname=Neo4j RPM Repository\nbaseurl=https://yum.neo4j.org/stable\nenabled=1\ngpgcheck=1\n[neo4j]' >> /etc/yum.repos.d/neo4j.repo \
     && dnf install neo4j -y
 
-# install simengine python
+# install simengine pip packages
 WORKDIR /usr/src/app
 COPY . .
 
-RUN python3 -m pip install -r ./requirements.txt
-RUN python3 -m pip install -r ./dev-requirements.txt
-RUN python2 -m pip install snmpsim
+RUN python3 -m pip install --upgrade pip \
+    && python3 -m pip install --ignore-installed -r ./requirements.txt \
+    && python3 -m pip install --no-cache-dir -r ./dev-requirements.txt
+
+RUN python2 -m pip install --upgrade pip \
+    && python2 -m pip install snmpsim
 
 LABEL com.circleci.preserve-entrypoint=true
-ENTRYPOINT echo "hello"
+ENTRYPOINT python3 -m unittest tests

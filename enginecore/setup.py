@@ -11,7 +11,7 @@ setup(
         "circuits",
         "neo4j-driver",
         "pysnmp",
-        "libvirt-python==4.1.0",
+        "libvirt-python",
         "websocket-client",
     ],
     author="Seneca OSTEP & Alteeve",
