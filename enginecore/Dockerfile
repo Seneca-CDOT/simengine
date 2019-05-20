@@ -4,7 +4,7 @@ FROM fedora:29
 # install simengine-dnf packages
 RUN dnf upgrade -y \
     && dnf install gzip ca-certificates openssh-server git libvirt libvirt-devel redhat-rpm-config OpenIPMI OpenIPMI-lanserv \
-    OpenIPMI-libs OpenIPMI-devel python3-libvirt gcc redis ipmitool python3-devel python2-devel -y \
+    OpenIPMI-libs OpenIPMI-devel python3-libvirt gcc ipmitool python3-devel python2-devel -y \
     && dnf clean all -y \
     && python3 -m pip install --upgrade pip \
     && python2 -m pip install --upgrade pip
