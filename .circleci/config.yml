@@ -2,7 +2,7 @@ version: 2
 jobs:
     build:
         docker:
-            - image: obelavina/simengine-base:latest
+            - image: obelavina/simengine-base:0.0.2
             - image: circleci/redis
 
         working_directory: ~/repo/enginecore
