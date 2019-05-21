@@ -33,11 +33,11 @@ LABEL com.circleci.preserve-entrypoint=true
 # COPY . .
 # WORKDIR /usr/src/app/enginecore
 
-# # install plugin library
+# install plugin library
 # RUN mkdir /usr/lib64/simengine \
 #     && gcc -shared -o /usr/lib64/simengine/haos_extend.so -fPIC ./ipmi_sim/haos_extend.c
 
-# # install simengine pip packages
+# install simengine pip packages
 # RUN python3 -m pip install --upgrade pip \
 #     && python3 -m pip install -r ./requirements.txt \
 #     && python3 -m pip install -r ./dev-requirements.txt \
@@ -46,9 +46,11 @@ LABEL com.circleci.preserve-entrypoint=true
 
 # RUN chmod 777 -R /tmp \
 #     && chmod o+t -R /tmp \
-#     && chmod +x ./do_nothing.sh \
-#     && chmod 777 -R ../data
+#     && chmod +x ./do_nothing.sh
+# && chmod 777 -R /tmp/snmpsim
+
 
 # ENTRYPOINT redis-server --daemonize yes && neo4j start && sleep 5 && neo4j status && behave
+# ./do_nothing.sh
 # python3 -m venv venv && . venv/bin/activate
 # su -s /bin/bash -c "behave" -g nobody nobody

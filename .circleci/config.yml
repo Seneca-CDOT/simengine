@@ -56,7 +56,7 @@ jobs:
                   name: Running python BDD behave scenarios
                   command: |
                       . venv/bin/activate
-                      su -s /bin/bash -c "behave" -g nobody nobody
+                      behave
 
             - store_artifacts:
                   path: test-reports
