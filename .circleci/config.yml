@@ -33,7 +33,7 @@ jobs:
             - run:
                   name: Installing python2 dependencies
                   command: |
-                      python2 -m pip install snmpsim
+                      python2 -m pip install snmpsim redis
 
             - save_cache:
                   paths:
@@ -41,7 +41,7 @@ jobs:
                   key: v1-dependencies-{{ checksum "requirements.txt" }}
 
             - run:
-                  name: Star neo4j inside the container
+                  name: Start neo4j inside the container
                   command: |
                       neo4j start
                       sleep 5
@@ -56,7 +56,7 @@ jobs:
                   name: Running python BDD Behave scenarios
                   command: |
                       . venv/bin/activate
-                      behave
+                      su -s /bin/bash -c "behave" -g nobody nobody
 
             - store_artifacts:
                   path: test-reports
