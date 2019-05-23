@@ -14,12 +14,13 @@ from enginecore.state.event_map import PowerEventMap
 import enginecore.state.state_initializer as state_ini
 
 
-def query_oid_value(oid):
+def query_oid_value(oid, host="localhost", port=1024):
+    """Helper function to query snmp interface of a device"""
     error_indicator, error_status, error_idx, var_binds = next(
         hlapi.getCmd(
             hlapi.SnmpEngine(),
-            hlapi.CommunityData("public", mpModel=0),
-            hlapi.UdpTransportTarget(("localhost", 1024)),
+            hlapi.CommunityData("private", mpModel=0),
+            hlapi.UdpTransportTarget((host, port)),
             hlapi.ContextData(),
             hlapi.ObjectType(hlapi.ObjectIdentity(oid)),
             lookupMib=False,
@@ -43,11 +44,6 @@ def query_oid_value(oid):
     return None
 
 
-@handler("VoltageDecreased")
-def on_foo(self):
-    print("Hello World!")
-
-
 class FakeEngine(Component):
     def __init__(self, asset):
         super(FakeEngine, self).__init__()
@@ -56,12 +52,9 @@ class FakeEngine(Component):
         self._asset = asset
 
     def VoltageDecreased_complete(self, evt, e_result):
-        # self._asset.unregister(self)
         self.stop()
 
     def VoltageIncreased_complete(self, evt, e_result):
-        # self._asset.unregister(self)
-
         self.stop()
 
     def queue_event(self, event):
@@ -153,9 +146,9 @@ def step_impl(context):
 def step_impl(context, t_reason):
     transfer_reason_oid = context.ups.state.get_oid_by_name("InputLineFailCause").oid
     varbind_value = query_oid_value(transfer_reason_oid)
-    print(varbind_value)
+    print("varbind&t", varbind_value, t_reason)
     assert context.ups.state.get_transfer_reason().name == t_reason
-    assert varbind_value == t_reason
+    assert context.ups.state.InputLineFailCause(varbind_value).name == t_reason
 
 
 @then('after "{seconds:d}" seconds, the transfer reason is set to "{t_reason}"')
