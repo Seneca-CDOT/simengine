@@ -48,7 +48,7 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         """Set battery temperature of the device"""
         oid_value = (temp + state_api.ISystemEnvironment.get_ambient()) * 10
         self._update_oid_by_name(
-            "HighPrecBatteryTemperature", snmp_data_types.Gauge32, oid_value
+            "HighPrecBatteryTemperature", snmp_data_types.Gauge32(oid_value)
         )
 
     def update_battery(self, charge_level):
