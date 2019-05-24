@@ -32,11 +32,10 @@ class ServerRoom(Component):
         # threads to track
         self._temp_warming_t = None
         self._temp_cooling_t = None
-
-        amb_props = in_state.StateManager.get_ambient_props()
+        self._voltage_fluct_t = None
 
         # set up default values on the first run (if not set by the user)
-        if not amb_props:
+        if not in_state.StateManager.get_ambient_props():
             shared_attr = {"degrees": 1, "rate": 20, "start": 19, "end": 28}
             in_state.StateManager.set_ambient_props(
                 {**shared_attr, **{"event": "down", "pause_at": 28}}
@@ -45,9 +44,16 @@ class ServerRoom(Component):
                 {**shared_attr, **{"event": "up", "pause_at": 21}}
             )
 
+        if not in_state.StateManager.get_voltage_props():
+            in_state.StateManager.set_voltage_props(
+                {"mu": 0, "sigma": 0, "min": 0, "max": 4, "method": "uniform"}
+            )
+
+        # initialize server room environment
         in_state.StateManager.power_restore()
 
         self._init_thermal_threads()
+        self._init_voltage_thread()
 
     @staticmethod
     def _keep_changing_temp(event, env, bound_op, temp_op):
@@ -95,6 +101,13 @@ class ServerRoom(Component):
 
             amb_props = get_amb_props()
 
+    def _keep_fluctuating_voltage(self):
+        """Update input voltage every """
+
+        while True:
+            logging.info("Fluctuating...")
+            time.sleep(1)
+
     def _launch_thermal_thread(self, name, th_kwargs):
         """Start up a thread that will be changing ambient depending on environment
         Args:
@@ -108,6 +121,20 @@ class ServerRoom(Component):
         thread.start()
 
         return thread
+
+    def _init_voltage_thread(self):
+        """Initialize voltage fluctuations threading"""
+
+        if self._voltage_fluct_t and self._voltage_fluct_t.isAlive():
+            logging.warning("Voltage thread is already running!")
+            return
+
+        self._voltage_fluct_t = Thread(
+            target=self._keep_fluctuating_voltage, name="voltage_fluctuation"
+        )
+
+        self._voltage_fluct_t.daemon = True
+        self._voltage_fluct_t.start()
 
     def _init_thermal_threads(self):
         """Initialize thermal threads associated with the server room environment"""
@@ -156,5 +183,6 @@ class ServerRoom(Component):
                 ":Ambient Threads:",
                 "  [warming] " + "/".join(th_warming_status),
                 "  [cooling] " + "/".join(th_cooling_status),
+                # TODO: add voltage
             )
         )
