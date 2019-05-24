@@ -149,3 +149,8 @@ class ISystemEnvironment:
         graph_ref = GraphReference()
         with graph_ref.get_session() as session:
             GraphReference.set_voltage_props(session, props)
+
+    @staticmethod
+    def voltage_random_methods():
+        """Supported voltage fluctuation random methods"""
+        return ["uniform", "gauss"]

@@ -49,7 +49,7 @@ class ServerRoom(Component):
             in_state.StateManager.set_voltage_props(
                 {
                     "mu": 120,
-                    "sigma": 5,
+                    "sigma": 1,
                     "min": 117,
                     "max": 124,
                     "method": "uniform",

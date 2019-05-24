@@ -54,7 +54,37 @@ def power_command(power_group):
     )
 
     set_voltage_action.add_argument(
-        "--value", type=float, help="Update voltage value (in Volts)", required=True
+        "--value", type=float, help="Update voltage value (in Volts)"
+    )
+
+    set_voltage_action.add_argument(
+        "--mu",
+        type=float,
+        help="Mean for gaussian random method for voltage fluctuations",
+    )
+
+    set_voltage_action.add_argument(
+        "--sigma",
+        type=float,
+        help="Standard deviation for gaussian random method for voltage fluctuations",
+    )
+
+    set_voltage_action.add_argument(
+        "--min",
+        type=float,
+        help="Min volt value for uniform random method for voltage fluctuations",
+    )
+
+    set_voltage_action.add_argument(
+        "--max",
+        type=float,
+        help="Max volt value for uniform random method for voltage fluctuations",
+    )
+
+    set_voltage_action.add_argument(
+        "--method",
+        choices=ISystemEnvironment.voltage_random_methods(),
+        help="Max volt value for uniform random method for voltage fluctuations",
     )
 
     # CLI action callbacks
@@ -78,7 +108,14 @@ def power_command(power_group):
 
 def handle_voltage_set(args):
     """Action callback for handling voltage set command"""
-    ISystemEnvironment.set_voltage(args["value"])
+    if args["value"]:
+        ISystemEnvironment.set_voltage(args["value"])
+
+    del args["value"]
+
+    # set voltage fluctuation properties if any are provided
+    if [arg_value for _, arg_value in args.items() if arg_value is not None]:
+        ISystemEnvironment.set_voltage_props(args)
 
 
 def handle_voltage_get(args):
@@ -100,14 +137,14 @@ def handle_voltage_get(args):
     volt_fluct_info.append("Fluctuation Properties:")
     volt_fluct_info.append("[enabled]: " + str(voltage_props["enabled"]))
     volt_fluct_info.append("[random distribution method]: " + voltage_props["method"])
-    distr_prop = (
-        "mean({mu}), stdev({sigma})"
-        if voltage_props["method"] == "gauss"
-        else "min({min}), max({max})"
-    )
+
+    if voltage_props["method"] == "gauss":
+        distr_prop_fmt = "mean({mu}), stdev({sigma})"
+    else:
+        distr_prop_fmt = "min({min}), max({max})"
 
     volt_fluct_info.append(
-        "[distribution properties]: " + distr_prop.format(**voltage_props)
+        "[distribution properties]: " + distr_prop_fmt.format(**voltage_props)
     )
 
     print("\n -> ".join(volt_fluct_info))
