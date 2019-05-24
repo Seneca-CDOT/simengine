@@ -3,6 +3,7 @@ import time
 import operator
 from threading import Thread
 import logging
+import random
 
 from circuits import Component
 
@@ -46,7 +47,15 @@ class ServerRoom(Component):
 
         if not in_state.StateManager.get_voltage_props():
             in_state.StateManager.set_voltage_props(
-                {"mu": 0, "sigma": 0, "min": 0, "max": 4, "method": "uniform"}
+                {
+                    "mu": 120,
+                    "sigma": 5,
+                    "min": 117,
+                    "max": 124,
+                    "method": "uniform",
+                    "rate": 6,
+                    "enabled": True,
+                }
             )
 
         # initialize server room environment
@@ -101,12 +110,27 @@ class ServerRoom(Component):
 
             amb_props = get_amb_props()
 
-    def _keep_fluctuating_voltage(self):
-        """Update input voltage every """
+    @staticmethod
+    def _keep_fluctuating_voltage():
+        """Update input voltage every n seconds"""
+
+        get_volt_props = lambda: in_state.StateManager.get_voltage_props()[0]
+        volt_props = get_volt_props()
 
         while True:
-            logging.info("Fluctuating...")
-            time.sleep(1)
+            time.sleep(volt_props["rate"])
+
+            if not volt_props["enabled"] or not in_state.StateManager.mains_status():
+                volt_props = get_volt_props()
+                continue
+
+            if volt_props["method"] == "gauss":
+                rand_v = random.gauss(volt_props["mu"], volt_props["sigma"])
+            else:
+                rand_v = random.uniform(volt_props["min"], volt_props["max"])
+
+            in_state.StateManager.set_voltage(rand_v)
+            volt_props = get_volt_props()
 
     def _launch_thermal_thread(self, name, th_kwargs):
         """Start up a thread that will be changing ambient depending on environment

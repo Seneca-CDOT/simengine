@@ -680,7 +680,7 @@ class GraphReference:
         Args:
             session: Graph Database session
         """
-        s_attr = ["mu", "sigma", "min", "max", "method"]
+        s_attr = ["mu", "sigma", "min", "max", "method", "rate", "enabled"]
 
         query = []
         query.append("MERGE (sys:SystemEnvironment { sref: 1 })")
