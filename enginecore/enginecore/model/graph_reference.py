@@ -596,12 +596,14 @@ class GraphReference:
         Args:
             session: Graph Database session
         Returns:
-            tuple: ambient events' and system environment props, None if SysEnv is not initialized yet 
+            tuple: ambient events' and system environment props
+                   None if SysEnv is not initialized yet 
         """
 
-        results = session.run(
-            "MATCH (sys:SystemEnvironment)-[:HAS_PROP]->(props:EnvProp) RETURN sys, collect(props) as props"
-        )
+        query = []
+        query.append("MATCH (sys:SystemEnvironment)-[:HAS_PROP]->(props:EnvProp)")
+        query.append("RETURN sys, collect(props) as props")
+        results = session.run("\n".join(query))
 
         amp_props = {}
         record = results.single()
@@ -659,11 +661,11 @@ class GraphReference:
         """
 
         query = []
-        query.append(
-            "MATCH (:ServerWithBMC {{ key: {} }})-[:SUPPORTS_STORCLI]->(strcli:Storcli)".format(
-                server_key
-            )
+
+        strcli_query = (
+            "MATCH (:ServerWithBMC {{ key: {} }})-[:SUPPORTS_STORCLI]->(strcli:Storcli)"
         )
+        query.append(strcli_query.format(server_key))
 
         query.append(
             "SET strcli.{}='{}'".format(
@@ -683,11 +685,11 @@ class GraphReference:
         """
         default_range = (0, 10)
         query = []
-        query.append(
-            "MATCH (:ServerWithBMC {{ key: {} }})-[:SUPPORTS_STORCLI]->(strcli:Storcli)".format(
-                server_key
-            )
+
+        strcli_query = (
+            "MATCH (:ServerWithBMC {{ key: {} }})-[:SUPPORTS_STORCLI]->(strcli:Storcli)"
         )
+        query.append(strcli_query.format(server_key))
 
         query.append("RETURN strcli.{} as randprop".format(proptype))
         record = session.run("\n".join(query)).single().get("randprop")
@@ -732,9 +734,11 @@ class GraphReference:
             server_key(int): key of the server physical drive belongs to
             controller(int): controller number
             did(int): drive id 
-            properties(dict): e.g. 'media_error_count', 'other_error_count', 'predictive_error_count' or 'state'
+            properties(dict): e.g. 'media_error_count', 'other_error_count'
+                                   'predictive_error_count' or 'state'
         Returns:
-            bool: True if properties were updated, False if controller and/or did are invalid 
+            bool: True if properties were updated, 
+                  False if controller and/or did are invalid 
         """
         query = []
 
