@@ -185,6 +185,8 @@ class ServerRoom(Component):
     def __str__(self):
 
         wall_power_status = in_state.StateManager.mains_status()
+        volt_props = in_state.StateManager.get_voltage_props()[0]
+
         horizontal_line = "-" * 20
 
         th_warming_status = (
@@ -197,6 +199,11 @@ class ServerRoom(Component):
             "enabled" if wall_power_status else "disabled",
         )
 
+        th_voltage_status = (
+            "up" if self._voltage_fluct_t.isAlive() else "down",
+            "enabled" if wall_power_status and volt_props["enabled"] else "disabled",
+        )
+
         return "\n".join(
             (
                 horizontal_line,
@@ -207,6 +214,7 @@ class ServerRoom(Component):
                 ":Ambient Threads:",
                 "  [warming] " + "/".join(th_warming_status),
                 "  [cooling] " + "/".join(th_cooling_status),
-                # TODO: add voltage
+                ":Power Threads:",
+                "  [voltage fluctuation] " + "/".join(th_voltage_status),
             )
         )
