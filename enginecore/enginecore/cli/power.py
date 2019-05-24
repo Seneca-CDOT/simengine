@@ -87,6 +87,13 @@ def power_command(power_group):
         help="Max volt value for uniform random method for voltage fluctuations",
     )
 
+    set_voltage_action.add_argument(
+        "--enable-fluctuation", dest="enabled", action="store_true"
+    )
+    set_voltage_action.add_argument(
+        "--disable-fluctuation", dest="enabled", action="store_false"
+    )
+
     # CLI action callbacks
 
     power_outage_action.set_defaults(func=lambda _: StateClient.power_outage())
