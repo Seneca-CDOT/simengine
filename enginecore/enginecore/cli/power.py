@@ -86,6 +86,31 @@ def handle_voltage_get(args):
 
     if args["value_only"]:
         print(ISystemEnvironment.get_voltage())
+        return
+
+    print("Voltage: {:.3f}V".format(ISystemEnvironment.get_voltage()))
+
+    voltage_props, _ = ISystemEnvironment.get_voltage_props()
+    if not voltage_props:
+        print("Voltage properties are not configured yet!")
+        return
+
+    volt_fluct_info = []
+
+    volt_fluct_info.append("Fluctuation Properties:")
+    volt_fluct_info.append("[enabled]: " + str(voltage_props["enabled"]))
+    volt_fluct_info.append("[random distribution method]: " + voltage_props["method"])
+    distr_prop = (
+        "mean({mu}), stdev({sigma})"
+        if voltage_props["method"] == "gauss"
+        else "min({min}), max({max})"
+    )
+
+    volt_fluct_info.append(
+        "[distribution properties]: " + distr_prop.format(**voltage_props)
+    )
+
+    print("\n -> ".join(volt_fluct_info))
 
 
 def manage_state(asset_key, mng_action):
