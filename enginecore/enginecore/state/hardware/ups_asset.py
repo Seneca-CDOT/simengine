@@ -39,6 +39,8 @@ class UPS(Asset, SNMPSim):
         super().removeHandler(super().on_voltage_increase)
         super().removeHandler(super().on_voltage_decrease)
 
+        self._low_volt_th_oid = self.state.get_oid_by_name("AdvConfigLowTransferVolt")
+
         # Store known { wattage: time_remaining } key/value pairs (runtime graph)
         self._runtime_details = json.loads(asset_info["runtime"])
 
@@ -73,7 +75,18 @@ class UPS(Asset, SNMPSim):
         """Approximate runtime estimation for the fully-charged battery"""
         close_wattage = min(self._runtime_details, key=lambda x: abs(int(x) - wattage))
         close_timeleft = self._runtime_details[close_wattage]
-        return (close_timeleft * int(close_wattage)) / wattage  # inverse proportion
+
+        # inverse proportion, clacluate full power time left
+        fp_time_left = (close_timeleft * int(close_wattage)) / wattage
+
+        # see if input voltage is present -> adjust time left
+        lower_threshold = int(self.state.get_oid_value(self._low_volt_th_oid))
+        in_voltage = self.state.input_voltage
+
+        if 0 < in_voltage <= lower_threshold:
+            fp_time_left += fp_time_left * (in_voltage / lower_threshold)
+
+        return fp_time_left
 
     def _calc_battery_discharge(self):
         """Approximate battery discharge per second based on 
