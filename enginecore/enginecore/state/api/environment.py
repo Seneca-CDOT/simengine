@@ -52,26 +52,6 @@ class ISystemEnvironment:
         return float(voltage.decode()) if voltage else 120.0
 
     @classmethod
-    def set_voltage(cls, value):
-        """Update voltage"""
-        old_voltage = cls.get_voltage()
-        cls.get_store().set("voltage", str(float(value)))
-
-        if old_voltage == 0.0 and old_voltage < value:
-            cls.get_store().publish(
-                RedisChannels.mains_update_channel, json.dumps({"status": 1})
-            )
-        elif value == 0.0:
-            cls.get_store().publish(
-                RedisChannels.mains_update_channel, json.dumps({"status": 0})
-            )
-
-        cls.get_store().publish(
-            RedisChannels.voltage_update_channel,
-            json.dumps({"old_voltage": old_voltage, "new_voltage": value}),
-        )
-
-    @classmethod
     def power_source_available(cls):
         """Check if the mains is present and voltage is above minimum
         Returns:
@@ -91,6 +71,27 @@ class ISystemEnvironment:
         cls.get_store().publish(
             RedisChannels.ambient_update_channel,
             json.dumps({"old_ambient": old_temp, "new_ambient": value}),
+        )
+
+    @classmethod
+    @record
+    def set_voltage(cls, value):
+        """Update voltage"""
+        old_voltage = cls.get_voltage()
+        cls.get_store().set("voltage", str(float(value)))
+
+        if old_voltage == 0.0 and old_voltage < value:
+            cls.get_store().publish(
+                RedisChannels.mains_update_channel, json.dumps({"status": 1})
+            )
+        elif value == 0.0:
+            cls.get_store().publish(
+                RedisChannels.mains_update_channel, json.dumps({"status": 0})
+            )
+
+        cls.get_store().publish(
+            RedisChannels.voltage_update_channel,
+            json.dumps({"old_voltage": old_voltage, "new_voltage": value}),
         )
 
     @classmethod
