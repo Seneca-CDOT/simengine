@@ -130,3 +130,22 @@ class ISystemEnvironment:
         graph_ref = GraphReference()
         with graph_ref.get_session() as session:
             GraphReference.set_ambient_props(session, props)
+
+    @classmethod
+    def get_voltage_props(cls) -> dict:
+        """Get runtime voltage properties (ambient behaviour description)
+        Returns:
+            voltage fluctuation properties such as method being used (normal/gauss) 
+            & properties associated with the random method
+        """
+        graph_ref = GraphReference()
+        with graph_ref.get_session() as session:
+            return GraphReference.get_voltage_props(session)
+
+    @classmethod
+    def set_voltage_props(cls, props):
+        """Update runtime voltage properties of the mains power voltage"""
+
+        graph_ref = GraphReference()
+        with graph_ref.get_session() as session:
+            GraphReference.set_voltage_props(session, props)

@@ -592,7 +592,7 @@ class GraphReference:
 
     @classmethod
     def get_ambient_props(cls, session):
-        """Get properties of system environment
+        """Get ambient properties of system environment
         Args:
             session: Graph Database session
         Returns:
@@ -602,6 +602,7 @@ class GraphReference:
 
         query = []
         query.append("MATCH (sys:SystemEnvironment)-[:HAS_PROP]->(props:EnvProp)")
+        query.append("WHERE props.event = 'up' or props.event = 'down'")
         query.append("RETURN sys, collect(props) as props")
         results = session.run("\n".join(query))
 
@@ -648,6 +649,47 @@ class GraphReference:
         set_stm.append(qh.get_set_stm(properties, "env", s_attr_prop))
         query.extend(map(lambda x: "SET {}".format(x) if x else "", set_stm))
 
+        session.run("\n".join(query))
+
+    @classmethod
+    def get_voltage_props(cls, session):
+        """Get voltage properties of system environment
+        Args:
+            session: Graph Database session
+        Returns:
+            tuple: voltage fluctuation settings
+                   None if SysEnv is not initialized yet 
+        """
+
+        query = []
+        query.append("MATCH (sys:SystemEnvironment { sref: 1 })")
+        query.append('MATCH (sys)-[:HAS_PROP]->(volt_env:EnvProp { event: "voltage" })')
+        query.append("RETURN sys, volt_env")
+
+        results = session.run("\n".join(query))
+        record = results.single()
+
+        if not record:
+            return None
+
+        return dict(record.get("volt_env")), dict(record.get("sys"))
+
+    @classmethod
+    def set_voltage_props(cls, session, properties):
+        """Set voltage properties
+        Args:
+            session: Graph Database session
+        """
+        s_attr = ["mu", "sigma", "min", "max", "method"]
+
+        query = []
+        query.append("MERGE (sys:SystemEnvironment { sref: 1 })")
+        query.append('MERGE (sys)-[:HAS_PROP]->(volt_env:EnvProp { event: "voltage" })')
+
+        set_stm = qh.get_set_stm(
+            properties, node_name="volt_env", supported_attr=s_attr
+        )
+        query.append("SET {}".format(set_stm))
         session.run("\n".join(query))
 
     @classmethod
