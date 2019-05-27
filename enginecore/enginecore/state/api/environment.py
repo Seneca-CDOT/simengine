@@ -95,14 +95,12 @@ class ISystemEnvironment:
         )
 
     @classmethod
-    @record
     @Randomizer.randomize_method()
     def power_outage(cls):
         """Simulate complete power outage/restoration"""
         cls.set_voltage(0.0)
 
     @classmethod
-    @record
     @Randomizer.randomize_method()
     def power_restore(cls):
         """Simulate complete power restoration"""
