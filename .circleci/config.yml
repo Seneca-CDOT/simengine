@@ -1,6 +1,6 @@
 version: 2
 jobs:
-    build:
+    build-enginecore:
         docker:
             - image: obelavina/simengine-base:0.0.1
             - image: circleci/redis
@@ -11,7 +11,7 @@ jobs:
             - checkout:
                   path: ~/repo
 
-            # # Download and cache dependencies
+            # Download and cache dependencies
             - restore_cache:
                   keys:
                       - v1-dependencies-{{ checksum "requirements.txt" }}
@@ -67,3 +67,12 @@ jobs:
             - store_artifacts:
                   path: test-reports
                   destination: test-reports
+workflows:
+  version: 2
+  build-deploy:
+    jobs:
+        - build-enginecore:
+            filters:
+                branches:
+                    only:
+                        - master
