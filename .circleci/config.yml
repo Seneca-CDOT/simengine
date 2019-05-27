@@ -84,7 +84,7 @@ jobs:
             #     command: npm install
             - run:
                 name: Install Prettier
-                command: npm install prettier --global
+                command: sudo npm install prettier --global
             - run:
                 name: Run Prettier Check
                 command: prettier --check 'config/**/*.js' 'src/**/*.js'
