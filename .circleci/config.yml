@@ -49,7 +49,8 @@ jobs:
             - run:
                   name: Checking with black linter
                   command: |
-                      black --check .
+                      . venv/bin/activate
+                      python3 -m black --check .
 
             - run:
                   name: Running python unittests
