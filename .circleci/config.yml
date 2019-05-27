@@ -67,8 +67,30 @@ jobs:
             - store_artifacts:
                   path: test-reports
                   destination: test-reports
+    build-dashboard:
+        docker:
+            - image: circleci/node
+
+        working_directory: ~/repo/dashboard/frontend
+
+        steps:
+            - checkout:
+                  path: ~/repo
+
+            # - restore_cache: # special step to restore the dependency cache
+            #     key: dependency-cache-{{ checksum "package.json" }}
+            # - run:
+            #     name: Setup Dependencies
+            #     command: npm install
+            - run:
+                name: Install Prettier
+                command: npm install prettier --global
+            - run:
+                name: Run Prettier Check
+                command: prettier --check 'config/**/*.js' 'src/**/*.js'
 workflows:
   version: 2
   build-deploy:
     jobs:
         - build-enginecore
+        - build-dashboard
