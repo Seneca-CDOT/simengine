@@ -116,7 +116,7 @@ def power_command(power_group):
 def handle_voltage_set(args):
     """Action callback for handling voltage set command"""
     if args["value"]:
-        ISystemEnvironment.set_voltage(args["value"])
+        StateClient.set_voltage(args["value"])
 
     del args["value"]
 
