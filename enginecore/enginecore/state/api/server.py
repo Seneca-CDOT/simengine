@@ -185,8 +185,9 @@ class IBMCServerStateManager(IServerStateManager):
         """Update runtime value of the sensor belonging to this server
         Args:
             sensor_name: human-readable sensor name to be updated
-            value: new sensor value. Value type depends on a sensor type, but note that some sensors
-                   (fans for example) will have values multiplied by 10 (e.g. 120=1200RPM)
+            value: new sensor value. Value type depends on a sensor type,
+                   but note that some sensors; (fans for example)
+                   will have values multiplied by 10 (e.g. 120=1200RPM)
         """
 
         try:
@@ -214,8 +215,9 @@ class IBMCServerStateManager(IServerStateManager):
         Args:
             controller: id of the controller physical drive is member of
             did: DID - unique drive id
-            properties: props associated with physical drive such as drive state ('state') or 
-                        error counts ('media_error_count', 'other_error_count', 'predictive_error_count')
+            properties: props associated with physical drive
+                    such as drive state ('state') or error counts
+                    ('media_error_count', 'other_error_count', 'predictive_error_count')
         """
         with self._graph_ref.get_session() as session:
             return GraphReference.set_physical_drive_prop(

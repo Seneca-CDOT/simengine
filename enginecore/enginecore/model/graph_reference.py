@@ -592,16 +592,19 @@ class GraphReference:
 
     @classmethod
     def get_ambient_props(cls, session):
-        """Get properties of system environment
+        """Get ambient properties of system environment
         Args:
             session: Graph Database session
         Returns:
-            tuple: ambient events' and system environment props, None if SysEnv is not initialized yet 
+            tuple: ambient events' and system environment props
+                   None if SysEnv is not initialized yet 
         """
 
-        results = session.run(
-            "MATCH (sys:SystemEnvironment)-[:HAS_PROP]->(props:EnvProp) RETURN sys, collect(props) as props"
-        )
+        query = []
+        query.append("MATCH (sys:SystemEnvironment)-[:HAS_PROP]->(props:EnvProp)")
+        query.append("WHERE props.event = 'up' or props.event = 'down'")
+        query.append("RETURN sys, collect(props) as props")
+        results = session.run("\n".join(query))
 
         amp_props = {}
         record = results.single()
@@ -649,6 +652,47 @@ class GraphReference:
         session.run("\n".join(query))
 
     @classmethod
+    def get_voltage_props(cls, session):
+        """Get voltage properties of system environment
+        Args:
+            session: Graph Database session
+        Returns:
+            tuple: voltage fluctuation settings
+                   None if SysEnv is not initialized yet 
+        """
+
+        query = []
+        query.append("MATCH (sys:SystemEnvironment { sref: 1 })")
+        query.append('MATCH (sys)-[:HAS_PROP]->(volt_env:EnvProp { event: "voltage" })')
+        query.append("RETURN sys, volt_env")
+
+        results = session.run("\n".join(query))
+        record = results.single()
+
+        if not record:
+            return None
+
+        return dict(record.get("volt_env")), dict(record.get("sys"))
+
+    @classmethod
+    def set_voltage_props(cls, session, properties):
+        """Set voltage properties
+        Args:
+            session: Graph Database session
+        """
+        s_attr = ["mu", "sigma", "min", "max", "method", "rate", "enabled"]
+
+        query = []
+        query.append("MERGE (sys:SystemEnvironment { sref: 1 })")
+        query.append('MERGE (sys)-[:HAS_PROP]->(volt_env:EnvProp { event: "voltage" })')
+
+        set_stm = qh.get_set_stm(
+            properties, node_name="volt_env", supported_attr=s_attr
+        )
+        query.append("SET {}".format(set_stm))
+        session.run("\n".join(query))
+
+    @classmethod
     def set_storage_randomizer_prop(cls, session, server_key, proptype, slc):
         """Update randranges for randomized argument
         Args:
@@ -659,11 +703,11 @@ class GraphReference:
         """
 
         query = []
-        query.append(
-            "MATCH (:ServerWithBMC {{ key: {} }})-[:SUPPORTS_STORCLI]->(strcli:Storcli)".format(
-                server_key
-            )
+
+        strcli_query = (
+            "MATCH (:ServerWithBMC {{ key: {} }})-[:SUPPORTS_STORCLI]->(strcli:Storcli)"
         )
+        query.append(strcli_query.format(server_key))
 
         query.append(
             "SET strcli.{}='{}'".format(
@@ -683,11 +727,11 @@ class GraphReference:
         """
         default_range = (0, 10)
         query = []
-        query.append(
-            "MATCH (:ServerWithBMC {{ key: {} }})-[:SUPPORTS_STORCLI]->(strcli:Storcli)".format(
-                server_key
-            )
+
+        strcli_query = (
+            "MATCH (:ServerWithBMC {{ key: {} }})-[:SUPPORTS_STORCLI]->(strcli:Storcli)"
         )
+        query.append(strcli_query.format(server_key))
 
         query.append("RETURN strcli.{} as randprop".format(proptype))
         record = session.run("\n".join(query)).single().get("randprop")
@@ -732,9 +776,11 @@ class GraphReference:
             server_key(int): key of the server physical drive belongs to
             controller(int): controller number
             did(int): drive id 
-            properties(dict): e.g. 'media_error_count', 'other_error_count', 'predictive_error_count' or 'state'
+            properties(dict): e.g. 'media_error_count', 'other_error_count'
+                                   'predictive_error_count' or 'state'
         Returns:
-            bool: True if properties were updated, False if controller and/or did are invalid 
+            bool: True if properties were updated, 
+                  False if controller and/or did are invalid 
         """
         query = []
 

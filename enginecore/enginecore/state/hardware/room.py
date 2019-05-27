@@ -3,6 +3,7 @@ import time
 import operator
 from threading import Thread
 import logging
+import random
 
 from circuits import Component
 
@@ -32,11 +33,10 @@ class ServerRoom(Component):
         # threads to track
         self._temp_warming_t = None
         self._temp_cooling_t = None
-
-        amb_props = in_state.StateManager.get_ambient_props()
+        self._voltage_fluct_t = None
 
         # set up default values on the first run (if not set by the user)
-        if not amb_props:
+        if not in_state.StateManager.get_ambient_props():
             shared_attr = {"degrees": 1, "rate": 20, "start": 19, "end": 28}
             in_state.StateManager.set_ambient_props(
                 {**shared_attr, **{"event": "down", "pause_at": 28}}
@@ -45,9 +45,24 @@ class ServerRoom(Component):
                 {**shared_attr, **{"event": "up", "pause_at": 21}}
             )
 
+        if not in_state.StateManager.get_voltage_props():
+            in_state.StateManager.set_voltage_props(
+                {
+                    "mu": 120,
+                    "sigma": 1,
+                    "min": 117,
+                    "max": 124,
+                    "method": "uniform",
+                    "rate": 6,
+                    "enabled": True,
+                }
+            )
+
+        # initialize server room environment
         in_state.StateManager.power_restore()
 
         self._init_thermal_threads()
+        self._init_voltage_thread()
 
     @staticmethod
     def _keep_changing_temp(event, env, bound_op, temp_op):
@@ -95,6 +110,28 @@ class ServerRoom(Component):
 
             amb_props = get_amb_props()
 
+    @staticmethod
+    def _keep_fluctuating_voltage():
+        """Update input voltage every n seconds"""
+
+        get_volt_props = lambda: in_state.StateManager.get_voltage_props()[0]
+        volt_props = get_volt_props()
+
+        while True:
+            time.sleep(volt_props["rate"])
+
+            if not volt_props["enabled"] or not in_state.StateManager.mains_status():
+                volt_props = get_volt_props()
+                continue
+
+            if volt_props["method"] == "gauss":
+                rand_v = random.gauss(volt_props["mu"], volt_props["sigma"])
+            else:
+                rand_v = random.uniform(volt_props["min"], volt_props["max"])
+
+            in_state.StateManager.set_voltage(rand_v)
+            volt_props = get_volt_props()
+
     def _launch_thermal_thread(self, name, th_kwargs):
         """Start up a thread that will be changing ambient depending on environment
         Args:
@@ -108,6 +145,20 @@ class ServerRoom(Component):
         thread.start()
 
         return thread
+
+    def _init_voltage_thread(self):
+        """Initialize voltage fluctuations threading"""
+
+        if self._voltage_fluct_t and self._voltage_fluct_t.isAlive():
+            logging.warning("Voltage thread is already running!")
+            return
+
+        self._voltage_fluct_t = Thread(
+            target=self._keep_fluctuating_voltage, name="voltage_fluctuation"
+        )
+
+        self._voltage_fluct_t.daemon = True
+        self._voltage_fluct_t.start()
 
     def _init_thermal_threads(self):
         """Initialize thermal threads associated with the server room environment"""
@@ -134,6 +185,8 @@ class ServerRoom(Component):
     def __str__(self):
 
         wall_power_status = in_state.StateManager.mains_status()
+        volt_props = in_state.StateManager.get_voltage_props()[0]
+
         horizontal_line = "-" * 20
 
         th_warming_status = (
@@ -146,6 +199,11 @@ class ServerRoom(Component):
             "enabled" if wall_power_status else "disabled",
         )
 
+        th_voltage_status = (
+            "up" if self._voltage_fluct_t.isAlive() else "down",
+            "enabled" if wall_power_status and volt_props["enabled"] else "disabled",
+        )
+
         return "\n".join(
             (
                 horizontal_line,
@@ -156,5 +214,7 @@ class ServerRoom(Component):
                 ":Ambient Threads:",
                 "  [warming] " + "/".join(th_warming_status),
                 "  [cooling] " + "/".join(th_cooling_status),
+                ":Power Threads:",
+                "  [voltage fluctuation] " + "/".join(th_voltage_status),
             )
         )

@@ -100,6 +100,11 @@ class WebSocket(Component):
         """"Handle ambient changes request"""
         ISystemEnvironment.set_ambient(details["payload"]["degrees"])
 
+    @handler(ClientToServerRequests.set_voltage.name)
+    def _handle_voltage_request(self, details):
+        """"Handle voltage update"""
+        ISystemEnvironment.set_voltage(details["payload"]["voltage"])
+
     @handler(ClientToServerRequests.exec_play.name)
     def _handle_play_request(self, details):
         """Playback request"""
