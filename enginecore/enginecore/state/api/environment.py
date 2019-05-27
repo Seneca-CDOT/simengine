@@ -75,6 +75,9 @@ class ISystemEnvironment:
 
     @classmethod
     @record
+    @Randomizer.randomize_method(
+        (lambda self: random.randrange(*self.get_ambient_props()[1].values()),)
+    )
     def set_voltage(cls, value):
         """Update voltage"""
         old_voltage = cls.get_voltage()

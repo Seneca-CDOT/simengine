@@ -672,7 +672,53 @@ class GraphReference:
         if not record:
             return None
 
-        return dict(record.get("volt_env")), dict(record.get("sys"))
+        sys_env = dict(record.get("sys"))
+        sys_env_props = ["start", "end"]
+
+        return (
+            dict(record.get("volt_env")),
+            {k: v for (k, v) in sys_env.items() if k in sys_env_props},
+        )
+
+    @classmethod
+    def _get_set_env_prop_query(
+        cls, properties, s_attr_prop, event=None, prop_name=None
+    ):
+
+        s_attr_rand_prop = ["start", "end"]
+
+        query = []
+
+        #  (sys)-[:HAS_PROP]->(env_prop {name})-[:HAS_]
+        query.append("MERGE (sys:SystemEnvironment { sref: 1 })")
+        query.append(
+            'MERGE (sys)-[:HAS_PROP]->(env_prop:EnvProp {{ name: "{}" }})'.format(
+                prop_name
+            )
+        )
+
+        query.append(
+            'MERGE (sys)-[:HAS_RAND_PROP]->(rand_env:EnvProp {{ event: "{}" }})'.format(
+                event
+            )
+        )
+
+        if event:
+            query.append(
+                'MERGE (sys)-[:HAS_PROP]->(env:EnvProp {{ event: "{}" }})'.format(event)
+            )
+
+        set_stm = []
+        set_stm.append(
+            qh.get_set_stm(
+                properties, node_name="rand_env", supported_attr=s_attr_rand_prop
+            )
+        )
+        set_stm.append(qh.get_set_stm(properties, "env", s_attr_prop))
+
+        query.extend(map(lambda x: "SET {}".format(x) if x else "", set_stm))
+
+        return "\n".join(query)
 
     @classmethod
     def set_voltage_props(cls, session, properties):
@@ -680,17 +726,11 @@ class GraphReference:
         Args:
             session: Graph Database session
         """
-        s_attr = ["mu", "sigma", "min", "max", "method", "rate", "enabled"]
+        s_attr_prop = ["mu", "sigma", "min", "max", "method", "rate", "enabled"]
 
-        query = []
-        query.append("MERGE (sys:SystemEnvironment { sref: 1 })")
-        query.append('MERGE (sys)-[:HAS_PROP]->(volt_env:EnvProp { event: "voltage" })')
-
-        set_stm = qh.get_set_stm(
-            properties, node_name="volt_env", supported_attr=s_attr
+        session.run(
+            cls._get_set_env_prop_query(properties, s_attr_prop, event="voltage")
         )
-        query.append("SET {}".format(set_stm))
-        session.run("\n".join(query))
 
     @classmethod
     def set_storage_randomizer_prop(cls, session, server_key, proptype, slc):

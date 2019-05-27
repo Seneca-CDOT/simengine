@@ -78,7 +78,8 @@ def configure_command(configure_state_group):
         "-k",
         "--asset-key",
         type=int,
-        help="Unique asset key (Required if randomized options are associated with an asset)",
+        help="Unique asset key (Required if randomized \
+             options are associated with an asset)",
     )
 
     conf_rand_action.add_argument(
