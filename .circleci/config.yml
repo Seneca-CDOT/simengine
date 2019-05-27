@@ -47,6 +47,11 @@ jobs:
                       sleep 5
 
             - run:
+                  name: Checking with black linter
+                  command: |
+                      black --check .
+
+            - run:
                   name: Running python unittests
                   command: |
                       . venv/bin/activate
