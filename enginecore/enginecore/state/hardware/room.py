@@ -54,7 +54,10 @@ class ServerRoom(Component):
                     "max": 124,
                     "method": "uniform",
                     "rate": 6,
-                    "enabled": True,
+                    "enabled": False,
+                    # randomizer properties
+                    "start": 110,
+                    "end": 128,
                 }
             )
 
