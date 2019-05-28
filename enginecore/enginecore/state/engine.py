@@ -7,6 +7,7 @@ are processed by individual assets.
 """
 import logging
 import os
+import math
 
 from circuits import Component, Event, Worker, Debugger, handler  # , task
 import redis
@@ -124,14 +125,14 @@ class Engine(Component):
             new_load = self._assets[key].state.power_usage
 
             # notify parents of load changes
-            self._chain_load_update(
-                LoadEventResult(
-                    load_change=new_load,
-                    new_load=new_load,
-                    old_load=0,
-                    asset_key=asset_key,
-                )
-            )
+            # self._chain_load_update(
+            #     LoadEventResult(
+            #         load_change=new_load,
+            #         new_load=new_load,
+            #         old_load=0,
+            #         asset_key=asset_key,
+            #     )
+            # )
 
             # update websocket
             self._notify_client(
@@ -258,28 +259,24 @@ class Engine(Component):
                 self._assets[child["key"]],
             )
 
-    def _chain_load_update(self, event_result: LoadEventResult, increased: bool = True):
+    def _chain_load_update(self, event_result: LoadEventResult):
         """React to load update event by propogating the load changes 
         up the power stream
         
         Args:
             event_result: contains data about load update event such as key of 
                           the affected asset, its old load, new load and load change 
-            increased(optional): true if load was increased
 
         Example:
             when a leaf node is powered down, its load is set to 0 
             & parent assets get updated load values
         """
-        load_change = event_result.load_change
-
-        if not load_change:
-            return
+        load_change = abs(event_result.old_load - event_result.new_load)
 
         child_asset = self._assets[event_result.asset_key]
         child_event = (
             PowerEventMap.map_load_increased_by
-            if increased
+            if event_result.old_load < event_result.new_load
             else PowerEventMap.map_load_decreased_by
         )
 
@@ -468,6 +465,25 @@ class Engine(Component):
         """On user changing asset status"""
         self._handle_state_update(data["key"], data["status"])
 
+    @handler(RedisChannels.load_update_channel)
+    def on_asset_load_change(self, data):
+
+        print(data)
+        # return
+        self._chain_load_update(
+            LoadEventResult(
+                old_load=data["old_load"],
+                new_load=data["new_load"],
+                asset_key=data["key"],
+            )
+        )
+
+        # update websocket
+        self._notify_client(
+            ServerToClientRequests.asset_upd,
+            {"key": data["key"], "load": data["new_load"]},
+        )
+
     @handler(RedisChannels.voltage_update_channel)
     def on_voltage_state_change(self, data):
         """React to voltage drop or voltage restoration"""
@@ -559,8 +575,8 @@ class Engine(Component):
         """Handle load event changes by dispatching 
         load update events up the power stream
         """
-        self._chain_load_update(event_result, increased)
-        if event_result.load_change:
+        self._chain_load_update(event_result)
+        if not math.isclose(abs(event_result.new_load - event_result.old_load), 0):
             ckey = int(event_result.asset_key)
             self._notify_client(
                 ServerToClientRequests.asset_upd,
@@ -570,19 +586,19 @@ class Engine(Component):
     # Notify parent asset of any child events
     def ChildAssetPowerDown_success(self, evt, event_result):
         """When child is powered down -> get the new load value of child asset"""
-        self._load_success(event_result, increased=False)
+        self._load_success(event_result)
 
     def ChildAssetPowerUp_success(self, evt, event_result):
         """When child is powered up -> get the new load value of child asset"""
-        self._load_success(event_result, increased=True)
+        self._load_success(event_result)
 
     def ChildAssetLoadDecreased_success(self, evt, event_result):
         """When load decreases down the power stream """
-        self._load_success(event_result, increased=False)
+        self._load_success(event_result)
 
     def ChildAssetLoadIncreased_success(self, evt, event_result):
         """When load increases down the power stream """
-        self._load_success(event_result, increased=True)
+        self._load_success(event_result)
 
     ############### Power Events - Callbacks
 

@@ -28,6 +28,22 @@ class StaticAsset(Asset):
         """Powers on on parent going online"""
         return self.power_up()
 
+    @handler("VoltageIncreased", "VoltageDecreased", priority=-2)
+    def on_voltage_power_source_change(self, event, *args, **kwargs):
+        """Handle input power voltage increase"""
+
+        # if kwargs["new_value"] != kwargs["old_value"]:
+        print("\n\n")
+        print(self.key, "psource", self.state.power_usage)
+        print("\n\n")
+        self.state.update_load(self.state.power_usage, publish=True)
+
+    # @handler("VoltageDecreased", priority=-1)
+    # def on_voltage_power_source_decrease(self, event, *args, **kwargs):
+    #     """Handle input power voltage drop"""
+    #     if kwargs["new_value"] != kwargs["old_value"]:
+    #         self.state.update_load(self.state.power_usage)
+
 
 @register_asset
 class Lamp(StaticAsset):

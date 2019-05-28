@@ -121,15 +121,12 @@ class Asset(Component):
         new_load = arithmetic_op(old_load, load_change)
 
         if msg:
-            pass  # logging.info(msg.format(self.state.key, old_load, load_change, new_load))
+            logging.info(msg.format(self.state.key, old_load, load_change, new_load))
 
         self.state.update_load(new_load)
 
         return event_results.LoadEventResult(
-            load_change=load_change,
-            old_load=old_load,
-            new_load=new_load,
-            asset_key=self.state.key,
+            old_load=old_load, new_load=new_load, asset_key=self.state.key
         )
 
     @handler("ChildAssetPowerUp", "ChildAssetLoadIncreased")

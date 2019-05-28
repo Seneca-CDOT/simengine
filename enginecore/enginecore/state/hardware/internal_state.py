@@ -20,10 +20,6 @@ class StateManager(state_api.IStateManager, state_api.ISystemEnvironment):
         """Set agent PID"""
         StateManager.get_store().set(self.redis_key + ":agent", pid)
 
-    def update_load(self, load):
-        """Update load """
-        super()._update_load(load)
-
     def update_input_voltage(self, voltage):
         """Update asset input voltage"""
         super()._update_input_voltage(voltage)
@@ -39,6 +35,10 @@ class StateManager(state_api.IStateManager, state_api.ISystemEnvironment):
     def _set_redis_asset_state(self, state, publish=False):
         """Update redis value of the asset power status"""
         super()._set_redis_asset_state(state, publish=False)
+
+    def update_load(self, load, publish=False):
+        """Update load """
+        super()._update_load(load, publish=publish)
 
 
 class UPSStateManager(state_api.IUPSStateManager, StateManager):

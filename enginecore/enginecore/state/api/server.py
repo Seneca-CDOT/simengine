@@ -75,7 +75,8 @@ class IBMCServerStateManager(IServerStateManager):
         Args:
             sensor_name: name of a fan sensor
         Raises:
-            ValueError: when the sensor name provided does not belong to a sensor of type fan
+            ValueError: when the sensor name provided does not
+                       belong to a sensor of type fan
         Returns:
             Random RPM value divided by 10 (unit accepted by IPMI_sim) 
             if at leat one lower & one upper thresholds are present,
@@ -101,7 +102,8 @@ class IBMCServerStateManager(IServerStateManager):
         )
 
     def _get_rand_pd_properties(self) -> list:
-        """Get random settable physical drive attributes such as error counts occured while
+        """Get random settable physical drive attributes
+        such as error counts occured while
         reading/writing & pd state
         """
 
