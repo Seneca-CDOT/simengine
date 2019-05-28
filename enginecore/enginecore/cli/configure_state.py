@@ -134,10 +134,10 @@ def handle_configure_randomizer(args, conf_rand_arguments):
 
     # list all the randoptions
     if args["list"]:
-        _, amb_args = ISystemEnvironment.get_ambient_props()
+        amb_props = ISystemEnvironment.get_ambient_props()
 
         print(
-            "Ambient random arguments: range from {start} to {end}".format(**amb_args)
+            "Ambient random arguments: range from {start} to {end}".format(**amb_props)
         )
 
         if not args["asset_key"]:

@@ -1,9 +1,15 @@
-"""DB driver (data-layer) that provides access to db sessions and contains commonly used queries """
+"""DB driver (data-layer) that provides access
+to db sessions and contains commonly used queries """
+
+# Minimizing Cypher queries lengths is just too tedious
+# (black formatter will handle most cases):
+# pylint: disable=line-too-long
 
 import os
 import json
 import time
 from functools import lru_cache
+from enum import Enum
 
 from neo4j.v1 import GraphDatabase, basic_auth
 from enginecore.tools.utils import format_as_redis_key
@@ -596,60 +602,17 @@ class GraphReference:
         Args:
             session: Graph Database session
         Returns:
-            tuple: ambient events' and system environment props
-                   None if SysEnv is not initialized yet 
+            dict: ambient properties and  events'
         """
-
-        query = []
-        query.append("MATCH (sys:SystemEnvironment)-[:HAS_PROP]->(props:EnvProp)")
-        query.append("WHERE props.event = 'up' or props.event = 'down'")
-        query.append("RETURN sys, collect(props) as props")
-        results = session.run("\n".join(query))
-
-        amp_props = {}
-        record = results.single()
-
-        if not record:
-            return None
-
-        for event_prop in record.get("props"):
-            amp_props[event_prop["event"]] = dict(event_prop)
-
-        sys_env = dict(record.get("sys"))
-        sys_env_props = ["start", "end"]
-
-        return (amp_props, {k: v for (k, v) in sys_env.items() if k in sys_env_props})
+        return cls._get_sys_env_props(session, cls.SysEnvProperty.ambient)
 
     @classmethod
     def set_ambient_props(cls, session, properties):
         """Save ambient properties """
-
-        query = []
-        # list supported properties (both SysEnv and EnvProp)
         s_attr_prop = ["event", "degrees", "rate", "pause_at", "sref"]
-        s_attr_sys_env = ["start", "end"]
-
-        # find single node representing physical system environment
-        query.append("MERGE (sys:SystemEnvironment { sref: 1 })")
-
-        # event property associated with either wallpower going down or up
-        if "event" in properties:
-            query.append(
-                'MERGE (sys)-[:HAS_PROP]->(env:EnvProp {{ event: "{}" }})'.format(
-                    properties["event"]
-                )
-            )
-
-        # set event & sys environment props if provided
-        set_stm = []
-        set_stm.append(
-            qh.get_set_stm(properties, node_name="sys", supported_attr=s_attr_sys_env)
+        cls._set_sys_env_props(
+            session, properties, s_attr_prop, env_prop_type=cls.SysEnvProperty.ambient
         )
-
-        set_stm.append(qh.get_set_stm(properties, "env", s_attr_prop))
-        query.extend(map(lambda x: "SET {}".format(x) if x else "", set_stm))
-
-        session.run("\n".join(query))
 
     @classmethod
     def get_voltage_props(cls, session):
@@ -657,68 +620,105 @@ class GraphReference:
         Args:
             session: Graph Database session
         Returns:
-            tuple: voltage fluctuation settings
-                   None if SysEnv is not initialized yet 
+            dict: voltage fluctuation settings
+        """
+
+        return cls._get_sys_env_props(session, cls.SysEnvProperty.voltage)
+
+    class SysEnvProperty(Enum):
+        """Supported system environment properties"""
+
+        ambient = 1  # room temperature
+        voltage = 2  # the mains voltage
+
+    @classmethod
+    def _get_sys_env_props(cls, session, env_prop_type: SysEnvProperty) -> dict:
+        """Get ambient properties of system environment
+        Args:
+            session: Graph Database session
+            env_prop_type: System Environment property
+        Returns:
+            sys environment properties and corresponding events' (if supported)
+            None if SysEnv is not initialized yet 
         """
 
         query = []
         query.append("MATCH (sys:SystemEnvironment { sref: 1 })")
-        query.append('MATCH (sys)-[:HAS_PROP]->(volt_env:EnvProp { event: "voltage" })')
-        query.append("RETURN sys, volt_env")
+        query.append(
+            'MATCH (sys)-[:HAS_PROP]->(env_prop:EnvProp {{ name: "{}" }})'.format(
+                env_prop_type.name
+            )
+        )
+
+        query.append("OPTIONAL MATCH (env_prop)-[:HAS_PROP]->(event:EnvProp )")
+
+        query.append("RETURN sys, env_prop, collect(event) as event")
 
         results = session.run("\n".join(query))
+
+        # validate that property exists
         record = results.single()
 
         if not record:
             return None
 
-        sys_env = dict(record.get("sys"))
-        sys_env_props = ["start", "end"]
+        env_prop = dict(record.get("env_prop"))
 
-        return (
-            dict(record.get("volt_env")),
-            {k: v for (k, v) in sys_env.items() if k in sys_env_props},
-        )
+        for event_prop in record.get("event"):
+            env_prop[event_prop["event"]] = dict(event_prop)
+
+        return env_prop
 
     @classmethod
-    def _get_set_env_prop_query(
-        cls, properties, s_attr_prop, event=None, prop_name=None
+    def _set_sys_env_props(
+        cls, session, properties: dict, s_attr_prop: list, env_prop_type: SysEnvProperty
     ):
+        """Update system environment properties"""
 
         s_attr_rand_prop = ["start", "end"]
 
+        if "event" in properties and properties["event"]:
+            event = properties["event"]
+        else:
+            event = None
+
         query = []
 
-        #  (sys)-[:HAS_PROP]->(env_prop {name})-[:HAS_]
         query.append("MERGE (sys:SystemEnvironment { sref: 1 })")
         query.append(
             'MERGE (sys)-[:HAS_PROP]->(env_prop:EnvProp {{ name: "{}" }})'.format(
-                prop_name
-            )
-        )
-
-        query.append(
-            'MERGE (sys)-[:HAS_RAND_PROP]->(rand_env:EnvProp {{ event: "{}" }})'.format(
-                event
+                env_prop_type.name
             )
         )
 
         if event:
             query.append(
-                'MERGE (sys)-[:HAS_PROP]->(env:EnvProp {{ event: "{}" }})'.format(event)
+                'MERGE (env_prop)-[:HAS_PROP]->(event:EnvProp {{ event: "{}" }})'.format(
+                    event
+                )
             )
 
         set_stm = []
-        set_stm.append(
-            qh.get_set_stm(
-                properties, node_name="rand_env", supported_attr=s_attr_rand_prop
+
+        if event:
+            set_stm.append(
+                qh.get_set_stm(
+                    properties, node_name="env_prop", supported_attr=s_attr_rand_prop
+                )
             )
-        )
-        set_stm.append(qh.get_set_stm(properties, "env", s_attr_prop))
+            set_stm.append(qh.get_set_stm(properties, "event", s_attr_prop))
+        else:
+            set_stm.append(
+                qh.get_set_stm(
+                    properties,
+                    node_name="env_prop",
+                    supported_attr=s_attr_rand_prop + s_attr_prop,
+                )
+            )
 
         query.extend(map(lambda x: "SET {}".format(x) if x else "", set_stm))
 
-        return "\n".join(query)
+        return session.run("\n".join(query))
 
     @classmethod
     def set_voltage_props(cls, session, properties):
@@ -728,8 +728,8 @@ class GraphReference:
         """
         s_attr_prop = ["mu", "sigma", "min", "max", "method", "rate", "enabled"]
 
-        session.run(
-            cls._get_set_env_prop_query(properties, s_attr_prop, event="voltage")
+        cls._set_sys_env_props(
+            session, properties, s_attr_prop, env_prop_type=cls.SysEnvProperty.voltage
         )
 
     @classmethod

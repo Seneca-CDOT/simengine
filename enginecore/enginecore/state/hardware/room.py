@@ -77,7 +77,7 @@ class ServerRoom(Component):
 
         # ambient props contains details like min/max temperature value;
         # increase/decrease steps etc.
-        get_amb_props = lambda: in_state.StateManager.get_ambient_props()[0][event]
+        get_amb_props = lambda: in_state.StateManager.get_ambient_props()[event]
         amb_props = get_amb_props()
 
         while True:
@@ -114,14 +114,13 @@ class ServerRoom(Component):
     def _keep_fluctuating_voltage():
         """Update input voltage every n seconds"""
 
-        get_volt_props = lambda: in_state.StateManager.get_voltage_props()[0]
-        volt_props = get_volt_props()
+        volt_props = in_state.StateManager.get_voltage_props()
 
         while True:
             time.sleep(volt_props["rate"])
 
             if not volt_props["enabled"] or not in_state.StateManager.mains_status():
-                volt_props = get_volt_props()
+                volt_props = in_state.StateManager.get_voltage_props()
                 continue
 
             if volt_props["method"] == "gauss":
@@ -130,7 +129,7 @@ class ServerRoom(Component):
                 rand_v = random.uniform(volt_props["min"], volt_props["max"])
 
             in_state.StateManager.set_voltage(rand_v)
-            volt_props = get_volt_props()
+            volt_props = in_state.StateManager.get_voltage_props()
 
     def _launch_thermal_thread(self, name, th_kwargs):
         """Start up a thread that will be changing ambient depending on environment
@@ -185,7 +184,7 @@ class ServerRoom(Component):
     def __str__(self):
 
         wall_power_status = in_state.StateManager.mains_status()
-        volt_props = in_state.StateManager.get_voltage_props()[0]
+        volt_props = in_state.StateManager.get_voltage_props()
 
         horizontal_line = "-" * 20
 
