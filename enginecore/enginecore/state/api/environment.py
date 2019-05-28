@@ -59,9 +59,16 @@ class ISystemEnvironment:
         """
         return not math.isclose(cls.get_voltage(), 0.0)
 
+    @staticmethod
+    def sys_env_rand(sys_env_props):
+        """Get random value based on sys environment property (voltage, ambient)"""
+        return random.randrange(sys_env_props["start"], sys_env_props["end"])
+
     @classmethod
     @record
-    @Randomizer.randomize_method((lambda self: random.randrange(0, 21)))
+    @Randomizer.randomize_method(
+        (lambda self: self.sys_env_rand(self.get_ambient_props()),)
+    )
     def set_ambient(cls, value):
         """Update ambient value"""
         old_temp = cls.get_ambient()
@@ -73,7 +80,9 @@ class ISystemEnvironment:
 
     @classmethod
     @record
-    @Randomizer.randomize_method((lambda self: random.randrange(0, 21)))
+    @Randomizer.randomize_method(
+        (lambda self: self.sys_env_rand(self.get_voltage_props()),)
+    )
     def set_voltage(cls, value):
         """Update voltage"""
         old_voltage = cls.get_voltage()
