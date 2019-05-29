@@ -64,6 +64,14 @@ class IStateManager:
         return self._asset_info["draw"] if "draw" in self._asset_info else 1
 
     @property
+    def power_consumption(self):
+        return (
+            self._asset_info["powerConsumption"]
+            if "powerConsumption" in self._asset_info
+            else 0
+        )
+
+    @property
     def asset_info(self) -> dict:
         """Get information associated with the asset"""
         return self._asset_info
@@ -76,7 +84,7 @@ class IStateManager:
     @property
     def wattage(self):
         """Asset wattage (assumes power-source to be 120v)"""
-        return self.load * ISystemEnvironment.get_voltage()
+        return self.load * self.input_voltage
 
     def min_voltage_prop(self):
         """Get minimum voltage required and the poweroff timeout associated with it"""
@@ -164,7 +172,7 @@ class IStateManager:
         voltage = max(voltage, 0)
         IStateManager.get_store().set(self.redis_key + ":in-voltage", voltage)
 
-    def _update_load(self, load, publish=True):
+    def _update_load(self, load, publish=False):
         """Update amps"""
         load = load if load >= 0 else 0
 

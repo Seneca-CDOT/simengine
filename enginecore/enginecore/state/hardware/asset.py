@@ -129,7 +129,7 @@ class Asset(Component):
             old_load=old_load, new_load=new_load, asset_key=self.state.key
         )
 
-    @handler("ChildAssetPowerUp", "ChildAssetLoadIncreased")
+    @handler("ChildAssetLoadIncreased")
     def on_load_increase(self, event, *args, **kwargs):
         """Load is ramped up if child is powered up or child asset's load is increased
         Returns: 
@@ -140,7 +140,7 @@ class Asset(Component):
         msg = "Asset:[{}] load {} was increased by {}, new load={};"
         return self._update_load(increased_by, lambda old, change: old + change, msg)
 
-    @handler("ChildAssetPowerDown", "ChildAssetLoadDecreased")
+    @handler("ChildAssetLoadDecreased")
     def on_load_decrease(self, event, *args, **kwargs):
         """Load is decreased if child is powered off or child asset's load is decreased
         Returns: 

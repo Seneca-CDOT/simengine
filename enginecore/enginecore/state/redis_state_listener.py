@@ -51,7 +51,7 @@ class StateListener(Component):
             RedisChannels.mains_update_channel,  # wall power updates
             RedisChannels.model_update_channel,  # model changes
             RedisChannels.voltage_update_channel,  # wallpower voltage changes
-            RedisChannels.load_update_channel,
+            # RedisChannels.load_update_channel,
         )
 
         # Thermal Channels

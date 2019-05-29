@@ -246,17 +246,31 @@ class Engine(Component):
     def _chain_voltage_update(self, event_result: VoltageEventResult):
         """Chain voltage updates down the power stream"""
 
+        updated_asset = self._assets[event_result.asset_key]
+
         with self._graph_ref.get_session() as session:
-            close_nodes = GraphReference.get_affected_assets(
-                session, event_result.asset_key
+            children, parent_assets, _ = GraphReference.get_affected_assets(
+                session, updated_asset.key
             )
 
         voltage_param = (event_result.old_voltage, event_result.new_voltage)
 
-        for child in close_nodes[0]:
+        for child in children:
             self.fire(
                 PowerEventMap.map_voltage_event(*voltage_param),
                 self._assets[child["key"]],
+            )
+
+        if not updated_asset.state.power_consumption:
+            return
+
+        if not children and parent_assets:
+            print("Updating upstream load!\n")
+            self._process_leaf_node_power_event(
+                updated_asset,
+                updated_asset.state.load
+                - updated_asset.state.power_consumption / event_result.old_voltage,
+                parent_assets,
             )
 
     def _chain_load_update(self, event_result: LoadEventResult):
@@ -295,7 +309,7 @@ class Engine(Component):
             self.fire(child_event(parent_load_change, child_asset.key), parent)
 
     def _process_leaf_node_power_event(
-        self, updated_asset: Asset, new_state: int, parent_assets: list
+        self, updated_asset: Asset, child_load_change: int, parent_assets: list
     ):
         """React to leaf node power event (power up/down) by firing load updates up
         the power supply chain.
@@ -337,12 +351,12 @@ class Engine(Component):
                 (
                     PowerEventMap.map_load_decreased_by,
                     PowerEventMap.map_load_increased_by,
-                )[new_state](load_upd, updated_asset.key),
+                )[child_load_change < 0](load_upd, updated_asset.key),
                 parent_asset,
             )
 
-        if new_state == 0:
-            updated_asset.state.update_load(0)
+        # if new_state == 0:
+        #     updated_asset.state.update_load(0)
 
     def _process_int_node_power_event(
         self,
@@ -439,7 +453,9 @@ class Engine(Component):
 
         # Meaning it's a leaf node -> update load up the power chain if needed
         if not children and parent_assets:
-            self._process_leaf_node_power_event(updated_asset, new_state, parent_assets)
+            self._process_leaf_node_power_event(
+                updated_asset, new_state * updated_asset.state.load, parent_assets
+            )
 
         # Check assets down the power stream (assets powered by the updated asset)
         for child in children:
@@ -468,7 +484,7 @@ class Engine(Component):
     @handler(RedisChannels.load_update_channel)
     def on_asset_load_change(self, data):
 
-        print(data)
+        self._assets[data["key"]].state.update_load(data["new_load"])
         # return
         self._chain_load_update(
             LoadEventResult(
@@ -586,11 +602,11 @@ class Engine(Component):
     # Notify parent asset of any child events
     def ChildAssetPowerDown_success(self, evt, event_result):
         """When child is powered down -> get the new load value of child asset"""
-        self._load_success(event_result)
+        # self._load_success(event_result)
 
     def ChildAssetPowerUp_success(self, evt, event_result):
         """When child is powered up -> get the new load value of child asset"""
-        self._load_success(event_result)
+        # self._load_success(event_result)
 
     def ChildAssetLoadDecreased_success(self, evt, event_result):
         """When load decreases down the power stream """
@@ -616,6 +632,7 @@ class Engine(Component):
 
         volt_e_result, power_e_result = event_results
 
+        print(volt_e_result, power_e_result)
         if power_e_result and power_e_result.new_state != power_e_result.old_state:
             self._power_success(power_e_result)
         else:

@@ -36,9 +36,9 @@ class StateManager(state_api.IStateManager, state_api.ISystemEnvironment):
         """Update redis value of the asset power status"""
         super()._set_redis_asset_state(state, publish=False)
 
-    def update_load(self, load, publish=False):
+    def update_load(self, load):
         """Update load """
-        super()._update_load(load, publish=publish)
+        super()._update_load(load)
 
 
 class UPSStateManager(state_api.IUPSStateManager, StateManager):
