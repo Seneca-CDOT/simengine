@@ -175,11 +175,7 @@ class IStateManager:
     def _update_load(self, load, publish=False):
         """Update amps"""
         load = load if load >= 0 else 0
-
-        old_load = self.load
         IStateManager.get_store().set(self.redis_key + ":load", load)
-        if publish:
-            self._publish_load(old_load)
 
     def _publish_load(self, old_load):
         """Publish load changes """

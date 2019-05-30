@@ -78,4 +78,5 @@ class Outlet(Asset):
             new_state=e_result_up.new_state,
             asset_key=self.state.key,
             asset_type=self.state.asset_type,
+            load_change=0,
         )

@@ -100,7 +100,7 @@ class Engine(Component):
         initialize(force_snmp_init)
 
         # instantiate assets based on graph records
-        leaf_nodes = []
+        # leaf_nodes = []
 
         with self._graph_ref.get_session() as session:
             assets = GraphReference.get_assets_and_children(session)
@@ -112,32 +112,22 @@ class Engine(Component):
                 ](asset).register(self)
 
                 # leaf nodes will trigger load updates
-                if not asset["children"]:
-                    leaf_nodes.append(asset["key"])
+                # if not asset["children"]:
+                #     leaf_nodes.append(asset["key"])
 
             except StopIteration:
                 logging.error("Detected asset that is not supported")
 
         # initialize load by dispatching load update
-        for key in leaf_nodes:
+        # for key in leaf_nodes:
 
-            asset_key = int(key)
-            new_load = self._assets[key].state.power_usage
+        #     asset_key = int(key)
+        #     new_load = self._assets[key].state.power_usage
 
-            # notify parents of load changes
-            # self._chain_load_update(
-            #     LoadEventResult(
-            #         load_change=new_load,
-            #         new_load=new_load,
-            #         old_load=0,
-            #         asset_key=asset_key,
-            #     )
-            # )
-
-            # update websocket
-            self._notify_client(
-                ServerToClientRequests.asset_upd, {"key": asset_key, "load": new_load}
-            )
+        #     # update websocket
+        #     self._notify_client(
+        #         ServerToClientRequests.asset_upd, {"key": asset_key, "load": new_load}
+        #     )
 
         ISystemEnvironment.set_ambient(21)
         RECORDER.enabled = True
@@ -237,40 +227,86 @@ class Engine(Component):
             ServerToClientRequests.asset_upd, {"key": asset_key, "status": asset_status}
         )
 
-        # fire-up power events down the power stream
+        # power button pressed event:
         self.fire(PowerEventMap.map_asset_event(asset_status), updated_asset)
+
+        # fire-up power events down the power stream
         self._chain_power_update(
             PowerEventResult(asset_key=asset_key, new_state=asset_status)
         )
+
+    def _chain_power_update(self, event_result: PowerEventResult):
+        """React to power state event by analysing the parent,
+        child & neighbouring assets
+        
+        Args:
+            event_result: contains data about power state update 
+                          event such as key of the affected asset, 
+                          its old state & new state
+        Example:
+            when a node is powered down, 
+            the assets it powers should be powered down as well
+        """
+
+        updated_asset = self._assets[event_result.asset_key]
+        new_state = event_result.new_state
+
+        with self._graph_ref.get_session() as session:
+            children, parent_info, _2nd_parent = GraphReference.get_affected_assets(
+                session, updated_asset.key
+            )
+
+        alt_parent_asset = self._assets[_2nd_parent["key"]] if _2nd_parent else None
+        parent_assets = list(map(lambda p: self._assets[p["key"]], parent_info))
+
+        # Meaning it's a leaf node -> update load up the power chain if needed
+        # if not children and parent_assets:
+        #     self._process_leaf_node_power_event(updated_asset, new_state, parent_assets)
+
+        # Check assets down the power stream (assets powered by the updated asset)
+        for child in children:
+            self._process_int_node_power_event(
+                updated_asset, self._assets[child["key"]], new_state, alt_parent_asset
+            )
 
     def _chain_voltage_update(self, event_result: VoltageEventResult):
         """Chain voltage updates down the power stream"""
 
         updated_asset = self._assets[event_result.asset_key]
+        old_volt, new_volt = event_result.old_voltage, event_result.new_voltage
 
         with self._graph_ref.get_session() as session:
-            children, parent_assets, _ = GraphReference.get_affected_assets(
+            children, parent_info, _ = GraphReference.get_affected_assets(
                 session, updated_asset.key
             )
 
-        voltage_param = (event_result.old_voltage, event_result.new_voltage)
+        parent_assets = list(map(lambda p: self._assets[p["key"]], parent_info))
 
+        # fire voltage updates down the power stream
         for child in children:
+
+            print("_chain_voltage_update: mapping voltage update!")
             self.fire(
-                PowerEventMap.map_voltage_event(*voltage_param),
+                PowerEventMap.map_voltage_event(old_volt, new_volt),
                 self._assets[child["key"]],
             )
 
-        if not updated_asset.state.power_consumption:
+        if not updated_asset.state.power_consumption or (
+            math.isclose(new_volt, 0) and math.isclose(old_volt, 0)
+        ):
             return
 
         if not children and parent_assets:
-            print("Updating upstream load!\n")
+
+            if math.isclose(new_volt, 0):
+                load_change = -updated_asset.state.power_consumption / old_volt
+            else:
+                load_change = updated_asset.state.power_consumption / new_volt
+
+            print("chain voltage: ", load_change)
+
             self._process_leaf_node_power_event(
-                updated_asset,
-                updated_asset.state.load
-                - updated_asset.state.power_consumption / event_result.old_voltage,
-                parent_assets,
+                updated_asset, load_change, parent_assets
             )
 
     def _chain_load_update(self, event_result: LoadEventResult):
@@ -309,51 +345,47 @@ class Engine(Component):
             self.fire(child_event(parent_load_change, child_asset.key), parent)
 
     def _process_leaf_node_power_event(
-        self, updated_asset: Asset, child_load_change: int, parent_assets: list
+        self, updated_asset: Asset, load_change: float, parent_assets: list
     ):
         """React to leaf node power event (power up/down) by firing load updates up
         the power supply chain.
         Args:
             updated_asset: leaf node asset with new power state
             new_state: new power state
-            parent_assets: assets powering the leaf node
-                           (list of dictionaries, not Assets)
+            parent_assets: Assets powering the leaf node
         """
         offline_parents_load = 0
         online_parents = []
 
-        for parent_info in parent_assets:
-            parent = self._assets[parent_info["key"]]
-            parent_load_change = (
-                updated_asset.state.power_usage * parent.state.draw_percentage
-            )
+        for parent in parent_assets:
+
+            parent_load_change = load_change * parent.state.draw_percentage
+            print("ParrentLoadChange:", parent_load_change)
 
             if not parent.state.load and not parent.state.status:
                 # if offline -> find how much power parent should draw
                 # (so it will be redistributed among other assets)
                 offline_parents_load += parent_load_change
             else:
-                online_parents.append(parent.key)
+                online_parents.append(parent)
 
         # for each parent that is either online or it's load is not zero
         # update the load value
-        for parent_key in online_parents:
+        for parent in online_parents:
 
-            parent_asset = self._assets[parent_key]
-            leaf_node_amp = (
-                updated_asset.state.power_usage * parent_asset.state.draw_percentage
-            )
+            leaf_node_amp = load_change * parent.state.draw_percentage
 
             load_upd = offline_parents_load + leaf_node_amp
             # fire load increase/decrease depending on the
             # new state of the updated asset
-            self.fire(
-                (
-                    PowerEventMap.map_load_decreased_by,
-                    PowerEventMap.map_load_increased_by,
-                )[child_load_change < 0](load_upd, updated_asset.key),
-                parent_asset,
-            )
+
+            print("LoadChange:", load_change)
+            if load_change > 0:
+                p_event = PowerEventMap.map_load_increased_by
+            else:
+                p_event = PowerEventMap.map_load_decreased_by
+
+            self.fire(p_event(abs(load_upd), updated_asset.key), parent)
 
         # if new_state == 0:
         #     updated_asset.state.update_load(0)
@@ -395,6 +427,7 @@ class Engine(Component):
         # power up/down child assets if there's no alternative power source
         if not (alt_parent_asset and alt_parent_asset.state.status):
             out_volt = updated_asset.state.output_voltage
+            print("process_int_node: mapping voltage update!")
             event = PowerEventMap.map_voltage_event(
                 new_value=new_state * out_volt, old_value=(new_state ^ 1) * out_volt
             )
@@ -428,41 +461,6 @@ class Engine(Component):
             )
             self.fire(load_child_event, updated_asset)
 
-    def _chain_power_update(self, event_result: PowerEventResult):
-        """React to power state event by analysing the parent,
-        child & neighbouring assets
-        
-        Args:
-            event_result: contains data about power state update 
-                          event such as key of the affected asset, 
-                          its old state & new state
-        Example:
-            when a node is powered down, 
-            the assets it powers should be powered down as well
-        """
-
-        updated_asset = self._assets[event_result.asset_key]
-        new_state = event_result.new_state
-
-        with self._graph_ref.get_session() as session:
-            children, parent_assets, _2nd_parent = GraphReference.get_affected_assets(
-                session, updated_asset.key
-            )
-
-        alt_parent_asset = self._assets[_2nd_parent["key"]] if _2nd_parent else None
-
-        # Meaning it's a leaf node -> update load up the power chain if needed
-        if not children and parent_assets:
-            self._process_leaf_node_power_event(
-                updated_asset, new_state * updated_asset.state.load, parent_assets
-            )
-
-        # Check assets down the power stream (assets powered by the updated asset)
-        for child in children:
-            self._process_int_node_power_event(
-                updated_asset, self._assets[child["key"]], new_state, alt_parent_asset
-            )
-
     def _notify_client(self, client_request, data):
         """Notify the WebSocket client(s) of any changes in asset states 
 
@@ -483,6 +481,7 @@ class Engine(Component):
 
     @handler(RedisChannels.load_update_channel)
     def on_asset_load_change(self, data):
+        # TODO: delete later
 
         self._assets[data["key"]].state.update_load(data["new_load"])
         # return
@@ -512,7 +511,6 @@ class Engine(Component):
         elif 0 == old_voltage < new_voltage:
             self._handle_wallpower_update(power_up=True)
 
-        # event = PowerEventMap.map_voltage_event(old_voltage, new_voltage)
         self._handle_voltage_update(old_voltage, new_voltage)
 
     @handler(RedisChannels.mains_update_channel)
@@ -603,10 +601,20 @@ class Engine(Component):
     def ChildAssetPowerDown_success(self, evt, event_result):
         """When child is powered down -> get the new load value of child asset"""
         # self._load_success(event_result)
+        print("-- ChildAssetPowerDown_success")
+
+        if self._assets[event_result.asset_key].state.power_consumption != 0:
+            print("-- ChildAssetPowerDown_success")
+            self._load_success(event_result)
 
     def ChildAssetPowerUp_success(self, evt, event_result):
         """When child is powered up -> get the new load value of child asset"""
         # self._load_success(event_result)
+        print("-- ChildAssetPowerUp_success")
+
+        if self._assets[event_result.asset_key].state.power_consumption != 0:
+            print("-- ChildAssetPowerUp_success")
+            self._load_success(event_result)
 
     def ChildAssetLoadDecreased_success(self, evt, event_result):
         """When load decreases down the power stream """
@@ -633,19 +641,19 @@ class Engine(Component):
         volt_e_result, power_e_result = event_results
 
         print(volt_e_result, power_e_result)
-        if power_e_result and power_e_result.new_state != power_e_result.old_state:
-            self._power_success(power_e_result)
-        else:
-            self._chain_voltage_update(volt_e_result)
+        # if power_e_result and power_e_result.new_state != power_e_result.old_state:
+        #     self._power_success(power_e_result)
+
+        self._chain_voltage_update(volt_e_result)
 
     # Notify child asset of any parent events of interest
     def ParentAssetPowerDown_success(self, evt, event_result):
         """When assets parent successfully powered down """
-        self._power_success(event_result)
+        # self._power_success(event_result)
 
     def ParentAssetPowerUp_success(self, evt, event_result):
         """When assets parent successfully powered up """
-        self._power_success(event_result)
+        # self._power_success(event_result)
 
     def SignalDown_success(self, evt, event_result):
         """When asset is powered down """
