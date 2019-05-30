@@ -61,6 +61,7 @@ class ServerRoom(Component):
                 }
             )
 
+        in_state.StateManager.get_store().set("voltage", str(float(0)))
         # initialize server room environment
         in_state.StateManager.power_restore()
 
