@@ -234,15 +234,17 @@ class Engine(Component):
                 updated_asset, self._assets[child["key"]], new_state, alt_parent_asset
             )
 
-    def _chain_voltage_update(self, event_result: VoltageEventResult):
+    def _chain_voltage_update(
+        self, e_volt_result: VoltageEventResult, e_power_result: PowerEventResult = None
+    ):
         """Chain voltage updates down the power stream
         """
 
-        updated_asset = self._assets[event_result.asset_key]
-        old_volt, new_volt = event_result.old_voltage, event_result.new_voltage
+        updated_asset = self._assets[e_volt_result.asset_key]
+        old_volt, new_volt = e_volt_result.old_voltage, e_volt_result.new_voltage
 
         with self._graph_ref.get_session() as session:
-            children, parent_info, _ = GraphReference.get_affected_assets(
+            children, parent_info, _2nd_parent = GraphReference.get_affected_assets(
                 session, updated_asset.key
             )
 
@@ -250,8 +252,12 @@ class Engine(Component):
 
         # internal node: fire voltage updates down the power stream
         for child in children:
+
             self.fire(
-                PowerEventMap.map_voltage_event(old_volt, new_volt),
+                PowerEventMap.map_voltage_event(
+                    old_volt,
+                    new_volt * (e_power_result.new_state if e_power_result else 1),
+                ),
                 self._assets[child["key"]],
             )
 
@@ -262,7 +268,10 @@ class Engine(Component):
 
         # process leaf node
         if not children and parent_assets:
-            load_change = get_load(new_volt) - get_load(old_volt)
+            load_change = get_load(new_volt) - get_load(
+                old_volt * (e_power_result.old_state if e_power_result else 1)
+            )
+
             self._process_leaf_node_power_event(
                 updated_asset, load_change, parent_assets
             )
@@ -571,7 +580,7 @@ class Engine(Component):
                 },
             )
 
-        self._chain_voltage_update(volt_e_result)
+        self._chain_voltage_update(volt_e_result, power_e_result)
 
     def SignalDown_success(self, evt, event_result):
         """When asset is powered down """
