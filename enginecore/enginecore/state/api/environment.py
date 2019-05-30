@@ -88,11 +88,11 @@ class ISystemEnvironment:
         old_voltage = cls.get_voltage()
         cls.get_store().set("voltage", str(float(value)))
 
-        if old_voltage == 0.0 and old_voltage < value:
+        if math.isclose(old_voltage, 0.0) and value > old_voltage:
             cls.get_store().publish(
                 RedisChannels.mains_update_channel, json.dumps({"status": 1})
             )
-        elif value == 0.0:
+        elif math.isclose(value, 0.0):
             cls.get_store().publish(
                 RedisChannels.mains_update_channel, json.dumps({"status": 0})
             )
