@@ -150,7 +150,7 @@ class Asset(Component):
         """
 
         decreased_by = kwargs["child_load"]
-        msg = "Asset:[{}] load {} was decreased by {}, new load={};"
+        msg = "Asset:[{}] load {:.2f} was decreased by {:.2f}, new load={:.2f};"
         return self._update_load(decreased_by, lambda old, change: old - change, msg)
 
     @handler("ButtonPowerDownPressed")
