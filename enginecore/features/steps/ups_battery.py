@@ -15,11 +15,6 @@ import enginecore.state.state_initializer as state_ini
 from test_helpers import FakeEngine, query_snmp_interface
 
 
-@given("the system model is empty")
-def step_impl(_):
-    drop_model()
-
-
 @given('UPS asset with key "{key:d}" is created')
 def step_impl(context, key):
 
