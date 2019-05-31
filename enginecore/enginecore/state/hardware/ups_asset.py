@@ -15,6 +15,7 @@ from circuits import handler
 import enginecore.state.hardware.internal_state as in_state
 from enginecore.state.hardware.asset import Asset
 from enginecore.state.hardware.snmp_asset import SNMPSim
+from enginecore.state.hardware import event_results
 
 from enginecore.state.hardware.asset_definition import register_asset
 
@@ -296,15 +297,28 @@ class UPS(Asset, SNMPSim):
     def on_ambient_updated(self, event, *args, **kwargs):
         self._state.update_temperature(7)
 
+    def _get_voltage_event_result(self, event_details):
+        """Get formatted voltage event result"""
+
+        return event_results.VoltageEventResult(
+            asset_key=self.state.key,
+            asset_type=self.state.asset_type,
+            old_voltage=event_details["old_value"],
+            new_voltage=event_details["new_value"],
+        )
+
     @handler("VoltageIncreased")
     def on_voltage_increase(self, event, *args, **kwargs):
         """On voltage increase, analyze new voltage and determine if
         it's within the acceptable range
         """
         power_event_result = None
-        volt_event_result = self._get_voltage_event_result(kwargs)
 
-        should_transfer, reason = self.state.process_voltage(kwargs["new_value"])
+        in_voltage = kwargs["new_value"]
+        old_out_volt = self.state.output_voltage
+        new_out_volt = in_voltage
+
+        should_transfer, reason = self.state.process_voltage(in_voltage)
 
         # transfer back to input power
         if not should_transfer and self.state.on_battery:
@@ -320,6 +334,12 @@ class UPS(Asset, SNMPSim):
             should_transfer and reason == self.state.InputLineFailCause.highLineVoltage
         ):
             self._launch_battery_drain(reason)
+            new_out_volt = 120.0
+
+        # hijack voltage event result:
+        volt_event_result = self._get_voltage_event_result(
+            {"old_value": old_out_volt, "new_value": new_out_volt}
+        )
 
         return volt_event_result, power_event_result
 
@@ -328,16 +348,20 @@ class UPS(Asset, SNMPSim):
         """Handle voltage drop, transfer to battery if needed"""
 
         power_event_result = None
-        volt_event_result = self._get_voltage_event_result(kwargs)
+
+        in_voltage = kwargs["new_value"]
+        old_out_volt = self.state.output_voltage
+        new_out_volt = in_voltage
 
         battery_level = self.state.battery_level
-        should_transfer, reason = self.state.process_voltage(kwargs["new_value"])
+        should_transfer, reason = self.state.process_voltage(in_voltage)
         high_line_t_reason = self.state.InputLineFailCause.highLineVoltage
 
         # voltage is low, transfer to battery
         if self.state.battery_level and should_transfer:
             self._launch_battery_drain(reason)
-            event.success = False
+            new_out_volt = 120.0
+
         # voltage was too high but is okay now
         elif (
             self.state.get_transfer_reason() == high_line_t_reason
@@ -345,6 +369,9 @@ class UPS(Asset, SNMPSim):
         ):
             self._launch_battery_charge(power_up_on_charge=(not battery_level))
 
+        volt_event_result = self._get_voltage_event_result(
+            {"old_value": old_out_volt, "new_value": new_out_volt}
+        )
         return volt_event_result, power_event_result
 
     @property

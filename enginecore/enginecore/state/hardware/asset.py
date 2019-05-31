@@ -139,7 +139,7 @@ class Asset(Component):
         """
 
         increased_by = kwargs["child_load"]
-        msg = "Asset:[{}] load {} was increased by {}, new load={};"
+        msg = "Asset:[{}] load {:.2f} was increased by {:.2f}, new load={:.2f};"
         return self._update_load(increased_by, lambda old, change: old + change, msg)
 
     @handler("ChildAssetLoadDecreased", "ChildAssetPowerDown")
