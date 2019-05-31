@@ -235,14 +235,18 @@ class Engine(Component):
             )
 
     def _chain_voltage_update(
-        self, e_volt_result: VoltageEventResult, e_power_result: PowerEventResult = None
+        self, volt_e_result: VoltageEventResult, power_e_result: PowerEventResult = None
     ):
         """Chain voltage updates down the power stream
         """
 
-        updated_asset = self._assets[e_volt_result.asset_key]
-        old_volt, new_volt = e_volt_result.old_voltage, e_volt_result.new_voltage
+        old_volt, new_volt = volt_e_result.old_voltage, volt_e_result.new_voltage
+        updated_asset = self._assets[volt_e_result.asset_key]
 
+        if old_volt == new_volt:
+            return
+
+        # get neighbouring hardware devices of the updated asset
         with self._graph_ref.get_session() as session:
             children, parent_info, _2nd_parent = GraphReference.get_affected_assets(
                 session, updated_asset.key
@@ -251,12 +255,13 @@ class Engine(Component):
         parent_assets = list(map(lambda p: self._assets[p["key"]], parent_info))
 
         # internal node: fire voltage updates down the power stream
+        # (children powered by the updated asset)
         for child in children:
 
             self.fire(
                 PowerEventMap.map_voltage_event(
                     old_volt,
-                    new_volt * (e_power_result.new_state if e_power_result else 1),
+                    new_volt * (power_e_result.new_state if power_e_result else 1),
                 ),
                 self._assets[child["key"]],
             )
@@ -269,8 +274,11 @@ class Engine(Component):
         # process leaf node
         if not children and parent_assets:
             load_change = get_load(new_volt) - get_load(
-                old_volt * (e_power_result.old_state if e_power_result else 1)
+                old_volt * (power_e_result.old_state if power_e_result else 1)
             )
+
+            if not load_change:
+                return
 
             self._process_leaf_node_power_event(
                 updated_asset, load_change, parent_assets
@@ -571,6 +579,7 @@ class Engine(Component):
         volt_e_result, power_e_result = event_results
 
         print(volt_e_result, power_e_result)
+
         if power_e_result and power_e_result.new_state != power_e_result.old_state:
             self._notify_client(
                 ServerToClientRequests.asset_upd,
