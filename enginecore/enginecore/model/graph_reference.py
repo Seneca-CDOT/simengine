@@ -319,7 +319,7 @@ class GraphReference:
             OPTIONAL MATCH (nextAsset2ndParent)<-[:POWERED_BY]-(nextAsset) 
             WHERE updatedAsset.key <> nextAsset2ndParent.key 
             RETURN collect(nextAsset) as childAssets,
-                   collect(parentAsset) as parentAsset, nextAsset2ndParent
+                   collect(distinct parentAsset) as parentAsset, nextAsset2ndParent
             """,
             key=asset_key,
         )

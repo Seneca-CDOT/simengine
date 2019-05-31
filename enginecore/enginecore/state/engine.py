@@ -8,6 +8,7 @@ are processed by individual assets.
 import logging
 import os
 import math
+import functools
 
 from circuits import Component, Event, Worker, Debugger, handler  # , task
 import redis
@@ -234,6 +235,20 @@ class Engine(Component):
                 updated_asset, self._assets[child["key"]], new_state, alt_parent_asset
             )
 
+    def _get_affected_assets(self, updated_asset):
+        """Get neighbouring hardware devices of the updated asset"""
+
+        with self._graph_ref.get_session() as session:
+            children, parent_info, _2nd_parent = GraphReference.get_affected_assets(
+                session, updated_asset.key
+            )
+
+        child_assets = list(map(lambda a: self._assets[a["key"]], children))
+        parent_assets = list(map(lambda a: self._assets[a["key"]], parent_info))
+        alt_parent_asset = self._assets[_2nd_parent["key"]] if _2nd_parent else None
+
+        return child_assets, parent_assets, alt_parent_asset
+
     def _chain_voltage_update(
         self, volt_e_result: VoltageEventResult, power_e_result: PowerEventResult = None
     ):
@@ -246,40 +261,29 @@ class Engine(Component):
         if old_volt == new_volt:
             return
 
-        # get neighbouring hardware devices of the updated asset
-        with self._graph_ref.get_session() as session:
-            children, parent_info, _2nd_parent = GraphReference.get_affected_assets(
-                session, updated_asset.key
-            )
+        child_assets, parent_assets, _ = self._get_affected_assets(updated_asset)
 
-        parent_assets = list(map(lambda p: self._assets[p["key"]], parent_info))
+        # Output voltage can still be 0 for some assets even though
+        # their input voltage > 0
+        # (most devices require at least 90V-100V in order to function)
+        old_out_volt = old_volt * (power_e_result.old_state if power_e_result else 1)
+        new_out_volt = new_volt * (power_e_result.new_state if power_e_result else 1)
+
+        volt_event = functools.partial(
+            PowerEventMap.map_voltage_event, old_volt, new_out_volt
+        )
 
         # internal node: fire voltage updates down the power stream
         # (children powered by the updated asset)
-        for child in children:
+        for child in child_assets:
+            self.fire(volt_event(), child)
 
-            self.fire(
-                PowerEventMap.map_voltage_event(
-                    old_volt,
-                    new_volt * (power_e_result.new_state if power_e_result else 1),
-                ),
-                self._assets[child["key"]],
-            )
+        # find load difference between old & new state
+        upd_asset_load = lambda v: updated_asset.state.power_consumption / v if v else 0
+        load_change = upd_asset_load(new_out_volt) - upd_asset_load(old_out_volt)
 
-        if not updated_asset.state.power_consumption:
-            return
-
-        get_load = lambda v: updated_asset.state.power_consumption / v if v else 0
-
-        # process leaf node
-        if not children and parent_assets:
-            load_change = get_load(new_volt) - get_load(
-                old_volt * (power_e_result.old_state if power_e_result else 1)
-            )
-
-            if not load_change:
-                return
-
+        # process leaf node, update load up the power chain
+        if parent_assets and load_change:
             self._process_leaf_node_power_event(
                 updated_asset, load_change, parent_assets
             )
@@ -352,7 +356,6 @@ class Engine(Component):
             load_upd = offline_parents_load + leaf_node_amp
             # fire load increase/decrease depending on the
             # new state of the updated asset
-
             if load_change > 0:
                 p_event = PowerEventMap.map_load_increased_by
             else:
@@ -577,7 +580,6 @@ class Engine(Component):
         """Process voltage event results"""
 
         volt_e_result, power_e_result = event_results
-
         print(volt_e_result, power_e_result)
 
         if power_e_result and power_e_result.new_state != power_e_result.old_state:
