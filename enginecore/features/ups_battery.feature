@@ -57,3 +57,22 @@ Feature: UPS Voltage Handling
         Then UPS is on battery
         And UPS transfer reason is set to "highLineVoltage"
 
+    @snmp-behaviour
+    Scenario: Voltage drops below threshold and then spikes above threshold and then back to normal
+        Given the system model is empty
+        And UPS asset with key "190" is created
+        When voltage is set to "0"
+        And voltage "0" spikes above "AdvConfigHighTransferVolt" threshold by "10"
+        And voltage is set to "120"
+        Then UPS is not on battery
+        And UPS transfer reason is set to "noTransfer"
+
+    @snmp-behaviour
+    Scenario: Voltage spikes above threshold then drops below threshold
+        Given the system model is empty
+        And UPS asset with key "190" is created
+        When voltage is set to "200"
+        And voltage is set to "0"
+        Then UPS is on battery
+        And UPS transfer reason is set to "blackout"
+

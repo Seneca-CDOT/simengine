@@ -97,7 +97,6 @@ def step_impl(context):
 def step_impl(context, t_reason):
     transfer_reason_oid = context.ups.state.get_oid_by_name("InputLineFailCause").oid
     varbind_value = query_snmp_interface(transfer_reason_oid)
-    print("varbind&t", varbind_value, t_reason)
     assert context.ups.state.get_transfer_reason().name == t_reason
     assert context.ups.state.InputLineFailCause(varbind_value).name == t_reason
 
