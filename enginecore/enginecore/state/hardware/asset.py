@@ -42,12 +42,11 @@ class Asset(Component):
 
     @property
     def state_reason(self):
-        """"""
+        """Reason for asset power state"""
         return self._state_reason
 
     @state_reason.setter
     def state_reason(self, value):
-        """"""
         self._state_reason = value
         # logging.info(
         #     "Asset:[%s][%s] due to event <%s>",
@@ -58,7 +57,7 @@ class Asset(Component):
 
     @property
     def power_state_caused_by_user(self):
-        """"""
+        """Returns true if user powered down/up the asset (and not AC power event)"""
         return (
             self.state_reason == asset_events.ButtonPowerDownPressed
             or self.state_reason == asset_events.ButtonPowerUpPressed

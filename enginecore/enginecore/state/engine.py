@@ -173,7 +173,9 @@ class Engine(Component):
         mains_out = {k: self._assets[k] for k in mains_out_keys if k}
 
         for outlet in mains_out.values():
-            self.fire(PowerEventMap.map_voltage_event(old_voltage, new_voltage), outlet)
+            self.fire(
+                PowerEventMap.map_voltage_event(0, old_voltage, new_voltage), outlet
+            )
 
     def _handle_state_update(self, asset_key, asset_status):
         """React to asset state updates in redis store 
@@ -235,12 +237,13 @@ class Engine(Component):
                 updated_asset, self._assets[child["key"]], new_state, alt_parent_asset
             )
 
-    def _get_affected_assets(self, updated_asset):
+    # TODO: add lru cache
+    def _get_affected_assets(self, asset_key):
         """Get neighbouring hardware devices of the updated asset"""
 
         with self._graph_ref.get_session() as session:
             children, parent_info, _2nd_parent = GraphReference.get_affected_assets(
-                session, updated_asset.key
+                session, asset_key
             )
 
         child_assets = list(map(lambda a: self._assets[a["key"]], children))
@@ -261,7 +264,9 @@ class Engine(Component):
         if old_volt == new_volt:
             return
 
-        child_assets, parent_assets, _ = self._get_affected_assets(updated_asset)
+        child_assets, parent_assets, alt_parent_asset = self._get_affected_assets(
+            updated_asset.key
+        )
 
         # Output voltage can still be 0 for some assets even though
         # their input voltage > 0
@@ -270,7 +275,7 @@ class Engine(Component):
         new_out_volt = new_volt * (power_e_result.new_state if power_e_result else 1)
 
         volt_event = functools.partial(
-            PowerEventMap.map_voltage_event, old_volt, new_out_volt
+            PowerEventMap.map_voltage_event, updated_asset.key, old_volt, new_out_volt
         )
 
         # internal node: fire voltage updates down the power stream
@@ -289,7 +294,7 @@ class Engine(Component):
             )
 
     def _chain_load_update(self, event_result: LoadEventResult):
-        """React to load update event by propogating the load changes 
+        """React to load update event by propagating the load changes 
         up the power stream
         
         Args:
@@ -352,7 +357,6 @@ class Engine(Component):
         for parent in online_parents:
 
             leaf_node_amp = load_change * parent.state.draw_percentage
-
             load_upd = offline_parents_load + leaf_node_amp
             # fire load increase/decrease depending on the
             # new state of the updated asset
@@ -362,9 +366,6 @@ class Engine(Component):
                 p_event = PowerEventMap.map_load_decreased_by
 
             self.fire(p_event(abs(load_upd), updated_asset.key), parent)
-
-        # if new_state == 0:
-        #     updated_asset.state.update_load(0)
 
     def _process_int_node_power_event(
         self,
@@ -405,7 +406,9 @@ class Engine(Component):
 
             out_volt = updated_asset.state.output_voltage
             event = PowerEventMap.map_voltage_event(
-                new_value=new_state * out_volt, old_value=(new_state ^ 1) * out_volt
+                source_key=updated_asset.key,
+                new_value=new_state * out_volt,
+                old_value=(new_state ^ 1) * out_volt,
             )
 
             self.fire(event, child_asset)
@@ -433,10 +436,10 @@ class Engine(Component):
             self.fire(get_child_load_event(new_state ^ 1), alt_parent_asset)
 
             # change load up the node power stream (power source of the updated node)
-            load_child_event = PowerEventMap.map_child_event(
-                new_state, child_load, updated_asset.key
-            )
-            self.fire(load_child_event, updated_asset)
+            # load_child_event = PowerEventMap.map_child_event(
+            #     new_state, child_load, updated_asset.key
+            # )
+            # self.fire(load_child_event, updated_asset)
 
     def _notify_client(self, client_request, data):
         """Notify the WebSocket client(s) of any changes in asset states 

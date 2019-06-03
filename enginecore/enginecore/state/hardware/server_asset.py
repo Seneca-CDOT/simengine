@@ -44,6 +44,8 @@ class ServerWithBMC(Server):
     def __init__(self, asset_info):
         super(ServerWithBMC, self).__init__(asset_info)
 
+        print(asset_info)
+
         # create state directory
         ipmi_dir = os.path.join(get_temp_workplace_dir(), str(asset_info["key"]))
         os.makedirs(ipmi_dir)
@@ -149,7 +151,6 @@ class ServerWithBMC(Server):
             new_ambient=kwargs["new_value"], old_ambient=kwargs["old_value"]
         )
 
-    # @handler("ParentAssetPowerDown")
     def on_power_off_request_received(self, event, *args, **kwargs):
         self._ipmi_agent.stop_agent()
         e_result = self.power_off()
@@ -157,7 +158,6 @@ class ServerWithBMC(Server):
             self._sensor_repo.shut_down_sensors()
         return e_result
 
-    # @handler("ParentAssetPowerUp")
     def on_power_up_request_received(self, event, *args, **kwargs):
         self._ipmi_agent.start_agent()
         e_result = self.power_up()
@@ -174,6 +174,15 @@ class ServerWithBMC(Server):
     def on_asset_did_power_on(self):
         """Update senosrs on power online"""
         self._sensor_repo.power_up_sensors()
+
+    @handler("VoltageIncreased", priority=-1)
+    def on_voltage_increase_s(self, event, *args, **kwargs):
+        """Handle input power voltage increase"""
+        print("volt in", kwargs)
+
+    @handler("VoltageDecreased", priority=-1)
+    def on_voltage_decrease_s(self, event, *args, **kwargs):
+        print("volt de", kwargs)
 
 
 @register_asset
