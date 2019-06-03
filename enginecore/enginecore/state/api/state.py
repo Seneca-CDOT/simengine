@@ -106,7 +106,8 @@ class IStateManager:
     @property
     def input_voltage(self):
         """Asset input voltage in Volts"""
-        return float(IStateManager.get_store().get(self.redis_key + ":in-voltage"))
+        in_volt = IStateManager.get_store().get(self.redis_key + ":in-voltage")
+        return float(in_volt) if in_volt else 0.0
 
     @property
     def output_voltage(self):
