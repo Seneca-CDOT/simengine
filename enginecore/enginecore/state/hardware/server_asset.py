@@ -14,6 +14,8 @@ from threading import Thread
 from circuits import handler
 
 from enginecore.state.hardware.static_asset import StaticAsset
+from enginecore.state.api.state import IStateManager
+
 from enginecore.state.hardware.asset_definition import register_asset
 import enginecore.state.hardware.internal_state as in_state
 
@@ -31,7 +33,31 @@ class Server(StaticAsset):
 
     def __init__(self, asset_info):
         super(Server, self).__init__(asset_info)
+        self._psu_sm = {}
+
+        for i in range(1, asset_info["num_components"] + 1):
+            psu_key = self.key * 10 + i
+            self._psu_sm[psu_key] = IStateManager.get_state_manager_by_key(psu_key)
+
         self.state.power_up()
+
+    @handler("VoltageIncreased")
+    def on_voltage_increase(self, event, *args, **kwargs):
+        """Handle input power voltage increase"""
+
+        power_event_result = None
+        volt_event_result = self._get_voltage_event_result(kwargs)
+
+        return volt_event_result, power_event_result
+
+    @handler("VoltageDecreased")
+    def on_voltage_decrease(self, event, *args, **kwargs):
+        """Handle input power voltage drop"""
+
+        power_event_result = None
+        volt_event_result = self._get_voltage_event_result(kwargs)
+
+        return volt_event_result, power_event_result
 
 
 @register_asset
@@ -43,8 +69,6 @@ class ServerWithBMC(Server):
 
     def __init__(self, asset_info):
         super(ServerWithBMC, self).__init__(asset_info)
-
-        print(asset_info)
 
         # create state directory
         ipmi_dir = os.path.join(get_temp_workplace_dir(), str(asset_info["key"]))
@@ -174,15 +198,6 @@ class ServerWithBMC(Server):
     def on_asset_did_power_on(self):
         """Update senosrs on power online"""
         self._sensor_repo.power_up_sensors()
-
-    @handler("VoltageIncreased", priority=-1)
-    def on_voltage_increase_s(self, event, *args, **kwargs):
-        """Handle input power voltage increase"""
-        print("volt in", kwargs)
-
-    @handler("VoltageDecreased", priority=-1)
-    def on_voltage_decrease_s(self, event, *args, **kwargs):
-        print("volt de", kwargs)
 
 
 @register_asset

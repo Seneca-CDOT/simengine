@@ -341,6 +341,7 @@ class Engine(Component):
         offline_parents_load = 0
         online_parents = []
 
+        print(parent_assets)
         for parent in parent_assets:
 
             parent_load_change = load_change * parent.state.draw_percentage
@@ -355,6 +356,12 @@ class Engine(Component):
         # for each parent that is either online or it's load is not zero
         # update the load value
         for parent in online_parents:
+
+            # print("parent:", parent.key)
+            # print(parent)
+            # print("load change:", load_change)
+            # print("draw :", parent.state.draw_percentage)
+            # print("offline_parents_load:", offline_parents_load)
 
             leaf_node_amp = load_change * parent.state.draw_percentage
             load_upd = offline_parents_load + leaf_node_amp
