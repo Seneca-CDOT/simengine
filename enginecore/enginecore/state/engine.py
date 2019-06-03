@@ -237,7 +237,7 @@ class Engine(Component):
                 updated_asset, self._assets[child["key"]], new_state, alt_parent_asset
             )
 
-    # TODO: add lru cache
+    @functools.lru_cache(maxsize=200)
     def _get_affected_assets(self, asset_key):
         """Get neighbouring hardware devices of the updated asset"""
 
