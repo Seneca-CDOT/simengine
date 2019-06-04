@@ -307,6 +307,27 @@ class UPS(Asset, SNMPSim):
             new_voltage=event_details["new_value"],
         )
 
+    def _get_load_event_result(self, volt_event_details, power_e_result=None):
+        """Get formatted load event result"""
+
+        new_volt = volt_event_details["new_value"]
+
+        calc_load = lambda v: self.state.power_consumption / v if v else 0
+
+        old_load = self.state.load * (power_e_result.old_state if power_e_result else 1)
+        new_load = self.state.load * (power_e_result.new_state if power_e_result else 1)
+
+        print(power_e_result)
+        if old_load == new_load:
+            return None
+
+        return event_results.LoadEventResult(
+            asset_key=self.state.key,
+            asset_type=self.state.asset_type,
+            old_load=old_load,
+            new_load=new_load,
+        )
+
     @handler("VoltageIncreased")
     def on_voltage_increase(self, event, *args, **kwargs):
         """On voltage increase, analyze new voltage and determine if
@@ -340,7 +361,9 @@ class UPS(Asset, SNMPSim):
             {"old_value": old_out_volt, "new_value": new_out_volt}
         )
 
-        return volt_event_result, power_event_result
+        load_event_result = self._get_load_event_result(kwargs, power_event_result)
+
+        return volt_event_result, power_event_result, load_event_result
 
     @handler("VoltageDecreased")
     def on_voltage_decrease(self, event, *args, **kwargs):
@@ -371,7 +394,10 @@ class UPS(Asset, SNMPSim):
         volt_event_result = self._get_voltage_event_result(
             {"old_value": old_out_volt, "new_value": new_out_volt}
         )
-        return volt_event_result, power_event_result
+
+        load_event_result = self._get_load_event_result(kwargs, power_event_result)
+
+        return volt_event_result, power_event_result, load_event_result
 
     @property
     def charge_speed_factor(self):

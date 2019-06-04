@@ -253,7 +253,10 @@ class Engine(Component):
         return child_assets, parent_assets, alt_parent_asset
 
     def _chain_voltage_update(
-        self, volt_e_result: VoltageEventResult, power_e_result: PowerEventResult = None
+        self,
+        volt_e_result: VoltageEventResult,
+        power_e_result: PowerEventResult = None,
+        load_e_result: LoadEventResult = None,
     ):
         """Chain voltage updates down the power stream
         """
@@ -261,17 +264,25 @@ class Engine(Component):
         old_volt, new_volt = volt_e_result.old_voltage, volt_e_result.new_voltage
         updated_asset = self._assets[volt_e_result.asset_key]
 
-        if old_volt == new_volt:
-            return
-
         child_assets, parent_assets, alt_parent_asset = self._get_affected_assets(
             updated_asset.key
         )
 
+        # Voltage event causing load update up the power stream
+        if load_e_result and parent_assets:
+            # process leaf node, update load up the power chain
+            self._process_leaf_node_power_event(
+                updated_asset,
+                load_e_result.new_load - load_e_result.old_load,
+                parent_assets,
+            )
+
+        if old_volt == new_volt:
+            return
+
         # Output voltage can still be 0 for some assets even though
         # their input voltage > 0
         # (most devices require at least 90V-100V in order to function)
-        old_out_volt = old_volt * (power_e_result.old_state if power_e_result else 1)
         new_out_volt = new_volt * (power_e_result.new_state if power_e_result else 1)
 
         volt_event = functools.partial(
@@ -282,16 +293,6 @@ class Engine(Component):
         # (children powered by the updated asset)
         for child in child_assets:
             self.fire(volt_event(), child)
-
-        # find load difference between old & new state
-        upd_asset_load = lambda v: updated_asset.state.power_consumption / v if v else 0
-        load_change = upd_asset_load(new_out_volt) - upd_asset_load(old_out_volt)
-
-        # process leaf node, update load up the power chain
-        if parent_assets and load_change:
-            self._process_leaf_node_power_event(
-                updated_asset, load_change, parent_assets
-            )
 
     def _chain_load_update(self, event_result: LoadEventResult):
         """React to load update event by propagating the load changes 
@@ -589,8 +590,13 @@ class Engine(Component):
     def _voltage_success(self, event_results):
         """Process voltage event results"""
 
-        volt_e_result, power_e_result = event_results
-        print(volt_e_result, power_e_result)
+        volt_e_result, power_e_result, load_e_result = event_results
+
+        print("-" * 35)
+        print("-->", volt_e_result)
+        print("-->", power_e_result)
+        print("-->", load_e_result)
+        print("-" * 35)
 
         if power_e_result and power_e_result.new_state != power_e_result.old_state:
             self._notify_client(
@@ -601,7 +607,7 @@ class Engine(Component):
                 },
             )
 
-        self._chain_voltage_update(volt_e_result, power_e_result)
+        self._chain_voltage_update(volt_e_result, power_e_result, load_e_result)
 
     def SignalDown_success(self, evt, event_result):
         """When asset is powered down """

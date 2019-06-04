@@ -41,23 +41,23 @@ class Server(StaticAsset):
 
         self.state.power_up()
 
-    @handler("VoltageIncreased")
-    def on_voltage_increase(self, event, *args, **kwargs):
-        """Handle input power voltage increase"""
+    # @handler("VoltageIncreased")
+    # def on_voltage_increase(self, event, *args, **kwargs):
+    #     """Handle input power voltage increase"""
 
-        power_event_result = None
-        volt_event_result = self._get_voltage_event_result(kwargs)
+    #     power_event_result = None
+    #     volt_event_result = self._get_voltage_event_result(kwargs)
 
-        return volt_event_result, power_event_result
+    #     return volt_event_result, power_event_result
 
-    @handler("VoltageDecreased")
-    def on_voltage_decrease(self, event, *args, **kwargs):
-        """Handle input power voltage drop"""
+    # @handler("VoltageDecreased")
+    # def on_voltage_decrease(self, event, *args, **kwargs):
+    #     """Handle input power voltage drop"""
 
-        power_event_result = None
-        volt_event_result = self._get_voltage_event_result(kwargs)
+    #     power_event_result = None
+    #     volt_event_result = self._get_voltage_event_result(kwargs)
 
-        return volt_event_result, power_event_result
+    #     return volt_event_result, power_event_result
 
 
 @register_asset

@@ -172,6 +172,33 @@ class Asset(Component):
             new_voltage=event_details["new_value"],
         )
 
+    def _get_load_event_result(self, volt_event_details, power_e_result=None):
+        """Get formatted load event result"""
+
+        old_volt, new_volt = (
+            volt_event_details["old_value"],
+            volt_event_details["new_value"],
+        )
+        calc_load = lambda v: self.state.power_consumption / v if v else 0
+
+        # Output voltage can still be 0 for some assets even though
+        # their input voltage > 0
+        # (most devices require at least 90V-100V in order to function)
+        old_out_volt = old_volt * (power_e_result.old_state if power_e_result else 1)
+        new_out_volt = new_volt * (power_e_result.new_state if power_e_result else 1)
+
+        old_load, new_load = (calc_load(volt) for volt in [old_out_volt, new_out_volt])
+
+        if old_load == new_load == 0:
+            return None
+
+        return event_results.LoadEventResult(
+            asset_key=self.state.key,
+            asset_type=self.state.asset_type,
+            old_load=old_load,
+            new_load=new_load,
+        )
+
     @handler("VoltageIncreased", "VoltageDecreased", priority=-1)
     def detect_input_voltage(self, event, *args, **kwargs):
         """Update input voltage"""
@@ -204,7 +231,8 @@ class Asset(Component):
         if not self.state.status:
             event.success = False
 
-        return volt_event_result, power_event_result
+        load_event_result = self._get_load_event_result(kwargs, power_event_result)
+        return volt_event_result, power_event_result, load_event_result
 
     @handler("VoltageDecreased")
     def on_voltage_decrease(self, event, *args, **kwargs):
@@ -224,7 +252,8 @@ class Asset(Component):
             if power_event_result.new_state != power_event_result.old_state:
                 self.state_reason = asset_events.VoltageDecreased
 
-        return volt_event_result, power_event_result
+        load_event_result = self._get_load_event_result(kwargs, power_event_result)
+        return volt_event_result, power_event_result, load_event_result
 
     def on_power_up_request_received(self, event, *args, **kwargs):
         """Called on voltage spike"""
