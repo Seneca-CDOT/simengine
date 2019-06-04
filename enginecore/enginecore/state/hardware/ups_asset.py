@@ -307,17 +307,21 @@ class UPS(Asset, SNMPSim):
             new_voltage=event_details["new_value"],
         )
 
-    def _get_load_event_result(self, volt_event_details, power_e_result=None):
-        """Get formatted load event result"""
+    def _get_ups_load_update(self, should_transfer):
+        """Get formatted load event result 
+        (load update that needs to be propagated up the power stream)
+        """
 
-        new_volt = volt_event_details["new_value"]
+        # Meaning ups state hasn't changed
+        # (it was already on battery or it was already using input power)
+        if should_transfer == self.state.on_battery:
+            return None
 
-        calc_load = lambda v: self.state.power_consumption / v if v else 0
+        if should_transfer:
+            old_load, new_load = self.state.load, 0
+        else:
+            old_load, new_load = 0, self.state.load
 
-        old_load = self.state.load * (power_e_result.old_state if power_e_result else 1)
-        new_load = self.state.load * (power_e_result.new_state if power_e_result else 1)
-
-        print(power_e_result)
         if old_load == new_load:
             return None
 
@@ -340,6 +344,7 @@ class UPS(Asset, SNMPSim):
         new_out_volt = in_voltage
 
         should_transfer, reason = self.state.process_voltage(in_voltage)
+        load_event_result = self._get_ups_load_update(should_transfer)
 
         # transfer back to input power
         if not should_transfer and self.state.on_battery:
@@ -361,8 +366,6 @@ class UPS(Asset, SNMPSim):
             {"old_value": old_out_volt, "new_value": new_out_volt}
         )
 
-        load_event_result = self._get_load_event_result(kwargs, power_event_result)
-
         return volt_event_result, power_event_result, load_event_result
 
     @handler("VoltageDecreased")
@@ -377,6 +380,8 @@ class UPS(Asset, SNMPSim):
 
         battery_level = self.state.battery_level
         should_transfer, reason = self.state.process_voltage(in_voltage)
+        load_event_result = self._get_ups_load_update(should_transfer)
+
         high_line_t_reason = self.state.InputLineFailCause.highLineVoltage
 
         # voltage is low, transfer to battery
@@ -394,8 +399,6 @@ class UPS(Asset, SNMPSim):
         volt_event_result = self._get_voltage_event_result(
             {"old_value": old_out_volt, "new_value": new_out_volt}
         )
-
-        load_event_result = self._get_load_event_result(kwargs, power_event_result)
 
         return volt_event_result, power_event_result, load_event_result
 

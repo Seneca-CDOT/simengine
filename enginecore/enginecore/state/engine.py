@@ -284,6 +284,7 @@ class Engine(Component):
         # their input voltage > 0
         # (most devices require at least 90V-100V in order to function)
         new_out_volt = new_volt * (power_e_result.new_state if power_e_result else 1)
+        # n_out_volt = new_volt * (power_e_result.new_state if power_e_result else 1)
 
         volt_event = functools.partial(
             PowerEventMap.map_voltage_event, updated_asset.key, old_volt, new_out_volt
@@ -413,6 +414,7 @@ class Engine(Component):
         if not (alt_parent_asset and alt_parent_asset.state.status):
 
             out_volt = updated_asset.state.output_voltage
+            print(updated_asset.state)
             event = PowerEventMap.map_voltage_event(
                 source_key=updated_asset.key,
                 new_value=new_state * out_volt,
