@@ -168,23 +168,15 @@ class IStateManager:
             self._set_state_on()
         return self.status
 
-    def _update_input_voltage(self, voltage):
+    def _update_input_voltage(self, voltage: float):
         """Set input voltage"""
         voltage = max(voltage, 0)
         IStateManager.get_store().set(self.redis_key + ":in-voltage", voltage)
 
-    def _update_load(self, load, publish=False):
-        """Update amps"""
-        load = load if load >= 0 else 0
+    def _update_load(self, load: float):
+        """Update power load for the asset"""
+        load = load if load >= 0.0 else 0.0
         IStateManager.get_store().set(self.redis_key + ":load", load)
-
-    def _publish_load(self, old_load):
-        """Publish load changes """
-        print("\n", "PUBLISHING")
-        IStateManager.get_store().publish(
-            RedisChannels.load_update_channel,
-            json.dumps({"key": self.key, "new_load": self.load, "old_load": old_load}),
-        )
 
     def _sleep_delay(self, delay_type):
         """Sleep for n number of ms determined by the delay_type"""

@@ -343,7 +343,6 @@ class Engine(Component):
         offline_parents_load = 0
         online_parents = []
 
-        print(parent_assets)
         for parent in parent_assets:
 
             parent_load_change = load_change * parent.state.draw_percentage
@@ -413,8 +412,12 @@ class Engine(Component):
         # power up/down child assets if there's no alternative power source
         if not (alt_parent_asset and alt_parent_asset.state.status):
 
-            out_volt = updated_asset.state.output_voltage
-            print(updated_asset.state)
+            out_volt = (
+                updated_asset.state.output_voltage
+                if new_state
+                else child_asset.state.input_voltage
+            )
+
             event = PowerEventMap.map_voltage_event(
                 source_key=updated_asset.key,
                 new_value=new_state * out_volt,
