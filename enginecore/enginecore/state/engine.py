@@ -412,6 +412,7 @@ class Engine(Component):
         # power up/down child assets if there's no alternative power source
         if not (alt_parent_asset and alt_parent_asset.state.status):
 
+            # if updated asset is already powered down, use child's in voltage instead
             out_volt = (
                 updated_asset.state.output_voltage
                 if new_state

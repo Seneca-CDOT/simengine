@@ -195,6 +195,7 @@ class Asset(Component):
         return event_results.LoadEventResult(
             asset_key=self.state.key,
             asset_type=self.state.asset_type,
+            parent_key=volt_event_details["source_key"],
             old_load=old_load,
             new_load=new_load,
         )
@@ -211,7 +212,16 @@ class Asset(Component):
 
     @handler("VoltageIncreased")
     def on_voltage_increase(self, event, *args, **kwargs):
-        """Handle input power voltage increase"""
+        """React to input voltage spike;
+        Asset can power up on volt increase if it was down, event propagation
+        gets cancelled if asset's state doesn't change
+
+        Returns:
+            tuple: 3 event results:
+                VoltageEventResult : to be propagated to this asset's children
+                PowerEventResult   : asset power state changes if any
+                LoadEventResult    : load change (to be propagated up the power stream)
+        """
 
         power_event_result = None
         volt_event_result = self._get_voltage_event_result(kwargs)
@@ -236,7 +246,17 @@ class Asset(Component):
 
     @handler("VoltageDecreased")
     def on_voltage_decrease(self, event, *args, **kwargs):
-        """Handle input power voltage drop"""
+        """React to input voltage drop;
+        Asset can power off if input voltage drops below the acceptable
+        threshold. Event propagation gets cancelled if no state changes
+        occured.
+
+        Returns:
+            tuple: 3 event results:
+                VoltageEventResult : to be propagated to this asset's children
+                PowerEventResult   : asset power state changes if any
+                LoadEventResult    : load change (to be propagated up the power stream)
+        """
 
         power_event_result = None
         volt_event_result = self._get_voltage_event_result(kwargs)

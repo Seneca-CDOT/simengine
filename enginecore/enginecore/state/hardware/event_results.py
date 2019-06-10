@@ -11,7 +11,7 @@ PowerEventResult = namedtuple(
 PowerEventResult.__new__.__defaults__ = (None,) * len(PowerEventResult._fields)
 
 LoadEventResult = namedtuple(
-    "LoadEventResult", "old_load new_load asset_key asset_type"
+    "LoadEventResult", "old_load new_load asset_key asset_type parent_key"
 )
 LoadEventResult.__new__.__defaults__ = (None,) * len(PowerEventResult._fields)
 

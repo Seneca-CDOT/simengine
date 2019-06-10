@@ -22,6 +22,7 @@ import enginecore.state.hardware.internal_state as in_state
 from enginecore.state.agent import IPMIAgent, StorCLIEmulator
 from enginecore.state.sensor.repository import SensorRepository
 from enginecore.state.state_initializer import get_temp_workplace_dir
+from enginecore.state.hardware import event_results
 
 
 @register_asset
@@ -41,23 +42,62 @@ class Server(StaticAsset):
 
         self.state.power_up()
 
-    # @handler("VoltageIncreased")
-    # def on_voltage_increase(self, event, *args, **kwargs):
-    #     """Handle input power voltage increase"""
+    def _get_server_load_update(self, volt_event_details, power_e_result=None):
+        """Get formatted load event result 
+        (load update that needs to be propagated up the power stream)
+        """
 
-    #     power_event_result = None
-    #     volt_event_result = self._get_voltage_event_result(kwargs)
+        old_volt, new_volt = (
+            volt_event_details["old_value"],
+            volt_event_details["new_value"],
+        )
 
-    #     return volt_event_result, power_event_result
+        source_psu = self._psu_sm[volt_event_details["source_key"]]
+        calc_load = (
+            lambda v: (self.state.power_consumption / v if v else 0)
+            * source_psu.draw_percentage
+        )
 
-    # @handler("VoltageDecreased")
-    # def on_voltage_decrease(self, event, *args, **kwargs):
-    #     """Handle input power voltage drop"""
+        # Output voltage can still be 0 for some assets even though
+        # their input voltage > 0
+        # (most devices require at least 90V-100V in order to function)
+        old_out_volt = old_volt * (power_e_result.old_state if power_e_result else 1)
+        new_out_volt = new_volt * (power_e_result.new_state if power_e_result else 1)
 
-    #     power_event_result = None
-    #     volt_event_result = self._get_voltage_event_result(kwargs)
+        old_load, new_load = (calc_load(volt) for volt in [old_out_volt, new_out_volt])
 
-    #     return volt_event_result, power_event_result
+        if old_load == new_load == 0:
+            return None
+
+        return event_results.LoadEventResult(
+            asset_key=self.state.key,
+            asset_type=self.state.asset_type,
+            parent_key=volt_event_details["source_key"],
+            old_load=old_load,
+            new_load=new_load,
+        )
+
+    @handler("VoltageIncreased")
+    def on_voltage_increase(self, event, *args, **kwargs):
+        """Handle input power voltage increase"""
+
+        power_event_result = None
+
+        volt_event_result = self._get_voltage_event_result(kwargs)
+        load_event_result = self._get_server_load_update(kwargs)
+
+        return volt_event_result, power_event_result, load_event_result
+
+    @handler("VoltageDecreased")
+    def on_voltage_decrease(self, event, *args, **kwargs):
+        """Handle input power voltage drop"""
+
+        power_event_result = None
+
+        volt_event_result = self._get_voltage_event_result(kwargs)
+        load_event_result = self._get_server_load_update(kwargs)
+
+        return volt_event_result, power_event_result, load_event_result
 
 
 @register_asset
