@@ -192,13 +192,15 @@ class Asset(Component):
         if old_load == new_load == 0:
             return None
 
-        return event_results.LoadEventResult(
-            asset_key=self.state.key,
-            asset_type=self.state.asset_type,
-            parent_key=volt_event_details["source_key"],
-            old_load=old_load,
-            new_load=new_load,
-        )
+        return [
+            event_results.LoadEventResult(
+                asset_key=self.state.key,
+                asset_type=self.state.asset_type,
+                parent_key=volt_event_details["source_key"],
+                old_load=old_load,
+                new_load=new_load,
+            )
+        ]
 
     @handler("VoltageIncreased", "VoltageDecreased", priority=-1)
     def detect_input_voltage(self, event, *args, **kwargs):

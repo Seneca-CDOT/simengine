@@ -221,15 +221,14 @@ class Engine(Component):
             )
 
         alt_parent_asset = self._assets[_2nd_parent["key"]] if _2nd_parent else None
-        parent_assets = list(map(lambda p: self._assets[p["key"]], parent_info))
+        parent_assets_keys = list(map(lambda p: p["key"], parent_info))
 
         # Meaning it's a leaf node -> update load up the power chain if needed
-        if not children and parent_assets:
+        if not children and parent_assets_keys:
 
-            volt_change = (1 if new_state else -1) * updated_asset.state.power_usage
-            self._process_leaf_node_power_event(
-                updated_asset, volt_change, parent_assets
-            )
+            load_change = (1 if new_state else -1) * updated_asset.state.power_usage
+            for key in parent_assets_keys:
+                self._process_leaf_node_power_event(updated_asset, load_change, key)
 
         # Check assets down the power stream (assets powered by the updated asset)
         for child in children:
@@ -256,7 +255,7 @@ class Engine(Component):
         self,
         volt_e_result: VoltageEventResult,
         power_e_result: PowerEventResult = None,
-        load_e_result: LoadEventResult = None,
+        load_e_results=None,
     ):
         """Chain voltage updates down the power stream
         """
@@ -269,13 +268,12 @@ class Engine(Component):
         )
 
         # Voltage event causing load update up the power stream
-        if load_e_result and parent_assets:
-            # process leaf node, update load up the power chain
-            self._process_leaf_node_power_event(
-                updated_asset,
-                load_e_result.new_load - load_e_result.old_load,
-                parent_assets,
-            )
+        if load_e_results and parent_assets:
+            for load_e in load_e_results:
+                # process leaf node, update load up the power chain
+                self._process_leaf_node_power_event(
+                    updated_asset, load_e.new_load - load_e.old_load, load_e.parent_key
+                )
 
         if old_volt == new_volt:
             return
@@ -331,7 +329,7 @@ class Engine(Component):
             self.fire(child_event(parent_load_change, child_asset.key), parent)
 
     def _process_leaf_node_power_event(
-        self, updated_asset: Asset, load_change: float, parent_assets: list
+        self, updated_asset: Asset, load_change: float, parent: int
     ):
         """React to leaf node power event (power up/down) by firing load updates up
         the power supply chain.
@@ -340,9 +338,19 @@ class Engine(Component):
             load_change: load change
             parent_assets: Assets powering the leaf node
         """
+
+        if load_change > 0:
+            p_event = PowerEventMap.map_load_increased_by
+        else:
+            p_event = PowerEventMap.map_load_decreased_by
+
+        # TODO: move self._assets[parent] to caller
+        self.fire(p_event(abs(load_change), updated_asset.key), self._assets[parent])
+        return
+
         offline_parents_load = 0
         online_parents = []
-
+        parent_assets = []
         for parent in parent_assets:
 
             parent_load_change = load_change * parent.state.draw_percentage
@@ -596,12 +604,12 @@ class Engine(Component):
     def _voltage_success(self, event_results):
         """Process voltage event results"""
 
-        volt_e_result, power_e_result, load_e_result = event_results
+        volt_e_result, power_e_result, load_e_results = event_results
 
         print("-" * 35)
         print("-->", volt_e_result)
         print("-->", power_e_result)
-        print("-->", load_e_result)
+        print("-->", load_e_results)
         print("-" * 35)
 
         if power_e_result and power_e_result.new_state != power_e_result.old_state:
@@ -613,7 +621,7 @@ class Engine(Component):
                 },
             )
 
-        self._chain_voltage_update(volt_e_result, power_e_result, load_e_result)
+        self._chain_voltage_update(volt_e_result, power_e_result, load_e_results)
 
     def SignalDown_success(self, evt, event_result):
         """When asset is powered down """

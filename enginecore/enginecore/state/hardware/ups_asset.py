@@ -325,13 +325,15 @@ class UPS(Asset, SNMPSim):
         if old_load == new_load:
             return None
 
-        return event_results.LoadEventResult(
-            asset_key=self.state.key,
-            asset_type=self.state.asset_type,
-            parent_key=source_key,
-            old_load=old_load,
-            new_load=new_load,
-        )
+        return [
+            event_results.LoadEventResult(
+                asset_key=self.state.key,
+                asset_type=self.state.asset_type,
+                parent_key=source_key,
+                old_load=old_load,
+                new_load=new_load,
+            )
+        ]
 
     @handler("VoltageIncreased")
     def on_voltage_increase(self, event, *args, **kwargs):
