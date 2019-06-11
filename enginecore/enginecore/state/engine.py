@@ -609,7 +609,8 @@ class Engine(Component):
         print("-" * 35)
         print("-->", volt_e_result)
         print("-->", power_e_result)
-        print("-->", load_e_results)
+        if load_e_results:
+            [print("-->", x) for x in load_e_results]
         print("-" * 35)
 
         if power_e_result and power_e_result.new_state != power_e_result.old_state:

@@ -104,7 +104,7 @@ class Asset(Component):
             new_state=self.state.power_off(),
         )
 
-    def _update_load(self, load_change, arithmetic_op, msg=""):
+    def _update_load(self, load_change, arithmetic_op):
         """React to load changes by updating asset load
         
         Args:
@@ -121,9 +121,6 @@ class Asset(Component):
         old_load = self.state.load
         new_load = arithmetic_op(old_load, load_change)
 
-        if msg:
-            logging.info(msg.format(self.state.key, old_load, load_change, new_load))
-
         self.state.update_load(new_load)
 
         return event_results.LoadEventResult(
@@ -138,8 +135,7 @@ class Asset(Component):
         """
 
         increased_by = kwargs["child_load"]
-        msg = "Asset:[{}] load {:.2f} was increased by {:.2f}, new load={:.2f};"
-        return self._update_load(increased_by, lambda old, change: old + change, msg)
+        return self._update_load(increased_by, lambda old, change: old + change)
 
     @handler("ChildAssetLoadDecreased", "ChildAssetPowerDown")
     def on_load_decrease(self, event, *args, **kwargs):
@@ -149,8 +145,7 @@ class Asset(Component):
         """
 
         decreased_by = kwargs["child_load"]
-        msg = "Asset:[{}] load {:.2f} was decreased by {:.2f}, new load={:.2f};"
-        return self._update_load(decreased_by, lambda old, change: old - change, msg)
+        return self._update_load(decreased_by, lambda old, change: old - change)
 
     @handler("ButtonPowerDownPressed")
     def on_btn_power_down(self, event):

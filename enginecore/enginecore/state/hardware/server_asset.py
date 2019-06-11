@@ -8,6 +8,7 @@ Both server types have a unique VM (domain) assigned to them
 import os
 import time
 import logging
+import math
 import operator
 from threading import Thread
 
@@ -57,10 +58,7 @@ class Server(StaticAsset):
 
         source_psu = self._psu_sm[src_key]
 
-        calc_load = (
-            lambda v: (self.state.power_consumption / v if v else 0)
-            * source_psu.draw_percentage
-        )
+        calc_load = lambda v: (self.state.power_consumption / v if v else 0)
 
         # Output voltage can still be 0 for some assets even though
         # their input voltage > 0
@@ -73,28 +71,17 @@ class Server(StaticAsset):
         if old_load == new_load == 0:
             return None
 
-        load_e_results.append(
-            event_results.LoadEventResult(
-                asset_key=self.state.key,
-                asset_type=self.state.asset_type,
-                parent_key=src_key,
-                old_load=old_load,
-                new_load=new_load,
-            )
-        )
-
-        alt_parent_psus = [psu for psu in self._psu_sm.values() if psu != source_psu]
         load_change = new_load - old_load
-        for psu in alt_parent_psus:
-            load_e_results.append(
-                event_results.LoadEventResult(
-                    asset_key=self.state.key,
-                    asset_type=self.state.asset_type,
-                    parent_key=psu.key,
-                    old_load=psu.load,
-                    new_load=psu.load + (load_change * -1),
-                )
-            )
+
+        #     load_e_results.append(
+        #         event_results.LoadEventResult(
+        #             asset_key=self.state.key,
+        #             asset_type=self.state.asset_type,
+        #             parent_key=psu.key,
+        #             old_load=psu.load,
+        #             new_load=psu.load + (load_change * -1),
+        #         )
+        #     )
 
         return load_e_results
 

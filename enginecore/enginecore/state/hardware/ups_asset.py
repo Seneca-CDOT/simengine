@@ -448,8 +448,8 @@ class UPS(Asset, SNMPSim):
     def drain_speed_factor(self, speed):
         self._drain_speed_factor = speed
 
-    def _update_load(self, load_change, arithmetic_op, msg=""):
-        upd_result = super()._update_load(load_change, arithmetic_op, msg)
+    def _update_load(self, load_change, arithmetic_op):
+        upd_result = super()._update_load(load_change, arithmetic_op)
         # re-calculate time left based on updated load
         self.state.update_time_left(self._cacl_time_left(self.state.wattage) * 60 * 100)
         return upd_result
