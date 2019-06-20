@@ -58,7 +58,7 @@ def step_impl(context, low_threshold, volt, volt_change):
 def step_impl(context, volt):
 
     voltage_event = PowerEventMap.map_voltage_event(
-        old_value=context.ups.state.input_voltage, new_value=volt
+        old_value=context.ups.state.input_voltage, new_value=volt, source_key=0
     )
     context.engine.queue_event(voltage_event)
     context.engine.run()
