@@ -228,7 +228,14 @@ class Engine(Component):
 
             load_change = (1 if new_state else -1) * updated_asset.state.power_usage
             for key in parent_assets_keys:
-                self._process_leaf_node_power_event(updated_asset, load_change, key)
+                print(
+                    "\nkey", key, load_change * self._assets[key].state.draw_percentage
+                )
+                self._process_leaf_node_power_event(
+                    updated_asset,
+                    load_change * self._assets[key].state.draw_percentage,
+                    key,
+                )
 
         # Check assets down the power stream (assets powered by the updated asset)
         for child in children:
@@ -338,7 +345,7 @@ class Engine(Component):
             load_change: load change
             parent_assets: Assets powering the leaf node
         """
-
+        print("_process_leaf_node_power_event")
         if load_change > 0:
             p_event = PowerEventMap.map_load_increased_by
         else:
@@ -365,12 +372,6 @@ class Engine(Component):
         # for each parent that is either online or it's load is not zero
         # update the load value
         for parent in online_parents:
-
-            # print("parent:", parent.key)
-            # print(parent)
-            # print("load change:", load_change)
-            # print("draw :", parent.state.draw_percentage)
-            # print("offline_parents_load:", offline_parents_load)
 
             leaf_node_amp = load_change * parent.state.draw_percentage
             load_upd = offline_parents_load + leaf_node_amp

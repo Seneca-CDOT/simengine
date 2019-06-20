@@ -150,6 +150,24 @@ class Server(StaticAsset):
         volt_event_result = self._get_voltage_event_result(kwargs)
         load_event_result = self._get_server_load_update(kwargs)
 
+        alt_psu_up = len(
+            [
+                self._psu_sm[k]
+                for k in self._psu_sm
+                if k != kwargs["source_key"] and self._psu_sm[k].status
+            ]
+        )
+
+        min_voltage = self.state.min_voltage_prop()
+
+        if kwargs["new_value"] <= min_voltage and self.state.status and not alt_psu_up:
+            power_event_result = event_results.PowerEventResult(
+                asset_key=self.state.key,
+                asset_type=self.state.asset_type,
+                old_state=self.state.status,
+                new_state=self.state.power_off(),
+            )
+
         return volt_event_result, power_event_result, load_event_result
 
 

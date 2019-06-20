@@ -176,6 +176,7 @@ class Asset(Component):
         )
         calc_load = lambda v: self.state.power_consumption / v if v else 0
 
+        # print(self.state)
         # Output voltage can still be 0 for some assets even though
         # their input voltage > 0
         # (most devices require at least 90V-100V in order to function)
@@ -183,6 +184,7 @@ class Asset(Component):
         new_out_volt = new_volt * (power_e_result.new_state if power_e_result else 1)
 
         old_load, new_load = (calc_load(volt) for volt in [old_out_volt, new_out_volt])
+        old_load = self.state.load  # TODO: remove old load from above calculations
 
         if old_load == new_load == 0:
             return None
