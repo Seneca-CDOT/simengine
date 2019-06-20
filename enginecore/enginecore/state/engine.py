@@ -418,50 +418,47 @@ class Engine(Component):
         )[new_state](child_load, child_asset.key)
 
         # power up/down child assets if there's no alternative power source
-        if not (alt_parent_asset and alt_parent_asset.state.status):
+        # if not (alt_parent_asset and alt_parent_asset.state.status):
 
-            # if updated asset is already powered down, use child's in voltage instead
-            out_volt = (
-                updated_asset.state.output_voltage
-                if new_state
-                else child_asset.state.input_voltage
-            )
+        # if updated asset is already powered down, use child's in voltage instead
+        out_volt = (
+            updated_asset.state.output_voltage
+            if new_state
+            else child_asset.state.input_voltage
+        )
 
-            event = PowerEventMap.map_voltage_event(
-                source_key=updated_asset.key,
-                new_value=new_state * out_volt,
-                old_value=(new_state ^ 1) * out_volt,
-            )
+        event = PowerEventMap.map_voltage_event(
+            source_key=updated_asset.key,
+            new_value=new_state * out_volt,
+            old_value=(new_state ^ 1) * out_volt,
+        )
 
-            self.fire(event, child_asset)
+        self.fire(event, child_asset)
 
-            # Special case for UPS
-            # ups won't be powered off but the load has to change anyways
-            if (
-                child_asset.state.asset_type == "ups"
-                and child_asset.state.battery_level
-            ):
-                self.fire(get_child_load_event(new_state), updated_asset)
+        # Special case for UPS
+        # ups won't be powered off but the load has to change anyways
+        if child_asset.state.asset_type == "ups" and child_asset.state.battery_level:
+            self.fire(get_child_load_event(new_state), updated_asset)
 
         # check upstream & branching power
         # alternative power source is available,
         # therefore the load needs to be re-distributed
-        else:
-            logging.info(
-                "Asset[%s] has alternative parent[%s]",
-                child_asset.key,
-                alt_parent_asset.key,
-            )
+        # else:
+        #     logging.info(
+        #         "Asset[%s] has alternative parent[%s]",
+        #         child_asset.key,
+        #         alt_parent_asset.key,
+        # )
 
-            # increase/decrease power on the neighbouring power stream
-            # (how much updated asset was drawing)
-            self.fire(get_child_load_event(new_state ^ 1), alt_parent_asset)
+        # increase/decrease power on the neighbouring power stream
+        # (how much updated asset was drawing)
+        # self.fire(get_child_load_event(new_state ^ 1), alt_parent_asset)
 
-            # change load up the node power stream (power source of the updated node)
-            # load_child_event = PowerEventMap.map_child_event(
-            #     new_state, child_load, updated_asset.key
-            # )
-            # self.fire(load_child_event, updated_asset)
+        # change load up the node power stream (power source of the updated node)
+        # load_child_event = PowerEventMap.map_child_event(
+        #     new_state, child_load, updated_asset.key
+        # )
+        # self.fire(load_child_event, updated_asset)
 
     def _notify_client(self, client_request, data):
         """Notify the WebSocket client(s) of any changes in asset states 

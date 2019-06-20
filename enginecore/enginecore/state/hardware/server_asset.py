@@ -78,15 +78,17 @@ class Server(StaticAsset):
         print(source_psu)
 
         _2nd_parent = other_psu[0]
-        load_change = old_load - new_load
+        load_change = abs(old_load - new_load)
+        new_source_psu_load = new_load * source_psu.draw_percentage
+        old_source_psu_load = old_load * source_psu.draw_percentage
 
         load_e_results.append(
             event_results.LoadEventResult(
                 asset_key=self.state.key,
                 asset_type=self.state.asset_type,
                 parent_key=source_psu.key,
-                old_load=old_load,
-                new_load=new_load * source_psu.draw_percentage,
+                old_load=old_source_psu_load,
+                new_load=new_source_psu_load,
             )
         )
 
@@ -104,12 +106,22 @@ class Server(StaticAsset):
                 event_results.LoadEventResult(
                     asset_key=self.state.key,
                     asset_type=self.state.asset_type,
-                    parent_key=source_psu.key,
-                    old_load=source_psu.load,
-                    new_load=new_load * source_psu.draw_percentage,
+                    parent_key=_2nd_parent.key,
+                    old_load=_2nd_parent.load,
+                    new_load=_2nd_parent.load + old_source_psu_load,
                 )
             )
-            # return load_e_results
+        elif not math.isclose(new_out_volt, 0) and _2nd_parent.status:
+            print("&& LOAD REDISTRIBUTION BACK!!!" * 3)
+            load_e_results.append(
+                event_results.LoadEventResult(
+                    asset_key=self.state.key,
+                    asset_type=self.state.asset_type,
+                    parent_key=_2nd_parent.key,
+                    old_load=_2nd_parent.load,
+                    new_load=_2nd_parent.load - new_source_psu_load,
+                )
+            )
 
         print("=\n" * 10)
 
