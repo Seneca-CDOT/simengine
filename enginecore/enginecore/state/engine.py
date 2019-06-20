@@ -10,8 +10,7 @@ import os
 import math
 import functools
 
-from circuits import Component, Event, Worker, Debugger, handler  # , task
-import redis
+from circuits import Component, Event, Worker, Debugger  # , task
 
 from circuits.web import Logger, Server, Static
 from circuits.web.dispatchers import WebSocketsDispatcher
@@ -29,7 +28,6 @@ from enginecore.state.event_map import PowerEventMap
 from enginecore.state.net.ws_server import WebSocket
 from enginecore.state.net.ws_requests import ServerToClientRequests
 
-from enginecore.state.redis_channels import RedisChannels
 from enginecore.model.graph_reference import GraphReference
 from enginecore.state.state_initializer import initialize, clear_temp
 
@@ -47,10 +45,6 @@ class Engine(Component):
 
         ### Set-up WebSocket & Redis listener ###
         logging.info("Starting simengine daemon...")
-
-        # Use redis pub/sub communication
-        logging.info("Initializing redis connection...")
-        self._redis_store = redis.StrictRedis(host="localhost", port=6379)
 
         # assets will store all the devices/items including PDUs, switches etc.
         self._assets = {}
@@ -345,7 +339,7 @@ class Engine(Component):
             load_change: load change
             parent_assets: Assets powering the leaf node
         """
-        print("_process_leaf_node_power_event")
+
         if load_change > 0:
             p_event = PowerEventMap.map_load_increased_by
         else:
@@ -353,36 +347,6 @@ class Engine(Component):
 
         # TODO: move self._assets[parent] to caller
         self.fire(p_event(abs(load_change), updated_asset.key), self._assets[parent])
-        return
-
-        offline_parents_load = 0
-        online_parents = []
-        parent_assets = []
-        for parent in parent_assets:
-
-            parent_load_change = load_change * parent.state.draw_percentage
-
-            if not parent.state.load and not parent.state.status:
-                # if offline -> find how much power parent should draw
-                # (so it will be redistributed among other assets)
-                offline_parents_load += parent_load_change
-            else:
-                online_parents.append(parent)
-
-        # for each parent that is either online or it's load is not zero
-        # update the load value
-        for parent in online_parents:
-
-            leaf_node_amp = load_change * parent.state.draw_percentage
-            load_upd = offline_parents_load + leaf_node_amp
-            # fire load increase/decrease depending on the
-            # new state of the updated asset
-            if load_change > 0:
-                p_event = PowerEventMap.map_load_increased_by
-            else:
-                p_event = PowerEventMap.map_load_decreased_by
-
-            self.fire(p_event(abs(load_upd), updated_asset.key), parent)
 
     def _process_int_node_power_event(
         self,
@@ -392,23 +356,7 @@ class Engine(Component):
         alt_parent_asset: Asset = None,
     ):
         r"""React to internal node's (a node with at least one child) power event
-        by updating power state of its child (if needed).
-
-        Args:
-            updated_asset: internal node whose power state has been changed
-            child_asset: child node of the updated asset
-            new_state: new state of the updated asset
-            alt_parent_asset: second (or altertnative) parent of the child asset
-
-        Example:
-            if (psu1) went down, its child (server) will be powered off depending
-            on whether alternative parent (psu2) is functioning or not
-
-            (psu1)  (psu2)
-              \       /
-             [pow]  [pow]
-                \   /
-                (server) <- child
+        by updating power state of its child (if needed)
         """
 
         child_load = child_asset.state.power_usage * updated_asset.state.draw_percentage
@@ -441,26 +389,6 @@ class Engine(Component):
         if child_asset.state.asset_type == "ups" and child_asset.state.battery_level:
             self.fire(get_child_load_event(new_state), updated_asset)
 
-        # check upstream & branching power
-        # alternative power source is available,
-        # therefore the load needs to be re-distributed
-        # else:
-        #     logging.info(
-        #         "Asset[%s] has alternative parent[%s]",
-        #         child_asset.key,
-        #         alt_parent_asset.key,
-        # )
-
-        # increase/decrease power on the neighbouring power stream
-        # (how much updated asset was drawing)
-        # self.fire(get_child_load_event(new_state ^ 1), alt_parent_asset)
-
-        # change load up the node power stream (power source of the updated node)
-        # load_child_event = PowerEventMap.map_child_event(
-        #     new_state, child_load, updated_asset.key
-        # )
-        # self.fire(load_child_event, updated_asset)
-
     def _notify_client(self, client_request, data):
         """Notify the WebSocket client(s) of any changes in asset states 
 
@@ -472,83 +400,6 @@ class Engine(Component):
         self.fire(
             NotifyClient({"request": client_request.name, "payload": data}), self._ws
         )
-
-    # -- Handle Power Changes --
-    @handler(RedisChannels.state_update_channel)
-    def on_asset_power_state_change(self, data):
-        """On user changing asset status"""
-        self._handle_state_update(data["key"], data["status"])
-
-    @handler(RedisChannels.voltage_update_channel)
-    def on_voltage_state_change(self, data):
-        """React to voltage drop or voltage restoration"""
-        self._handle_voltage_update(data["old_voltage"], data["new_voltage"])
-
-    @handler(RedisChannels.mains_update_channel)
-    def on_wallpower_state_change(self, data):
-        """On balckouts/power restorations"""
-        self._notify_client(ServerToClientRequests.mains_upd, {"mains": data["status"]})
-        self.fire(PowerEventMap.map_mains_event(data["status"]), self._sys_environ)
-
-    @handler(RedisChannels.oid_update_channel)
-    def on_snmp_device_oid_change(self, data):
-        """React to OID getting updated through SNMP interface"""
-        value = (self._redis_store.get(data)).decode()
-        asset_key, oid = data.split("-")
-        self._handle_oid_update(int(asset_key), oid, value)
-
-    @handler(RedisChannels.model_update_channel)
-    def on_model_reload_reqeust(self, _):
-        """Detect topology changes to the system architecture"""
-        self._reload_model()
-
-    # -- Battery Updates --
-    @handler(RedisChannels.battery_update_channel)
-    def on_battery_level_change(self, data):
-        """On UPS battery charge drop/increase"""
-        self._notify_client(
-            ServerToClientRequests.asset_upd,
-            {
-                "key": data["key"],
-                "battery": self._assets[data["key"]].state.battery_level,
-            },
-        )
-
-    @handler(RedisChannels.battery_conf_charge_channel)
-    def on_battery_charge_factor_up(self, data):
-        """On UPS battery charge increase"""
-        self._assets[data["key"]].charge_speed_factor = data["factor"]
-
-    @handler(RedisChannels.battery_conf_drain_channel)
-    def on_battery_charge_factor_down(self, data):
-        """On UPS battery charge increase"""
-        self._assets[data["key"]].drain_speed_factor = data["factor"]
-
-    # -- Thermal Updates --
-    @handler(RedisChannels.ambient_update_channel)
-    def on_ambient_temperature_change(self, data):
-        """Ambient updated"""
-        self._handle_ambient_update(data["new_ambient"], data["old_ambient"])
-
-    @handler(RedisChannels.sensor_conf_th_channel)
-    def on_new_sensor_thermal_impact(self, data):
-        """Add new thermal impact (sensor to sensor)"""
-        self._assets[data["key"]].add_sensor_thermal_impact(**data["relationship"])
-
-    @handler(RedisChannels.cpu_usg_conf_th_channel)
-    def on_new_cpu_thermal_impact(self, data):
-        """Add new thermal impact (cpu load to sensor)"""
-        self._assets[data["key"]].add_cpu_thermal_impact(**data["relationship"])
-
-    @handler(RedisChannels.str_cv_conf_th_channel)
-    def on_new_cv_thermal_impact(self, data):
-        """Add new thermal impact (sensor to cv)"""
-        self._assets[data["key"]].add_storage_cv_thermal_impact(**data["relationship"])
-
-    @handler(RedisChannels.str_drive_conf_th_channel)
-    def on_new_hd_thermal_impact(self, data):
-        """Add new thermal impact (sensor to physical drive)"""
-        self._assets[data["key"]].add_storage_pd_thermal_impact(**data["relationship"])
 
     # **Events are camel-case
     # pylint: disable=C0103,W0613
