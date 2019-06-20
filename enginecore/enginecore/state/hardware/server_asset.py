@@ -71,17 +71,50 @@ class Server(StaticAsset):
         if old_load == new_load == 0:
             return None
 
-        load_change = new_load - old_load
+        other_psu = [self._psu_sm[k] for k in self._psu_sm if k != src_key]
+        print("\n=" * 10)
+        print("VOLT UPDATE SERVER: PRINTING PSUS")
+        print(other_psu[0])
+        print(source_psu)
 
-        #     load_e_results.append(
-        #         event_results.LoadEventResult(
-        #             asset_key=self.state.key,
-        #             asset_type=self.state.asset_type,
-        #             parent_key=psu.key,
-        #             old_load=psu.load,
-        #             new_load=psu.load + (load_change * -1),
-        #         )
-        #     )
+        _2nd_parent = other_psu[0]
+        load_change = old_load - new_load
+
+        load_e_results.append(
+            event_results.LoadEventResult(
+                asset_key=self.state.key,
+                asset_type=self.state.asset_type,
+                parent_key=source_psu.key,
+                old_load=old_load,
+                new_load=new_load * source_psu.draw_percentage,
+            )
+        )
+
+        # Case where load re-distribution is not needed
+        if (
+            _2nd_parent.load
+            == calc_load(_2nd_parent.output_voltage) * _2nd_parent.draw_percentage
+        ) and math.isclose(old_load, 0):
+            print("Other PSU drawing as expected")
+            return load_e_results
+
+        if math.isclose(new_out_volt, 0) and _2nd_parent.status:
+            print("LOAD REDISTRIBUTION NEEDED!!!" * 3)
+            load_e_results.append(
+                event_results.LoadEventResult(
+                    asset_key=self.state.key,
+                    asset_type=self.state.asset_type,
+                    parent_key=source_psu.key,
+                    old_load=source_psu.load,
+                    new_load=new_load * source_psu.draw_percentage,
+                )
+            )
+            # return load_e_results
+
+        print("=\n" * 10)
+
+        print(load_e_results)
+        print("=\n" * 10)
 
         return load_e_results
 
