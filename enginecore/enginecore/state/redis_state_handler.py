@@ -13,7 +13,7 @@ class RedisStateHandler(Engine):
     & maps redis events to circuit events"""
 
     def __init__(self, debug=False, force_snmp_init=True):
-        super(RedisStateHandler, self).__init__()
+        super(RedisStateHandler, self).__init__(debug, force_snmp_init)
 
         # Use redis pub/sub communication
         logging.info("Initializing redis connection...")
@@ -23,12 +23,12 @@ class RedisStateHandler(Engine):
     @handler(RedisChannels.state_update_channel)
     def on_asset_power_state_change(self, data):
         """On user changing asset status"""
-        self._handle_state_update(data["key"], data["status"])
+        self.handle_state_update(data["key"], data["status"])
 
     @handler(RedisChannels.voltage_update_channel)
     def on_voltage_state_change(self, data):
         """React to voltage drop or voltage restoration"""
-        self._handle_voltage_update(data["old_voltage"], data["new_voltage"])
+        self.handle_voltage_update(data["old_voltage"], data["new_voltage"])
 
     @handler(RedisChannels.mains_update_channel)
     def on_wallpower_state_change(self, data):
@@ -41,7 +41,7 @@ class RedisStateHandler(Engine):
         """React to OID getting updated through SNMP interface"""
         value = (self._redis_store.get(data)).decode()
         asset_key, oid = data.split("-")
-        self._handle_oid_update(int(asset_key), oid, value)
+        self.handle_oid_update(int(asset_key), oid, value)
 
     @handler(RedisChannels.model_update_channel)
     def on_model_reload_reqeust(self, _):
@@ -74,7 +74,7 @@ class RedisStateHandler(Engine):
     @handler(RedisChannels.ambient_update_channel)
     def on_ambient_temperature_change(self, data):
         """Ambient updated"""
-        self._handle_ambient_update(data["new_ambient"], data["old_ambient"])
+        self.handle_ambient_update(data["new_ambient"], data["old_ambient"])
 
     @handler(RedisChannels.sensor_conf_th_channel)
     def on_new_sensor_thermal_impact(self, data):

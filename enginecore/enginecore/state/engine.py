@@ -106,7 +106,7 @@ class Engine(Component):
         ISystemEnvironment.set_ambient(21)
         RECORDER.enabled = True
 
-    def _handle_oid_update(self, asset_key, oid, value):
+    def handle_oid_update(self, asset_key, oid, value):
         """React to OID update in redis store 
         Args:
             asset_key(int): key of the asset oid belongs to
@@ -142,7 +142,7 @@ class Engine(Component):
         logging.info("oid changed:")
         logging.info(">" + oid + ": " + oid_value)
 
-    def _handle_ambient_update(self, new_temp, old_temp):
+    def handle_ambient_update(self, new_temp, old_temp):
         """React to ambient update by notifying all the assets in the sys topology
         Args:
             new_temp(float): new ambient value
@@ -158,7 +158,7 @@ class Engine(Component):
                 PowerEventMap.map_ambient_event(old_temp, new_temp), self._assets[a_key]
             )
 
-    def _handle_voltage_update(self, old_voltage, new_voltage):
+    def handle_voltage_update(self, old_voltage, new_voltage):
         """let devices handle voltage updates"""
 
         with self._graph_ref.get_session() as session:
@@ -171,7 +171,7 @@ class Engine(Component):
                 PowerEventMap.map_voltage_event(0, old_voltage, new_voltage), outlet
             )
 
-    def _handle_state_update(self, asset_key, asset_status):
+    def handle_state_update(self, asset_key, asset_status):
         """React to asset state updates in redis store 
         Args:
             asset_key(int): key of the updated asset
