@@ -72,10 +72,10 @@ class Server(StaticAsset):
             return None
 
         other_psu = [self._psu_sm[k] for k in self._psu_sm if k != src_key]
-        print("\n=" * 10)
-        print("VOLT UPDATE SERVER: PRINTING PSUS")
-        print(other_psu[0])
-        print(source_psu)
+        # print("\n=" * 10)
+        # print("VOLT UPDATE SERVER: PRINTING PSUS")
+        # print(other_psu[0])
+        # print(source_psu)
 
         _2nd_parent = other_psu[0]
         load_change = abs(old_load - new_load)
@@ -123,10 +123,10 @@ class Server(StaticAsset):
                 )
             )
 
-        print("=\n" * 10)
+        # print("=\n" * 10)
 
-        print(load_e_results)
-        print("=\n" * 10)
+        # print(load_e_results)
+        # print("=\n" * 10)
 
         return load_e_results
 
