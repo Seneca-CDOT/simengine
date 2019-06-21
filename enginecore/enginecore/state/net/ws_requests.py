@@ -25,6 +25,8 @@ class ServerToClientRequests(Enum):
     recorder_status = 7
     # command status
     cmd_executed_status = 8
+    # is sent when everything load power loop reaches the end
+    load_loop_done = 9
 
 
 class ClientToServerRequests(Enum):

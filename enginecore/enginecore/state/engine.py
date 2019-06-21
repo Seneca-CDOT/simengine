@@ -329,6 +329,11 @@ class Engine(Component):
             parent_load_change = load_change * parent.state.draw_percentage
             self.fire(child_event(parent_load_change, child_asset.key), parent)
 
+        if not parent_assets:
+            self._notify_client(
+                ServerToClientRequests.load_loop_done, {"key": child_asset.key}
+            )
+
     def _process_leaf_node_power_event(
         self, updated_asset: Asset, load_change: float, parent: int
     ):
