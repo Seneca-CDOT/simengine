@@ -106,7 +106,7 @@ class UPS(Asset, SNMPSim):
         (blackout, brownout etc. )
         """
 
-        last_reason = self.state.get_transfer_reason()
+        last_reason = self.state.transfer_reason
 
         if last_reason == self.state.InputLineFailCause.smallMomentarySag:
             new_reason = self.state.InputLineFailCause.brownout
@@ -289,7 +289,7 @@ class UPS(Asset, SNMPSim):
         """When user powers up UPS device"""
 
         if self.state.on_battery:
-            self._launch_battery_drain(t_reason=self.state.get_transfer_reason())
+            self._launch_battery_drain(t_reason=self.state.transfer_reason)
         else:
             self._launch_battery_charge(power_up_on_charge=True)
 
@@ -419,7 +419,7 @@ class UPS(Asset, SNMPSim):
 
         # voltage was too high but is okay now
         elif (
-            self.state.get_transfer_reason() == high_line_t_reason
+            self.state.transfer_reason == high_line_t_reason
             and reason != high_line_t_reason
         ):
             self._launch_battery_charge(power_up_on_charge=(not battery_level))

@@ -95,7 +95,16 @@ class IUPSStateManager(ISnmpDeviceStateManager):
     @property
     def on_battery(self):
         """Indicates if UPS is powered by battery at the moment"""
-        return self.get_transfer_reason() != self.InputLineFailCause.noTransfer
+        return self.transfer_reason != self.InputLineFailCause.noTransfer
+
+    @property
+    def transfer_reason(self):
+        """Retrieve last transfer reason (why switched from input power to battery)
+        Returns:
+            InputLineFailCause: last transfer cause
+        """
+        oid_t_reason = self.get_oid_by_name("InputLineFailCause")
+        return self.InputLineFailCause(int(self.get_oid_value(oid_t_reason)))
 
     @property
     def output_voltage(self):
@@ -176,14 +185,6 @@ class IUPSStateManager(ISnmpDeviceStateManager):
 
         return powered
 
-    def get_transfer_reason(self):
-        """Retrieve last transfer reason (why switched from input power to battery)
-        Returns:
-            InputLineFailCause: last transfer cause
-        """
-        oid_t_reason = self.get_oid_by_name("InputLineFailCause")
-        return self.InputLineFailCause(int(self.get_oid_value(oid_t_reason)))
-
     def get_config_off_delay(self):
         """Delay for power-off operation 
         (unlike 'hardware'-determined delay, this value can be configured by the user)
@@ -213,3 +214,10 @@ class IUPSStateManager(ISnmpDeviceStateManager):
         self._update_battery_process_speed(
             RedisChannels.battery_conf_charge_channel, factor
         )
+
+    def __str__(self):
+        return super(IUPSStateManager, self).__str__() + (
+            " - On Battery: {0.on_battery}\n"
+            " - Last Transfer Reason: {0.transfer_reason}\n"
+            " - Battery Level: {0.battery_level}\n"
+        ).format(self)
