@@ -46,6 +46,15 @@ def step_impl(context, key, psu_num, wattage):
     context.hardware[psu_key_2] = IStateManager.get_state_manager_by_key(psu_key_2)
 
 
+# And Lamp asset with key "2", minimum "109" Voltage and "120" Wattage is created
+@given(
+    'Lamp asset with key "{key:d}", minimum "{min_volt:d}" Voltage and "{wattage:d}" Wattage is created'
+)
+def step_impl(context, key, min_volt, wattage):
+    sm.create_lamp(key, {"power_consumption": wattage, "min_voltage": min_volt})
+    context.hardware[key] = IStateManager.get_state_manager_by_key(key)
+
+
 @given('asset "{source_key:d}" powers target "{dest_key:d}"')
 def step_impl(context, source_key, dest_key):
 

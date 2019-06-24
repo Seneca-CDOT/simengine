@@ -13,3 +13,6 @@ Feature: Dual PSU Voltage Handling
         And asset "2" powers target "1802"
 
         And Engine is up and running
+
+        Then asset "1" load is set to "2.0"
+        And asset "2" load is set to "2.0"
