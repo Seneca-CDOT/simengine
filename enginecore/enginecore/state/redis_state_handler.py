@@ -74,7 +74,7 @@ class RedisStateHandler(Engine):
     @handler(RedisChannels.ambient_update_channel)
     def on_ambient_temperature_change(self, data):
         """Ambient updated"""
-        self.handle_ambient_update(data["new_ambient"], data["old_ambient"])
+        self.handle_ambient_update(data["old_ambient"], data["new_ambient"])
 
     @handler(RedisChannels.sensor_conf_th_channel)
     def on_new_sensor_thermal_impact(self, data):

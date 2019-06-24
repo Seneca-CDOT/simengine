@@ -142,11 +142,11 @@ class Engine(Component):
         logging.info("oid changed:")
         logging.info(">" + oid + ": " + oid_value)
 
-    def handle_ambient_update(self, new_temp, old_temp):
+    def handle_ambient_update(self, old_temp, new_temp):
         """React to ambient update by notifying all the assets in the sys topology
         Args:
-            new_temp(float): new ambient value
             old_temp(float): old ambient value
+            new_temp(float): new ambient value
         """
 
         self._notify_client(
