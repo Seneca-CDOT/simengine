@@ -14,6 +14,20 @@ class IStaticDeviceManager(IStateManager):
         return 0
 
     @Randomizer.randomize_method()
+    def shut_down(self):
+        powered = super().shut_down()
+        if not powered:
+            self._update_load(0.0)
+        return powered
+
+    @Randomizer.randomize_method()
+    def power_off(self):
+        powered = super().power_off()
+        if not powered:
+            self._update_load(0.0)
+        return powered
+
+    @Randomizer.randomize_method()
     def power_up(self):
         powered = super().power_up()
         if powered:
