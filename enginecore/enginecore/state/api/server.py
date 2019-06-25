@@ -29,18 +29,24 @@ class IServerStateManager(IStateManager):
         """Check if vm is powered up"""
         return self._vm.isActive()
 
-    @Randomizer.randomize_method()
-    def shut_down(self):
+    def _power_off_vm(self):
+        """Power of vm controlled by the server asset
+        (note that both shut down & power off actions are using
+        destroy vm method since graceful shutdown sometimes results in a 
+        vm stuck)
+        """
         if self._vm.isActive():
             self._vm.destroy()
             self._update_load(0)
+
+    @Randomizer.randomize_method()
+    def shut_down(self):
+        self._power_off_vm()
         return super().shut_down()
 
     @Randomizer.randomize_method()
     def power_off(self):
-        if self._vm.isActive():
-            self._vm.destroy()
-            self._update_load(0)
+        self._power_off_vm()
         return super().power_off()
 
     @Randomizer.randomize_method()
