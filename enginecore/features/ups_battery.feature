@@ -3,7 +3,7 @@ Feature: UPS Voltage Handling
     input voltage that is below or above the defined thresholds
     will cause UPS transfer to battery.
 
-    @snmp-behaviour
+    @snmp-interface
     Scenario: Voltage drops slightly below low threshold thus causing brownout
         Given the system model is empty
         And UPS asset with key "190" is created
@@ -12,7 +12,7 @@ Feature: UPS Voltage Handling
         And UPS transfer reason is set to "smallMomentarySag"
         And after "5" seconds, the transfer reason is set to "brownout"
 
-    @snmp-behaviour
+    @snmp-interface
     Scenario: Voltage drops below low threshold thus causing blackout
         Given the system model is empty
         And UPS asset with key "190" is created
@@ -21,7 +21,7 @@ Feature: UPS Voltage Handling
         And UPS transfer reason is set to "deepMomentarySag"
         And after "5" seconds, the transfer reason is set to "blackout"
 
-    @snmp-behaviour
+    @snmp-interface
     Scenario: Voltage spikes above high-threshold
         Given the system model is empty
         And UPS asset with key "190" is created
@@ -29,7 +29,7 @@ Feature: UPS Voltage Handling
         Then UPS is on battery
         And UPS transfer reason is set to "highLineVoltage"
 
-    @snmp-behaviour
+    @snmp-interface
     Scenario: Voltage drops below threshold and then spikes back to normal
         Given the system model is empty
         And UPS asset with key "190" is created
@@ -39,7 +39,7 @@ Feature: UPS Voltage Handling
         And UPS transfer reason is set to "noTransfer"
 
 
-    @snmp-behaviour
+    @snmp-interface
     Scenario: Voltage spikes above threshold and then drops back to normal
         Given the system model is empty
         And UPS asset with key "190" is created
@@ -48,7 +48,7 @@ Feature: UPS Voltage Handling
         Then UPS is not on battery
         And UPS transfer reason is set to "noTransfer"
 
-    @snmp-behaviour
+    @snmp-interface
     Scenario: Voltage drops below threshold and then spikes above threshold
         Given the system model is empty
         And UPS asset with key "190" is created
@@ -57,7 +57,7 @@ Feature: UPS Voltage Handling
         Then UPS is on battery
         And UPS transfer reason is set to "highLineVoltage"
 
-    @snmp-behaviour
+    @snmp-interface
     Scenario: Voltage drops below threshold and then spikes above threshold and then back to normal
         Given the system model is empty
         And UPS asset with key "190" is created
@@ -67,7 +67,7 @@ Feature: UPS Voltage Handling
         Then UPS is not on battery
         And UPS transfer reason is set to "noTransfer"
 
-    @snmp-behaviour
+    @snmp-interface
     Scenario: Voltage spikes above threshold then drops below threshold
         Given the system model is empty
         And UPS asset with key "190" is created

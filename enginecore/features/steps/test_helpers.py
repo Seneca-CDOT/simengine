@@ -63,42 +63,48 @@ class FakeEngine(Component):
 
 
 class TestClient:
+    """WebSocket client for simengine"""
 
     context = None
     event = None
     queue = None
+    web_socket = None
+
+    def __init__(self, url="ws://0.0.0.0:8000/simengine"):
+        """Createa a new webs socket client"""
+        self._url = url
+        self.web_socket = None
 
     @staticmethod
     def on_message(_, message):
+        """Called when simengine sends a new message"""
         parsed_msg = json.loads(message)
-        # print("--> Message Received", parsed_msg["request"])
-        # print(parsed_msg)
-        TestClient.queue.put(parsed_msg)
+        if TestClient.queue:
+            TestClient.queue.put(parsed_msg)
 
     @staticmethod
     def on_open(web_socket):
-        print("openning new connection")
+        """Called when a connection with simengine server is opened"""
         web_socket.send(json.dumps({"request": "subscribe", "payload": {}}))
-        print("\n*==voltage start")
         TestClient.context.engine.handle_voltage_update(old_voltage=0, new_voltage=120)
-        print("\n*==voltage end")
 
     @staticmethod
-    def on_error(web_socket, error):
+    def on_error(_, error):
+        """Error with a websocket connection"""
         print(error)
 
     @staticmethod
-    def on_close(web_socket):
-        print("### closed ###")
+    def on_close(_):
+        """When connection is closed"""
+        print("### webscocket client closed ###")
 
-    @staticmethod
-    def client(url="ws://0.0.0.0:8000/simengine"):
-
-        TestClient.web_socket = websocket.WebSocketApp(
-            url,
+    def run_client(self):
+        """run a websocket client"""
+        self.web_socket = websocket.WebSocketApp(
+            self._url,
             on_message=TestClient.on_message,
             on_error=TestClient.on_error,
             on_close=TestClient.on_close,
         )
-        TestClient.web_socket.on_open = TestClient.on_open
-        TestClient.web_socket.run_forever()
+        self.web_socket.on_open = TestClient.on_open
+        self.web_socket.run_forever()
