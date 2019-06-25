@@ -184,7 +184,10 @@ class Asset(Component):
         new_out_volt = new_volt * (power_e_result.new_state if power_e_result else 1)
 
         old_load, new_load = (calc_load(volt) for volt in [old_out_volt, new_out_volt])
-        old_load = self.state.load  # TODO: remove old load from above calculations
+        # print(old_load)
+
+        # old_load = self.state.load  # TODO: remove old load from above calculations
+        # print(old_load)
 
         if old_load == new_load == 0:
             return None
@@ -208,6 +211,14 @@ class Asset(Component):
                 event.name, self.key, self.state.input_voltage
             )
         )
+
+    @handler("ParentVoltageUpEvent")
+    def on_parent_volt_up(self, event, *args, **kwargs):
+        print("parent volt up")
+
+    @handler("ParentVoltageDownEvent")
+    def on_parent_volt_down(self, event, *args, **kwargs):
+        print("parent volt up")
 
     @handler("VoltageIncreased")
     def on_voltage_increase(self, event, *args, **kwargs):

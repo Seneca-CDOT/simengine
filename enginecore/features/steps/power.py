@@ -72,18 +72,12 @@ def step_impl(context):
 def step_impl(context, key):
     context.hardware[key].shut_down()
     context.engine.handle_state_update(key, 0)
-    import time
-
-    # time.sleep(2)
 
 
 @when('asset "{key:d}" is powered up')
 def step_impl(context, key):
     context.hardware[key].power_up()
     context.engine.handle_state_update(key, 1)
-    import time
-
-    # time.sleep(2)
 
 
 @then('asset "{key:d}" load is set to "{load:f}"')

@@ -37,8 +37,7 @@ class NotifyClient(Event):
 
 
 class Engine(Component):
-    """Top-level component that instantiates assets 
-    & maps redis events to circuit events"""
+    """Top-level component that instantiates assets"""
 
     def __init__(self, debug=False, force_snmp_init=True):
         super(Engine, self).__init__()
