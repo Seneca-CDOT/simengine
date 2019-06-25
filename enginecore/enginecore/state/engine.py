@@ -48,6 +48,7 @@ class Engine(Component):
 
         # assets will store all the devices/items including PDUs, switches etc.
         self._assets = {}
+        self._mains_out_keys = None
         self._sys_environ = ServerRoom().register(self)
 
         # init graph db instance
@@ -82,6 +83,11 @@ class Engine(Component):
 
         logging.info("Physical Environment:\n%s", self._sys_environ)
 
+    @property
+    def mains_out_keys(self):
+        """Keys of outlets powered by wall"""
+        return self._mains_out_keys
+
     def _reload_model(self, force_snmp_init=True):
         """Re-create system topology (instantiate assets based on graph ref)"""
 
@@ -97,6 +103,7 @@ class Engine(Component):
         # get system topology
         with self._graph_ref.get_session() as session:
             assets = GraphReference.get_assets_and_children(session)
+            self._mains_out_keys = GraphReference.get_mains_powered_outlets(session)
 
         for asset in assets:
             self._assets[asset["key"]] = Asset.get_supported_assets()[asset["type"]](
@@ -161,10 +168,7 @@ class Engine(Component):
     def handle_voltage_update(self, old_voltage, new_voltage):
         """let devices handle voltage updates"""
 
-        with self._graph_ref.get_session() as session:
-            mains_out_keys = GraphReference.get_mains_powered_outlets(session)
-
-        mains_out = {k: self._assets[k] for k in mains_out_keys if k}
+        mains_out = {k: self._assets[k] for k in self._mains_out_keys if k}
 
         for outlet in mains_out.values():
             self.fire(
@@ -209,12 +213,10 @@ class Engine(Component):
         updated_asset = self._assets[event_result.asset_key]
         new_state = event_result.new_state
 
-        with self._graph_ref.get_session() as session:
-            children, parent_info, _2nd_parent = GraphReference.get_affected_assets(
-                session, updated_asset.key
-            )
+        children, parent_info, _2nd_parent = self._get_affected_assets(
+            updated_asset.key
+        )
 
-        alt_parent_asset = self._assets[_2nd_parent["key"]] if _2nd_parent else None
         parent_assets_keys = list(map(lambda p: p["key"], parent_info))
 
         # Meaning it's a leaf node -> update load up the power chain if needed
@@ -222,9 +224,7 @@ class Engine(Component):
 
             load_change = (1 if new_state else -1) * updated_asset.state.power_usage
             for key in parent_assets_keys:
-                print(
-                    "\nkey", key, load_change * self._assets[key].state.draw_percentage
-                )
+
                 self._process_leaf_node_power_event(
                     updated_asset,
                     load_change * self._assets[key].state.draw_percentage,
@@ -234,7 +234,7 @@ class Engine(Component):
         # Check assets down the power stream (assets powered by the updated asset)
         for child in children:
             self._process_int_node_power_event(
-                updated_asset, self._assets[child["key"]], new_state, alt_parent_asset
+                updated_asset, self._assets[child["key"]], new_state
             )
 
     @functools.lru_cache(maxsize=200)
@@ -264,9 +264,7 @@ class Engine(Component):
         old_volt, new_volt = volt_e_result.old_voltage, volt_e_result.new_voltage
         updated_asset = self._assets[volt_e_result.asset_key]
 
-        child_assets, parent_assets, alt_parent_asset = self._get_affected_assets(
-            updated_asset.key
-        )
+        child_assets, parent_assets, _ = self._get_affected_assets(updated_asset.key)
 
         # Voltage event causing load update up the power stream
         if load_e_results and parent_assets:
@@ -354,11 +352,7 @@ class Engine(Component):
         self.fire(p_event(abs(load_change), updated_asset.key), self._assets[parent])
 
     def _process_int_node_power_event(
-        self,
-        updated_asset: Asset,
-        child_asset: Asset,
-        new_state: int,
-        alt_parent_asset: Asset = None,
+        self, updated_asset: Asset, child_asset: Asset, new_state: int
     ):
         r"""React to internal node's (a node with at least one child) power event
         by updating power state of its child (if needed)
@@ -372,7 +366,6 @@ class Engine(Component):
         )[new_state](child_load, child_asset.key)
 
         # power up/down child assets if there's no alternative power source
-        # if not (alt_parent_asset and alt_parent_asset.state.status):
 
         # if updated asset is already powered down, use child's in voltage instead
         out_volt = (
