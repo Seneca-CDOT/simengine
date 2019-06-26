@@ -3,29 +3,27 @@ import logging
 import os
 import queue
 import sys
-from threading import Thread
+import time
+
+from threading import Thread, Event
+from circuits import Component, handler
 
 from behave import given, when, then, step
 from hamcrest import *
 
 from enginecore.state.net.ws_requests import ServerToClientRequests
-import enginecore.state.state_initializer as state_ini
-from enginecore.state.engine import Engine
+from enginecore.state.new_engine import Engine
 
-from test_helpers import TestClient
+from test_helpers import configure_logger
 
-# plyint: enable=no-name-in-module
-def configure_logger():
-    log_format = "[%(threadName)s, %(asctime)s, %(module)s:%(lineno)s] %(message)s"
 
-    root = logging.getLogger()
-    root.setLevel(logging.INFO)
-    formatter = logging.Formatter(log_format)
+class TestCompletionTracker(Component):
 
-    stdout_h = logging.StreamHandler(sys.stdout)
-    stdout_h.setFormatter(formatter)
+    event = None
 
-    root.addHandler(stdout_h)
+    @handler("VoltageBranchCompleted")
+    def on_volt_branch_done(self, event, *args, **kwargs):
+        TestCompletionTracker.event.set()
 
 
 @given("Engine is up and running")
@@ -35,37 +33,24 @@ def step_impl(context):
 
     os.environ["SIMENGINE_WORKPLACE_TEMP"] = "simengine-test"
 
-    state_ini.configure_env(relative=True)
-    state_ini.initialize(force_snmp_init=True)
-
     if "engine" in context:
         print(context.engine)
-    # Start up simengine
+
+    # Start up simengine (in a thread)
     context.engine = Engine()
+
     context.engine.start()
 
-    context.ws_queue = queue.Queue()
-    context.ws_client = TestClient()
+    context.tracker = TestCompletionTracker()
+    context.tracker.event = Event()
 
-    TestClient.context = context
-    TestClient.queue = context.ws_queue
+    context.engine.subscribe_tracker(context.tracker)
 
-    TestClient.ws_thread = Thread(
-        target=context.ws_client.run_client, name="engine-client"
-    )
-    TestClient.ws_thread.daemon = True
-    TestClient.ws_thread.start()
+    context.engine.handle_voltage_update(old_voltage=0, new_voltage=120)
 
-    loop_done_num = 0
-    num_mains_outs = len(context.engine.mains_out_keys)
-
-    while loop_done_num != num_mains_outs or not context.ws_queue.empty():
-
-        message = context.ws_queue.get()
-        logging.info("Consumer storing message: %s (size=%d)", message, num_mains_outs)
-
-        if message["request"] == ServerToClientRequests.load_loop_done.name:
-            loop_done_num = loop_done_num + 1
+    print(context.tracker.event)
+    time.sleep(5)
+    # context.tracker.event.wait()
 
 
 @when('asset "{key:d}" is powered down')

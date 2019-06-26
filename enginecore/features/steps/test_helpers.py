@@ -1,9 +1,24 @@
 """A collection of shared utils for BDD tests"""
 import json
+import logging
+import sys
 
 from pysnmp import hlapi
 import websocket
 from circuits import Component
+
+# plyint: enable=no-name-in-module
+def configure_logger():
+    log_format = "[%(threadName)s, %(asctime)s, %(module)s:%(lineno)s] %(message)s"
+
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
+    formatter = logging.Formatter(log_format)
+
+    stdout_h = logging.StreamHandler(sys.stdout)
+    stdout_h.setFormatter(formatter)
+
+    root.addHandler(stdout_h)
 
 
 def query_snmp_interface(oid, host="localhost", port=1024):
