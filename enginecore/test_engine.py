@@ -1,3 +1,4 @@
+from circuits import Component, handler
 from enginecore.state.new_engine import Engine
 from enginecore.state.api.state import IStateManager
 
@@ -7,7 +8,17 @@ engine = Engine()
 engine.start()
 
 
+class VoltCompletionTracker(Component):
+    @handler("VoltageBranchCompleted")
+    def pabam(self, event, *args, **kwargs):
+        print("\n\n---------> pabam!")
+        print(kwargs["branch"].src_event)
+
+
 while True:
+
+    tracker = VoltCompletionTracker()
+    engine.subscribe_tracker(tracker)
 
     engine.handle_voltage_update(old_voltage=0, new_voltage=120)
     time.sleep(2)

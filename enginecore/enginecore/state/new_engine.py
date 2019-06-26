@@ -115,6 +115,10 @@ class ChildLoadDownEvent(Event):
     pass
 
 
+class VoltageBranchCompleted(Event):
+    success = True
+
+
 class VoltageBranch:
     def __init__(self, src_event, power_iter):
         self._src_event = src_event
@@ -213,6 +217,8 @@ class Engine(Component):
         # assets will store all the devices/items including PDUs, switches etc.
         self._assets = {}
 
+        self._completion_trackers = []
+
         self._sys_environ = ServerRoom().register(self)
         self._power_iter_queue = queue.Queue()
         self._worker_thread = None
@@ -264,9 +270,25 @@ class Engine(Component):
             self._chain_power_events(*next_power_iter.launch())
             self._power_iter_queue.task_done()
 
+    def subscribe_tracker(self, tracker):
+        self._completion_trackers.append(tracker.register(self))
+
+    def unsubscribe_tracker(self, tracker):
+        self._completion_trackers.remove(tracker)
+        tracker.unregister(self)
+
     def _chain_power_events(self, volt_events, load_events=None):
-        for asset_key in volt_events[0]:
-            self.fire(volt_events[1], self._assets[asset_key])
+
+        child_keys, event = volt_events
+
+        if not child_keys:
+            print("              ||\n" * 20)
+            print(self._completion_trackers)
+            for volt_sub in self._completion_trackers:
+                self.fire(VoltageBranchCompleted(branch=event.branch), volt_sub)
+
+        for asset_key in child_keys:
+            self.fire(event, self._assets[asset_key])
 
     def handle_ambient_update(self, old_temp, new_temp):
         """Ambient changes to a new value, initiate a chain of thermal reactions
