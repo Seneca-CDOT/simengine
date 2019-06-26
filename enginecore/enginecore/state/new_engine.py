@@ -1,7 +1,7 @@
 import logging
 import os
 import math
-import functools
+
 import queue
 import threading
 
@@ -25,20 +25,86 @@ from enginecore.state.event_map import PowerEventMap
 from enginecore.state.net.ws_server import WebSocket
 from enginecore.state.net.ws_requests import ServerToClientRequests
 
-from enginecore.model.graph_reference import GraphReference
 from enginecore.state.state_initializer import initialize, clear_temp
+from enginecore.state.engine_data_source import HardwareGraphDataSource
 
 
 class VoltageEvent(Event):
-    pass
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+        required_args = ["asset", "new_out_volt", "old_out_volt"]
+
+        if not all(r_arg in kwargs for r_arg in required_args):
+            raise KeyError("Needs arguments: " + ",".join(required_args))
+
+        self._asset = kwargs["asset"]
+        self._new_out_volt = kwargs["new_out_volt"]
+        self._old_out_volt = kwargs["old_out_volt"]
+
+    def get_next_power_event(self):
+        """Returns next event that will be dispatched against children of 
+        the source asset
+        """
+
+        if self._old_out_volt > self._new_out_volt or self._new_out_volt == 0:
+            volt_event = InputVoltageDownEvent
+        else:
+            volt_event = InputVoltageUpEvent
+
+        next_event = volt_event(
+            old_in_volt=self._old_out_volt,
+            new_in_volt=self._new_out_volt,
+            source_asset=self._asset,
+        )
+
+        next_event.power_iter = self.power_iter
+        next_event.branch = self.branch
+
+        return next_event
+
+    def with_state_update(self, old_state=None, new_state=None):
+
+        if old_state is None or new_state is None or old_state == new_state:
+            return self
+
+        self.kwargs["old_state"] = old_state
+        self.kwargs["new_state"] = new_state
+        return self
+
+    def with_load_update(self, old_load=None, new_load=None):
+
+        if old_load is None or new_load is None or old_load == new_load:
+            return self
+
+        self.kwargs["old_load"] = old_load
+        self.kwargs["new_load"] = new_load
+        return self
 
 
-class ParentVoltageUpEvent(Event):
-    pass
+class InputVoltageUpEvent(Event):
+    success = True
+
+    def get_next_power_event(self, source_e_result):
+
+        volt_event = VoltageEvent(**source_e_result)
+
+        volt_event.power_iter = self.power_iter
+        volt_event.branch = self.branch
+
+        return volt_event
 
 
-class ParentVoltageDownEvent(Event):
-    pass
+class InputVoltageDownEvent(Event):
+    success = True
+
+    def get_next_power_event(self, source_e_result):
+        volt_event = VoltageEvent(**source_e_result)
+
+        volt_event.power_iter = self.power_iter
+        volt_event.branch = self.branch
+
+        return volt_event
 
 
 class ChildLoadUpEvent(Event):
@@ -49,10 +115,27 @@ class ChildLoadDownEvent(Event):
     pass
 
 
-class EventBatch:
-    def __init__(self, keys, event):
-        self._keys = keys
-        self._event = event
+class VoltageBranch:
+    def __init__(self, src_event, power_iter):
+        self._src_event = src_event
+
+        self._src_event.power_iter = power_iter
+        self._src_event.branch = self
+
+        self._completed = False
+
+        self._power_iter = power_iter
+
+    @property
+    def src_event(self):
+        return self._src_event
+
+    @property
+    def branch_completed(self):
+        return self._completed
+
+    def __call__(self):
+        return self.src_event
 
 
 class PowerIteration:
@@ -61,8 +144,7 @@ class PowerIteration:
 
     def __init__(self, src_event):
         """Source """
-        self._src_event = src_event
-        self._graph_ref = GraphReference()
+        self._voltage_branches = [VoltageBranch(src_event, self)]
 
     def launch(self):
         """Start up power iteration by returning events
@@ -72,98 +154,55 @@ class PowerIteration:
                 - ChildLoadEvent     (either up or down)
         """
 
+        print("SRC EVENT: ", self._voltage_branches[0]())
+        return self.process_power_event(self._voltage_branches[0]())
+
+    def process_power_event(self, event):
+
+        print("\n\n[process_power_event]", event.branch)
+
         # asset caused power loop
-        if self._src_event.kwargs["asset"]:
-            return self._process_hardware_asset_event()
+        if event.kwargs["asset"]:
+            return self._process_hardware_asset_event(event)
 
         # wallpower voltage caused power loop
-        else:
-            return self._process_wallpower_event(), None
+        return self._process_wallpower_event(event)
 
-    def _map_volt_event(self):
-        if (
-            self._src_event.kwargs["old_out_volt"]
-            > self._src_event.kwargs["new_out_volt"]
-            or self._src_event.kwargs["new_out_volt"] == 0
-        ):
-            volt_event = ParentVoltageDownEvent
-        else:
-            volt_event = ParentVoltageUpEvent
-
-        return volt_event
-
-    def _process_wallpower_event(self):
+    def _process_wallpower_event(self, event: VoltageEvent):
+        """Wall-power voltage was updated"""
         wall_power_out_keys = self.data_source.get_mains_powered_assets()
 
-        return (
-            wall_power_out_keys,
-            functools.partial(
-                self._map_volt_event(),
-                old_in_volt=self._src_event.kwargs["old_out_volt"],
-                new_in_volt=self._src_event.kwargs["new_out_volt"],
-            ),
-        )
+        return ((wall_power_out_keys, event.get_next_power_event()), None)
 
-    def _process_hardware_asset_event(self):
+    def _process_hardware_asset_event(self, event: VoltageEvent):
+        """One of the hardware assets went online/online"""
+
         child_keys, parent_keys = self.data_source.get_affected_assets(
-            self._src_event.kwargs["asset"].key
-        )
-        # load_change = (1 if new_state else -1) * updated_asset.state.power_usage
-
-        return (
-            (
-                child_keys,
-                functools.partial(
-                    self._map_volt_event(),
-                    old_in_volt=self._src_event.kwargs["old_out_volt"],
-                    new_in_volt=self._src_event.kwargs["new_out_volt"],
-                ),
-            ),
-            None,
+            event.kwargs["asset"].key
         )
 
+        # if len(child_keys) > 1:
+        #     self._voltage_branches.remove(event.branch)
 
-class HardwareDataSource:
-    graph_ref = GraphReference()
+        # for c_key in child_keys:
+        #     self._voltage_branches.append(
+        #         VoltageBranch(event.get_next_power_event(), self)
+        #     )
 
-    @classmethod
-    def get_all_assets(cls):
-        return NotImplementedError()
-
-    @classmethod
-    def get_affected_assets(cls, asset_key):
-        return NotImplementedError()
-
-    @classmethod
-    def get_mains_powered_assets(cls):
-        return NotImplementedError()
-
-
-class HardwareGraphDataSource(HardwareDataSource):
-    graph_ref = GraphReference()
-
-    @classmethod
-    def get_all_assets(cls):
-        with cls.graph_ref.get_session() as session:
-            return GraphReference.get_assets_and_children(session)
-
-    @classmethod
-    @functools.lru_cache(maxsize=200)
-    def get_affected_assets(cls, asset_key):
-        with cls.graph_ref.get_session() as session:
-            childen, parents, _ = GraphReference.get_affected_assets(session, asset_key)
-
-        return ([a["key"] for a in childen], [a["key"] for a in parents])
-
-    @classmethod
-    @functools.lru_cache(maxsize=200)
-    def get_mains_powered_assets(cls):
-        with cls.graph_ref.get_session() as session:
-            return GraphReference.get_mains_powered_outlets(session)
+        return ((child_keys, event.get_next_power_event()), None)
 
 
 class Engine(Component):
-    """Top-level component that instantiates assets"""
+    """Top-level component that initializes assets & handles state changes
+    (thermal, power, oid) by dispatching events against hardware assets.
+
+    It can propagate the following events:
+        - Ambient Changes (AmbientUpEvent/AmbientDownEvent)
+        - Input voltage changes either due to wallpower power state update
+          or a power-supplying asset going down/up
+          (InputVoltageUpEvent/InputVoltageUpEvent)
+        - Load updates due to voltage changes
+    """
 
     def __init__(self, force_snmp_init=True, data_source=HardwareGraphDataSource):
         super(Engine, self).__init__()
@@ -211,21 +250,23 @@ class Engine(Component):
         self._worker_thread = threading.Thread(
             target=self.power_worker, name="power_worker"
         )
-        self._worker_thread.daemon = True
 
+        self._worker_thread.daemon = True
         self._worker_thread.start()
 
     def power_worker(self):
+        """Consumer processing power event queue"""
+
         while True:
             # new power-loop was initialized
             next_power_iter = self._power_iter_queue.get()
             print("New power iteration")
-            volt_events, load_events = next_power_iter.launch()
-
-            for asset_key in volt_events[0]:
-                self.fire(volt_events[1](), self._assets[asset_key])
-
+            self._chain_power_events(*next_power_iter.launch())
             self._power_iter_queue.task_done()
+
+    def _chain_power_events(self, volt_events, load_events=None):
+        for asset_key in volt_events[0]:
+            self.fire(volt_events[1], self._assets[asset_key])
 
     def handle_ambient_update(self, old_temp, new_temp):
         """Ambient changes to a new value, initiate a chain of thermal reactions
@@ -249,7 +290,7 @@ class Engine(Component):
 
         self._power_iter_queue.put(PowerIteration(volt_event))
 
-    def handle_state_update(self, asset_key, state):
+    def handle_state_update(self, asset_key, old_state, new_state):
         """Asset state changes to a new value,
         initiate a chain of power reactions
         Args:
@@ -257,15 +298,45 @@ class Engine(Component):
             state(int): 0 for offline, 1 for online
         """
 
+        if old_state == new_state:
+            return
+
         out_volt = self._assets[asset_key].state.output_voltage
 
         volt_event = VoltageEvent(
             asset=self._assets[asset_key],
-            old_out_volt=(state ^ 1) * out_volt,
-            new_out_volt=state * out_volt,
-        )
+            old_out_volt=old_state * out_volt,
+            new_out_volt=new_state * out_volt,
+        ).with_state_update(old_state=old_state, new_state=new_state)
 
         self._power_iter_queue.put(PowerIteration(volt_event))
 
     def handle_oid_update(self, asset_key, oid, value):
         pass
+
+    # **Events are camel-case
+    # pylint: disable=C0103,W0613
+
+    def _on_power_event_success(self, evt, e_results):
+        """Chain power events"""
+
+        power_event = evt.get_next_power_event(
+            {"asset": self._assets[e_results["key"]], **e_results["voltage"]}
+        ).with_state_update(**e_results["state"])
+        print("power_event ->", power_event)
+
+        self._chain_power_events(*evt.power_iter.process_power_event(power_event))
+
+    def InputVoltageUpEvent_success(self, evt, e_results):
+        """Callback called if InputVoltageUpEvent was handled by the child asset
+        """
+
+        print("\n[InputVoltageUpEvent_success] Parent voltage up event succeeded ")
+        self._on_power_event_success(evt, e_results)
+
+    def InputVoltageDownEvent_success(self, evt, e_results):
+        """Callback called if InputVoltageDown was handled by the child asset
+        """
+
+        print("\n[InputVoltageUpEvent_success] Parent voltage down event succeeded ")
+        self._on_power_event_success(evt, e_results)
