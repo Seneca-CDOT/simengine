@@ -20,13 +20,11 @@ from test_helpers import configure_logger
 
 class TestCompletionTracker(Component):
 
-    queue = None
+    volt_done_queue = None
 
     @handler("VoltageBranchCompleted")
     def on_volt_branch_done(self, event, *args, **kwargs):
-        logging.info("Completed event tracking!")
-        logging.info(event)
-        self.queue.put(event)
+        self.volt_done_queue.put(event)
 
 
 @given("Engine is up and running")
@@ -41,14 +39,14 @@ def step_impl(context):
     context.engine.start()
 
     context.tracker = TestCompletionTracker()
-    context.tracker.queue = Queue()
+    context.tracker.volt_done_queue = Queue()
 
     context.engine.subscribe_tracker(context.tracker)
 
     context.engine.handle_voltage_update(old_voltage=0, new_voltage=120)
     logging.info("handled htat!")
 
-    e = context.tracker.queue.get()
+    e = context.tracker.volt_done_queue.get()
     print("\n" * 20)
     logging.info(e)
 

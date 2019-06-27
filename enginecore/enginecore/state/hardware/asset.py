@@ -240,14 +240,14 @@ class Asset(Component):
 
     @handler("InputVoltageUpEvent")
     def on_parent_volt_up(self, event, *args, **kwargs):
-        print("[ASSET] parent volt up")
-        print("         parent event -> ", event)
+        # print("[ASSET] parent volt up")
+        # print("         parent event -> ", event)
         return self._process_parent_volt_e(kwargs)
 
     @handler("InputVoltageDownEvent")
     def on_parent_volt_down(self, event, *args, **kwargs):
-        print("[ASSET] parent volt down")
-        print("         parent event -> ", event)
+        # print("[ASSET] parent volt down")
+        # print("         parent event -> ", event)
 
         return self._process_parent_volt_e(kwargs)
 
