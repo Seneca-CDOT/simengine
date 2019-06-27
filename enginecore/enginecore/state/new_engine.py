@@ -67,7 +67,7 @@ class AssetVoltageEvent(PowerEvent):
         self._new_state = kwargs["new_state"] if "new_state" in kwargs else None
         self._old_state = kwargs["old_state"] if "old_state" in kwargs else None
 
-    def get_next_power_event(self, branch=None):
+    def get_next_power_event(self):
         """Returns next event that will be dispatched against children of 
         the source asset
         """
@@ -77,14 +77,12 @@ class AssetVoltageEvent(PowerEvent):
         else:
             volt_event = InputVoltageUpEvent
 
-        branch = self._branch  # if self._asset else branch
-
         next_event = volt_event(
             old_in_volt=self._old_out_volt,
             new_in_volt=self._new_out_volt,
             source_asset=self._asset,
             power_iter=self.power_iter,
-            branch=branch,
+            branch=self._branch,
         )
 
         return next_event
@@ -220,6 +218,8 @@ class PowerIteration:
         )
 
         events = [event.get_next_power_event()]
+        if not event.branch:
+            self._volt_branches_active.append(VoltageBranch(event, self))
 
         # forked branch -> replace it with 'n' child voltage branches
         if len(child_keys) > 1:
@@ -314,7 +314,7 @@ class Engine(Component):
         while True:
             # new power-loop was initialized
             next_power_iter = self._power_iter_queue.get()
-            # assert self._current_power_iter is None
+            assert self._current_power_iter is None
 
             self._current_power_iter = next_power_iter
             logging.info("--------------------")
@@ -345,7 +345,7 @@ class Engine(Component):
         # reached the end of a stream of voltage updates
         # TODO: when load is implemented, move this to load completion
         if self._current_power_iter.num_volt_branches_active == 0:
-            del self._current_power_iter
+            self._current_power_iter = None
             self._notify_trackers(None)
             self._power_iter_queue.task_done()
 
