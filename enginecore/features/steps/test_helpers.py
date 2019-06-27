@@ -1,5 +1,6 @@
 """A collection of shared utils for BDD tests"""
 import json
+
 import logging
 import sys
 
@@ -7,9 +8,11 @@ from pysnmp import hlapi
 import websocket
 from circuits import Component
 
+
 # plyint: enable=no-name-in-module
 def configure_logger():
-    log_format = "[%(threadName)s, %(asctime)s, %(module)s:%(lineno)s] %(message)s"
+    """Configure logger for debugging purpose"""
+    log_format = "[%(threadName)s, %(module)s.%(funcName)s:%(lineno)s] %(message)s"
 
     root = logging.getLogger()
     root.setLevel(logging.INFO)

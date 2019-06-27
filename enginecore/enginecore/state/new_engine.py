@@ -158,12 +158,12 @@ class PowerIteration:
                 - ChildLoadEvent     (either up or down)
         """
 
-        print("SRC EVENT: ", self._voltage_branches[0]())
+        logging.info("SRC EVENT: %s", self._voltage_branches[0]())
         return self.process_power_event(self._voltage_branches[0]())
 
     def process_power_event(self, event):
 
-        print("\n\n[process_power_event]", event.branch)
+        logging.info(" \n\nProcessing event branch %s", event.branch)
 
         # asset caused power loop
         if event.kwargs["asset"]:
@@ -266,7 +266,10 @@ class Engine(Component):
         while True:
             # new power-loop was initialized
             next_power_iter = self._power_iter_queue.get()
-            print("New power iteration")
+            logging.info("--------------------")
+            logging.info("New power iteration")
+            logging.info("--------------------")
+
             self._chain_power_events(*next_power_iter.launch())
             self._power_iter_queue.task_done()
 
@@ -282,8 +285,6 @@ class Engine(Component):
         child_keys, event = volt_events
 
         if not child_keys:
-            print("              ||\n" * 20)
-            print(self._completion_trackers)
             for volt_sub in self._completion_trackers:
                 self.fire(VoltageBranchCompleted(branch=event.branch), volt_sub)
 
@@ -345,20 +346,20 @@ class Engine(Component):
         power_event = evt.get_next_power_event(
             {"asset": self._assets[e_results["key"]], **e_results["voltage"]}
         ).with_state_update(**e_results["state"])
-        print("power_event ->", power_event)
 
+        logging.info("power event result on voltage update: %s", power_event)
         self._chain_power_events(*evt.power_iter.process_power_event(power_event))
 
     def InputVoltageUpEvent_success(self, evt, e_results):
         """Callback called if InputVoltageUpEvent was handled by the child asset
         """
 
-        print("\n[InputVoltageUpEvent_success] Parent voltage up event succeeded ")
+        logging.info("Parent voltage up event succeeded ")
         self._on_power_event_success(evt, e_results)
 
     def InputVoltageDownEvent_success(self, evt, e_results):
         """Callback called if InputVoltageDown was handled by the child asset
         """
 
-        print("\n[InputVoltageUpEvent_success] Parent voltage down event succeeded ")
+        logging.info("Parent voltage down event succeeded ")
         self._on_power_event_success(evt, e_results)

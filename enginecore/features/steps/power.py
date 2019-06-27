@@ -4,9 +4,10 @@ import os
 import queue
 import sys
 import time
+from queue import Queue
 
 from threading import Thread, Event
-from circuits import Component, handler
+from circuits import Component, handler, Manager
 
 from behave import given, when, then, step
 from hamcrest import *
@@ -19,11 +20,13 @@ from test_helpers import configure_logger
 
 class TestCompletionTracker(Component):
 
-    event = None
+    queue = None
 
     @handler("VoltageBranchCompleted")
     def on_volt_branch_done(self, event, *args, **kwargs):
-        TestCompletionTracker.event.set()
+        logging.info("Completed event tracking!")
+        logging.info(event)
+        self.queue.put(event)
 
 
 @given("Engine is up and running")
@@ -33,24 +36,21 @@ def step_impl(context):
 
     os.environ["SIMENGINE_WORKPLACE_TEMP"] = "simengine-test"
 
-    if "engine" in context:
-        print(context.engine)
-
     # Start up simengine (in a thread)
     context.engine = Engine()
-
     context.engine.start()
 
     context.tracker = TestCompletionTracker()
-    context.tracker.event = Event()
+    context.tracker.queue = Queue()
 
     context.engine.subscribe_tracker(context.tracker)
 
     context.engine.handle_voltage_update(old_voltage=0, new_voltage=120)
+    logging.info("handled htat!")
 
-    print(context.tracker.event)
-    time.sleep(5)
-    # context.tracker.event.wait()
+    e = context.tracker.queue.get()
+    print("\n" * 20)
+    logging.info(e)
 
 
 @when('asset "{key:d}" is powered down')
