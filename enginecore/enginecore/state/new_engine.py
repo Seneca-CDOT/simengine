@@ -19,7 +19,7 @@ from enginecore.state.event_map import PowerEventMap
 from enginecore.state.net.ws_server import WebSocket
 from enginecore.state.net.ws_requests import ServerToClientRequests
 
-from enginecore.state.state_initializer import initialize, clear_temp
+from enginecore.state.state_initializer import initialize, clear_temp, configure_env
 from enginecore.state.engine_data_source import HardwareGraphDataSource
 
 
@@ -210,7 +210,7 @@ class PowerIteration:
         self._volt_branches_active.remove(branch)
         self._volt_branches_done.append(branch)
 
-    def process_power_event(self, event: AssetVoltageEvent):
+    def process_power_event(self, event):
 
         logging.info(" \n\nProcessing event branch %s", event.branch)
         self._last_processed_volt_event = event
@@ -222,7 +222,7 @@ class PowerIteration:
         # wallpower voltage caused power loop
         return self._process_wallpower_event(event)
 
-    def _process_wallpower_event(self, event: AssetVoltageEvent):
+    def _process_wallpower_event(self, event):
         """Wall-power voltage was updated"""
         wp_outlets = self.data_source.get_mains_powered_assets()
 
@@ -233,7 +233,7 @@ class PowerIteration:
 
         return ([(k, b.src_event) for k in wp_outlets for b in new_branches], None)
 
-    def _process_hardware_asset_event(self, event: AssetVoltageEvent):
+    def _process_hardware_asset_event(self, event):
         """One of the hardware assets went online/online"""
 
         child_keys, parent_keys = self.data_source.get_affected_assets(
@@ -242,18 +242,18 @@ class PowerIteration:
 
         events = [event.get_next_power_event()]
 
-        # delete voltage branch (power stream) when it forks
-        # or when it reaches leaf asset/node
-        if (len(child_keys) > 1 and event.branch) or not child_keys:
-            self.complete_volt_branch(event.branch)
-
         # forked branch -> replace it with 'n' child voltage branches
-        elif len(child_keys) > 1:
+        if len(child_keys) > 1:
             new_branches = [
                 VoltageBranch(event.get_next_power_event(), self) for _ in child_keys
             ]
             self._volt_branches_active.extend(new_branches)
             events = [b.src_event for b in new_branches]
+
+        # delete voltage branch (power stream) when it forks
+        # or when it reaches leaf asset/node
+        if (len(child_keys) > 1 and event.branch) or not child_keys:
+            self.complete_volt_branch(event.branch)
 
         return ([(k, e) for k in child_keys for e in events], None)
 
@@ -270,11 +270,15 @@ class Engine(Component):
         - Load updates due to voltage changes
     """
 
-    def __init__(self, force_snmp_init=True, data_source=HardwareGraphDataSource):
+    def __init__(
+        self, force_snmp_init=True, debug=True, data_source=HardwareGraphDataSource
+    ):
         super(Engine, self).__init__()
 
         ### Set-up WebSocket & Redis listener ###
         logging.info("Starting simengine daemon...")
+        # TODO: when hooked into redis, either remove this or one from redis
+        configure_env(debug)
 
         # assets will store all the devices/items including PDUs, switches etc.
         self._assets = {}
@@ -346,11 +350,11 @@ class Engine(Component):
         for comp_tracker in self._completion_trackers:
             self.fire(VoltageBranchCompleted(), comp_tracker)
 
-    def subscribe_tracker(self, tracker: Component):
+    def subscribe_tracker(self, tracker):
         """Subcribe external engine client to completion events"""
         self._completion_trackers.append(tracker.register(self))
 
-    def unsubscribe_tracker(self, tracker: Component):
+    def unsubscribe_tracker(self, tracker):
         """Unsubcribe external engine client to completion events"""
         self._completion_trackers.remove(tracker)
         tracker.unregister(self)
