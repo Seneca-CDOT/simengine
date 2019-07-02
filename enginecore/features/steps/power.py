@@ -70,11 +70,7 @@ def step_impl(context, key, load):
     assert_that(context.hardware[key].load, close_to(load, 0.0001))
 
 
-@then('asset "{key:d}" is online')
-def step_impl(context, key):
-    assert_that(context.hardware[key].status, equal_to(1))
-
-
-@then('asset "{key:d}" is offline')
-def step_impl(context, key):
-    assert_that(context.hardware[key].status, equal_to(0))
+@then('asset "{key:d}" is "{state}"')
+def step_impl(context, key, state):
+    state_num = 1 if state == "online" else 0
+    assert_that(context.hardware[key].status, equal_to(state_num))
