@@ -77,6 +77,9 @@ class AssetVoltageEvent(PowerEvent):
         else:
             volt_event = InputVoltageUpEvent
 
+        print("\n\nBRANCH")
+        print(self._branch)
+
         next_event = volt_event(
             old_in_volt=self._old_out_volt,
             new_in_volt=self._new_out_volt,
@@ -92,6 +95,10 @@ class InputVoltageEvent(PowerEvent):
     success = True
 
     def get_next_power_event(self, source_e_result):
+
+        print("\n\nBRANCH INV")
+        print(self._branch)
+
         volt_event = AssetVoltageEvent(
             **source_e_result, power_iter=self.power_iter, branch=self.branch
         )
@@ -115,7 +122,7 @@ class ChildLoadDownEvent(Event):
     pass
 
 
-class VoltageBranchCompleted(Event):
+class AllVoltageBranchesDone(Event):
     success = True
 
 
@@ -184,6 +191,7 @@ class PowerIteration:
         return self.process_power_event(self._src_event)
 
     def process_power_event(self, event):
+        """Retrieves events as a reaction to the passed source event"""
 
         logging.info(" \n\nProcessing event branch %s", event.branch)
         self._last_processed_volt_event = event
@@ -196,7 +204,9 @@ class PowerIteration:
         return self._process_wallpower_event(event)
 
     def _process_wallpower_event(self, event):
-        """Wall-power voltage was updated"""
+        """Wall-power voltage was updated, retrieve chain events associated
+        with mains-powered outlets
+        """
         wp_outlets = self.data_source.get_mains_powered_assets()
 
         new_branches = [VoltageBranch(event, self) for _ in wp_outlets]
@@ -217,9 +227,10 @@ class PowerIteration:
             event.kwargs["asset"].key
         )
 
-        events = [event.get_next_power_event()]
         if not event.branch:
             self._volt_branches_active.append(VoltageBranch(event, self))
+
+        events = [event.get_next_power_event()]
 
         # forked branch -> replace it with 'n' child voltage branches
         if len(child_keys) > 1:
@@ -317,9 +328,9 @@ class Engine(Component):
             assert self._current_power_iter is None
 
             self._current_power_iter = next_power_iter
-            logging.info("--------------------")
-            logging.info("New power iteration")
-            logging.info("--------------------")
+            print("--------------------")
+            print("New power iteration")
+            print("--------------------")
 
             self._chain_power_events(*self._current_power_iter.launch())
 
@@ -327,7 +338,7 @@ class Engine(Component):
         """Dispatch power completion events to clients"""
 
         for comp_tracker in self._completion_trackers:
-            self.fire(VoltageBranchCompleted(), comp_tracker)
+            self.fire(AllVoltageBranchesDone(), comp_tracker)
 
     def subscribe_tracker(self, tracker):
         """Subcribe external engine client to completion events"""
@@ -389,10 +400,10 @@ class Engine(Component):
 
         volt_event = AssetVoltageEvent(
             asset=self._assets[asset_key],
-            new_out_volt=new_state * out_volt,
             old_out_volt=old_state * out_volt,
-            new_state=new_state,
+            new_out_volt=new_state * out_volt,
             old_state=old_state,
+            new_state=new_state,
         )
         self._power_iter_queue.put(PowerIteration(volt_event))
 
@@ -418,13 +429,9 @@ class Engine(Component):
     def InputVoltageUpEvent_success(self, evt, e_results):
         """Callback called if InputVoltageUpEvent was handled by the child asset
         """
-
-        logging.info("Parent voltage up event succeeded ")
         self._on_power_event_success(evt, e_results)
 
     def InputVoltageDownEvent_success(self, evt, e_results):
         """Callback called if InputVoltageDown was handled by the child asset
         """
-
-        logging.info("Parent voltage down event succeeded ")
         self._on_power_event_success(evt, e_results)
