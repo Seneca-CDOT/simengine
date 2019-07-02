@@ -1,7 +1,7 @@
 """Components controlling physical space of server racks"""
 import time
 import operator
-from threading import Thread
+from threading import Thread, Event
 import logging
 import random
 
@@ -34,6 +34,7 @@ class ServerRoom(Component):
         self._temp_warming_t = None
         self._temp_cooling_t = None
         self._voltage_fluct_t = None
+        self._stop_event = Event()
 
         # set up default values on the first run (if not set by the user)
         if not in_state.StateManager.get_ambient_props():
@@ -68,8 +69,17 @@ class ServerRoom(Component):
         self._init_thermal_threads()
         self._init_voltage_thread()
 
-    @staticmethod
-    def _keep_changing_temp(event, env, bound_op, temp_op):
+    def stop(self, code=None):
+        """Clean-up on stop"""
+        super().stop(code)
+
+        self._stop_event.set()
+
+        self._temp_warming_t.join()
+        self._temp_cooling_t.join()
+        self._voltage_fluct_t.join()
+
+    def _keep_changing_temp(self, event, env, bound_op, temp_op):
         """Change room temperature until limit is reached or AC state changes
         
         Args:
@@ -84,9 +94,9 @@ class ServerRoom(Component):
         get_amb_props = lambda: in_state.StateManager.get_ambient_props()[event]
         amb_props = get_amb_props()
 
-        while True:
+        while not self._stop_event.is_set():
 
-            time.sleep(amb_props["rate"])
+            self._stop_event.wait(amb_props["rate"])
 
             # check if room environment matches the conditions
             # required for ambient update
@@ -114,14 +124,14 @@ class ServerRoom(Component):
 
             amb_props = get_amb_props()
 
-    @staticmethod
-    def _keep_fluctuating_voltage():
+    def _keep_fluctuating_voltage(self):
         """Update input voltage every n seconds"""
 
         volt_props = in_state.StateManager.get_voltage_props()
 
-        while True:
-            time.sleep(volt_props["rate"])
+        while not self._stop_event.is_set():
+
+            self._stop_event.wait(volt_props["rate"])
 
             if not volt_props["enabled"] or not in_state.StateManager.mains_status():
                 volt_props = in_state.StateManager.get_voltage_props()

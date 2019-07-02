@@ -325,6 +325,10 @@ class Engine(Component):
         while True:
             # new power-loop was initialized
             next_power_iter = self._power_iter_queue.get()
+
+            if not next_power_iter:
+                return
+
             assert self._current_power_iter is None
 
             self._current_power_iter = next_power_iter
@@ -410,6 +414,13 @@ class Engine(Component):
 
     def handle_oid_update(self, asset_key, oid, value):
         pass
+
+    def stop(self, code=None):
+        super().stop(code)
+
+        self._power_iter_queue.put(None)
+        self._worker_thread.join()
+        self._sys_environ.stop()
 
     # **Events are camel-case
     # pylint: disable=C0103,W0613
