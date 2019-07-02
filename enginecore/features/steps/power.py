@@ -49,22 +49,20 @@ def step_impl(context):
     logging.info(event)
 
 
-@when('asset "{key:d}" goes offline')
-def step_impl(context, key):
-    context.hardware[key].shut_down()
-    context.engine.handle_state_update(key, old_state=1, new_state=0)
+@given('asset "{key:d}" is "{state}"')
+@when('asset "{key:d}" goes "{state}"')
+def step_impl(context, key, state):
 
-    event = context.tracker.volt_done_queue.get()
-    logging.info(event)
+    state_m = context.hardware[key]
 
+    old_state = state_m.status
+    new_state = state_m.power_up() if state == "online" else state_m.shut_down()
 
-@when('asset "{key:d}" goes online')
-def step_impl(context, key):
-    context.hardware[key].power_up()
-    context.engine.handle_state_update(key, old_state=0, new_state=1)
+    context.engine.handle_state_update(key, old_state, new_state)
 
-    event = context.tracker.volt_done_queue.get()
-    logging.info(event)
+    if old_state != new_state:
+        event = context.tracker.volt_done_queue.get()
+        logging.info(event)
 
 
 @then('asset "{key:d}" load is set to "{load:f}"')

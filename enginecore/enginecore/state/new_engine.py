@@ -396,10 +396,11 @@ class Engine(Component):
         if old_state == new_state:
             return
 
-        out_volt = self._assets[asset_key].state.output_voltage
+        updated_asset = self._assets[asset_key]
+        out_volt = updated_asset.state.output_voltage
 
         volt_event = AssetVoltageEvent(
-            asset=self._assets[asset_key],
+            asset=updated_asset,
             old_out_volt=old_state * out_volt,
             new_out_volt=new_state * out_volt,
             old_state=old_state,
