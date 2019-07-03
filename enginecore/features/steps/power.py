@@ -1,21 +1,18 @@
 # pylint: disable=no-name-in-module,function-redefined,missing-docstring,unused-import
 import logging
 import os
-import queue
 import sys
 import time
 from queue import Queue
 
 from threading import Thread, Event
-from circuits import Component, handler, Manager
+from circuits import Component, handler
 
 from behave import given, when, then, step
 from hamcrest import *
 
 from enginecore.state.net.ws_requests import ServerToClientRequests
 from enginecore.state.new_engine import Engine
-
-from test_helpers import configure_logger
 
 
 class TestCompletionTracker(Component):
@@ -29,8 +26,6 @@ class TestCompletionTracker(Component):
 
 @given("Engine is up and running")
 def step_impl(context):
-
-    configure_logger()
 
     os.environ["SIMENGINE_WORKPLACE_TEMP"] = "simengine-test"
 

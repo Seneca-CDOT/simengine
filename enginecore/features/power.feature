@@ -34,11 +34,11 @@ Feature: Power Chaining for Hardware Assets
             | 2         | online          | offline         | online  | offline | offline |
             | 3         | online          | offline         | online  | online  | offline |
 
-# Examples: Downstream power-on chaining
-#     | asset-key | asset-ini-state | asset-new-state | 1      | 2      | 3      |
-#     | 1         | offline         | online          | online | online | online |
-#     | 2         | offline         | online          | online | online | online |
-#     | 3         | offline         | online          | online | online | online |
+        Examples: Downstream power-on chaining
+            | asset-key | asset-ini-state | asset-new-state | 1      | 2      | 3      |
+            | 1         | offline         | online          | online | online | online |
+            | 2         | offline         | online          | online | online | online |
+            | 3         | offline         | online          | online | online | online |
 
 # @power-behaviour
 # Scenario Outline: Multiple children power chain

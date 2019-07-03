@@ -1,11 +1,9 @@
 import logging
 
-import functools
 import queue
 import threading
 
 from circuits import Component, Event, Worker, Debugger, handler
-from circuits import Event
 
 from circuits.web import Logger, Server, Static
 from circuits.web.dispatchers import WebSocketsDispatcher
