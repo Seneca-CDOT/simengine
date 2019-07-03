@@ -28,10 +28,6 @@ def shut_down_threads(context):
 
     if hasattr(context, "engine"):
         context.engine.stop()
-        context.engine = None
-
-    if hasattr(context, "ws_thread") and context.ws_thread.isAlive():
-        context.ws_thread.join()
 
 
 def before_all(context):

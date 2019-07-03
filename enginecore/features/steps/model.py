@@ -29,9 +29,7 @@ def step_impl(context, key, min_volt, port):
     sm.create_pdu(key, {"min_voltage": min_volt, "host": "127.0.0.1", "port": port})
     context.hardware[key] = IStateManager.get_state_manager_by_key(key)
 
-    print(context.hardware[key].asset_info)
     for child_key in context.hardware[key].asset_info["children"]:
-        print("children", child_key)
         context.hardware[child_key] = IStateManager.get_state_manager_by_key(child_key)
 
 

@@ -75,9 +75,6 @@ class AssetVoltageEvent(PowerEvent):
         else:
             volt_event = InputVoltageUpEvent
 
-        print("\n\nBRANCH")
-        print(self._branch)
-
         next_event = volt_event(
             old_in_volt=self._old_out_volt,
             new_in_volt=self._new_out_volt,
@@ -93,9 +90,6 @@ class InputVoltageEvent(PowerEvent):
     success = True
 
     def get_next_power_event(self, source_e_result):
-
-        print("\n\nBRANCH INV")
-        print(self._branch)
 
         volt_event = AssetVoltageEvent(
             **source_e_result, power_iter=self.power_iter, branch=self.branch
@@ -414,11 +408,10 @@ class Engine(Component):
         pass
 
     def stop(self, code=None):
-        super().stop(code)
-
         self._power_iter_queue.put(None)
         self._worker_thread.join()
         self._sys_environ.stop()
+        super().stop(code)
 
     # **Events are camel-case
     # pylint: disable=C0103,W0613

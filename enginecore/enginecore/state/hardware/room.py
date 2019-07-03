@@ -71,13 +71,13 @@ class ServerRoom(Component):
 
     def stop(self, code=None):
         """Clean-up on stop"""
-        super().stop(code)
 
         self._stop_event.set()
 
         self._temp_warming_t.join()
         self._temp_cooling_t.join()
         self._voltage_fluct_t.join()
+        super().stop(code)
 
     def _keep_changing_temp(self, event, env, bound_op, temp_op):
         """Change room temperature until limit is reached or AC state changes
