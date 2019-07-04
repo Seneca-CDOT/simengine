@@ -82,7 +82,7 @@ do_get() {
 		;;
 
 	    subnet_mask)
-		val=``# `/sbin/ifconfig $device | awk '/netmask /{ print $4;} '`
+		val=`/sbin/ifconfig $device | awk '/netmask /{ print $4;} '`
 		if [ "x$val" = "x" ]; then
 		    val="255.255.0.0"
 		fi
