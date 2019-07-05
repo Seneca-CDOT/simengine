@@ -161,10 +161,6 @@ class PowerIteration:
             event(AssetPowerEvent):
         """
 
-        from pprint import pprint as pp
-
-        pp(event)
-        pp(event.kwargs["asset"])
         child_keys, parent_keys = self.data_source.get_affected_assets(event.asset.key)
 
         if not event.branch:

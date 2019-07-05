@@ -37,7 +37,7 @@ class IServerStateManager(IStateManager):
         """
         if self._vm.isActive():
             self._vm.destroy()
-            self._update_load(0)
+            self._update_load(0.0)
 
     @Randomizer.randomize_method()
     def shut_down(self):

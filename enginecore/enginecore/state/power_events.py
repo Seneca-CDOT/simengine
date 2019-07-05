@@ -43,6 +43,9 @@ class EventDataPair:
     def __call__(self):
         return self._old_value, self._new_value
 
+    def __str__(self):
+        return "data changed as: '{0.old}'->'{0.new}'".format(self)
+
     @property
     def old(self):
         """Value before the event took place"""
@@ -65,6 +68,10 @@ class EventDataPair:
             raise ValueError("Provided event data value is invalid")
         self._new_value = value
 
+    def unchanged(self):
+        """Returns true if event did not affect state"""
+        return self.old == self.new
+
 
 class AssetPowerEvent(PowerEvent):
     """Asset power event aggregates 2 event types:
@@ -81,11 +88,25 @@ class AssetPowerEvent(PowerEvent):
 
         self._asset = kwargs["asset"]
         self._out_volt = EventDataPair(kwargs["old_out_volt"], kwargs["new_out_volt"])
+        self._load = EventDataPair()
 
         if "new_state" in kwargs and "old_state" in kwargs:
             self._state = EventDataPair(kwargs["old_state"], kwargs["new_state"])
         else:
             self._state = EventDataPair()
+
+    def __str__(self):
+        event_type = "wallpower" if not self.asset else self.asset.key
+        return (
+            "[{}]::AssetPowerEvent: \n".format(event_type)
+            + super().__str__()
+            + (
+                " -- VoltageBranch: {0._branch} \n"
+                " state update          : {0.state} \n"
+                " output voltage update : {0.out_volt} \n"
+                " load update           : {0.load} \n"
+            ).format(self)
+        )
 
     @property
     def asset(self):
@@ -103,6 +124,11 @@ class AssetPowerEvent(PowerEvent):
         """Old/New output voltage that resulted from a power event"""
         return self._out_volt
 
+    @property
+    def load(self):
+        """Old/New load changes caused by a power event"""
+        return self._load
+
     def get_next_voltage_event(self):
         """Returns next event that will be dispatched against children of 
         the source asset
@@ -114,7 +140,7 @@ class AssetPowerEvent(PowerEvent):
         else:
             volt_event = InputVoltageUpEvent
 
-        next_event = volt_event(
+        return volt_event(
             old_in_volt=out_volt.old,
             new_in_volt=out_volt.new,
             source_asset=self._asset,
@@ -122,7 +148,26 @@ class AssetPowerEvent(PowerEvent):
             branch=self._branch,
         )
 
-        return next_event
+    def get_next_load_event(self):
+        """Asset power event may result in load update
+        (which needs to be propagated upstream)
+        """
+
+        if self.load.unchanged():
+            return None
+
+        if self.load.old > self.load.new:
+            volt_event = UpstreamLoadDownEvent
+        else:
+            volt_event = UpstreamLoadUpEvent
+
+        return volt_event(
+            old_load=self.load.old,
+            new_load=self.load.new,
+            source_asset=self._asset,
+            power_iter=self.power_iter,
+            branch=self._branch,
+        )
 
 
 class InputVoltageEvent(PowerEvent):
@@ -148,6 +193,8 @@ class InputVoltageEvent(PowerEvent):
         )
 
     def get_next_power_event(self, target_asset=None):
+        """Get next power event (hardware asset event) that
+        was caused by this input voltage change"""
         volt_event = AssetPowerEvent(
             asset=target_asset,
             old_out_volt=self._old_in_volt,
@@ -159,17 +206,40 @@ class InputVoltageEvent(PowerEvent):
         return volt_event
 
 
+class LoadEvent(PowerEvent):
+    """Load event is emitted whenever there is load 
+    change somewhere in the system (due to voltage changes or power updates)"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        required_args = ["old_load", "new_load"]
+
+        if not all(r_arg in kwargs for r_arg in required_args):
+            raise KeyError("Needs arguments: " + ",".join(required_args))
+
+        self._load = EventDataPair(kwargs["old_load"], kwargs["new_load"])
+
+    @property
+    def load(self):
+        """Load changes associated with the event"""
+        return self._load
+
+
 class InputVoltageUpEvent(InputVoltageEvent):
-    pass
+    """Voltage event that gets dispatched against assets
+    (when input voltage to the asset spikes)"""
 
 
 class InputVoltageDownEvent(InputVoltageEvent):
-    pass
+    """Voltage event that gets dispatched against assets
+    (when input voltage to the asset drops)"""
 
 
-class ChildLoadUpEvent(Event):
-    pass
+class UpstreamLoadUpEvent(LoadEvent):
+    """Child load went up, this is dispatched against parent
+    to notify of load update"""
 
 
-class ChildLoadDownEvent(Event):
-    pass
+class UpstreamLoadDownEvent(LoadEvent):
+    """Child load was decreased, this is dispatched against parent
+    to notify of load update"""

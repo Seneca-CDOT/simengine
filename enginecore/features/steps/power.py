@@ -84,9 +84,9 @@ def step_impl(context, key, state):
 
 @then('asset "{key:d}" input voltage is "{volt:d}"')
 def step_impl(context, key, volt):
-    assert_that(context.hardware[key].input_voltage, close_to(volt, 0.0001))
+    assert_that(context.hardware[key].input_voltage, equal_to(volt))
 
 
 @then('asset "{key:d}" output voltage is "{volt:d}"')
 def step_impl(context, key, volt):
-    assert_that(context.hardware[key].output_voltage, close_to(volt, 0.0001))
+    assert_that(context.hardware[key].output_voltage, equal_to(volt))
