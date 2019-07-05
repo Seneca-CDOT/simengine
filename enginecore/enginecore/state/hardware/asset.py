@@ -207,27 +207,27 @@ class Asset(Component):
         calc_load = lambda v: self.state.power_consumption / v if v else 0
 
         asset_event = event.get_next_power_event(self)
-        asset_event.old_state = self.state.status
+        asset_event.state.old = self.state.status
 
         min_voltage = self.state.min_voltage_prop()
         power_action = None
 
         # Asset is underpowered (volt is too low)
-        if asset_event.new_out_volt <= min_voltage and asset_event.old_state:
+        if asset_event.out_volt.new <= min_voltage and asset_event.state.old:
             power_action = self.state.power_off
         # Asset was offline and underpowered, power back up
-        elif asset_event.new_out_volt > min_voltage and not asset_event.old_state:
+        elif asset_event.out_volt.new > min_voltage and not asset_event.state.old:
             power_action = self.state.power_up
 
         # re-set output voltage values in case of power condition
         if power_action:
-            asset_event.new_state = power_action()
-            asset_event.old_out_volt *= asset_event.old_state
-            asset_event.new_out_volt *= asset_event.new_state
+            asset_event.state.new = power_action()
+            asset_event.out_volt.old = asset_event.out_volt.old * asset_event.state.old
+            asset_event.out_volt.new = asset_event.out_volt.new * asset_event.state.new
 
         old_load, new_load = (
             calc_load(volt)
-            for volt in [asset_event.old_out_volt, asset_event.new_out_volt]
+            for volt in [asset_event.out_volt.old, asset_event.out_volt.new]
         )
 
         return asset_event

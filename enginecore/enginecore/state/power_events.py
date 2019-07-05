@@ -31,6 +31,41 @@ class PowerEvent(Event):
         self._branch = value
 
 
+class EventDataPair:
+    """A tiny utility that helps keep track of value changes due to some event
+    (old & new values).
+    """
+
+    def __init__(self, old_value=None, new_value=None, is_valid_value=None):
+        self._old_value, self._new_value = old_value, new_value
+        self._is_valid_value = is_valid_value
+
+    def __call__(self):
+        return self._old_value, self._new_value
+
+    @property
+    def old(self):
+        """Value before the event took place"""
+        return self._old_value
+
+    @old.setter
+    def old(self, value):
+        if self._is_valid_value and not self._is_valid_value(value):
+            raise ValueError("Provided event data value is invalid")
+        self._old_value = value
+
+    @property
+    def new(self):
+        """New value caused by the event"""
+        return self._new_value
+
+    @new.setter
+    def new(self, value):
+        if self._is_valid_value and not self._is_valid_value(value):
+            raise ValueError("Provided event data value is invalid")
+        self._new_value = value
+
+
 class AssetPowerEvent(PowerEvent):
     """Asset power event aggregates 2 event types:
     Voltage & Load
@@ -45,14 +80,12 @@ class AssetPowerEvent(PowerEvent):
             raise KeyError("Needs arguments: " + ",".join(required_args))
 
         self._asset = kwargs["asset"]
-        self._new_out_volt = kwargs["new_out_volt"]
-        self._old_out_volt = kwargs["old_out_volt"]
-
-        self._new_state, self._old_state = None, None
+        self._out_volt = EventDataPair(kwargs["old_out_volt"], kwargs["new_out_volt"])
 
         if "new_state" in kwargs and "old_state" in kwargs:
-            self.new_state = kwargs["new_state"]
-            self.old_state = kwargs["old_state"]
+            self._state = EventDataPair(kwargs["old_state"], kwargs["new_state"])
+        else:
+            self._state = EventDataPair()
 
     @property
     def asset(self):
@@ -60,58 +93,30 @@ class AssetPowerEvent(PowerEvent):
         return self._asset
 
     @property
-    def new_state(self):
-        """New asset state that resulted from a power event
+    def state(self):
+        """Old/New asset state that resulted from a power event
         None: if asset state did not change"""
-        return self._new_state
-
-    @new_state.setter
-    def new_state(self, value):
-        if value not in (0, 1):
-            raise ValueError("Must be either 1 or 0")
-        self._new_state = value
+        return self._state
 
     @property
-    def old_state(self):
-        """Old asset power state (1 or 0), None if input voltage change did not 
-        trigger state changes"""
-        return self._old_state
-
-    @old_state.setter
-    def old_state(self, value):
-        if value not in (0, 1):
-            raise ValueError("Must be either 1 or 0")
-        self._old_state = value
-
-    @property
-    def new_out_volt(self):
-        return self._new_out_volt
-
-    @new_out_volt.setter
-    def new_out_volt(self, value):
-        self._new_out_volt = value
-
-    @property
-    def old_out_volt(self):
-        return self._old_out_volt
-
-    @old_out_volt.setter
-    def old_out_volt(self, value):
-        self._old_out_volt = value
+    def out_volt(self):
+        """Old/New output voltage that resulted from a power event"""
+        return self._out_volt
 
     def get_next_voltage_event(self):
         """Returns next event that will be dispatched against children of 
         the source asset
         """
+        out_volt = self.out_volt
 
-        if self._old_out_volt > self._new_out_volt or self._new_out_volt == 0:
+        if out_volt.old > out_volt.new or out_volt.new == 0:
             volt_event = InputVoltageDownEvent
         else:
             volt_event = InputVoltageUpEvent
 
         next_event = volt_event(
-            old_in_volt=self._old_out_volt,
-            new_in_volt=self._new_out_volt,
+            old_in_volt=out_volt.old,
+            new_in_volt=out_volt.new,
             source_asset=self._asset,
             power_iter=self.power_iter,
             branch=self._branch,
