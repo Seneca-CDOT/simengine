@@ -137,7 +137,7 @@ class Engine(Component):
 
     def _chain_power_events(self, volt_events, load_events=None):
 
-        print(self._current_power_iter)
+        # print(self._current_power_iter)
 
         # reached the end of a stream of voltage updates
         # TODO: when load is implemented, move this to load completion
@@ -148,6 +148,10 @@ class Engine(Component):
 
         for asset_key, event in volt_events:
             self.fire(event, self._assets[asset_key])
+
+        if load_events:
+            for asset_key, event in load_events:
+                self.fire(event, self._assets[asset_key])
 
     def handle_ambient_update(self, old_temp, new_temp):
         """Ambient changes to a new value, initiate a chain of thermal reactions

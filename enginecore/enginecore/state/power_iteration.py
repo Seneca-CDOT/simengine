@@ -166,7 +166,8 @@ class PowerIteration:
         if not event.branch:
             self._volt_branches_active.append(VoltageBranch(event, self))
 
-        events = [event.get_next_voltage_event()]
+        volt_events = [event.get_next_voltage_event()]
+        load_events = None
 
         # forked branch -> replace it with 'n' child voltage branches
         if len(child_keys) > 1:
@@ -174,11 +175,21 @@ class PowerIteration:
                 VoltageBranch(event.get_next_voltage_event(), self) for _ in child_keys
             ]
             self._volt_branches_active.extend(new_branches)
-            events = [b.src_event for b in new_branches]
+            volt_events = [b.src_event for b in new_branches]
+
+        if len(parent_keys) > 1 and event.get_next_load_event():
+            new_branches = [
+                LoadBranch(event.get_next_load_event(), self) for _ in parent_keys
+            ]
+            self._load_branches_active.extend(new_branches)
+            load_events = [b.src_event for b in new_branches]
 
         # delete voltage branch (power stream) when it forks
         # or when it reaches leaf asset/node
         if (len(child_keys) > 1 and event.branch) or not child_keys:
             self.complete_volt_branch(event.branch)
 
-        return (zip(child_keys, events), None)
+        return (
+            zip(child_keys, volt_events),
+            zip(parent_keys, load_events) if load_events else None,
+        )

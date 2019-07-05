@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import os
 
 from circuits import Component, handler
@@ -40,14 +41,14 @@ while True:
     _finish_test("voltage from 0 -> 120")
     # time.sleep(4)
 
-    out_1 = IStateManager.get_state_manager_by_key(1)
+    # out_1 = IStateManager.get_state_manager_by_key(1)
 
-    out_1.shut_down()
-    engine.handle_state_update(asset_key=out_1.key, old_state=1, new_state=0)
+    # out_1.shut_down()
+    # engine.handle_state_update(asset_key=out_1.key, old_state=1, new_state=0)
 
-    VoltCompletionTracker.queue.get()
+    # VoltCompletionTracker.queue.get()
 
-    _finish_test("asset number 2 went down")
+    # _finish_test("asset number 2 went down")
 
     # out_1.power_up()
     # engine.handle_state_update(asset_key=out_1.key, old_state=0, new_state=1)
