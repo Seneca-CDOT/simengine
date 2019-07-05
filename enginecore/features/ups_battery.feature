@@ -1,3 +1,4 @@
+@draft
 Feature: UPS Voltage Handling
     Voltage may affect UPS state,
     input voltage that is below or above the defined thresholds
