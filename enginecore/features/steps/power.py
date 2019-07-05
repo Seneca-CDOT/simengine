@@ -44,6 +44,17 @@ def step_impl(context):
     logging.info(event)
 
 
+@given('wallpower voltage "{old_volt:d}" is set to "{new_volt:d}"')
+@when('wallpower voltage "{old_volt:d}" is updated to "{new_volt:d}"')
+def step_impl(context, old_volt, new_volt):
+    context.engine.handle_voltage_update(old_voltage=old_volt, new_voltage=new_volt)
+
+    # wait for completion of event loop
+    if new_volt != old_volt:
+        event = context.tracker.volt_done_queue.get()
+        logging.info(event)
+
+
 @given('asset "{key:d}" is "{state}"')
 @when('asset "{key:d}" goes "{state}"')
 def step_impl(context, key, state):
@@ -69,3 +80,13 @@ def step_impl(context, key, load):
 def step_impl(context, key, state):
     state_num = 1 if state == "online" else 0
     assert_that(context.hardware[key].status, equal_to(state_num))
+
+
+@then('asset "{key:d}" input voltage is "{volt:d}"')
+def step_impl(context, key, volt):
+    assert_that(context.hardware[key].input_voltage, close_to(volt, 0.0001))
+
+
+@then('asset "{key:d}" output voltage is "{volt:d}"')
+def step_impl(context, key, volt):
+    assert_that(context.hardware[key].output_voltage, close_to(volt, 0.0001))

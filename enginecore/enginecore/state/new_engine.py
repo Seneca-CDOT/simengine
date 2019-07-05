@@ -2,6 +2,7 @@ import logging
 
 import queue
 import threading
+import math
 
 from circuits import Component, Event, Worker, Debugger, handler
 
@@ -163,6 +164,9 @@ class Engine(Component):
             old_voltage(float): old voltage value
             new_voltage(float): new wallpower voltage value
         """
+
+        if math.isclose(old_voltage, new_voltage):
+            return
 
         volt_event = AssetPowerEvent(
             asset=None, old_out_volt=old_voltage, new_out_volt=new_voltage

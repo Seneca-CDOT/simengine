@@ -32,7 +32,9 @@ def shut_down_threads(context):
 
 def before_all(context):
     """Pre-test configuration"""
-    use_fixture(configure_logger, context)
+
+
+#     use_fixture(configure_logger, context)
 
 
 def after_scenario(context, _):
