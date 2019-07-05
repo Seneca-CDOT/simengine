@@ -18,7 +18,7 @@ from enginecore.state.net.ws_requests import ServerToClientRequests
 from enginecore.state.state_initializer import initialize, clear_temp, configure_env
 from enginecore.state.engine_data_source import HardwareGraphDataSource
 from enginecore.state.power_iteration import PowerIteration
-from enginecore.state.power_events import AssetVoltageEvent
+from enginecore.state.power_events import AssetPowerEvent
 
 
 class AllVoltageBranchesDone(Event):
@@ -164,7 +164,7 @@ class Engine(Component):
             new_voltage(float): new wallpower voltage value
         """
 
-        volt_event = AssetVoltageEvent(
+        volt_event = AssetPowerEvent(
             asset=None, old_out_volt=old_voltage, new_out_volt=new_voltage
         )
 
@@ -184,7 +184,7 @@ class Engine(Component):
         updated_asset = self._assets[asset_key]
         out_volt = updated_asset.state.output_voltage
 
-        volt_event = AssetVoltageEvent(
+        volt_event = AssetPowerEvent(
             asset=updated_asset,
             old_out_volt=old_state * out_volt,
             new_out_volt=new_state * out_volt,
@@ -204,26 +204,16 @@ class Engine(Component):
 
     # **Events are camel-case
     # pylint: disable=C0103,W0613
-
-    def _on_power_event_success(self, evt, e_results):
-        """Chain power events"""
-
-        power_event = evt.get_next_voltage_event(
-            {
-                "asset": self._assets[e_results["key"]],
-                **e_results["voltage"],
-                **e_results["state"],
-            }
-        )
-
-        self._chain_power_events(*evt.power_iter.process_power_event(power_event))
-
-    def InputVoltageUpEvent_success(self, evt, e_results):
+    def InputVoltageUpEvent_success(self, input_volt_event, asset_event):
         """Callback called if InputVoltageUpEvent was handled by the child asset
         """
-        self._on_power_event_success(evt, e_results)
+        self._chain_power_events(
+            *self._current_power_iter.process_power_event(asset_event)
+        )
 
-    def InputVoltageDownEvent_success(self, evt, e_results):
+    def InputVoltageDownEvent_success(self, input_volt_event, asset_event):
         """Callback called if InputVoltageDown was handled by the child asset
         """
-        self._on_power_event_success(evt, e_results)
+        self._chain_power_events(
+            *self._current_power_iter.process_power_event(asset_event)
+        )

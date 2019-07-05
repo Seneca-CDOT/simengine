@@ -121,7 +121,10 @@ class PowerIteration:
         return self.process_power_event(self._src_event)
 
     def process_power_event(self, event):
-        """Retrieves events as a reaction to the passed source event"""
+        """Retrieves events as a reaction to the passed source event
+        Args:
+            event(AssetPowerEvent):
+        """
 
         logging.info(" \n\nProcessing event branch %s", event.branch)
         self._last_processed_volt_event = event
@@ -136,6 +139,8 @@ class PowerIteration:
     def _process_wallpower_event(self, event):
         """Wall-power voltage was updated, retrieve chain events associated
         with mains-powered outlets
+        Args:
+            event(AssetPowerEvent):
         """
         wp_outlets = self.data_source.get_mains_powered_assets()
 
@@ -152,11 +157,15 @@ class PowerIteration:
 
     def _process_hardware_asset_event(self, event):
         """One of the hardware assets went online/online
+        Args:
+            event(AssetPowerEvent):
         """
 
-        child_keys, parent_keys = self.data_source.get_affected_assets(
-            event.kwargs["asset"].key
-        )
+        from pprint import pprint as pp
+
+        pp(event)
+        pp(event.kwargs["asset"])
+        child_keys, parent_keys = self.data_source.get_affected_assets(event.asset.key)
 
         if not event.branch:
             self._volt_branches_active.append(VoltageBranch(event, self))
