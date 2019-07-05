@@ -17,227 +17,16 @@ from enginecore.state.net.ws_requests import ServerToClientRequests
 
 from enginecore.state.state_initializer import initialize, clear_temp, configure_env
 from enginecore.state.engine_data_source import HardwareGraphDataSource
-
-
-class PowerEvent(Event):
-    """Aggregates voltage event"""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._power_iter = kwargs["power_iter"] if "power_iter" in kwargs else None
-        self._branch = kwargs["branch"] if "branch" in kwargs else None
-
-    @property
-    def power_iter(self):
-        """Power iteration power event belongs to"""
-        return self._power_iter
-
-    @power_iter.setter
-    def power_iter(self, value):
-        self._power_iter = value
-
-    @property
-    def branch(self):
-        """Voltage branch"""
-        return self._branch
-
-    @branch.setter
-    def branch(self, value):
-        self._branch = value
-
-
-class AssetVoltageEvent(PowerEvent):
-    """Voltage power event associated with a particular asset"""
-
-    def __init__(self, *args, **kwargs):
-
-        super().__init__(*args, **kwargs)
-        required_args = ["asset", "new_out_volt", "old_out_volt"]
-
-        if not all(r_arg in kwargs for r_arg in required_args):
-            raise KeyError("Needs arguments: " + ",".join(required_args))
-
-        self._asset = kwargs["asset"]
-        self._new_out_volt = kwargs["new_out_volt"]
-        self._old_out_volt = kwargs["old_out_volt"]
-
-        # populate optional state updates
-        self._new_state = kwargs["new_state"] if "new_state" in kwargs else None
-        self._old_state = kwargs["old_state"] if "old_state" in kwargs else None
-
-    def get_next_power_event(self):
-        """Returns next event that will be dispatched against children of 
-        the source asset
-        """
-
-        if self._old_out_volt > self._new_out_volt or self._new_out_volt == 0:
-            volt_event = InputVoltageDownEvent
-        else:
-            volt_event = InputVoltageUpEvent
-
-        next_event = volt_event(
-            old_in_volt=self._old_out_volt,
-            new_in_volt=self._new_out_volt,
-            source_asset=self._asset,
-            power_iter=self.power_iter,
-            branch=self._branch,
-        )
-
-        return next_event
-
-
-class InputVoltageEvent(PowerEvent):
-    success = True
-
-    def get_next_power_event(self, source_e_result):
-
-        volt_event = AssetVoltageEvent(
-            **source_e_result, power_iter=self.power_iter, branch=self.branch
-        )
-
-        return volt_event
-
-
-class InputVoltageUpEvent(InputVoltageEvent):
-    pass
-
-
-class InputVoltageDownEvent(InputVoltageEvent):
-    pass
-
-
-class ChildLoadUpEvent(Event):
-    pass
-
-
-class ChildLoadDownEvent(Event):
-    pass
+from enginecore.state.power_iteration import PowerIteration
+from enginecore.state.power_events import AssetVoltageEvent
 
 
 class AllVoltageBranchesDone(Event):
+    """Dispatched when power iteration finishes downstream
+    voltage event propagation to all the leaf nodes that 
+    are descendants of the iteration source event"""
+
     success = True
-
-
-class VoltageBranch:
-    def __init__(self, src_event, power_iter):
-        self._src_event = src_event
-        self._src_event.branch = self
-        self._power_iter = power_iter
-
-    @property
-    def src_event(self):
-        """Get root node/root access of the voltage branch"""
-        return self._src_event
-
-    def __call__(self):
-        return self.src_event
-
-
-class PowerIteration:
-
-    data_source = None
-
-    def __init__(self, src_event):
-        """Source """
-        self._volt_branches_active = []
-        self._volt_branches_done = []
-
-        self._last_processed_volt_event = None
-
-        self._src_event = src_event
-        self._src_event.power_iter = self
-
-    def __str__(self):
-        return (
-            "Power Iteration due to incoming event:\n"
-            " | {0._src_event}\n"
-            "Loop Details:\n"
-            " | Number Voltage Branches in-progress: {0.num_volt_branches_active}\n"
-            " | Number Voltage Branches completed: {0.num_volt_branches_done}\n"
-            " | Last Processed Power Event: \n"
-            " | {0._last_processed_volt_event}\n"
-        ).format(self)
-
-    @property
-    def num_volt_branches_active(self):
-        """Number of voltage branches/streams still in progress"""
-        return len(self._volt_branches_active)
-
-    @property
-    def num_volt_branches_done(self):
-        """Number of voltage branches/streams still in progress"""
-        return len(self._volt_branches_done)
-
-    def complete_volt_branch(self, branch: VoltageBranch):
-        """Remove branch from a list of completed branches"""
-        self._volt_branches_active.remove(branch)
-        self._volt_branches_done.append(branch)
-
-    def launch(self):
-        """Start up power iteration by returning events
-        Returns:
-            tuple consisting of:
-                - ParentAssetVoltageEvent (either up or down)
-                - ChildLoadEvent     (either up or down)
-        """
-        return self.process_power_event(self._src_event)
-
-    def process_power_event(self, event):
-        """Retrieves events as a reaction to the passed source event"""
-
-        logging.info(" \n\nProcessing event branch %s", event.branch)
-        self._last_processed_volt_event = event
-
-        # asset caused by power loop (individual asset power update)
-        if event.kwargs["asset"]:
-            return self._process_hardware_asset_event(event)
-
-        # wallpower voltage caused power loop
-        return self._process_wallpower_event(event)
-
-    def _process_wallpower_event(self, event):
-        """Wall-power voltage was updated, retrieve chain events associated
-        with mains-powered outlets
-        """
-        wp_outlets = self.data_source.get_mains_powered_assets()
-
-        new_branches = [VoltageBranch(event, self) for _ in wp_outlets]
-        self._volt_branches_active.extend(new_branches)
-
-        return (
-            [
-                (k, b.src_event.get_next_power_event())
-                for k, b in zip(wp_outlets, new_branches)
-            ],
-            None,
-        )
-
-    def _process_hardware_asset_event(self, event):
-        """One of the hardware assets went online/online"""
-
-        child_keys, parent_keys = self.data_source.get_affected_assets(
-            event.kwargs["asset"].key
-        )
-
-        if not event.branch:
-            self._volt_branches_active.append(VoltageBranch(event, self))
-
-        events = [event.get_next_power_event()]
-
-        # forked branch -> replace it with 'n' child voltage branches
-        if len(child_keys) > 1:
-            new_branches = [
-                VoltageBranch(event.get_next_power_event(), self) for _ in child_keys
-            ]
-            self._volt_branches_active.extend(new_branches)
-            events = [b.src_event for b in new_branches]
-
-        # delete voltage branch (power stream) when it forks
-        # or when it reaches leaf asset/node
-        if (len(child_keys) > 1 and event.branch) or not child_keys:
-            self.complete_volt_branch(event.branch)
-
-        return (zip(child_keys, events), None)
 
 
 class Engine(Component):
@@ -419,7 +208,7 @@ class Engine(Component):
     def _on_power_event_success(self, evt, e_results):
         """Chain power events"""
 
-        power_event = evt.get_next_power_event(
+        power_event = evt.get_next_voltage_event(
             {
                 "asset": self._assets[e_results["key"]],
                 **e_results["voltage"],
