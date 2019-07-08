@@ -14,11 +14,11 @@ Feature: UPS Voltage Handling
     @snmp-interface
     Scenario Outline: UPS voltage threshold checks
         Given Engine is up and running
-        When voltage "<input-volt>" drops below "<threshold>" threshold by "<drops-by>"
+        When voltage "<input-volt>" drops below "<threshold>" threshold by "<drops-by>" for UPS "190"
 
         # State checks for ups
-        Then UPS "1" is "<battery-status>" battery
-        And UPS "1" transfer reason is set to "<transfer-reason>"
+        Then UPS "190" is "<battery-status>" battery
+        And UPS "190" transfer reason is set to "<transfer-reason>"
 
         Examples: UPS input voltage changes
             | input-volt | threshold                | drops-by | battery-status | transfer-reason   |

@@ -37,8 +37,8 @@ class UPS(Asset, SNMPSim):
         SNMPSim.__init__(self, self._state)
 
         # remove default logic for handling input voltage updates
-        super().removeHandler(super().on_voltage_increase)
-        super().removeHandler(super().on_voltage_decrease)
+        # super().removeHandler(super().on_voltage_increase)
+        # super().removeHandler(super().on_voltage_decrease)
 
         self._low_volt_th_oid = self.state.get_oid_by_name("AdvConfigLowTransferVolt")
 
