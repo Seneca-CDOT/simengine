@@ -1,6 +1,6 @@
 @sequential
 Feature: Power Chaining for Hardware Assets
-    Testing simple power scenarios where one device can power another.
+    This is a set of simple power scenarios where one device can power another.
     Powering down a particular asset can cause a chain reaction of power events
     spread over to the nodes down the power chain.
 

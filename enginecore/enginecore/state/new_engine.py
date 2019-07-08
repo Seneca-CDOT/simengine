@@ -172,6 +172,8 @@ class Engine(Component):
             self._current_power_iter = None
             self._notify_trackers(AllLoadBranchesDone)
             self._power_iter_queue.task_done()
+
+        if not load_events:
             return
 
         for asset_key, event in load_events:
