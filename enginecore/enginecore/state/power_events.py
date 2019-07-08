@@ -62,6 +62,11 @@ class EventDataPair:
         """New value caused by the event"""
         return self._new_value
 
+    @property
+    def difference(self):
+        """Difference between new & old value"""
+        return self._new_value - self._old_value
+
     @new.setter
     def new(self, value):
         if self._is_valid_value and not self._is_valid_value(value):
@@ -157,9 +162,9 @@ class AssetPowerEvent(PowerEvent):
             return None
 
         if self.load.old > self.load.new:
-            volt_event = UpstreamLoadDownEvent
+            volt_event = ChildLoadDownEvent
         else:
-            volt_event = UpstreamLoadUpEvent
+            volt_event = ChildLoadUpEvent
 
         return volt_event(
             old_load=self.load.old,
@@ -206,6 +211,16 @@ class InputVoltageEvent(PowerEvent):
         return volt_event
 
 
+class InputVoltageUpEvent(InputVoltageEvent):
+    """Voltage event that gets dispatched against assets
+    (when input voltage to the asset spikes)"""
+
+
+class InputVoltageDownEvent(InputVoltageEvent):
+    """Voltage event that gets dispatched against assets
+    (when input voltage to the asset drops)"""
+
+
 class LoadEvent(PowerEvent):
     """Load event is emitted whenever there is load 
     change somewhere in the system (due to voltage changes or power updates)"""
@@ -224,22 +239,49 @@ class LoadEvent(PowerEvent):
         """Load changes associated with the event"""
         return self._load
 
-
-class InputVoltageUpEvent(InputVoltageEvent):
-    """Voltage event that gets dispatched against assets
-    (when input voltage to the asset spikes)"""
+    def __str__(self):
+        return self._load.__str__()
 
 
-class InputVoltageDownEvent(InputVoltageEvent):
-    """Voltage event that gets dispatched against assets
-    (when input voltage to the asset drops)"""
+class AssetLoadEvent(LoadEvent):
+    """Asset load was updated"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "asset" not in kwargs or not kwargs["asset"]:
+            raise KeyError("Needs arguments: asset")
+
+        self._asset = kwargs["asset"]
+        self._load.old = self._asset.state.load
+
+    def get_next_load_event(self):
+        """Get next load event that can be dispatched against asset powering this 
+        device"""
+        return (ChildLoadDownEvent if self._load.difference < 0 else ChildLoadUpEvent)(
+            old_load=self._load.old, new_load=self._load.new
+        )
+
+    def __str__(self):
+        return "[{}]::AssetLoadEvent: \n ".format(self._asset.key) + super().__str__()
 
 
-class UpstreamLoadUpEvent(LoadEvent):
+class ChildLoadEvent(LoadEvent):
+    """Event at child load changes"""
+
+    success = True
+
+    def get_next_load_event(self, target_asset):
+        """Get next asset event"""
+        return AssetLoadEvent(
+            asset=target_asset, old_load=self._load.old, new_load=self._load.new
+        )
+
+
+class ChildLoadUpEvent(ChildLoadEvent):
     """Child load went up, this is dispatched against parent
     to notify of load update"""
 
 
-class UpstreamLoadDownEvent(LoadEvent):
+class ChildLoadDownEvent(ChildLoadEvent):
     """Child load was decreased, this is dispatched against parent
     to notify of load update"""

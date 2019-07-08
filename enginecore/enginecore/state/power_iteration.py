@@ -177,7 +177,7 @@ class PowerIteration:
             self._volt_branches_active.extend(new_branches)
             volt_events = [b.src_event for b in new_branches]
 
-        if len(parent_keys) > 1 and event.get_next_load_event():
+        if parent_keys and event.get_next_load_event():
             new_branches = [
                 LoadBranch(event.get_next_load_event(), self) for _ in parent_keys
             ]

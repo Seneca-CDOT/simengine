@@ -225,3 +225,17 @@ class Engine(Component):
         self._chain_power_events(
             *self._current_power_iter.process_power_event(asset_event)
         )
+
+    def ChildLoadUpEvent_success(self, child_load_event, asset_load_event):
+        """ """
+        print("\n" + "=" * 30)
+        print("ChildLoadUpEvent_success:")
+        print(child_load_event)
+        print(asset_load_event)
+
+    def ChildLoadDownEvent_success(self, child_load_event, asset_load_event):
+        """ """
+        print("\n" + "=" * 30)
+        print("ChildLoadDownEvent_success:")
+        print(child_load_event)
+        print(asset_load_event)

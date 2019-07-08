@@ -48,12 +48,6 @@ class Asset(Component):
     @state_reason.setter
     def state_reason(self, value):
         self._state_reason = value
-        # logging.info(
-        #     "Asset:[%s][%s] due to event <%s>",
-        #     self.key,
-        #     "online" if self.state.status else "offline",
-        #     value.__name__,
-        # )
 
     @property
     def power_state_caused_by_user(self):
@@ -147,6 +141,15 @@ class Asset(Component):
         decreased_by = kwargs["child_load"]
         return self._update_load(decreased_by, lambda old, change: old - change)
 
+    @handler("ChildLoadUpEvent", "ChildLoadDownEvent")
+    def on_child_load_update(self, event, *args, **kwargs):
+        asset_load_event = event.get_next_load_event(self)
+        new_load = asset_load_event.load.old + event.load.difference
+
+        self.state.update_load(new_load)
+        asset_load_event.load.new = new_load
+        return asset_load_event
+
     @handler("ButtonPowerDownPressed")
     def on_btn_power_down(self, event):
         """When user presses power button to turn asset off"""
@@ -157,52 +160,10 @@ class Asset(Component):
         """When user preses power button to turn asset on"""
         self.state_reason = asset_events.ButtonPowerUpPressed
 
-    def _get_voltage_event_result(self, event_details):
-        """Get formatted voltage event result"""
-
-        return event_results.VoltageEventResult(
-            asset_key=self.state.key,
-            asset_type=self.state.asset_type,
-            old_voltage=event_details["old_value"],
-            new_voltage=event_details["new_value"],
-        )
-
-    def _get_load_event_result(self, volt_event_details, power_e_result=None):
-        """Get formatted load event result"""
-
-        old_volt, new_volt = (
-            volt_event_details["old_value"],
-            volt_event_details["new_value"],
-        )
-        calc_load = lambda v: self.state.power_consumption / v if v else 0
-
-        # print(self.state)
-        # Output voltage can still be 0 for some assets even though
-        # their input voltage > 0
-        # (most devices require at least 90V-100V in order to function)
-        old_out_volt = old_volt * (power_e_result.old_state if power_e_result else 1)
-        new_out_volt = new_volt * (power_e_result.new_state if power_e_result else 1)
-
-        old_load, new_load = (calc_load(volt) for volt in [old_out_volt, new_out_volt])
-        # print(old_load)
-
-        # old_load = self.state.load  # TODO: remove old load from above calculations
-        # print(old_load)
-
-        if old_load == new_load == 0:
-            return None
-
-        return [
-            event_results.LoadEventResult(
-                asset_key=self.state.key,
-                asset_type=self.state.asset_type,
-                parent_key=volt_event_details["source_key"],
-                old_load=old_load,
-                new_load=new_load,
-            )
-        ]
-
     def _process_parent_volt_e(self, event):
+        """Process parent voltage event by analyzing if voltage is 
+        within the accepted threshold and if asset power state 
+        needs to be changed"""
 
         calc_load = lambda v: self.state.power_consumption / v if v else 0
 
@@ -223,6 +184,8 @@ class Asset(Component):
 
         # re-set output voltage values in case of power condition
         if power_action:
+            # TODO: should call asset implementations
+            # (on_power_up_request_received/on_power_off_request_received)
             asset_event.state.new = power_action()
             asset_event.out_volt.old = old_out_volt * asset_event.state.old
             asset_event.out_volt.new = new_out_volt * (int(old_out_volt) ^ 1)
@@ -246,81 +209,17 @@ class Asset(Component):
 
     @handler("InputVoltageUpEvent")
     def on_parent_volt_up(self, event, *args, **kwargs):
-        # print("[ASSET] parent volt up")
-        # print("         parent event -> ", event)
+        """React to input voltage spike;
+        Asset can power up on volt increase if it was down;
+        """
         return self._process_parent_volt_e(event)
 
     @handler("InputVoltageDownEvent")
     def on_parent_volt_down(self, event, *args, **kwargs):
-        # print("[ASSET] parent volt down")
-        # print("         parent event -> ", event)
-
-        return self._process_parent_volt_e(event)
-
-    @handler("VoltageIncreased")
-    def on_voltage_increase(self, event, *args, **kwargs):
-        """React to input voltage spike;
-        Asset can power up on volt increase if it was down, event propagation
-        gets cancelled if asset's state doesn't change
-
-        Returns:
-            tuple: 3 event results:
-                VoltageEventResult : to be propagated to this asset's children
-                PowerEventResult   : asset power state changes if any
-                LoadEventResult    : load change (to be propagated up the power stream)
-        """
-
-        power_event_result = None
-        volt_event_result = self._get_voltage_event_result(kwargs)
-
-        min_voltage = self.state.min_voltage_prop()
-
-        # power up asset it has died previously due to underpower
-        if (
-            kwargs["new_value"] > min_voltage
-            and not self.state.status
-            and not self.power_state_caused_by_user
-        ):
-            power_event_result = self.on_power_up_request_received(event, args, kwargs)
-            if power_event_result.new_state != power_event_result.old_state:
-                self.state_reason = asset_events.VoltageIncreased
-
-        if not self.state.status:
-            event.success = False
-
-        load_event_result = self._get_load_event_result(kwargs, power_event_result)
-        return volt_event_result, power_event_result, load_event_result
-
-    @handler("VoltageDecreased")
-    def on_voltage_decrease(self, event, *args, **kwargs):
         """React to input voltage drop;
         Asset can power off if input voltage drops below the acceptable
-        threshold. Event propagation gets cancelled if no state changes
-        occured.
-
-        Returns:
-            tuple: 3 event results:
-                VoltageEventResult : to be propagated to this asset's children
-                PowerEventResult   : asset power state changes if any
-                LoadEventResult    : load change (to be propagated up the power stream)
-        """
-
-        power_event_result = None
-        volt_event_result = self._get_voltage_event_result(kwargs)
-
-        # asset was already powered down, no need to propagate voltage
-        if not self.state.status and self.power_state_caused_by_user:
-            event.success = False
-
-        # does asset need to be powered down due to low voltage?
-        min_voltage = self.state.min_voltage_prop()
-        if kwargs["new_value"] <= min_voltage and self.state.status:
-            power_event_result = self.on_power_off_request_received(event, args, kwargs)
-            if power_event_result.new_state != power_event_result.old_state:
-                self.state_reason = asset_events.VoltageDecreased
-
-        load_event_result = self._get_load_event_result(kwargs, power_event_result)
-        return volt_event_result, power_event_result, load_event_result
+        threshold"""
+        return self._process_parent_volt_e(event)
 
     def on_power_up_request_received(self, event, *args, **kwargs):
         """Called on voltage spike"""
