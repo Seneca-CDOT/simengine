@@ -33,6 +33,24 @@ def step_impl(context, key, min_volt, port):
         context.hardware[child_key] = IStateManager.get_state_manager_by_key(child_key)
 
 
+@given('UPS asset with key "{key:d}" and "{port:d}" port is created')
+def step_impl(context, key, port):
+
+    sm.create_ups(
+        key,
+        {
+            "power_source": 120,
+            "power_consumption": 24,
+            "host": "localhost",
+            "port": port,
+        },
+    )
+
+    context.hardware[key] = IStateManager.get_state_manager_by_key(key)
+    for child_key in context.hardware[key].asset_info["children"]:
+        context.hardware[child_key] = IStateManager.get_state_manager_by_key(child_key)
+
+
 @given(
     'Server asset with key "{key:d}", "{psu_num:d}" PSU(s) and "{wattage:d}" Wattage is created'
 )

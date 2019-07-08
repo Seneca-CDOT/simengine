@@ -4,76 +4,22 @@ Feature: UPS Voltage Handling
     input voltage that is below or above the defined thresholds
     will cause UPS transfer to battery.
 
-    @snmp-interface
-    Scenario: Voltage drops slightly below low threshold thus causing brownout
+    Background:
         Given the system model is empty
-        And UPS asset with key "190" is created
-        When voltage "120" drops below "AdvConfigLowTransferVolt" threshold by "10"
-        Then UPS is on battery
-        And UPS transfer reason is set to "smallMomentarySag"
-        And after "5" seconds, the transfer reason is set to "brownout"
+        And Outlet asset with key "1" is created
+        And UPS asset with key "190" and "1024" port is created
+        And asset "1" powers target "190"
 
+    @power-behaviour
     @snmp-interface
-    Scenario: Voltage drops below low threshold thus causing blackout
-        Given the system model is empty
-        And UPS asset with key "190" is created
-        When voltage "120" drops below "AdvConfigLowTransferVolt" threshold by "100"
-        Then UPS is on battery
-        And UPS transfer reason is set to "deepMomentarySag"
-        And after "5" seconds, the transfer reason is set to "blackout"
+    Scenario Outline: UPS voltage threshold checks
+        Given Engine is up and running
+        When voltage "<input-volt>" drops below "<threshold>" threshold by "<drops-by>"
 
-    @snmp-interface
-    Scenario: Voltage spikes above high-threshold
-        Given the system model is empty
-        And UPS asset with key "190" is created
-        When voltage "120" spikes above "AdvConfigHighTransferVolt" threshold by "10"
-        Then UPS is on battery
-        And UPS transfer reason is set to "highLineVoltage"
+        # State checks for ups
+        Then UPS "1" is "<battery-status>" battery
+        And UPS "1" transfer reason is set to "<transfer-reason>"
 
-    @snmp-interface
-    Scenario: Voltage drops below threshold and then spikes back to normal
-        Given the system model is empty
-        And UPS asset with key "190" is created
-        When voltage "120" drops below "AdvConfigLowTransferVolt" threshold by "10"
-        And voltage is set to "110"
-        Then UPS is not on battery
-        And UPS transfer reason is set to "noTransfer"
-
-
-    @snmp-interface
-    Scenario: Voltage spikes above threshold and then drops back to normal
-        Given the system model is empty
-        And UPS asset with key "190" is created
-        When voltage "120" spikes above "AdvConfigHighTransferVolt" threshold by "10"
-        And voltage is set to "110"
-        Then UPS is not on battery
-        And UPS transfer reason is set to "noTransfer"
-
-    @snmp-interface
-    Scenario: Voltage drops below threshold and then spikes above threshold
-        Given the system model is empty
-        And UPS asset with key "190" is created
-        When voltage is set to "0"
-        And voltage "0" spikes above "AdvConfigHighTransferVolt" threshold by "10"
-        Then UPS is on battery
-        And UPS transfer reason is set to "highLineVoltage"
-
-    @snmp-interface
-    Scenario: Voltage drops below threshold and then spikes above threshold and then back to normal
-        Given the system model is empty
-        And UPS asset with key "190" is created
-        When voltage is set to "0"
-        And voltage "0" spikes above "AdvConfigHighTransferVolt" threshold by "10"
-        And voltage is set to "120"
-        Then UPS is not on battery
-        And UPS transfer reason is set to "noTransfer"
-
-    @snmp-interface
-    Scenario: Voltage spikes above threshold then drops below threshold
-        Given the system model is empty
-        And UPS asset with key "190" is created
-        When voltage is set to "200"
-        And voltage is set to "0"
-        Then UPS is on battery
-        And UPS transfer reason is set to "blackout"
-
+        Examples: UPS input voltage changes
+            | input-volt | threshold                | drops-by | battery-status | transfer-reason   |
+            | 120        | AdvConfigLowTransferVolt | 10       | on             | smallMomentarySag |
