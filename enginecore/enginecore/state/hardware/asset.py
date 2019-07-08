@@ -190,10 +190,15 @@ class Asset(Component):
             asset_event.out_volt.old = old_out_volt * asset_event.state.old
             asset_event.out_volt.new = new_out_volt * (int(old_out_volt) ^ 1)
 
-        asset_event.load.old, asset_event.load.new = (
+        old_load, new_load = (
             calc_load(volt)
             for volt in [asset_event.out_volt.old, asset_event.out_volt.new]
         )
+
+        asset_event.load.new = new_load
+        asset_event.load.old = old_load
+        if new_load != old_load:
+            self.state.update_load(self.state.load - old_load + new_load)
 
         return asset_event
 

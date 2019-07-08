@@ -19,8 +19,12 @@ class VoltCompletionTracker(Component):
     queue = Queue()
 
     @handler("AllVoltageBranchesDone")
-    def pabam(self, event, *args, **kwargs):
-        print("\n\n---------> pabam!")
+    def pabam_volt(self, event, *args, **kwargs):
+        print("\n\n---------> pabam volt!")
+
+    @handler("AllLoadBranchesDone")
+    def pabam_load(self, event, *args, **kwargs):
+        print("\n\n---------> pabam load!")
         VoltCompletionTracker.queue.put("passed")
 
 

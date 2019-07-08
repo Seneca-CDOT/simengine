@@ -30,6 +30,13 @@ class AllVoltageBranchesDone(Event):
     success = True
 
 
+class AllLoadBranchesDone(Event):
+    """Dispatched when power iteration finishes upstream
+    load event propagation across all load branches"""
+
+    success = True
+
+
 class Engine(Component):
     """Top-level component that initializes assets & handles state changes
     (thermal, power, oid) by dispatching events against hardware assets.
@@ -124,7 +131,7 @@ class Engine(Component):
         """Dispatch power completion events to clients"""
 
         for comp_tracker in self._completion_trackers:
-            self.fire(AllVoltageBranchesDone(), comp_tracker)
+            self.fire(event(), comp_tracker)
 
     def subscribe_tracker(self, tracker):
         """Subcribe external engine client to completion events"""
@@ -136,22 +143,39 @@ class Engine(Component):
         tracker.unregister(self)
 
     def _chain_power_events(self, volt_events, load_events=None):
+        """Chain power events by dispatching input power events
+        against children of the updated asset;
+        Fire load events against parents of the updated asset if
+        applicable;
+        """
 
         # print(self._current_power_iter)
 
         # reached the end of a stream of voltage updates
-        # TODO: when load is implemented, move this to load completion
         if self._current_power_iter.num_volt_branches_active == 0:
-            self._current_power_iter = None
-            self._notify_trackers(None)
-            self._power_iter_queue.task_done()
+            self._notify_trackers(AllVoltageBranchesDone)
 
-        for asset_key, event in volt_events:
-            self.fire(event, self._assets[asset_key])
+        for child_key, event in volt_events:
+            self.fire(event, self._assets[child_key])
 
         if load_events:
-            for asset_key, event in load_events:
-                self.fire(event, self._assets[asset_key])
+            for parent_key, event in load_events:
+                self.fire(event, self._assets[parent_key])
+
+    def _chain_load_events(self, load_events):
+        """Chain load events"""
+
+        print(self._current_power_iter)
+
+        # load branches are completed
+        if self._current_power_iter.num_load_branches_active == 0:
+            self._current_power_iter = None
+            self._notify_trackers(AllLoadBranchesDone)
+            self._power_iter_queue.task_done()
+            return
+
+        for asset_key, event in load_events:
+            self.fire(event, self._assets[asset_key])
 
     def handle_ambient_update(self, old_temp, new_temp):
         """Ambient changes to a new value, initiate a chain of thermal reactions
@@ -228,14 +252,12 @@ class Engine(Component):
 
     def ChildLoadUpEvent_success(self, child_load_event, asset_load_event):
         """ """
-        print("\n" + "=" * 30)
-        print("ChildLoadUpEvent_success:")
-        print(child_load_event)
-        print(asset_load_event)
+        self._chain_load_events(
+            self._current_power_iter.process_load_event(asset_load_event)
+        )
 
     def ChildLoadDownEvent_success(self, child_load_event, asset_load_event):
         """ """
-        print("\n" + "=" * 30)
-        print("ChildLoadDownEvent_success:")
-        print(child_load_event)
-        print(asset_load_event)
+        self._chain_load_events(
+            self._current_power_iter.process_load_event(asset_load_event)
+        )

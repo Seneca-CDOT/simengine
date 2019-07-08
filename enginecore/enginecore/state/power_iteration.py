@@ -64,6 +64,7 @@ class PowerIteration:
         self._load_branches_done = []
 
         self._last_processed_volt_event = None
+        self._last_processed_load_event = None
 
         self._src_event = src_event
         self._src_event.power_iter = self
@@ -79,6 +80,8 @@ class PowerIteration:
             " | Number Load Branches completed: {0.num_load_branches_done}\n"
             " | Last Processed Power Event: \n"
             " | {0._last_processed_volt_event}\n"
+            " | Last Processed Load Event: \n"
+            " | {0._last_processed_load_event}\n"
         ).format(self)
 
     @property
@@ -135,6 +138,35 @@ class PowerIteration:
 
         # wallpower voltage caused power loop
         return self._process_wallpower_event(event)
+
+    def process_load_event(self, event):
+        """Takes asset load event and generates upstream load events
+        that will be dispatched against the parent(s);
+        Args:
+            event(AssetLoadEvent):
+        """
+        self._last_processed_load_event = event
+        parent_keys = self.data_source.get_parent_assets(event.asset.key)
+        load_events = None
+
+        if not event.branch:
+            self._load_branches_active.append(LoadBranch(event, self))
+
+        load_events = [event.get_next_load_event()]
+
+        # forked branch -> replace it with 'n' child parent load branches
+        if len(parent_keys) > 1:
+            new_branches = [
+                LoadBranch(event.get_next_load_event(), self) for _ in parent_keys
+            ]
+            self._load_branches_active.extend(new_branches)
+            load_events = [b.src_event for b in new_branches]
+
+        if not parent_keys or not load_events:
+            self.complete_load_branch(event.branch)
+            return None
+
+        return zip(parent_keys, load_events)
 
     def _process_wallpower_event(self, event):
         """Wall-power voltage was updated, retrieve chain events associated

@@ -105,6 +105,7 @@ class AssetPowerEvent(PowerEvent):
         return (
             "[{}]::AssetPowerEvent: \n".format(event_type)
             + super().__str__()
+            + "\n"
             + (
                 " -- VoltageBranch: {0._branch} \n"
                 " state update          : {0.state} \n"
@@ -258,11 +259,23 @@ class AssetLoadEvent(LoadEvent):
         """Get next load event that can be dispatched against asset powering this 
         device"""
         return (ChildLoadDownEvent if self._load.difference < 0 else ChildLoadUpEvent)(
-            old_load=self._load.old, new_load=self._load.new
+            power_iter=self.power_iter,
+            branch=self._branch,
+            old_load=self._load.old,
+            new_load=self._load.new,
         )
 
+    @property
+    def asset(self):
+        """Hardware asset that caused power event"""
+        return self._asset
+
     def __str__(self):
-        return "[{}]::AssetLoadEvent: \n ".format(self._asset.key) + super().__str__()
+        return (
+            "[{}]::AssetLoadEvent: \n ".format(self._asset.key)
+            + " -- VoltageBranch: {} \n".format(self._branch)
+            + super().__str__()
+        )
 
 
 class ChildLoadEvent(LoadEvent):
@@ -273,7 +286,11 @@ class ChildLoadEvent(LoadEvent):
     def get_next_load_event(self, target_asset):
         """Get next asset event"""
         return AssetLoadEvent(
-            asset=target_asset, old_load=self._load.old, new_load=self._load.new
+            asset=target_asset,
+            power_iter=self.power_iter,
+            branch=self._branch,
+            old_load=self._load.old,
+            new_load=self._load.new,
         )
 
 
