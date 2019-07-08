@@ -60,8 +60,12 @@ def step_impl(context, key, t_reason):
     )
 
 
-@then('after "{seconds:d}" seconds, the transfer reason is set to "{t_reason}"')
-def step_impl(context, seconds, t_reason):
-    pass
-    # time.sleep(seconds + 1)
-    # assert context.hardware[key].transfer_reason.name == t_reason
+@then('after "{seconds:d}" seconds, transfer reason for UPS "{key:d}" is "{t_reason}"')
+def step_impl(context, seconds, key, t_reason):
+
+    time.sleep(seconds + 1)
+    context.execute_steps(
+        'then UPS "{key:d}" transfer reason is set to "{t_reason}"'.format(
+            key=key, t_reason=t_reason
+        )
+    )
