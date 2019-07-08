@@ -214,7 +214,7 @@ class Engine(Component):
             return
 
         updated_asset = self._assets[asset_key]
-        out_volt = updated_asset.state.output_voltage
+        out_volt = updated_asset.state.input_voltage
 
         volt_event = AssetPowerEvent(
             asset=updated_asset,

@@ -135,6 +135,13 @@ class AssetPowerEvent(PowerEvent):
         """Old/New load changes caused by a power event"""
         return self._load
 
+    def set_load(self):
+        calc_load = lambda v: self._asset.state.power_consumption / v if v else 0
+
+        self._load = EventDataPair(
+            *(calc_load(volt) for volt in [self.out_volt.old, self.out_volt.new])
+        )
+
     def get_next_voltage_event(self):
         """Returns next event that will be dispatched against children of 
         the source asset

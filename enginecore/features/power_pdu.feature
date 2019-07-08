@@ -1,7 +1,7 @@
 @draft
 @sequential
 Feature: Power Chaining for Hardware Assets with Multiple Children
-    Testing simple power scenarios where one device can power another.
+    Testing a multi-children power scenarios where one device can power more than one device.
     Powering down a particular asset can cause a chain reaction of power events
     spread over to its children
 

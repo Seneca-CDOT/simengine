@@ -129,7 +129,6 @@ class PowerIteration:
             event(AssetPowerEvent):
         """
 
-        logging.info(" \n\nProcessing event branch %s", event.branch)
         self._last_processed_volt_event = event
 
         # asset caused by power loop (individual asset power update)
@@ -197,6 +196,7 @@ class PowerIteration:
 
         if not event.branch:
             self._volt_branches_active.append(VoltageBranch(event, self))
+            event.set_load()
 
         volt_events = [event.get_next_voltage_event()]
         load_events = None

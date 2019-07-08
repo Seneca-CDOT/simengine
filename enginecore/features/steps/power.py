@@ -18,10 +18,15 @@ from enginecore.state.new_engine import Engine
 class TestCompletionTracker(Component):
 
     volt_done_queue = None
+    load_done_queue = None
 
     @handler("AllVoltageBranchesDone")
     def on_volt_branch_done(self, event, *args, **kwargs):
         self.volt_done_queue.put(event)
+
+    @handler("AllLoadBranchesDone")
+    def on_load_branch_done(self, event, *args, **kwargs):
+        self.load_done_queue.put(event)
 
 
 @given("Engine is up and running")
@@ -35,12 +40,13 @@ def step_impl(context):
 
     context.tracker = TestCompletionTracker()
     context.tracker.volt_done_queue = Queue()
+    context.tracker.load_done_queue = Queue()
 
     context.engine.subscribe_tracker(context.tracker)
 
     context.engine.handle_voltage_update(old_voltage=0, new_voltage=120)
 
-    event = context.tracker.volt_done_queue.get()
+    event = context.tracker.load_done_queue.get()
     logging.info(event)
 
 
@@ -51,7 +57,7 @@ def step_impl(context, old_volt, new_volt):
 
     # wait for completion of event loop
     if new_volt != old_volt:
-        event = context.tracker.volt_done_queue.get()
+        event = context.tracker.load_done_queue.get()
         logging.info(event)
 
 
@@ -67,7 +73,7 @@ def step_impl(context, key, state):
     context.engine.handle_state_update(key, old_state, new_state)
 
     if old_state != new_state:
-        event = context.tracker.volt_done_queue.get()
+        event = context.tracker.load_done_queue.get()
         logging.info(event)
 
 

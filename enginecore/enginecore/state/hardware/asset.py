@@ -165,8 +165,6 @@ class Asset(Component):
         within the accepted threshold and if asset power state 
         needs to be changed"""
 
-        calc_load = lambda v: self.state.power_consumption / v if v else 0
-
         asset_event = event.get_next_power_event(self)
         asset_event.state.old = self.state.status
 
@@ -190,15 +188,11 @@ class Asset(Component):
             asset_event.out_volt.old = old_out_volt * asset_event.state.old
             asset_event.out_volt.new = new_out_volt * (int(old_out_volt) ^ 1)
 
-        old_load, new_load = (
-            calc_load(volt)
-            for volt in [asset_event.out_volt.old, asset_event.out_volt.new]
-        )
-
-        asset_event.load.new = new_load
-        asset_event.load.old = old_load
-        if new_load != old_load:
-            self.state.update_load(self.state.load - old_load + new_load)
+        asset_event.set_load()
+        if asset_event.load.new != asset_event.load.old:
+            self.state.update_load(
+                self.state.load - asset_event.load.old + asset_event.load.new
+            )
 
         return asset_event
 
