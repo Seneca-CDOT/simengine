@@ -98,51 +98,9 @@ class Asset(Component):
             new_state=self.state.power_off(),
         )
 
-    def _update_load(self, load_change, arithmetic_op):
-        """React to load changes by updating asset load
-        
-        Args:
-            load_change(float): how much AMPs need to be added/subtracted
-            arithmetic_op(callable): calculates new load
-                                     (receives old load & measured load change)
-            msg(str): message to be printed
-        
-        Returns:
-            LoadEventResult: Event result containing old 
-                             & new load values as well as value subtracted/added
-        """
-
-        old_load = self.state.load
-        new_load = arithmetic_op(old_load, load_change)
-
-        self.state.update_load(new_load)
-
-        return event_results.LoadEventResult(
-            old_load=old_load, new_load=new_load, asset_key=self.state.key
-        )
-
-    @handler("ChildAssetLoadIncreased", "ChildAssetPowerUp")
-    def on_load_increase(self, event, *args, **kwargs):
-        """Load is ramped up if child is powered up or child asset's load is increased
-        Returns: 
-            LoadEventResult: details on the asset state updates
-        """
-
-        increased_by = kwargs["child_load"]
-        return self._update_load(increased_by, lambda old, change: old + change)
-
-    @handler("ChildAssetLoadDecreased", "ChildAssetPowerDown")
-    def on_load_decrease(self, event, *args, **kwargs):
-        """Load is decreased if child is powered off or child asset's load is decreased
-        Returns: 
-            LoadEventResult: details on the asset state updates
-        """
-
-        decreased_by = kwargs["child_load"]
-        return self._update_load(decreased_by, lambda old, change: old - change)
-
     @handler("ChildLoadUpEvent", "ChildLoadDownEvent")
     def on_child_load_update(self, event, *args, **kwargs):
+        """Process child load changes by updating load of the device"""
         asset_load_event = event.get_next_load_event(self)
         new_load = asset_load_event.load.old + event.load.difference
 
@@ -207,14 +165,14 @@ class Asset(Component):
         )
 
     @handler("InputVoltageUpEvent")
-    def on_parent_volt_up(self, event, *args, **kwargs):
+    def on_input_voltage_up(self, event, *args, **kwargs):
         """React to input voltage spike;
         Asset can power up on volt increase if it was down;
         """
         return self._process_parent_volt_e(event)
 
     @handler("InputVoltageDownEvent")
-    def on_parent_volt_down(self, event, *args, **kwargs):
+    def on_input_voltage_down(self, event, *args, **kwargs):
         """React to input voltage drop;
         Asset can power off if input voltage drops below the acceptable
         threshold"""

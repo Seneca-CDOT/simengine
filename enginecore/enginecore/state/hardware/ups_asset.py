@@ -37,8 +37,8 @@ class UPS(Asset, SNMPSim):
         SNMPSim.__init__(self, self._state)
 
         # remove default logic for handling input voltage updates
-        # super().removeHandler(super().on_voltage_increase)
-        # super().removeHandler(super().on_voltage_decrease)
+        super().removeHandler(super().on_input_voltage_up)
+        super().removeHandler(super().on_input_voltage_down)
 
         self._low_volt_th_oid = self.state.get_oid_by_name("AdvConfigLowTransferVolt")
 
@@ -335,6 +335,54 @@ class UPS(Asset, SNMPSim):
             )
         ]
 
+    @handler("InputVoltageUpEvent")
+    def on_input_voltage_up(self, event, *args, **kwargs):
+        asset_event = event.get_next_power_event(self)
+
+        # process voltage, see if tranfer to battery is needed
+        should_transfer, reason = self.state.process_voltage(event.in_volt.new)
+
+        # transfer back to input power if ups was running on battery
+        if not should_transfer and self.state.on_battery:
+            battery_level = self.state.battery_level
+            self._launch_battery_charge(power_up_on_charge=(not battery_level))
+            if battery_level:
+                asset_event.state.new = self.state.power_up()
+
+        # if already on battery (& should stay so), stop voltage propagation
+        # elif self.state.on_battery:
+        #     event.success = False
+
+        # voltage is too high, transfer to battery
+        if should_transfer and reason == self.state.InputLineFailCause.highLineVoltage:
+            self._launch_battery_drain(reason)
+            asset_event.out_volt.new = 120.0
+
+        return asset_event
+
+    @handler("InputVoltageDownEvent")
+    def on_input_voltage_down(self, event, *args, **kwargs):
+        asset_event = event.get_next_power_event(self)
+
+        battery_level = self.state.battery_level
+        should_transfer, reason = self.state.process_voltage(event.in_volt.new)
+
+        high_line_t_reason = self.state.InputLineFailCause.highLineVoltage
+
+        # voltage is low, transfer to battery
+        if self.state.battery_level and should_transfer:
+            self._launch_battery_drain(reason)
+            asset_event.out_volt.new = 120.0
+
+        # voltage was too high but is okay now
+        elif (
+            self.state.transfer_reason == high_line_t_reason
+            and reason != high_line_t_reason
+        ):
+            self._launch_battery_charge(power_up_on_charge=(not battery_level))
+
+        return asset_event
+
     @handler("VoltageIncreased")
     def on_voltage_increase(self, event, *args, **kwargs):
         """React to input voltage spike;
@@ -449,6 +497,7 @@ class UPS(Asset, SNMPSim):
         self._drain_speed_factor = speed
 
     def _update_load(self, load_change, arithmetic_op):
+        # TODO: add update load
         upd_result = super()._update_load(load_change, arithmetic_op)
         # re-calculate time left based on updated load
         self.state.update_time_left(self._cacl_time_left(self.state.wattage) * 60 * 100)

@@ -142,6 +142,16 @@ class Engine(Component):
         self._completion_trackers.remove(tracker)
         tracker.unregister(self)
 
+    def _mark_load_branches_done(self):
+        """Set status for all load branches as done
+        (when all load branches are completed, power iteration
+        worker thread is given permission to accept new power
+        events)
+        """
+        self._current_power_iter = None
+        self._notify_trackers(AllLoadBranchesDone)
+        self._power_iter_queue.task_done()
+
     def _chain_power_events(self, volt_events, load_events=None):
         """Chain power events by dispatching input power events
         against children of the updated asset;
@@ -149,11 +159,13 @@ class Engine(Component):
         applicable;
         """
 
-        # print(self._current_power_iter)
+        print(self._current_power_iter)
 
         # reached the end of a stream of voltage updates
         if self._current_power_iter.num_volt_branches_active == 0:
             self._notify_trackers(AllVoltageBranchesDone)
+            if self._current_power_iter.num_load_branches_active == 0:
+                self._mark_load_branches_done()
 
         for child_key, event in volt_events:
             self.fire(event, self._assets[child_key])
@@ -169,9 +181,7 @@ class Engine(Component):
 
         # load branches are completed
         if self._current_power_iter.num_load_branches_active == 0:
-            self._current_power_iter = None
-            self._notify_trackers(AllLoadBranchesDone)
-            self._power_iter_queue.task_done()
+            self._mark_load_branches_done()
 
         if not load_events:
             return

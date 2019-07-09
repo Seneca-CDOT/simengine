@@ -198,20 +198,23 @@ class InputVoltageEvent(PowerEvent):
         if not all(r_arg in kwargs for r_arg in required_args):
             raise KeyError("Needs arguments: " + ",".join(required_args))
 
-        self._new_in_volt = kwargs["new_in_volt"]
-        self._old_in_volt = kwargs["old_in_volt"]
-
+        self._in_volt = EventDataPair(kwargs["old_in_volt"], kwargs["new_in_volt"])
         self._source_asset = (
             kwargs["source_asset"] if "source_asset" in kwargs else None
         )
+
+    @property
+    def in_volt(self):
+        """Old/New input voltage"""
+        return self._in_volt
 
     def get_next_power_event(self, target_asset=None):
         """Get next power event (hardware asset event) that
         was caused by this input voltage change"""
         volt_event = AssetPowerEvent(
             asset=target_asset,
-            old_out_volt=self._old_in_volt,
-            new_out_volt=self._new_in_volt,
+            old_out_volt=self._in_volt.old,
+            new_out_volt=self._in_volt.new,
             power_iter=self.power_iter,
             branch=self.branch,
         )
