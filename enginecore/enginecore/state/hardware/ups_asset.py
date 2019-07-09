@@ -15,7 +15,6 @@ from circuits import handler
 import enginecore.state.hardware.internal_state as in_state
 from enginecore.state.hardware.asset import Asset
 from enginecore.state.hardware.snmp_asset import SNMPSim
-from enginecore.state.hardware import event_results
 
 from enginecore.state.hardware.asset_definition import register_asset
 
@@ -297,17 +296,7 @@ class UPS(Asset, SNMPSim):
     def on_ambient_updated(self, event, *args, **kwargs):
         self._state.update_temperature(7)
 
-    def _get_voltage_event_result(self, event_details):
-        """Get formatted voltage event result"""
-
-        return event_results.VoltageEventResult(
-            asset_key=self.state.key,
-            asset_type=self.state.asset_type,
-            old_voltage=event_details["old_value"],
-            new_voltage=event_details["new_value"],
-        )
-
-    def _get_ups_load_update(self, source_key, should_transfer):
+    def _get_ups_load_update(self, should_transfer):
         """Get formatted load event result 
         (load update that needs to be propagated up the power stream)
         """
@@ -325,23 +314,24 @@ class UPS(Asset, SNMPSim):
         if old_load == new_load:
             return None
 
-        return [
-            event_results.LoadEventResult(
-                asset_key=self.state.key,
-                asset_type=self.state.asset_type,
-                parent_key=source_key,
-                old_load=old_load,
-                new_load=new_load,
-            )
-        ]
+        return old_load, new_load
 
     @handler("InputVoltageUpEvent")
     def on_input_voltage_up(self, event, *args, **kwargs):
+        """React to input voltage spike;
+        UPS can transfer to battery if in-voltage is too high;
+        It can also transfer back to input power if voltage level is
+        within the acceptable threshold;
+        """
         asset_event = event.get_next_power_event(self)
         asset_event.out_volt.old = self.state.output_voltage
 
         # process voltage, see if tranfer to battery is needed
         should_transfer, reason = self.state.process_voltage(event.in_volt.new)
+
+        load_update = self._get_ups_load_update(should_transfer)
+        if load_update:
+            asset_event.load.old, asset_event.load.new = load_update
 
         # transfer back to input power if ups was running on battery
         if not should_transfer and self.state.on_battery:
@@ -363,16 +353,26 @@ class UPS(Asset, SNMPSim):
 
     @handler("InputVoltageDownEvent")
     def on_input_voltage_down(self, event, *args, **kwargs):
+        """React to input voltage drop;
+        UPS can transfer to battery if in-voltage is low or
+        it can transfer back to input power if volt dropped from
+        too high to acceptable;
+        """
+
         asset_event = event.get_next_power_event(self)
         asset_event.out_volt.old = self.state.output_voltage
 
         battery_level = self.state.battery_level
         should_transfer, reason = self.state.process_voltage(event.in_volt.new)
 
+        load_update = self._get_ups_load_update(should_transfer)
+        if load_update:
+            asset_event.load.old, asset_event.load.new = load_update
+
         high_line_t_reason = self.state.InputLineFailCause.highLineVoltage
 
         # voltage is low, transfer to battery
-        if self.state.battery_level and should_transfer:
+        if should_transfer and self.state.battery_level:
             self._launch_battery_drain(reason)
             asset_event.out_volt.new = 120.0
 
@@ -384,101 +384,6 @@ class UPS(Asset, SNMPSim):
             self._launch_battery_charge(power_up_on_charge=(not battery_level))
 
         return asset_event
-
-    @handler("VoltageIncreased")
-    def on_voltage_increase(self, event, *args, **kwargs):
-        """React to input voltage spike;
-        UPS can transfer to battery if in-voltage is too high;
-        It can also transfer back to input power if voltage level is
-        within the acceptable threshold;
-
-        Returns:
-            tuple: 3 event results:
-                VoltageEventResult : to be propagated to this asset's children
-                PowerEventResult   : asset power state changes if any
-                LoadEventResult    : load change (to be propagated up the power stream)
-        """
-
-        power_event_result = None
-
-        in_voltage = kwargs["new_value"]
-        old_out_volt = self.state.output_voltage
-        new_out_volt = in_voltage
-
-        # process voltage
-        should_transfer, reason = self.state.process_voltage(in_voltage)
-        load_event_result = self._get_ups_load_update(
-            kwargs["source_key"], should_transfer
-        )
-
-        # transfer back to input power if ups was running on battery
-        if not should_transfer and self.state.on_battery:
-            battery_level = self.state.battery_level
-            self._launch_battery_charge(power_up_on_charge=(not battery_level))
-            if battery_level:
-                power_event_result = self.power_up()
-        # if already on battery (& should stay so), stop voltage propagation
-        elif self.state.on_battery:
-            event.success = False
-
-        # voltage is too high, transfer to battery
-        if should_transfer and reason == self.state.InputLineFailCause.highLineVoltage:
-            self._launch_battery_drain(reason)
-            new_out_volt = 120.0
-
-        # hijack voltage event result
-        # (in case ups transfers to battery, in voltage won't match out):
-        volt_event_result = self._get_voltage_event_result(
-            {"old_value": old_out_volt, "new_value": new_out_volt}
-        )
-
-        return volt_event_result, power_event_result, load_event_result
-
-    @handler("VoltageDecreased")
-    def on_voltage_decrease(self, event, *args, **kwargs):
-        """React to input voltage drop;
-        UPS can transfer to battery if in-voltage is low or
-        it can transfer back to input power if volt dropped from
-        too high to acceptable;
-
-        Returns:
-            tuple: 3 event results:
-                VoltageEventResult : to be propagated to this asset's children
-                PowerEventResult   : asset power state changes if any
-                LoadEventResult    : load change (to be propagated up the power stream)
-        """
-
-        power_event_result = None
-
-        in_voltage = kwargs["new_value"]
-        old_out_volt = self.state.output_voltage
-        new_out_volt = in_voltage
-
-        battery_level = self.state.battery_level
-        should_transfer, reason = self.state.process_voltage(in_voltage)
-        load_event_result = self._get_ups_load_update(
-            kwargs["source_key"], should_transfer
-        )
-
-        high_line_t_reason = self.state.InputLineFailCause.highLineVoltage
-
-        # voltage is low, transfer to battery
-        if self.state.battery_level and should_transfer:
-            self._launch_battery_drain(reason)
-            new_out_volt = 120.0
-
-        # voltage was too high but is okay now
-        elif (
-            self.state.transfer_reason == high_line_t_reason
-            and reason != high_line_t_reason
-        ):
-            self._launch_battery_charge(power_up_on_charge=(not battery_level))
-
-        volt_event_result = self._get_voltage_event_result(
-            {"old_value": old_out_volt, "new_value": new_out_volt}
-        )
-
-        return volt_event_result, power_event_result, load_event_result
 
     @property
     def charge_speed_factor(self):
