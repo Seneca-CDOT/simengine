@@ -34,9 +34,9 @@ class VoltageBranch(PowerBranch):
 class LoadBranch(PowerBranch):
     """Voltage Branch represents a graph path of chained load events
     propagated upstream:
-                      [:AssetLoadEvent]┐              [:AssetLoadEvent]┐
-                        |              |                |              |
-    (Asset#1)<-[:InputVoltageEvent]-(Asset#2)<-[:InputVoltageEvent]-(Asset#3)
+                      [:AssetLoadEvent]┐           [:AssetLoadEvent]┐
+                        |              |             |              |
+    (Asset#1)<-[:ChildLoadEvent]-(Asset#2)<-[:ChildLoadEvent]-(Asset#3)
 
     It stops when there are no parent assets or it runs into a UPS with
     absent input power
@@ -201,14 +201,6 @@ class PowerIteration:
         volt_events = [event.get_next_voltage_event()]
         load_events = None
 
-        # forked branch -> replace it with 'n' child voltage branches
-        if len(child_keys) > 1:
-            new_branches = [
-                VoltageBranch(event.get_next_voltage_event(), self) for _ in child_keys
-            ]
-            self._volt_branches_active.extend(new_branches)
-            volt_events = [b.src_event for b in new_branches]
-
         if parent_keys and event.get_next_load_event():
             new_branches = [
                 LoadBranch(event.get_next_load_event(), self) for _ in parent_keys
@@ -218,8 +210,22 @@ class PowerIteration:
 
         # delete voltage branch (power stream) when it forks
         # or when it reaches leaf asset/node
-        if (len(child_keys) > 1 and event.branch) or not child_keys:
+        if (
+            (len(child_keys) > 1 and event.branch)
+            or not child_keys
+            or event.out_volt.unchanged()
+        ):
             self.complete_volt_branch(event.branch)
+
+        if event.out_volt.unchanged():
+            child_keys = []
+        # forked branch -> replace it with 'n' child voltage branches
+        elif len(child_keys) > 1:
+            new_branches = [
+                VoltageBranch(event.get_next_voltage_event(), self) for _ in child_keys
+            ]
+            self._volt_branches_active.extend(new_branches)
+            volt_events = [b.src_event for b in new_branches]
 
         return (
             zip(child_keys, volt_events),

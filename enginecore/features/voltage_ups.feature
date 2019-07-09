@@ -1,4 +1,7 @@
 @draft
+@ups-asset
+@voltage-behaviour
+@power-behaviour
 Feature: UPS Voltage Handling
     Voltage may affect UPS state,
     input voltage that is below or above the defined thresholds
@@ -11,7 +14,6 @@ Feature: UPS Voltage Handling
         And asset "1" powers target "190"
         And Engine is up and running
 
-    @power-behaviour
     @snmp-interface
     Scenario Outline: Voltage drops below lower thresholds thus causing battery transfer
         When voltage "<input-volt>" drops below "<threshold>" threshold by "<drops-by>" for UPS "190"
@@ -26,7 +28,6 @@ Feature: UPS Voltage Handling
             | 120        | AdvConfigLowTransferVolt | 10       | on             | smallMomentarySag | brownout                |
             | 120        | AdvConfigLowTransferVolt | 100      | on             | deepMomentarySag  | blackout                |
 
-    @power-behaviour
     @snmp-interface
     Scenario Outline: Voltage spikes above upper thresholds thus causing battery transfer
         When voltage "<input-volt>" spikes above "<threshold>" threshold by "<spikes-by>" for UPS "190"
@@ -39,7 +40,6 @@ Feature: UPS Voltage Handling
             | input-volt | threshold                 | spikes-by | battery-status | transfer-reason |
             | 120        | AdvConfigHighTransferVolt | 10        | on             | highLineVoltage |
 
-    @power-behaviour
     @snmp-interface
     Scenario Outline: Voltage causes UPS change back and forth to battery/input power
         When wallpower voltage "<volt-1>" is updated to "<volt-2>"
@@ -60,3 +60,26 @@ Feature: UPS Voltage Handling
             | 120    | 0      | 140    | on             | highLineVoltage |
             | 120    | 200    | 0      | on             | blackout        |
 
+    Scenario: Voltage propagation is blocked when UPS is running on battery
+        When wallpower voltage "120" is updated to "90"
+        When wallpower voltage "90" is updated to "70"
+        And wallpower voltage "70" is updated to "80"
+
+        # check states
+        Then asset "190" input voltage is "80"
+        And asset "190" output voltage is "120"
+
+        Then asset "1901" input voltage is "120"
+        And asset "1901" output voltage is "120"
+
+
+    Scenario: Voltage propagation works when UPS is not on battery
+        When wallpower voltage "120" is updated to "118"
+        When wallpower voltage "118" is updated to "122"
+
+        # check states
+        Then asset "190" input voltage is "122"
+        And asset "190" output voltage is "122"
+
+        Then asset "1901" input voltage is "122"
+        And asset "1901" output voltage is "122"
