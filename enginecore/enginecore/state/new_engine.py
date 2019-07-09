@@ -159,8 +159,6 @@ class Engine(Component):
         applicable;
         """
 
-        print(self._current_power_iter)
-
         # reached the end of a stream of voltage updates
         if self._current_power_iter.num_volt_branches_active == 0:
             self._notify_trackers(AllVoltageBranchesDone)
@@ -176,8 +174,6 @@ class Engine(Component):
 
     def _chain_load_events(self, load_events):
         """Chain load events"""
-
-        print(self._current_power_iter)
 
         # load branches are completed
         if self._current_power_iter.num_load_branches_active == 0:

@@ -35,5 +35,7 @@ Feature: UPS Load Handling
 
         Examples: Check load on start
             | asset-key | asset-ini-state | asset-new-state | 1   | 190 | 1903 | 3   |
-            | 1         | online          | online          | 2.0 | 2.0 | 2.0  | 2.0 |
-            | 1         | online          | offline         | 0.0 | 2.0 | 2.0  | 2.0 |
+            | 1         | online          | online          | 2.2 | 2.2 | 2.0  | 2.0 |
+            | 1         | online          | offline         | 0.0 | 2.2 | 2.0  | 2.0 |
+            | 190       | online          | offline         | 0.0 | 0.0 | 0.0  | 0.0 |
+

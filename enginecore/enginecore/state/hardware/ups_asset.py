@@ -342,7 +342,7 @@ class UPS(Asset, SNMPSim):
 
         # if already on battery (& should stay so), stop voltage propagation
         elif self.state.on_battery:
-            asset_event.out_volt.new = 120.0
+            asset_event.out_volt.new = asset_event.out_volt.old
 
         # voltage is too high, transfer to battery
         if should_transfer and reason == self.state.InputLineFailCause.highLineVoltage:
