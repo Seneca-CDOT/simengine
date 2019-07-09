@@ -263,13 +263,15 @@ class Engine(Component):
         )
 
     def ChildLoadUpEvent_success(self, child_load_event, asset_load_event):
-        """ """
+        """Callback called when asset finishes processing load event that had
+        happened to its child"""
         self._chain_load_events(
             self._current_power_iter.process_load_event(asset_load_event)
         )
 
     def ChildLoadDownEvent_success(self, child_load_event, asset_load_event):
-        """ """
+        """Callback called when asset finishes processing load event that had
+        happened to its child"""
         self._chain_load_events(
             self._current_power_iter.process_load_event(asset_load_event)
         )
