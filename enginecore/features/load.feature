@@ -1,4 +1,6 @@
 @draft
+@load-behaviour
+@power-behaviour
 Feature: Load handling and distribution across entire system tolology
 
     Load travels uptream and it may change due to either voltage spikes/drops or power update
@@ -7,7 +9,6 @@ Feature: Load handling and distribution across entire system tolology
     Background:
         Given the system model is empty
 
-    @power-behaviour
     Scenario Outline: Upstream load changes when assets are powered off/on
 
         # initialize model & engine
@@ -40,7 +41,6 @@ Feature: Load handling and distribution across entire system tolology
             | 2         | offline         | online          | 1.0 | 1.0 | 1.0 |
             | 3         | offline         | online          | 1.0 | 1.0 | 1.0 |
 
-    @power-behaviour
     Scenario Outline: Zero load across the system
             """(this is to verify that enigne doesn't get stuck waiting for load branches to complete)"""
         # initialize model & engine

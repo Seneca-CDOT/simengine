@@ -1,4 +1,5 @@
 @sequential
+@power-behaviour
 Feature: Power Chaining for Hardware Assets
     This is a set of simple power scenarios where one device can power another.
     Powering down a particular asset can cause a chain reaction of power events
@@ -7,7 +8,6 @@ Feature: Power Chaining for Hardware Assets
     Background:
         Given the system model is empty
 
-    @power-behaviour
     Scenario Outline: Simple 3-asset power chain
 
         # initialize model & engine

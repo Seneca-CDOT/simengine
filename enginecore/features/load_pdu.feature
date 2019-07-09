@@ -1,5 +1,7 @@
 @draft
-@sequential
+@pdu-asset
+@load-behaviour
+@power-behaviour
 Feature: Load distribution with assets that have multiple children
 
     Load for a parent device that has multiple child nodes powered by it
@@ -8,7 +10,6 @@ Feature: Load distribution with assets that have multiple children
     Background:
         Given the system model is empty
 
-    @power-behaviour
     Scenario Outline: Multiple children load chain
 
         # == initialize model & engine ==

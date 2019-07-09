@@ -1,5 +1,7 @@
 @draft
+@pdu-asset
 @sequential
+@power-behaviour
 Feature: Power Chaining for Hardware Assets with Multiple Children
     Testing a multi-children power scenarios where one device can power more than one device.
     Powering down a particular asset can cause a chain reaction of power events
@@ -8,7 +10,6 @@ Feature: Power Chaining for Hardware Assets with Multiple Children
     Background:
         Given the system model is empty
 
-    @power-behaviour
     Scenario Outline: Multiple children power chain
 
         # == initialize model & engine ==

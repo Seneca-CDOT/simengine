@@ -1,3 +1,5 @@
+@voltage-behaviour
+@power-behaviour
 Feature: System handles voltage updates
     Voltage may affect asset states by causing them to power off (if underpowered)
     or back up (AC restored)
@@ -14,7 +16,6 @@ Feature: System handles voltage updates
         And asset "2" powers target "3"
         And Engine is up and running
 
-    @power-behaviour
     Scenario Outline: Voltage affecting assets' states
 
         Given wallpower voltage "120" is set to "<ini-volt>"
@@ -38,7 +39,6 @@ Feature: System handles voltage updates
             | 0        | 110      | online  | online  | online  |
             | 0        | 100      | online  | online  | offline |
 
-    @power-behaviour
     Scenario Outline: Input/Output voltage for assets
 
         Given wallpower voltage "120" is set to "<ini-volt>"
