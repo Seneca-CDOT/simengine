@@ -38,3 +38,25 @@ Feature: UPS Voltage Handling
         Examples: UPS input voltage changes
             | input-volt | threshold                 | spikes-by | battery-status | transfer-reason |
             | 120        | AdvConfigHighTransferVolt | 10        | on             | highLineVoltage |
+
+    @power-behaviour
+    @snmp-interface
+    Scenario Outline: Voltage causes UPS change back and forth to battery/input power
+        When wallpower voltage "<volt-1>" is updated to "<volt-2>"
+        And wallpower voltage "<volt-2>" is updated to "<volt-3>"
+        Then UPS "190" is "<battery-status>" battery
+        And UPS "190" transfer reason is set to "<transfer-reason>"
+
+        Examples: From battery back to normal input power source
+            | volt-1 | volt-2 | volt-3 | battery-status | transfer-reason |
+            | 120    | 20     | 110    | not on         | noTransfer      |
+            | 120    | 140    | 115    | not on         | noTransfer      |
+            | 0      | 140    | 120    | not on         | noTransfer      |
+            | 120    | 0      | 120    | not on         | noTransfer      |
+
+
+        Examples: Changes from one transfer cause to another
+            | volt-1 | volt-2 | volt-3 | battery-status | transfer-reason |
+            | 120    | 0      | 140    | on             | highLineVoltage |
+            | 120    | 200    | 0      | on             | blackout        |
+
