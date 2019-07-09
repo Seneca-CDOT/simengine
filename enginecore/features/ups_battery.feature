@@ -13,7 +13,7 @@ Feature: UPS Voltage Handling
 
     @power-behaviour
     @snmp-interface
-    Scenario Outline: Voltage drops below lower thresholds
+    Scenario Outline: Voltage drops below lower thresholds thus causing battery transfer
         When voltage "<input-volt>" drops below "<threshold>" threshold by "<drops-by>" for UPS "190"
 
         # State checks for ups
@@ -26,3 +26,15 @@ Feature: UPS Voltage Handling
             | 120        | AdvConfigLowTransferVolt | 10       | on             | smallMomentarySag | brownout                |
             | 120        | AdvConfigLowTransferVolt | 100      | on             | deepMomentarySag  | blackout                |
 
+    @power-behaviour
+    @snmp-interface
+    Scenario Outline: Voltage spikes above upper thresholds thus causing battery transfer
+        When voltage "<input-volt>" spikes above "<threshold>" threshold by "<spikes-by>" for UPS "190"
+
+        # State checks for ups
+        Then UPS "190" is "<battery-status>" battery
+        And UPS "190" transfer reason is set to "<transfer-reason>"
+
+        Examples: UPS input voltage changes
+            | input-volt | threshold                 | spikes-by | battery-status | transfer-reason |
+            | 120        | AdvConfigHighTransferVolt | 10        | on             | highLineVoltage |

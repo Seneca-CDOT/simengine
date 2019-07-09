@@ -34,7 +34,7 @@ def step_impl(context, old_volt, low_th, volt_change, key):
 
 
 @when(
-    'voltage "{old_volt:d}" spikes above "{high_th}" threshold for by "{volt_change:d}" for UPS "{key:d}"'
+    'voltage "{old_volt:d}" spikes above "{high_th}" threshold by "{volt_change:d}" for UPS "{key:d}"'
 )
 def step_impl(context, old_volt, high_th, volt_change, key):
     _check_volt_threshold(context, key, high_th, old_volt, volt_change)
