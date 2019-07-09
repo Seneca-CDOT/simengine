@@ -407,6 +407,13 @@ def create_command(create_asset_group):
     create_server_bmc_action.add_argument(
         "--port", type=int, default=9001, help="IPMI interface port"
     )
+
+    create_server_bmc_action.add_argument(
+        "--interface",
+        type=str,
+        default="",
+        help="Network interface attached to the server",
+    )
     create_server_bmc_action.add_argument(
         "--vmport",
         type=int,

@@ -55,7 +55,7 @@ do_get() {
     while [ "x$1" != "x" ]; do
 	case $1 in
 	    ip_addr)
-		val=`ifconfig $device | grep '^ *inet addr:' | tr ':' ' ' | sed 's/.*inet addr \([0-9.]*\).*$/\1/'`
+		val=`ifconfig $device | grep 'inet' | awk '{print $2}'`
 		if [ "x$val" = "x" ]; then
 		    val="0.0.0.0"
 		fi
@@ -69,29 +69,29 @@ do_get() {
 		    xdhcp)
 			;;
 		    *)
-			val="unknown"
+			val="static"
 			;;
 		esac
 		;;
 
 	    mac_addr)
-		val=`ifconfig $device | grep 'HWaddr' | sed 's/.*HWaddr \([0-9a-f:]*\).*$/\1/'`
+		val=`ifconfig $device | grep -o -E '([[:xdigit:]]{1,2}:){5}[[:xdigit:]]{1,2}'`
 		if [ "x$val" = "x" ]; then
 		    val="00:00:00:00:00:00"
 		fi
 		;;
 
 	    subnet_mask)
-		val=`ifconfig $device | grep '^ *inet addr:' | tr ':' ' ' | sed 's/.*Mask \([0-9.]*\).*$/\1/'`
+		val=`/sbin/ifconfig $device | awk '/netmask /{ print $4;} '`
 		if [ "x$val" = "x" ]; then
-		    val="0.0.0.0"
+		    val="255.255.0.0"
 		fi
 		;;
 
 	    default_gw_ip_addr)
-		val=`route -n | grep '^0\.0\.0\.0' | grep 'eth1$' | tr ' ' '\t' | tr -s '\t' '\t' | cut -f 2`
+		val=`route -n | grep '^0\.0\.0\.0' | grep "$device" | tr ' ' '\t' | tr -s '\t' '\t' | cut -f 2`
 		if [ "x$val" = "x" ]; then
-		    val="0.0.0.0"
+		    val="10.20.255.254"
 		fi
 		;;
 
