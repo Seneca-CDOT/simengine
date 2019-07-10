@@ -65,6 +65,7 @@ class IStateManager:
 
     @property
     def power_consumption(self):
+        """How much power this device consumes (wattage)"""
         return (
             self._asset_info["powerConsumption"]
             if "powerConsumption" in self._asset_info

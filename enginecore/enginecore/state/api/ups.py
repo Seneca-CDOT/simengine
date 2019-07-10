@@ -115,6 +115,13 @@ class IUPSStateManager(ISnmpDeviceStateManager):
         return (self.load + self.idle_ups_amp) * self._asset_info["powerSource"]
 
     @property
+    def power_usage(self):
+        if self.input_voltage:
+            return self._asset_info["powerConsumption"] / self.input_voltage
+
+        return 0
+
+    @property
     def idle_ups_amp(self):
         """How much a UPS draws"""
         return self._asset_info["powerConsumption"] / self._asset_info["powerSource"]
