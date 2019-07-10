@@ -33,9 +33,13 @@ Feature: UPS Load Handling
         Then asset "3" load is set to "<3>"
 
 
-        Examples: Check load on start
+        Examples: Check load with online as initial state
             | asset-key | asset-ini-state | asset-new-state | 1   | 190 | 1903 | 3   |
             | 1         | online          | online          | 2.2 | 2.2 | 2.0  | 2.0 |
             | 1         | online          | offline         | 0.0 | 2.2 | 2.0  | 2.0 |
             | 190       | online          | offline         | 0.0 | 0.0 | 0.0  | 0.0 |
 
+        Examples: Check load with offline as initial state
+            | asset-key | asset-ini-state | asset-new-state | 1   | 190 | 1903 | 3   |
+            | 1         | offline         | online          | 2.2 | 2.2 | 2.0  | 2.0 |
+            | 190       | offline         | online          | 2.2 | 2.2 | 2.0  | 2.0 |

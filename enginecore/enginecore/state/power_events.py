@@ -211,13 +211,21 @@ class InputVoltageEvent(PowerEvent):
     def get_next_power_event(self, target_asset=None):
         """Get next power event (hardware asset event) that
         was caused by this input voltage change"""
+
+        if target_asset:
+            old_out_volt = target_asset.state.output_voltage
+        else:
+            old_out_volt = self._in_volt.old
+
         volt_event = AssetPowerEvent(
             asset=target_asset,
-            old_out_volt=self._in_volt.old,
+            old_out_volt=old_out_volt,
             new_out_volt=self._in_volt.new,
             power_iter=self.power_iter,
             branch=self.branch,
         )
+
+        volt_event.state.old = target_asset.state.status
 
         return volt_event
 

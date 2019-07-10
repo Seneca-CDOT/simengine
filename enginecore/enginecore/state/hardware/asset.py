@@ -124,13 +124,13 @@ class Asset(Component):
         needs to be changed"""
 
         asset_event = event.get_next_power_event(self)
-        asset_event.state.old = self.state.status
 
         min_voltage = self.state.min_voltage_prop()
         power_action = None
 
         old_out_volt, new_out_volt = asset_event.out_volt.old, asset_event.out_volt.new
 
+        # check new input voltage
         # Asset is underpowered (volt is too low)
         if new_out_volt <= min_voltage and asset_event.state.old:
             power_action = self.state.power_off
@@ -144,10 +144,10 @@ class Asset(Component):
             # (on_power_up_request_received/on_power_off_request_received)
             asset_event.state.new = power_action()
             asset_event.out_volt.old = old_out_volt * asset_event.state.old
-            asset_event.out_volt.new = new_out_volt * (int(old_out_volt) ^ 1)
+            asset_event.out_volt.new = new_out_volt * asset_event.state.new
 
         asset_event.set_load()
-        if asset_event.load.new != asset_event.load.old:
+        if not asset_event.load.unchanged():
             self.state.update_load(
                 self.state.load - asset_event.load.old + asset_event.load.new
             )

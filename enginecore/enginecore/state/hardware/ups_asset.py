@@ -350,6 +350,8 @@ class UPS(Asset, SNMPSim):
             self._launch_battery_drain(reason)
             asset_event.out_volt.new = 120.0
 
+        self._update_load(self.state.load + asset_event.load.difference)
+
         return asset_event
 
     @handler("InputVoltageDownEvent")
@@ -362,7 +364,6 @@ class UPS(Asset, SNMPSim):
 
         asset_event = event.get_next_power_event(self)
         asset_event.out_volt.old = self.state.output_voltage
-        asset_event.set_load()
 
         battery_level = self.state.battery_level
         should_transfer, reason = self.state.process_voltage(event.in_volt.new)
@@ -384,6 +385,9 @@ class UPS(Asset, SNMPSim):
             and reason != high_line_t_reason
         ):
             self._launch_battery_charge(power_up_on_charge=(not battery_level))
+        else:
+            asset_event.set_load()
+            self._update_load(self.state.load + asset_event.load.difference)
 
         return asset_event
 
@@ -405,9 +409,9 @@ class UPS(Asset, SNMPSim):
     def drain_speed_factor(self, speed):
         self._drain_speed_factor = speed
 
-    def _update_load(self, load_change, arithmetic_op):
-        # TODO: add update load
-        upd_result = super()._update_load(load_change, arithmetic_op)
+    def _update_load(self, new_load):
+
+        upd_result = self.state.update_load(new_load)
         # re-calculate time left based on updated load
         self.state.update_time_left(self._cacl_time_left(self.state.wattage) * 60 * 100)
         return upd_result

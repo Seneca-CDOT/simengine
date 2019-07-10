@@ -209,9 +209,13 @@ class PowerIteration:
     def _process_hardware_asset_event(self, event):
         """One of the hardware assets went online/online
         Args:
-            event(AssetPowerEvent):
+            event(AssetPowerEvent): contains asset event results caused 
+                                    by input power event (e.g. output voltage
+                                    change due to input voltage drop etc.) or
+                                    asset getting powered down by the user
         """
 
+        # find neighbouring nodes (parents & children)
         child_keys, parent_keys = self.data_source.get_affected_assets(event.asset.key)
 
         # no branch assigned to the event yet
@@ -220,6 +224,8 @@ class PowerIteration:
             self._volt_branches.add_branch(VoltageBranch(event, self))
             event.set_load()
 
+        # voltage events will be displatched downstream to children of the updated node
+        # load events (if any) will be displatched to parents of the updated node
         volt_events = [event.get_next_voltage_event()]
         load_events = None
 
@@ -230,8 +236,8 @@ class PowerIteration:
             self._load_branches.extend(new_branches)
             load_events = [b.src_event for b in new_branches]
 
-        # delete voltage branch (power stream) when it forks
-        # or when it reaches leaf asset/node
+        # delete voltage branch (power stream) when it forks, when
+        #  it reaches leaf asset/node or when voltage hasn't changed
         if (
             (len(child_keys) > 1 and event.branch)
             or not child_keys
