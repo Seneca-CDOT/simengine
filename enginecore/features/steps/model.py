@@ -14,6 +14,7 @@ TEST_VM_NAME = "an-a01n01"
 def step_impl(context):
     sm.drop_model()
     context.hardware = {}
+    IStateManager.get_state_manager_by_key.cache_clear()
 
 
 @given('Outlet asset with key "{key:d}" is created')
