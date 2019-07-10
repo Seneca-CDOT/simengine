@@ -301,16 +301,16 @@ class UPS(Asset, SNMPSim):
         (load update that needs to be propagated up the power stream)
         """
 
+        load = self.state.load
+
         # Meaning ups state hasn't changed
         # (it was already on battery or it was already using input power)
         if should_transfer == self.state.on_battery:
             return None
 
-        if should_transfer:
-            old_load, new_load = self.state.load, 0
-        else:
-            old_load, new_load = 0, self.state.load
+        old_load, new_load = load, 0 if should_transfer else 0, load
 
+        # unchanged state
         if old_load == new_load:
             return None
 
@@ -325,6 +325,7 @@ class UPS(Asset, SNMPSim):
         """
         asset_event = event.get_next_power_event(self)
         asset_event.out_volt.old = self.state.output_voltage
+        asset_event.set_load()
 
         # process voltage, see if tranfer to battery is needed
         should_transfer, reason = self.state.process_voltage(event.in_volt.new)
@@ -361,6 +362,7 @@ class UPS(Asset, SNMPSim):
 
         asset_event = event.get_next_power_event(self)
         asset_event.out_volt.old = self.state.output_voltage
+        asset_event.set_load()
 
         battery_level = self.state.battery_level
         should_transfer, reason = self.state.process_voltage(event.in_volt.new)

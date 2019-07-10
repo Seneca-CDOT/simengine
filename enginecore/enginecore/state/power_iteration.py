@@ -43,6 +43,42 @@ class LoadBranch(PowerBranch):
     """
 
 
+class BranchTracker:
+    """Utility to keep track of power branches in progress/completed"""
+
+    def __init__(self):
+        self._branches_active = []
+        self._branches_done = []
+
+    @property
+    def num_branches_active(self):
+        """Number of branches/streams still in progress"""
+        return len(self._branches_active)
+
+    @property
+    def num_branches_done(self):
+        """Number of branches/streams still in progress"""
+        return len(self._branches_done)
+
+    @property
+    def completed(self):
+        """True if all the branches are completed"""
+        return self.num_branches_active == 0
+
+    def complete_branch(self, branch: PowerBranch):
+        """Remove branch from a list of completed branches"""
+        self._branches_active.remove(branch)
+        self._branches_done.append(branch)
+
+    def add_branch(self, branch: PowerBranch):
+        """Add branch to the collection of tracked branches"""
+        self._branches_active.append(branch)
+
+    def extend(self, branches: list):
+        """Add many branches to the collection of tracked branches"""
+        self._branches_active.extend(branches)
+
+
 class PowerIteration:
     """Power Iteration is initialized when a new incoming voltage event is
     detected (either due to some asset being powered down or wallpower 
@@ -56,12 +92,9 @@ class PowerIteration:
     data_source = None
 
     def __init__(self, src_event):
-        """Source """
-        self._volt_branches_active = []
-        self._volt_branches_done = []
 
-        self._load_branches_active = []
-        self._load_branches_done = []
+        self._volt_branches = BranchTracker()
+        self._load_branches = BranchTracker()
 
         self._last_processed_volt_event = None
         self._last_processed_load_event = None
@@ -74,10 +107,10 @@ class PowerIteration:
             "Power Iteration due to incoming event:\n"
             " | {0._src_event}\n"
             "Loop Details:\n"
-            " | Number Voltage Branches in-progress: {0.num_volt_branches_active}\n"
-            " | Number Voltage Branches completed: {0.num_volt_branches_done}\n"
-            " | Number Load Branches in-progress: {0.num_load_branches_active}\n"
-            " | Number Load Branches completed: {0.num_load_branches_done}\n"
+            " | Voltage Branches in-progress: {0._volt_branches.num_branches_active}\n"
+            " | Voltage Branches completed: {0._volt_branches.num_branches_done}\n"
+            " | Load Branches in-progress: {0._load_branches.num_branches_active}\n"
+            " | Load Branches completed: {0._load_branches.num_branches_done}\n"
             " | Last Processed Power Event: \n"
             " | {0._last_processed_volt_event}\n"
             " | Last Processed Load Event: \n"
@@ -85,34 +118,20 @@ class PowerIteration:
         ).format(self)
 
     @property
-    def num_volt_branches_active(self):
-        """Number of voltage branches/streams still in progress"""
-        return len(self._volt_branches_active)
+    def all_voltage_branches_done(self):
+        """Returns true if power iteration has no voltage streams in progress"""
+        return self._volt_branches.completed
 
     @property
-    def num_volt_branches_done(self):
-        """Number of voltage branches/streams still in progress"""
-        return len(self._volt_branches_done)
+    def all_load_branches_done(self):
+        """Returns true if power iteration has no load streams in progress"""
+        return self._load_branches.completed
 
     @property
-    def num_load_branches_active(self):
-        """Number of load branches/streams still in progress"""
-        return len(self._load_branches_active)
-
-    @property
-    def num_load_branches_done(self):
-        """Number of load branches/streams still in progress"""
-        return len(self._load_branches_done)
-
-    def complete_volt_branch(self, branch: VoltageBranch):
-        """Remove branch from a list of completed branches"""
-        self._volt_branches_active.remove(branch)
-        self._volt_branches_done.append(branch)
-
-    def complete_load_branch(self, branch: LoadBranch):
-        """Remove branch from a list of completed branches"""
-        self._load_branches_active.remove(branch)
-        self._load_branches_done.append(branch)
+    def power_iteration_done(self):
+        """Power iteration is completed when both downstream and upstream
+        power event propagation is exhausted"""
+        return self.all_load_branches_done and self.all_voltage_branches_done
 
     def launch(self):
         """Start up power iteration by returning events
@@ -149,7 +168,7 @@ class PowerIteration:
         load_events = None
 
         if not event.branch:
-            self._load_branches_active.append(LoadBranch(event, self))
+            self._load_branches.add_branch(LoadBranch(event, self))
 
         load_events = [event.get_next_load_event()]
 
@@ -158,11 +177,12 @@ class PowerIteration:
             new_branches = [
                 LoadBranch(event.get_next_load_event(), self) for _ in parent_keys
             ]
-            self._load_branches_active.extend(new_branches)
+
+            self._load_branches.extend(new_branches)
             load_events = [b.src_event for b in new_branches]
 
         if not parent_keys or not load_events:
-            self.complete_load_branch(event.branch)
+            self._load_branches.complete_branch(event.branch)
             return None
 
         return zip(parent_keys, load_events)
@@ -176,7 +196,7 @@ class PowerIteration:
         wp_outlets = self.data_source.get_mains_powered_assets()
 
         new_branches = [VoltageBranch(event, self) for _ in wp_outlets]
-        self._volt_branches_active.extend(new_branches)
+        self._volt_branches.extend(new_branches)
 
         return (
             [
@@ -194,8 +214,10 @@ class PowerIteration:
 
         child_keys, parent_keys = self.data_source.get_affected_assets(event.asset.key)
 
+        # no branch assigned to the event yet
+        # (e.g. asset was powered down by a user)
         if not event.branch:
-            self._volt_branches_active.append(VoltageBranch(event, self))
+            self._volt_branches.add_branch(VoltageBranch(event, self))
             event.set_load()
 
         volt_events = [event.get_next_voltage_event()]
@@ -205,7 +227,7 @@ class PowerIteration:
             new_branches = [
                 LoadBranch(event.get_next_load_event(), self) for _ in parent_keys
             ]
-            self._load_branches_active.extend(new_branches)
+            self._load_branches.extend(new_branches)
             load_events = [b.src_event for b in new_branches]
 
         # delete voltage branch (power stream) when it forks
@@ -215,7 +237,7 @@ class PowerIteration:
             or not child_keys
             or event.out_volt.unchanged()
         ):
-            self.complete_volt_branch(event.branch)
+            self._volt_branches.complete_branch(event.branch)
 
         if event.out_volt.unchanged():
             child_keys = []
@@ -224,7 +246,7 @@ class PowerIteration:
             new_branches = [
                 VoltageBranch(event.get_next_voltage_event(), self) for _ in child_keys
             ]
-            self._volt_branches_active.extend(new_branches)
+            self._volt_branches.extend(new_branches)
             volt_events = [b.src_event for b in new_branches]
 
         return (
