@@ -308,7 +308,7 @@ class UPS(Asset, SNMPSim):
         if should_transfer == self.state.on_battery:
             return None
 
-        old_load, new_load = load, 0 if should_transfer else 0, load
+        old_load, new_load = (load, 0) if should_transfer else (0, load)
 
         # unchanged state
         if old_load == new_load:
