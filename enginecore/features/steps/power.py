@@ -14,6 +14,8 @@ from hamcrest import *
 from enginecore.state.net.ws_requests import ServerToClientRequests
 from enginecore.state.new_engine import Engine
 
+ENGINE_TIMEOUT_RESPONSE = 3  # seconds
+
 
 class TestCompletionTracker(Component):
 
@@ -46,7 +48,7 @@ def step_impl(context):
 
     context.engine.handle_voltage_update(old_voltage=0, new_voltage=120)
 
-    event = context.tracker.load_done_queue.get()
+    event = context.tracker.load_done_queue.get(timeout=ENGINE_TIMEOUT_RESPONSE)
     logging.info(event)
 
 
@@ -57,7 +59,7 @@ def step_impl(context, old_volt, new_volt):
 
     # wait for completion of event loop
     if new_volt != old_volt:
-        event = context.tracker.load_done_queue.get()
+        event = context.tracker.load_done_queue.get(timeout=ENGINE_TIMEOUT_RESPONSE)
         logging.info(event)
 
 
@@ -73,7 +75,7 @@ def step_impl(context, key, state):
     context.engine.handle_state_update(key, old_state, new_state)
 
     if old_state != new_state:
-        event = context.tracker.load_done_queue.get()
+        event = context.tracker.load_done_queue.get(timeout=ENGINE_TIMEOUT_RESPONSE)
         logging.info(event)
 
 
