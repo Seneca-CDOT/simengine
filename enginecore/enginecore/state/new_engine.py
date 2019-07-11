@@ -174,9 +174,10 @@ class Engine(Component):
                 self.fire(event, self._assets[parent_key])
 
     def _chain_load_events(self, load_events):
-        """Chain load events"""
+        """Chain load events by dispatching load events against
+        parents of the updated child asset"""
 
-        # load branches are completed
+        # load & voltage branches are completed
         if self._current_power_iter.power_iteration_done:
             self._mark_load_branches_done()
 
@@ -247,28 +248,30 @@ class Engine(Component):
     # **Events are camel-case
     # pylint: disable=C0103,W0613
     def InputVoltageUpEvent_success(self, input_volt_event, asset_event):
-        """Callback called if InputVoltageUpEvent was handled by the child asset
+        """Callback called when InputVoltageUpEvent was handled by the asset
+        affected by the input change
         """
         self._chain_power_events(
             *self._current_power_iter.process_power_event(asset_event)
         )
 
     def InputVoltageDownEvent_success(self, input_volt_event, asset_event):
-        """Callback called if InputVoltageDown was handled by the child asset
+        """Callback called when InputVoltageDown was handled by the asset
+        affected by the input change
         """
         self._chain_power_events(
             *self._current_power_iter.process_power_event(asset_event)
         )
 
     def ChildLoadUpEvent_success(self, child_load_event, asset_load_event):
-        """Callback called when asset finishes processing load event that had
+        """Callback called when asset finishes processing load incease event that had
         happened to its child"""
         self._chain_load_events(
             self._current_power_iter.process_load_event(asset_load_event)
         )
 
     def ChildLoadDownEvent_success(self, child_load_event, asset_load_event):
-        """Callback called when asset finishes processing load event that had
+        """Callback called when asset finishes processing load drop event that had
         happened to its child"""
         self._chain_load_events(
             self._current_power_iter.process_load_event(asset_load_event)
