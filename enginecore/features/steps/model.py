@@ -8,8 +8,6 @@ import enginecore.model.system_modeler as sm
 from enginecore.state.api.state import IStateManager
 from hamcrest import *
 
-TEST_VM_NAME = "an-a01n01"
-
 
 @given("the system model is empty")
 def step_impl(context):
@@ -70,7 +68,7 @@ def step_impl(context, key, psu_num, wattage):
     sm.create_server(
         key,
         {
-            "domain_name": TEST_VM_NAME,
+            "domain_name": context.config.userdata["test_vm"],
             "psu_num": psu_num,
             "psu_load": [0.5, 0.5],
             "power_consumption": wattage,

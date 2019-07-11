@@ -15,8 +15,6 @@ from enginecore.state.state_initializer import configure_env
 from enginecore.state.net.ws_requests import ServerToClientRequests
 from enginecore.state.new_engine import Engine
 
-ENGINE_TIMEOUT_RESPONSE = 3  # seconds
-
 
 class TestCompletionTracker(Component):
     """Track completion of power iterations happening in the engine"""
@@ -48,10 +46,11 @@ class TestCompletionTracker(Component):
         return self.load_done_queue.get(timeout=self._timeout)
 
 
+@then("Engine is up and running")
 @given("Engine is up and running")
 def step_impl(context):
 
-    os.environ["SIMENGINE_WORKPLACE_TEMP"] = "simengine-test"
+    os.environ["SIMENGINE_WORKPLACE_TEMP"] = context.config.userdata["tmp_simengine"]
 
     # Start up simengine (in a thread)
     configure_env(relative=True)
