@@ -1,4 +1,3 @@
-@draft
 @pdu-asset
 @load-behaviour
 @power-behaviour

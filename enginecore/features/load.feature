@@ -1,4 +1,3 @@
-@draft
 @load-behaviour
 @power-behaviour
 Feature: Load handling and distribution across entire system tolology

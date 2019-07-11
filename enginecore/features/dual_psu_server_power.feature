@@ -1,4 +1,4 @@
-@draft
+@not-ci-friendly
 Feature: Dual PSU Voltage Handling
     Servers with dual psu have 2 power sources meaning that if
     one source fails, another one takes over the load.

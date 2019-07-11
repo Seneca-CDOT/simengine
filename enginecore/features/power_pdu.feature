@@ -1,4 +1,3 @@
-@draft
 @pdu-asset
 @sequential
 @power-behaviour
