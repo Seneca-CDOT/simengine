@@ -11,6 +11,7 @@ from circuits import Component, handler
 from behave import given, when, then, step
 from hamcrest import *
 
+from enginecore.state.state_initializer import configure_env
 from enginecore.state.net.ws_requests import ServerToClientRequests
 from enginecore.state.new_engine import Engine
 
@@ -28,6 +29,7 @@ class TestCompletionTracker(Component):
 
     @handler("AllLoadBranchesDone")
     def on_load_branch_done(self, event, *args, **kwargs):
+        """Wait for engine to complete a power iteration"""
         self.load_done_queue.put(event)
 
 
@@ -37,6 +39,7 @@ def step_impl(context):
     os.environ["SIMENGINE_WORKPLACE_TEMP"] = "simengine-test"
 
     # Start up simengine (in a thread)
+    configure_env(relative=True)
     context.engine = Engine()
     context.engine.start()
 

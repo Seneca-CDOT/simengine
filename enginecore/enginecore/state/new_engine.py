@@ -16,7 +16,7 @@ from enginecore.state.api import ISystemEnvironment
 from enginecore.state.net.ws_server import WebSocket
 from enginecore.state.net.ws_requests import ServerToClientRequests
 
-from enginecore.state.state_initializer import initialize, clear_temp, configure_env
+from enginecore.state.state_initializer import initialize, clear_temp
 from enginecore.state.engine_data_source import HardwareGraphDataSource
 from enginecore.state.power_iteration import PowerIteration
 from enginecore.state.power_events import AssetPowerEvent
@@ -49,15 +49,11 @@ class Engine(Component):
         - Load updates due to voltage changes
     """
 
-    def __init__(
-        self, force_snmp_init=True, debug=True, data_source=HardwareGraphDataSource
-    ):
+    def __init__(self, force_snmp_init=True, data_source=HardwareGraphDataSource):
         super(Engine, self).__init__()
 
         ### Set-up WebSocket & Redis listener ###
         logging.info("Starting simengine daemon...")
-        # TODO: when hooked into redis, either remove this or one from redis
-        configure_env(debug)
 
         # assets will store all the devices/items including PDUs, switches etc.
         self._assets = {}
@@ -107,6 +103,11 @@ class Engine(Component):
 
         self._worker_thread.daemon = True
         self._worker_thread.start()
+
+    @property
+    def assets(self):
+        """Hardware assets that are present in the system topology"""
+        return self._assets
 
     def power_worker(self):
         """Consumer processing power event queue"""

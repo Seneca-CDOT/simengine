@@ -1,5 +1,5 @@
 """StateListener subscribes to redis channels and passes published data
-to the Engine for further processing;
+to the Redis state handler for further processing;
 """
 import json
 import logging
@@ -14,11 +14,17 @@ from enginecore.state.state_initializer import configure_env
 
 
 class StateListener(Component):
-    """Top-level component that instantiates assets 
-    & maps redis events to circuit events
+    """Translates published redis messages into simengine Events & passes
+    through to the handler;
+
+    Dispatched events can be handled with circuits handlers as:
+    
+    @RedisChannels.some_redis_update
+    def handle_some_redis_update_here(...):
+        ...
     """
 
-    def __init__(self, debug=False, force_snmp_init=False):
+    def __init__(self, engine_cls, debug=False, force_snmp_init=False):
         super(StateListener, self).__init__()
 
         # env space configuration
@@ -38,7 +44,9 @@ class StateListener(Component):
             self._pubsub_streams[stream_name] = self._redis_store.pubsub()
 
         self._subscribe_to_channels()
-        self._engine = RedisStateHandler(debug, force_snmp_init).register(self)
+        self._redis_state_handler = RedisStateHandler(
+            engine_cls, debug, force_snmp_init
+        ).register(self)
 
     def _subscribe_to_channels(self):
         """Subscribe to redis channels"""
@@ -100,7 +108,7 @@ class StateListener(Component):
 
         self.fire(
             Event.create(channel, json.loads(data) if json_format else data),
-            self._engine,
+            self._redis_state_handler,
         )
 
     def started(self, _):
