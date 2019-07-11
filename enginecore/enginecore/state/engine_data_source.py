@@ -54,3 +54,10 @@ class HardwareGraphDataSource(HardwareDataSource):
             parent_assets = GraphReference.get_parent_assets(session, asset_key)
 
         return [a["key"] for a in parent_assets]
+
+    @classmethod
+    def cache_clear_all(cls):
+        """clear all cached data"""
+        cls.get_affected_assets.cache_clear()
+        cls.get_mains_powered_assets.cache_clear()
+        cls.get_parent_assets.cache_clear()

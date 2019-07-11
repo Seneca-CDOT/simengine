@@ -240,6 +240,7 @@ class Engine(Component):
         self._power_iter_queue.put(None)
         self._worker_thread.join()
         self._sys_environ.stop()
+        HardwareGraphDataSource.cache_clear_all()
         super().stop(code)
 
     # **Events are camel-case
