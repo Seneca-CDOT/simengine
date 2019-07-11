@@ -326,7 +326,7 @@ class UPS(Asset, SNMPSim):
 
         # while running on battery, load propagation gets halted
         asset_load_event = event.get_next_load_event(self)
-        self.state.update_load(asset_load_event.load.old + event.load.difference)
+        self._update_load(asset_load_event.load.old + event.load.difference)
 
         # ensure that load doesn't change for the parent
         asset_load_event.load.new = asset_load_event.load.old
@@ -426,7 +426,7 @@ class UPS(Asset, SNMPSim):
         self._drain_speed_factor = speed
 
     def _update_load(self, new_load):
-
+        """Ups needs to update runtime left for battery when load is updated"""
         upd_result = self.state.update_load(new_load)
         # re-calculate time left based on updated load
         self.state.update_time_left(self._cacl_time_left(self.state.wattage) * 60 * 100)

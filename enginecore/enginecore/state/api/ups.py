@@ -112,7 +112,7 @@ class IUPSStateManager(ISnmpDeviceStateManager):
 
     @property
     def wattage(self):
-        return (self.load + self.idle_ups_amp) * self._asset_info["powerSource"]
+        return self.load * self._asset_info["powerSource"]
 
     @property
     def power_usage(self):

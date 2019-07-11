@@ -57,6 +57,10 @@ class Asset(Component):
             or self.state_reason == asset_events.ButtonPowerUpPressed
         )
 
+    def _update_load(self, new_load):
+        """Update load for this asset"""
+        return self.state.update_load(new_load)
+
     def power_up(self):
         """Power up this asset 
         Returns: 
@@ -104,7 +108,7 @@ class Asset(Component):
         asset_load_event = event.get_next_load_event(self)
         new_load = asset_load_event.load.old + event.load.difference
 
-        self.state.update_load(new_load)
+        self._update_load(new_load)
         asset_load_event.load.new = new_load
         return asset_load_event
 
@@ -148,7 +152,7 @@ class Asset(Component):
 
         asset_event.set_load()
         if not asset_event.load.unchanged():
-            self.state.update_load(
+            self._update_load(
                 self.state.load - asset_event.load.old + asset_event.load.new
             )
 

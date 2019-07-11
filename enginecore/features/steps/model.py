@@ -1,5 +1,6 @@
 # pylint: disable=no-name-in-module,function-redefined,missing-docstring,unused-import
 from behave import given, when, then, step
+import json
 
 # plyint: enable=no-name-in-module
 
@@ -50,6 +51,15 @@ def step_impl(context, key, port):
     context.hardware[key] = IStateManager.get_state_manager_by_key(key)
     for child_key in context.hardware[key].asset_info["children"]:
         context.hardware[child_key] = IStateManager.get_state_manager_by_key(child_key)
+
+
+@given('UPS "{key:d}" has the following runtime graph')
+def step_impl(context, key):
+    wattage_runtime_map = {}
+    for row in context.table:
+        wattage_runtime_map[row["wattage"]] = int(row["minutes"])
+
+    sm.configure_asset(key, {"runtime": json.dumps(wattage_runtime_map)})
 
 
 @given(

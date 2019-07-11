@@ -1,4 +1,3 @@
-@draft
 @ups-asset
 @voltage-behaviour
 @power-behaviour
@@ -15,6 +14,7 @@ Feature: UPS Voltage Handling
         And Engine is up and running
 
     @snmp-interface
+    @ups-battery
     Scenario Outline: Voltage drops below lower thresholds thus causing battery transfer
         When voltage "<input-volt>" drops below "<threshold>" threshold by "<drops-by>" for UPS "190"
 
@@ -29,6 +29,7 @@ Feature: UPS Voltage Handling
             | 120        | AdvConfigLowTransferVolt | 100      | on             | deepMomentarySag  | blackout                |
 
     @snmp-interface
+    @ups-battery
     Scenario Outline: Voltage spikes above upper thresholds thus causing battery transfer
         When voltage "<input-volt>" spikes above "<threshold>" threshold by "<spikes-by>" for UPS "190"
 
@@ -41,6 +42,7 @@ Feature: UPS Voltage Handling
             | 120        | AdvConfigHighTransferVolt | 10        | on             | highLineVoltage |
 
     @snmp-interface
+    @ups-battery
     Scenario Outline: Voltage causes UPS change back and forth to battery/input power
         When wallpower voltage "<volt-1>" is updated to "<volt-2>"
         And wallpower voltage "<volt-2>" is updated to "<volt-3>"

@@ -1,4 +1,3 @@
-@draft
 @ups-asset
 @load-behaviour
 @power-behaviour
@@ -94,3 +93,38 @@ Feature: UPS Load Handling
             | offline   | 3         | online          | offline         | 0.0 | 0.0 | 0.0 | 0.2 | 0.0  | 0.0 | 0.0 |
             | offline   | 3         | offline         | online          | 0.0 | 0.0 | 0.0 | 2.2 | 2.0  | 2.0 | 0.0 |
 
+
+    @ups-battery
+    @snmp-interface
+    Scenario Outline: Load on UPS affects time remaining
+            """Battery drain may be faster/slower depending on how much power is drawn from the ups"""
+
+        # Do the usual model pre-setup
+        Given Outlet asset with key "1" is created
+        And Lamp asset with key "3", minimum "109" Voltage and "120" Wattage is created
+        And Lamp asset with key "4", minimum "109" Voltage and "120" Wattage is created
+
+        And asset "1" powers target "190"
+        And asset "1903" powers target "3"
+        And asset "1904" powers target "4"
+
+        # runtime graph: (120 lamp wattage plus UPS wattage (24 watts))
+        And UPS "190" has the following runtime graph
+            | wattage | minutes |
+            | 24      | 13      |
+            | 144     | 60      |
+            | 264     | 30      |
+
+        And Engine is up and running
+
+        # toggle lamp states
+        When asset "3" goes "<lamp-3>"
+        When asset "4" goes "<lamp-4>"
+
+        Then UPS "190" time remaining for battery is "<runtime>" minutes
+
+        Examples: Leaf-node lamp power changes with absent top-parent power source
+            | lamp-3  | lamp-4  | runtime |
+            | online  | online  | 30      |
+            | offline | online  | 60      |
+            | offline | offline | 13      |

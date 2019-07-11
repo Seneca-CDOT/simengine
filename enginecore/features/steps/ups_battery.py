@@ -69,3 +69,14 @@ def step_impl(context, seconds, key, t_reason):
             key=key, t_reason=t_reason
         )
     )
+
+
+@then('UPS "{key:d}" time remaining for battery is "{minutes:d}" minutes')
+def step_impl(context, key, minutes):
+    transfer_reason_oid = (
+        context.hardware[key].get_oid_by_name("BatteryRunTimeRemaining").oid
+    )
+
+    convert_to_minutes = lambda ticks: ticks / 6000
+    varbind_value = query_snmp_interface(transfer_reason_oid)
+    assert_that(minutes, close_to(convert_to_minutes(varbind_value), 0.001))
