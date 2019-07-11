@@ -8,6 +8,7 @@ For example, it switches to battery if upstream power is offline or voltage is t
 import logging
 import json
 import time
+import math
 from datetime import datetime as dt
 
 from threading import Thread
@@ -38,7 +39,7 @@ class UPS(Asset, SNMPSim):
         # remove default logic for handling input voltage updates
         super().removeHandler(super().on_input_voltage_up)
         super().removeHandler(super().on_input_voltage_down)
-
+        super().removeHandler(super().on_child_load_update)
         self._low_volt_th_oid = self.state.get_oid_by_name("AdvConfigLowTransferVolt")
 
         # Store known { wattage: time_remaining } key/value pairs (runtime graph)
@@ -315,6 +316,21 @@ class UPS(Asset, SNMPSim):
             return None
 
         return old_load, new_load
+
+    @handler("ChildLoadUpEvent", "ChildLoadDownEvent")
+    def on_child_load_update(self, event, *args, **kwargs):
+        """Process child load changes by updating load of the device"""
+        # when not on battery, process load as normal
+        if not self.state.on_battery:
+            return super().on_child_load_update(event, *args, **kwargs)
+
+        # while running on battery, load propagation gets halted
+        asset_load_event = event.get_next_load_event(self)
+        self.state.update_load(asset_load_event.load.old + event.load.difference)
+
+        # ensure that load doesn't change for the parent
+        asset_load_event.load.new = asset_load_event.load.old
+        return asset_load_event
 
     @handler("InputVoltageUpEvent")
     def on_input_voltage_up(self, event, *args, **kwargs):
