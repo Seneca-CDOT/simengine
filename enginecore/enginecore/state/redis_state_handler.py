@@ -11,9 +11,7 @@ class RedisStateHandler(Component):
 
     def __init__(self, engine_cls, debug=False, force_snmp_init=True):
         super(RedisStateHandler, self).__init__()
-        self._engine = engine_cls(
-            debug=debug, force_snmp_init=force_snmp_init
-        ).register(self)
+        self._engine = engine_cls(force_snmp_init=force_snmp_init).register(self)
 
         # Use redis pub/sub communication
         logging.info("Initializing redis connection...")
