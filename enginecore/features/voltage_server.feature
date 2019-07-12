@@ -11,6 +11,23 @@ Feature: Server Voltage Handling
         Given the system model is empty
         And Outlet asset with key "1" is created
 
+    Scenario Outline: Single PSU server acts just like a regular asset
+        # initialize model & engine
+        # (1)-[powers]->[1801:   server 180]
+        Given Server asset with key "180", "1" PSU(s) and "120" Wattage is created
+        And asset "1" powers target "1801"
+        And Engine is up and running
+
+        When asset "1" goes "<status>"
+
+        Then asset "1801" is "<1801>"
+        And asset "180" is "<180>"
+
+        Examples: Single-psu server state tests
+            | key  | status  | 1801    | 180     |
+            | 1    | offline | offline | offline |
+            | 1801 | offline | offline | offline |
+
     Scenario Outline: Server powered by 2 PSU's requires at least one power source present
 
         # initialize model & engine
@@ -48,20 +65,3 @@ Feature: Server Voltage Handling
             | 1     | 2     | offline | online  | online  | online  | online  | online  | online |
             | 1     | 2     | offline | offline | offline | online  | offline | online  | online |
             | 1     | 2     | offline | offline | online  | offline | online  | offline | online |
-
-    Scenario Outline: Single PSU server acts just like a regular asset
-        # initialize model & engine
-        # (1)-[powers]->[1801:   server 180]
-        Given Server asset with key "180", "1" PSU(s) and "120" Wattage is created
-        And asset "1" powers target "1801"
-        And Engine is up and running
-
-        When asset "1" goes "<status>"
-
-        Then asset "1801" is "<1801>"
-        And asset "180" is "<180>"
-
-        Examples: Single-psu server state tests
-            | key  | status  | 1801    | 180     |
-            | 1    | offline | offline | offline |
-            | 1801 | offline | offline | offline |
