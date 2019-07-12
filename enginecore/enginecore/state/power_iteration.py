@@ -195,16 +195,12 @@ class PowerIteration:
         """
         wp_outlets = self.data_source.get_mains_powered_assets()
 
-        new_branches = [VoltageBranch(event, self) for _ in wp_outlets]
+        new_branches = [
+            VoltageBranch(event.get_next_voltage_event(), self) for _ in wp_outlets
+        ]
         self._volt_branches.extend(new_branches)
 
-        return (
-            [
-                (k, b.src_event.get_next_voltage_event())
-                for k, b in zip(wp_outlets, new_branches)
-            ],
-            None,
-        )
+        return ([(k, b.src_event) for k, b in zip(wp_outlets, new_branches)], None)
 
     def _process_hardware_asset_event(self, event):
         """One of the hardware assets went online/online
