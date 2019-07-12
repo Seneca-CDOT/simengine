@@ -49,3 +49,19 @@ Feature: Server Voltage Handling
             | 1     | 2     | offline | offline | offline | online  | offline | online  | online |
             | 1     | 2     | offline | offline | online  | offline | online  | offline | online |
 
+    Scenario Outline: Single PSU server acts just like a regular asset
+        # initialize model & engine
+        # (1)-[powers]->[1801:   server 180]
+        Given Server asset with key "180", "1" PSU(s) and "120" Wattage is created
+        And asset "1" powers target "1801"
+        And Engine is up and running
+
+        When asset "1" goes "<status>"
+
+        Then asset "1801" is "<1801>"
+        And asset "180" is "<180>"
+
+        Examples: Single-psu server state tests
+            | key  | status  | 1801    | 180     |
+            | 1    | offline | offline | offline |
+            | 1801 | offline | offline | offline |

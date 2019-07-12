@@ -70,7 +70,7 @@ def step_impl(context, key, psu_num, wattage):
         {
             "domain_name": context.config.userdata["test_vm"],
             "psu_num": psu_num,
-            "psu_load": [0.5, 0.5],
+            "psu_load": [1 / psu_num for _ in range(psu_num)],
             "power_consumption": wattage,
             "psu_power_consumption": 0,
             "psu_power_source": 120,
@@ -78,11 +78,10 @@ def step_impl(context, key, psu_num, wattage):
     )
 
     context.hardware[key] = IStateManager.get_state_manager_by_key(key)
-    psu_key_1 = key * 10 + 1
-    psu_key_2 = key * 10 + 2
 
-    context.hardware[psu_key_1] = IStateManager.get_state_manager_by_key(psu_key_1)
-    context.hardware[psu_key_2] = IStateManager.get_state_manager_by_key(psu_key_2)
+    for psu_idx in range(1, psu_num + 1):
+        psu_key = key * 10 + psu_idx
+        context.hardware[psu_key] = IStateManager.get_state_manager_by_key(psu_key)
 
 
 @given(
