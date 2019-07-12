@@ -139,6 +139,10 @@ class Server(StaticAsset):
 
         if not asset_event.state.unchanged():
             asset_event.state.new = self.state.power_off()
+            asset_event.set_load()
+            self._update_load(
+                self.state.load - asset_event.load.old + asset_event.load.new
+            )
 
         return asset_event
 

@@ -25,8 +25,8 @@ Feature: Load handling and distribution across entire system tolology
 
         # check states
         Then asset "1" load is set to "<1>"
-        Then asset "2" load is set to "<2>"
-        Then asset "3" load is set to "<3>"
+        And asset "2" load is set to "<2>"
+        And asset "3" load is set to "<3>"
 
         Examples: Load drop due to power changes (something powered off)
             | asset-key | asset-ini-state | asset-new-state | 1   | 2   | 3   |
@@ -58,8 +58,8 @@ Feature: Load handling and distribution across entire system tolology
 
         # check states
         Then asset "1" load is set to "<1>"
-        Then asset "2" load is set to "<2>"
-        Then asset "3" load is set to "<3>"
+        And asset "2" load is set to "<2>"
+        And asset "3" load is set to "<3>"
 
         Examples: Same load & nothing changes (even though something powered off)
             | asset-key | asset-ini-state | asset-new-state | 1   | 2   | 3   |
@@ -90,8 +90,8 @@ Feature: Load handling and distribution across entire system tolology
 
         # check load for assets
         Then asset "1" load is set to "<1>"
-        Then asset "2" load is set to "<2>"
-        Then asset "3" load is set to "<3>"
+        And asset "2" load is set to "<2>"
+        And asset "3" load is set to "<3>"
 
         Examples: Load spike due to power changes  (something powered on)
             | ini-volt | new-volt | 1   | 2   | 3   |
