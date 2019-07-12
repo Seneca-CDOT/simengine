@@ -130,6 +130,15 @@ class Server(StaticAsset):
 
         return load_e_results
 
+    @handler("InputVoltageDownEvent")
+    def on_input_voltage_down(self, event, *args, **kwargs):
+        asset_event = event.get_next_power_event(self)
+        for psu_key in self._psu_sm:
+            if self._psu_sm[psu_key].status:
+                asset_event.state.new = asset_event.state.old
+
+        return asset_event
+
     @handler("VoltageIncreased")
     def on_voltage_increase(self, event, *args, **kwargs):
         """Handle input power voltage increase"""
