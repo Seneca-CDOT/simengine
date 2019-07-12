@@ -429,7 +429,10 @@ class UPS(Asset, SNMPSim):
         """Ups needs to update runtime left for battery when load is updated"""
         upd_result = self.state.update_load(new_load)
         # re-calculate time left based on updated load
-        self.state.update_time_left(self._cacl_time_left(self.state.wattage) * 60 * 100)
+        if not math.isclose(self.state.wattage, 0):
+            self.state.update_time_left(
+                self._cacl_time_left(self.state.wattage) * 60 * 100
+            )
         return upd_result
 
     def on_power_up_request_received(self, event, *args, **kwargs):
