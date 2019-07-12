@@ -137,6 +137,9 @@ class Server(StaticAsset):
             if self._psu_sm[psu_key].status:
                 asset_event.state.new = asset_event.state.old
 
+        if not asset_event.state.unchanged():
+            asset_event.state.new = self.state.power_off()
+
         return asset_event
 
     @handler("VoltageIncreased")
