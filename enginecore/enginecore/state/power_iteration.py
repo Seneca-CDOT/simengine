@@ -218,22 +218,30 @@ class PowerIteration:
         # (e.g. asset was powered down by a user)
         if not event.branch:
             self._volt_branches.add_branch(VoltageBranch(event, self))
-            event.set_load()
+            event.calc_load_from_volt()
 
         # voltage events will be displatched downstream to children of the updated node
         # load events (if any) will be displatched to parents of the updated node
-        volt_events = [event.get_next_voltage_event()]
-        load_events = None
+        next_volt_events = [event.get_next_voltage_event()]
+        next_load_events = None
+        """
+        for load_event in event.get_next_load_event():
+            new_load_branches.append(load_event, self)
+            load_event_pair.append((load_event.target_key, load_event))
 
+        self._load_branches.extend(new_load_branches)
+
+        return zip(child_keys, next_volt_events), load_event_pair
+        """
         if parent_keys and event.get_next_load_event():
             new_branches = [
                 LoadBranch(event.get_next_load_event(), self) for _ in parent_keys
             ]
             self._load_branches.extend(new_branches)
-            load_events = [b.src_event for b in new_branches]
+            next_load_events = [b.src_event for b in new_branches]
 
         # delete voltage branch (power stream) when it forks, when
-        #  it reaches leaf asset/node or when voltage hasn't changed
+        # it reaches leaf asset/node or when voltage hasn't changed
         if (
             (len(child_keys) > 1 and event.branch)
             or not child_keys
@@ -249,9 +257,9 @@ class PowerIteration:
                 VoltageBranch(event.get_next_voltage_event(), self) for _ in child_keys
             ]
             self._volt_branches.extend(new_branches)
-            volt_events = [b.src_event for b in new_branches]
+            next_volt_events = [b.src_event for b in new_branches]
 
         return (
-            zip(child_keys, volt_events),
-            zip(parent_keys, load_events) if load_events else None,
+            zip(child_keys, next_volt_events),
+            zip(parent_keys, next_load_events) if next_load_events else None,
         )

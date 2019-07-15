@@ -341,7 +341,7 @@ class UPS(Asset, SNMPSim):
         """
         asset_event = event.get_next_power_event(self)
         asset_event.out_volt.old = self.state.output_voltage
-        asset_event.set_load()
+        asset_event.calc_load_from_volt()
 
         # process voltage, see if tranfer to battery is needed
         should_transfer, reason = self.state.process_voltage(event.in_volt.new)
@@ -402,7 +402,7 @@ class UPS(Asset, SNMPSim):
         ):
             self._launch_battery_charge(power_up_on_charge=(not battery_level))
         else:
-            asset_event.set_load()
+            asset_event.calc_load_from_volt()
             self._update_load(self.state.load + asset_event.load.difference)
 
         return asset_event

@@ -23,7 +23,7 @@ import enginecore.state.hardware.internal_state as in_state
 from enginecore.state.agent import IPMIAgent, StorCLIEmulator
 from enginecore.state.sensor.repository import SensorRepository
 from enginecore.state.state_initializer import get_temp_workplace_dir
-from enginecore.state.hardware import event_results
+from enginecore.state.power_events import LoadEventDataPair
 
 
 @register_asset
@@ -43,148 +43,48 @@ class Server(StaticAsset):
 
         self.state.power_up()
 
-    def _get_server_load_update(self, volt_event_details, power_e_result=None):
-        """Get formatted load event result 
-        (load update that needs to be propagated up the power stream)
-        """
-
-        load_e_results = []
-
-        old_volt, new_volt = (
-            volt_event_details["old_value"],
-            volt_event_details["new_value"],
-        )
-        src_key = volt_event_details["source_key"]
-
-        source_psu = self._psu_sm[src_key]
-
-        calc_load = lambda v: (self.state.power_consumption / v if v else 0)
-
-        # Output voltage can still be 0 for some assets even though
-        # their input voltage > 0
-        # (most devices require at least 90V-100V in order to function)
-        old_out_volt = old_volt * (power_e_result.old_state if power_e_result else 1)
-        new_out_volt = new_volt * (power_e_result.new_state if power_e_result else 1)
-
-        old_load, new_load = (calc_load(volt) for volt in [old_out_volt, new_out_volt])
-
-        if old_load == new_load == 0:
-            return None
-
-        other_psu = [self._psu_sm[k] for k in self._psu_sm if k != src_key]
-        # print("\n=" * 10)
-        # print("VOLT UPDATE SERVER: PRINTING PSUS")
-        # print(other_psu[0])
-        # print(source_psu)
-
-        _2nd_parent = other_psu[0]
-        load_change = abs(old_load - new_load)
-        new_source_psu_load = new_load * source_psu.draw_percentage
-        old_source_psu_load = old_load * source_psu.draw_percentage
-
-        load_e_results.append(
-            event_results.LoadEventResult(
-                asset_key=self.state.key,
-                asset_type=self.state.asset_type,
-                parent_key=source_psu.key,
-                old_load=old_source_psu_load,
-                new_load=new_source_psu_load,
-            )
-        )
-
-        # Case where load re-distribution is not needed
-        if (
-            _2nd_parent.load
-            == calc_load(_2nd_parent.output_voltage) * _2nd_parent.draw_percentage
-        ) and math.isclose(old_load, 0):
-            print("Other PSU drawing as expected")
-            return load_e_results
-
-        if math.isclose(new_out_volt, 0) and _2nd_parent.status:
-            print("LOAD REDISTRIBUTION NEEDED!!!" * 3)
-            load_e_results.append(
-                event_results.LoadEventResult(
-                    asset_key=self.state.key,
-                    asset_type=self.state.asset_type,
-                    parent_key=_2nd_parent.key,
-                    old_load=_2nd_parent.load,
-                    new_load=_2nd_parent.load + old_source_psu_load,
-                )
-            )
-        elif not math.isclose(new_out_volt, 0) and _2nd_parent.status:
-            print("&& LOAD REDISTRIBUTION BACK!!!" * 3)
-            load_e_results.append(
-                event_results.LoadEventResult(
-                    asset_key=self.state.key,
-                    asset_type=self.state.asset_type,
-                    parent_key=_2nd_parent.key,
-                    old_load=_2nd_parent.load,
-                    new_load=_2nd_parent.load - new_source_psu_load,
-                )
-            )
-
-        # print("=\n" * 10)
-
-        # print(load_e_results)
-        # print("=\n" * 10)
-
-        return load_e_results
-
     @handler("InputVoltageDownEvent")
     def on_input_voltage_down(self, event, *args, **kwargs):
         asset_event = event.get_next_power_event(self)
+        min_voltage = self.state.min_voltage_prop()
+
+        # keep track of load udpates for multi-psu servers
+        stream_load_upd = {}
+
+        # initialize load for psus (as unchaned)
+        for key in self._psu_sm:
+            stream_load_upd[key] = LoadEventDataPair(
+                self._psu_sm[key].load, self._psu_sm[key].load, target=key
+            )
+
+        # check alternative power sources
+        # and leave this server online if present
         for psu_key in self._psu_sm:
-            if self._psu_sm[psu_key].status:
+            psu_sm = self._psu_sm[psu_key]
+            if psu_sm.status and psu_sm.output_voltage > min_voltage:
                 asset_event.state.new = asset_event.state.old
 
+        # state needs to change
         if not asset_event.state.unchanged():
             asset_event.state.new = self.state.power_off()
-            asset_event.set_load()
+
+            # TODO: set load even when state is unchanged
+            asset_event.calc_load_from_volt()
             self._update_load(
                 self.state.load - asset_event.load.old + asset_event.load.new
             )
 
         return asset_event
 
-    @handler("VoltageIncreased")
-    def on_voltage_increase(self, event, *args, **kwargs):
-        """Handle input power voltage increase"""
+    # @handler("InputVoltageUpEvent")
+    # def on_input_voltage_up(self, event, *args, **kwargs):
+    #     asset_event = event.get_next_power_event(self)
 
-        power_event_result = None
+    #     asset_event.calc_load_from_volt_stream(
+    #         {psu_key: "hello engine" for psu_key in self._psu_sm}
+    #     )
 
-        volt_event_result = self._get_voltage_event_result(kwargs)
-        load_event_result = self._get_server_load_update(kwargs)
-
-        return volt_event_result, power_event_result, load_event_result
-
-    @handler("VoltageDecreased")
-    def on_voltage_decrease(self, event, *args, **kwargs):
-        """Handle input power voltage drop"""
-
-        power_event_result = None
-
-        volt_event_result = self._get_voltage_event_result(kwargs)
-        load_event_result = self._get_server_load_update(kwargs)
-
-        alt_psu_up = len(
-            [
-                self._psu_sm[k]
-                for k in self._psu_sm
-                if k != kwargs["source_key"] and self._psu_sm[k].status
-            ]
-        )
-
-        min_voltage = self.state.min_voltage_prop()
-
-        if kwargs["new_value"] <= min_voltage and self.state.status and not alt_psu_up:
-            power_event_result = event_results.PowerEventResult(
-                asset_key=self.state.key,
-                asset_type=self.state.asset_type,
-                old_state=self.state.status,
-                new_state=self.state.power_off(),
-            )
-
-        return volt_event_result, power_event_result, load_event_result
+    #     return asset_event
 
 
 @register_asset

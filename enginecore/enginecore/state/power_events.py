@@ -1,3 +1,4 @@
+import functools
 from circuits import Component, Event, Worker, Debugger, handler
 
 
@@ -78,6 +79,22 @@ class EventDataPair:
         return self.old == self.new
 
 
+class LoadEventDataPair(EventDataPair):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "target" not in kwargs or not kwargs["target"]:
+            raise ValueError("Provided target value is invalid")
+        self._target = kwargs["target"]
+
+    @property
+    def target(self):
+        return self._target
+
+    @target.setter
+    def target(self, value):
+        self._target = value
+
+
 class AssetPowerEvent(PowerEvent):
     """Asset power event aggregates 2 event types:
     Voltage & Load
@@ -135,12 +152,18 @@ class AssetPowerEvent(PowerEvent):
         """Old/New load changes caused by a power event"""
         return self._load
 
-    def set_load(self):
-        calc_load = lambda v: self._asset.state.power_consumption / v if v else 0
-
+    def calc_load_from_volt(self):
+        """Sets load change based off old,  new load and asset's
+        power consumption"""
+        calc_load = functools.partial(AssetPowerEvent.calculate_load, self._asset.state)
         self._load = EventDataPair(
             *(calc_load(volt) for volt in [self.out_volt.old, self.out_volt.new])
         )
+
+    @staticmethod
+    def calculate_load(state, voltage):
+        """Calculate asset load"""
+        return state.power_consumption / voltage if voltage else 0
 
     def get_next_voltage_event(self):
         """Returns next event that will be dispatched against children of 
@@ -169,12 +192,11 @@ class AssetPowerEvent(PowerEvent):
         if self.load.unchanged():
             return None
 
-        if self.load.old > self.load.new:
-            volt_event = ChildLoadDownEvent
-        else:
-            volt_event = ChildLoadUpEvent
+        load_event = (
+            ChildLoadUpEvent if self.load.difference > 0 else ChildLoadDownEvent
+        )
 
-        return volt_event(
+        return load_event(
             old_load=self.load.old,
             new_load=self.load.new,
             source_asset=self._asset,
@@ -207,6 +229,10 @@ class InputVoltageEvent(PowerEvent):
     def in_volt(self):
         """Old/New input voltage"""
         return self._in_volt
+
+    @property
+    def source_key(self):
+        return self._source_asset.key if self._source_asset else 0
 
     def get_next_power_event(self, target_asset=None):
         """Get next power event (hardware asset event) that
@@ -302,7 +328,9 @@ class ChildLoadEvent(LoadEvent):
     success = True
 
     def get_next_load_event(self, target_asset):
-        """Get next asset event"""
+        """Get next asset event resulted from
+        load changes of the child asset 
+        """
         return AssetLoadEvent(
             asset=target_asset,
             power_iter=self.power_iter,
