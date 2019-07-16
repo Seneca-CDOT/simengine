@@ -37,9 +37,12 @@ class EventDataPair:
     (old & new values).
     """
 
-    def __init__(self, old_value=None, new_value=None, is_valid_value=None):
-        self._old_value, self._new_value = old_value, new_value
-        self._is_valid_value = is_valid_value
+    def __init__(self, *args, **kwargs):
+        self._old_value, self._new_value = args if len(args) == 2 else (None, None)
+
+        self._is_valid_value = (
+            kwargs["is_valid_value"] if "is_valid_value" in kwargs else None
+        )
 
     def __call__(self):
         return self._old_value, self._new_value

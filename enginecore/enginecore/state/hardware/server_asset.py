@@ -50,8 +50,9 @@ class Server(StaticAsset):
 
         # keep track of load udpates for multi-psu servers
         stream_load_upd = {}
+        assert event.source_key in self._psu_sm
 
-        # initialize load for psus (as unchaned)
+        # initialize load for PSUs (as unchaned)
         for key in self._psu_sm:
             stream_load_upd[key] = LoadEventDataPair(
                 self._psu_sm[key].load, self._psu_sm[key].load, target=key
