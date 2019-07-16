@@ -53,21 +53,33 @@ class Server(StaticAsset):
 
         # keep track of load udpates for multi-psu servers
         load_upd = {}
+        extra_draw = 0.0
+        draw_redistrib = 0.0
 
         # initialize load for PSUs (as unchaned)
         for key in self._psu_sm:
-            load_upd[key] = LoadEventDataPair(
-                self._psu_sm[key].load, self._psu_sm[key].load, target=key
-            )
+            psu_sm = self._psu_sm[key]
 
-        load_upd[e_src_psu.key].old = (
-            asset_event.calculate_load(self.state, event.in_volt.old)
-            * e_src_psu.draw_percentage
-        )
-        load_upd[e_src_psu.key].new = (
-            asset_event.calculate_load(self.state, event.in_volt.new)
-            * e_src_psu.draw_percentage
-        )
+            load_upd[key] = LoadEventDataPair(psu_sm.load, psu_sm.load, target=key)
+            if psu_sm.key != event.source_key and not psu_sm.status:
+                extra_draw += psu_sm.draw_percentage
+            elif psu_sm.key != event.source_key:
+                draw_redistrib += psu_sm.draw_percentage
+                load_upd[key].new = (
+                    load_upd[key].old
+                    - asset_event.calculate_load(self.state, event.in_volt.new)
+                    * e_src_psu.draw_percentage
+                )
+
+        load_upd[e_src_psu.key].old = asset_event.calculate_load(
+            self.state, event.in_volt.old
+        ) * (e_src_psu.draw_percentage + extra_draw)
+        load_upd[e_src_psu.key].new = asset_event.calculate_load(
+            self.state, event.in_volt.new
+        ) * (e_src_psu.draw_percentage + extra_draw)
+
+        if asset_event.out_volt.new > min_voltage and not asset_event.state.old:
+            asset_event.state.new = self.state.power_up()
 
         asset_event.streamed_load_updates = load_upd
         if not asset_event.state.unchanged():

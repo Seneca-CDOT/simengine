@@ -56,8 +56,9 @@ Feature: Server Load Handling
             | 1801  | 1802  | online | online | offline | offline | 0.0 | 0.0 | 0.0  | 0.0  | 0.0 |
 
         Examples: Switching states from offline to online for outlets powering PSUs should affect load
-            | key-1 | key-2 | 1-ini   | 2-ini   | 1-new  | 2-new  | 1   | 2   | 1801 | 1802 | 180 |
-            | 1     | 2     | offline | offline | online | online | 2.0 | 2.0 | 2.0  | 2.0  | 4.0 |
+            | key-1 | key-2 | 1-ini   | 2-ini   | 1-new  | 2-new   | 1   | 2   | 1801 | 1802 | 180 |
+            | 1     | 2     | offline | offline | online | online  | 2.0 | 2.0 | 2.0  | 2.0  | 4.0 |
+            | 1     | 2     | offline | offline | online | offline | 4.0 | 0.0 | 4.0  | 0.0  | 0.0 |
 
 
     Scenario Outline: Single PSU server acts just like a regular asset
