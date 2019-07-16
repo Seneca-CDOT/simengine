@@ -41,12 +41,23 @@ Feature: Server Load Handling
 
         # manipulate 2 input power streams for the server
         # (each powering a PSU)
-        Examples: Switching states from online to offline for dual power supply should affect load
+        Examples: Switching states from online to offline for outlets powering 2 PSUs should affect load
             | key-1 | key-2 | 1-ini  | 2-ini  | 1-new   | 2-new   | 1   | 2   | 1801 | 1802 | 180 |
             | 1     | 2     | online | online | online  | online  | 2.0 | 2.0 | 2.0  | 2.0  | 4.0 |
             | 1     | 2     | online | online | online  | offline | 4.0 | 0.0 | 4.0  | 0.0  | 4.0 |
             | 1     | 2     | online | online | offline | online  | 0.0 | 4.0 | 0.0  | 4.0  | 4.0 |
             | 1     | 2     | online | online | offline | offline | 0.0 | 0.0 | 0.0  | 0.0  | 0.0 |
+
+        Examples: Switching states from online to offline for 2 PSUs should affect load
+            | key-1 | key-2 | 1-ini  | 2-ini  | 1-new   | 2-new   | 1   | 2   | 1801 | 1802 | 180 |
+            | 1801  | 1802  | online | online | online  | online  | 2.0 | 2.0 | 2.0  | 2.0  | 4.0 |
+            | 1801  | 1802  | online | online | online  | offline | 4.0 | 0.0 | 4.0  | 0.0  | 4.0 |
+            | 1801  | 1802  | online | online | offline | online  | 0.0 | 4.0 | 0.0  | 4.0  | 4.0 |
+            | 1801  | 1802  | online | online | offline | offline | 0.0 | 0.0 | 0.0  | 0.0  | 0.0 |
+
+        Examples: Switching states from offline to online for outlets powering PSUs should affect load
+            | key-1 | key-2 | 1-ini   | 2-ini   | 1-new  | 2-new  | 1   | 2   | 1801 | 1802 | 180 |
+            | 1     | 2     | offline | offline | online | online | 2.0 | 2.0 | 2.0  | 2.0  | 4.0 |
 
 
     Scenario Outline: Single PSU server acts just like a regular asset

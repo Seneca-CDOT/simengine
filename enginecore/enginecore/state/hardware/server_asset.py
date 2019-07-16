@@ -70,8 +70,9 @@ class Server(StaticAsset):
         )
 
         asset_event.streamed_load_updates = load_upd
-        asset_event.calc_load_from_volt()
-        self._update_load(self.state.load - asset_event.load.old + asset_event.load.new)
+        if not asset_event.state.unchanged():
+            asset_event.calc_load_from_volt()
+            self._update_load(self.state.load + load_upd[e_src_psu.key].difference)
 
         return asset_event
 
@@ -117,9 +118,7 @@ class Server(StaticAsset):
 
             # TODO: set load even when state is unchanged
             asset_event.calc_load_from_volt()
-            self._update_load(
-                self.state.load - asset_event.load.old + asset_event.load.new
-            )
+            self._update_load(self.state.load + load_upd[e_src_psu.key].difference)
 
         asset_event.streamed_load_updates = load_upd
 
