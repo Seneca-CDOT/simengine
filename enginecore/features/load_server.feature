@@ -46,6 +46,7 @@ Feature: Server Load Handling
             | 1     | 2     | online | online | online  | online  | 2.0 | 2.0 | 2.0  | 2.0  | 4.0 |
             | 1     | 2     | online | online | online  | offline | 4.0 | 0.0 | 4.0  | 0.0  | 4.0 |
             | 1     | 2     | online | online | offline | online  | 0.0 | 4.0 | 0.0  | 4.0  | 4.0 |
+            | 1     | 2     | online | online | offline | offline | 0.0 | 0.0 | 0.0  | 0.0  | 0.0 |
 
 
     Scenario Outline: Single PSU server acts just like a regular asset

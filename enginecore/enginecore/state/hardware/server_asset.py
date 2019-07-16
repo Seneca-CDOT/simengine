@@ -92,10 +92,6 @@ class Server(StaticAsset):
                 self._psu_sm[key].load, self._psu_sm[key].load, target=key
             )
 
-        load_upd[e_src_psu.key].old = (
-            asset_event.calculate_load(self.state, event.in_volt.old)
-            * e_src_psu.draw_percentage
-        )
         load_upd[e_src_psu.key].new = (
             asset_event.calculate_load(self.state, event.in_volt.new)
             * e_src_psu.draw_percentage
@@ -105,9 +101,12 @@ class Server(StaticAsset):
         # and leave this server online if present
         for psu_key in self._psu_sm:
             psu_sm = self._psu_sm[psu_key]
-            if psu_sm.status and psu_sm.output_voltage > min_voltage:
+            if (
+                psu_key != e_src_psu.key
+                and psu_sm.status
+                and psu_sm.output_voltage > min_voltage
+            ):
                 asset_event.state.new = asset_event.state.old
-            if psu_key != e_src_psu.key:
                 load_upd[psu_key].new = (
                     load_upd[psu_key].new - load_upd[e_src_psu.key].difference
                 )
