@@ -224,19 +224,26 @@ class PowerIteration:
         # load events (if any) will be displatched to parents of the updated node
         next_volt_events = [event.get_next_voltage_event()]
         next_load_events = None
-        """
-        for load_event in event.get_next_load_event():
-            new_load_branches.append(load_event, self)
-            load_event_pair.append((load_event.target_key, load_event))
 
-        self._load_branches.extend(new_load_branches)
-
-        return zip(child_keys, next_volt_events), load_event_pair
-        """
-        if parent_keys and event.get_next_load_event():
+        if (
+            parent_keys
+            and event.get_next_load_event()
+            and not event.streamed_load_updates
+        ):
             new_branches = [
                 LoadBranch(event.get_next_load_event(), self) for _ in parent_keys
             ]
+            self._load_branches.extend(new_branches)
+            next_load_events = [b.src_event for b in new_branches]
+        elif event.streamed_load_updates:
+            new_branches, parent_keys = [], []
+            for pkey in event.streamed_load_updates:
+                load_e = event.streamed_load_event(pkey)
+                if load_e:
+                    parent_keys.append(pkey)
+                    new_branches.append(
+                        LoadBranch(event.streamed_load_event(pkey), self)
+                    )
             self._load_branches.extend(new_branches)
             next_load_events = [b.src_event for b in new_branches]
 

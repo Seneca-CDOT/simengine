@@ -43,20 +43,63 @@ class Server(StaticAsset):
 
         self.state.power_up()
 
+    @handler("InputVoltageUpEvent")
+    def on_input_voltage_up(self, event, *args, **kwargs):
+        asset_event = event.get_next_power_event(self)
+        min_voltage = self.state.min_voltage_prop()
+
+        assert event.source_key in self._psu_sm
+        e_src_psu = self._psu_sm[event.source_key]
+
+        # keep track of load udpates for multi-psu servers
+        load_upd = {}
+
+        # initialize load for PSUs (as unchaned)
+        for key in self._psu_sm:
+            load_upd[key] = LoadEventDataPair(
+                self._psu_sm[key].load, self._psu_sm[key].load, target=key
+            )
+
+        load_upd[e_src_psu.key].old = (
+            asset_event.calculate_load(self.state, event.in_volt.old)
+            * e_src_psu.draw_percentage
+        )
+        load_upd[e_src_psu.key].new = (
+            asset_event.calculate_load(self.state, event.in_volt.new)
+            * e_src_psu.draw_percentage
+        )
+
+        asset_event.streamed_load_updates = load_upd
+        asset_event.calc_load_from_volt()
+        self._update_load(self.state.load - asset_event.load.old + asset_event.load.new)
+
+        return asset_event
+
     @handler("InputVoltageDownEvent")
     def on_input_voltage_down(self, event, *args, **kwargs):
         asset_event = event.get_next_power_event(self)
         min_voltage = self.state.min_voltage_prop()
 
-        # keep track of load udpates for multi-psu servers
-        stream_load_upd = {}
         assert event.source_key in self._psu_sm
+        e_src_psu = self._psu_sm[event.source_key]
+
+        # keep track of load udpates for multi-psu servers
+        load_upd = {}
 
         # initialize load for PSUs (as unchaned)
         for key in self._psu_sm:
-            stream_load_upd[key] = LoadEventDataPair(
+            load_upd[key] = LoadEventDataPair(
                 self._psu_sm[key].load, self._psu_sm[key].load, target=key
             )
+
+        load_upd[e_src_psu.key].old = (
+            asset_event.calculate_load(self.state, event.in_volt.old)
+            * e_src_psu.draw_percentage
+        )
+        load_upd[e_src_psu.key].new = (
+            asset_event.calculate_load(self.state, event.in_volt.new)
+            * e_src_psu.draw_percentage
+        )
 
         # check alternative power sources
         # and leave this server online if present
@@ -64,6 +107,10 @@ class Server(StaticAsset):
             psu_sm = self._psu_sm[psu_key]
             if psu_sm.status and psu_sm.output_voltage > min_voltage:
                 asset_event.state.new = asset_event.state.old
+            if psu_key != e_src_psu.key:
+                load_upd[psu_key].new = (
+                    load_upd[psu_key].new - load_upd[e_src_psu.key].difference
+                )
 
         # state needs to change
         if not asset_event.state.unchanged():
@@ -75,17 +122,9 @@ class Server(StaticAsset):
                 self.state.load - asset_event.load.old + asset_event.load.new
             )
 
+        asset_event.streamed_load_updates = load_upd
+
         return asset_event
-
-    # @handler("InputVoltageUpEvent")
-    # def on_input_voltage_up(self, event, *args, **kwargs):
-    #     asset_event = event.get_next_power_event(self)
-
-    #     asset_event.calc_load_from_volt_stream(
-    #         {psu_key: "hello engine" for psu_key in self._psu_sm}
-    #     )
-
-    #     return asset_event
 
 
 @register_asset

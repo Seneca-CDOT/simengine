@@ -114,6 +114,7 @@ class AssetPowerEvent(PowerEvent):
         self._asset = kwargs["asset"]
         self._out_volt = EventDataPair(kwargs["old_out_volt"], kwargs["new_out_volt"])
         self._load = EventDataPair()
+        self._streamed_load_upd = None
 
         if "new_state" in kwargs and "old_state" in kwargs:
             self._state = EventDataPair(kwargs["old_state"], kwargs["new_state"])
@@ -202,6 +203,30 @@ class AssetPowerEvent(PowerEvent):
         return load_event(
             old_load=self.load.old,
             new_load=self.load.new,
+            source_asset=self._asset,
+            power_iter=self.power_iter,
+            branch=self._branch,
+        )
+
+    @property
+    def streamed_load_updates(self):
+        return self._streamed_load_upd
+
+    @streamed_load_updates.setter
+    def streamed_load_updates(self, update):
+        self._streamed_load_upd = update
+
+    def streamed_load_event(self, pkey):
+
+        s_load = self._streamed_load_upd[pkey]
+        if s_load.unchanged():
+            return None
+
+        load_event = ChildLoadUpEvent if s_load.difference > 0 else ChildLoadDownEvent
+
+        return load_event(
+            old_load=s_load.old,
+            new_load=s_load.new,
             source_asset=self._asset,
             power_iter=self.power_iter,
             branch=self._branch,
