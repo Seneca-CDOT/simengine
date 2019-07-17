@@ -23,7 +23,7 @@ import enginecore.state.hardware.internal_state as in_state
 from enginecore.state.agent import IPMIAgent, StorCLIEmulator
 from enginecore.state.sensor.repository import SensorRepository
 from enginecore.state.state_initializer import get_temp_workplace_dir
-from enginecore.state.power_events import LoadEventDataPair
+from enginecore.state.power_events import EventDataPair
 
 
 @register_asset
@@ -66,7 +66,7 @@ class Server(StaticAsset):
         for key in self._psu_sm:
             psu_sm = self._psu_sm[key]
 
-            load_upd[key] = LoadEventDataPair(psu_sm.load, psu_sm.load, target=key)
+            load_upd[key] = EventDataPair(psu_sm.load, psu_sm.load)
             # if alternative power source is off, grab extra load from it
             if psu_sm.key != event.source_key and not psu_sm.status:
                 extra_draw += psu_sm.draw_percentage
@@ -108,8 +108,8 @@ class Server(StaticAsset):
 
         # initialize load for PSUs (as unchaned)
         for key in self._psu_sm:
-            load_upd[key] = LoadEventDataPair(
-                self._psu_sm[key].load, self._psu_sm[key].load, target=key
+            load_upd[key] = EventDataPair(
+                self._psu_sm[key].load, self._psu_sm[key].load
             )
 
         load_upd[e_src_psu.key].new = (

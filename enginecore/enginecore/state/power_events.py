@@ -1,35 +1,11 @@
+"""Engine events are passed back and forth between the engine & hardware assets
+Engine typically dispatches events associated with the parents/children state changes
+to the target assets;
+Whereas assets return events that had happened to them (e.g. if asset load was updated
+due to voltage change etc.)
+"""
 import functools
-from circuits import Component, Event, Worker, Debugger, handler
-
-
-class PowerEvent(Event):
-    """Power event within an engine that is associated with 
-    a power iteration (see PowerIteration)
-    and power branch (Either VoltageBranch or LoadBranch)
-    """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._power_iter = kwargs["power_iter"] if "power_iter" in kwargs else None
-        self._branch = kwargs["branch"] if "branch" in kwargs else None
-
-    @property
-    def power_iter(self):
-        """Power iteration power event belongs to"""
-        return self._power_iter
-
-    @power_iter.setter
-    def power_iter(self, value):
-        self._power_iter = value
-
-    @property
-    def branch(self):
-        """Power branch (graph path of power flow)"""
-        return self._branch
-
-    @branch.setter
-    def branch(self, value):
-        self._branch = value
+from circuits import Event
 
 
 class EventDataPair:
@@ -82,20 +58,34 @@ class EventDataPair:
         return self.old == self.new
 
 
-class LoadEventDataPair(EventDataPair):
+class PowerEvent(Event):
+    """Power event within an engine that is associated with 
+    a power iteration (see PowerIteration)
+    and power branch (Either VoltageBranch or LoadBranch)
+    """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if "target" not in kwargs or not kwargs["target"]:
-            raise ValueError("Provided target value is invalid")
-        self._target = kwargs["target"]
+        self._power_iter = kwargs["power_iter"] if "power_iter" in kwargs else None
+        self._branch = kwargs["branch"] if "branch" in kwargs else None
 
     @property
-    def target(self):
-        return self._target
+    def power_iter(self):
+        """Power iteration power event belongs to"""
+        return self._power_iter
 
-    @target.setter
-    def target(self, value):
-        self._target = value
+    @power_iter.setter
+    def power_iter(self, value):
+        self._power_iter = value
+
+    @property
+    def branch(self):
+        """Power branch (graph path of power flow)"""
+        return self._branch
+
+    @branch.setter
+    def branch(self, value):
+        self._branch = value
 
 
 class AssetPowerEvent(PowerEvent):
@@ -210,6 +200,10 @@ class AssetPowerEvent(PowerEvent):
 
     @property
     def streamed_load_updates(self):
+        """Streamed load updates have key assigned to them which
+        indicates load-stream direction (e.g. used for servers which can have
+        multiple power sources (PSUs))
+        """
         return self._streamed_load_upd
 
     @streamed_load_updates.setter
@@ -217,7 +211,8 @@ class AssetPowerEvent(PowerEvent):
         self._streamed_load_upd = update
 
     def streamed_load_event(self, pkey):
-
+        """Get load event from stream load information
+        stored in streamed_load_updates"""
         s_load = self._streamed_load_upd[pkey]
         if s_load.unchanged():
             return None
@@ -260,6 +255,7 @@ class InputVoltageEvent(PowerEvent):
 
     @property
     def source_key(self):
+        """Source key of the asset causing input voltage event"""
         return self._source_asset.key if self._source_asset else 0
 
     def get_next_power_event(self, target_asset=None):
