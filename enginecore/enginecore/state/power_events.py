@@ -58,6 +58,47 @@ class EventDataPair:
         return self.old == self.new
 
 
+class SignalEvent(Event):
+    """Asset was signaled to update its power state through network interface"""
+
+    success = True
+
+
+class SignalDownEvent(SignalEvent):
+    """Asset was signaled to shut down through network"""
+
+
+class SignalUpEvent(SignalEvent):
+    """Asset was signaled to power up through network"""
+
+
+class SignalRebootEvent(SignalEvent):
+    """Asset was signaled to reboot through network"""
+
+
+class EventFactory:
+    """Map oid description to engine signal events"""
+
+    STATE_SPECS = {
+        "OutletState": {
+            "switchOff": SignalDownEvent(),
+            "switchOn": SignalUpEvent(),
+            "immediateReboot": SignalRebootEvent(),
+            "delayedOff": SignalDownEvent(delayed=True),
+            "delayedOn": SignalUpEvent(delayed=True),
+        },
+        "PowerOff": {
+            "switchOff": SignalDownEvent(),
+            "switchOffGraceful": SignalDownEvent(graceful=True),
+        },
+    }
+
+    @classmethod
+    def get_signal_event_from_spec(cls, spec_name):
+        """Map OID & their values to events"""
+        return EventFactory.STATE_SPECS[spec_name]
+
+
 class PowerEvent(Event):
     """Power event within an engine that is associated with 
     a power iteration (see PowerIteration)

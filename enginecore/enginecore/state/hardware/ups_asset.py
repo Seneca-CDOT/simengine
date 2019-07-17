@@ -270,7 +270,7 @@ class UPS(Asset, SNMPSim):
         self._battery_charge_t.daemon = True
         self._battery_charge_t.start()
 
-    @handler("SignalDown")
+    @handler("SignalDownEvent")
     def on_signal_down_received(self, event, *args, **kwargs):
         """UPS can be powered down by snmp command"""
         self.state.update_ups_output_status(in_state.UPSStateManager.OutputStatus.off)

@@ -19,7 +19,7 @@ from enginecore.state.net.ws_requests import ServerToClientRequests
 from enginecore.state.state_initializer import initialize, clear_temp
 from enginecore.state.engine_data_source import HardwareGraphDataSource
 from enginecore.state.power_iteration import PowerIteration
-from enginecore.state.power_events import AssetPowerEvent
+from enginecore.state.power_events import AssetPowerEvent, EventFactory
 
 
 class AllVoltageBranchesDone(Event):
@@ -122,10 +122,6 @@ class Engine(Component):
             assert self._current_power_iter is None
 
             self._current_power_iter = next_power_iter
-            print("--------------------")
-            print("New power iteration")
-            print("--------------------")
-
             self._chain_power_events(*self._current_power_iter.launch())
 
     def _notify_trackers(self, event):
@@ -236,7 +232,38 @@ class Engine(Component):
         self._power_iter_queue.put(PowerIteration(volt_event))
 
     def handle_oid_update(self, asset_key, oid, value):
-        pass
+        """React to OID update in redis store 
+        Args:
+            asset_key(int): key of the asset oid belongs to
+            oid(str): updated oid
+            value(str): OID value in snmpsim format "datatype|value"
+        """
+        if asset_key not in self._assets:
+            logging.warning("Asset [%s] does not exist!", asset_key)
+            return
+
+        # snmpsimd format has crazy number of whitespaces in object id
+        oid = oid.replace(" ", "")
+        # value is stored as "datatype | oid-value"
+        _, oid_value = value.split("|")
+        affected_keys, oid_details = self._data_source.get_asset_oid_info(
+            asset_key, oid
+        )
+
+        if not oid_details:
+            logging.warning(
+                "OID:[%s] for asset:[%s] cannot be processed by engine!", oid, asset_key
+            )
+            return
+
+        oid_value_name = oid_details["specs"][oid_value]
+        oid_name = oid_details["name"]
+
+        for key in affected_keys:
+            self.fire(
+                EventFactory.get_signal_event_from_spec(oid_name)[oid_value_name],
+                self._assets[key],
+            )
 
     def stop(self, code=None):
         self._power_iter_queue.put(None)
@@ -262,6 +289,14 @@ class Engine(Component):
         self._chain_power_events(
             *self._current_power_iter.process_power_event(asset_event)
         )
+
+    # def SignalDown_success(self, evt, event_result):
+    #     """When asset is powered down """
+    #     self._power_success(event_result)
+
+    # def SignalUp_success(self, evt, event_result):
+    #     """When asset is powered up """
+    #     self._power_success(event_result)
 
     def ChildLoadUpEvent_success(self, child_load_event, asset_load_event):
         """Callback called when asset finishes processing load incease event that had
