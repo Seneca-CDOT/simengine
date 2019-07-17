@@ -303,16 +303,11 @@ class UPS(Asset, SNMPSim):
         """
 
         load = self.state.load
+        old_load, new_load = (load, 0) if should_transfer else (0, load)
 
         # Meaning ups state hasn't changed
         # (it was already on battery or it was already using input power)
-        if should_transfer == self.state.on_battery:
-            return None
-
-        old_load, new_load = (load, 0) if should_transfer else (0, load)
-
-        # unchanged state
-        if old_load == new_load:
+        if should_transfer == self.state.on_battery or old_load == new_load:
             return None
 
         return old_load, new_load
@@ -346,9 +341,9 @@ class UPS(Asset, SNMPSim):
         # process voltage, see if tranfer to battery is needed
         should_transfer, reason = self.state.process_voltage(event.in_volt.new)
 
-        load_update = self._get_ups_load_update(should_transfer)
-        if load_update:
-            asset_event.load.old, asset_event.load.new = load_update
+        upstream_load_change = self._get_ups_load_update(should_transfer)
+        if upstream_load_change:
+            asset_event.load.old, asset_event.load.new = upstream_load_change
 
         # transfer back to input power if ups was running on battery
         if not should_transfer and self.state.on_battery:
@@ -366,7 +361,8 @@ class UPS(Asset, SNMPSim):
             self._launch_battery_drain(reason)
             asset_event.out_volt.new = 120.0
 
-        self._update_load(self.state.load + asset_event.load.difference)
+        if not math.isclose(asset_event.load.new, 0):
+            self._update_load(self.state.load + asset_event.load.difference)
 
         return asset_event
 
@@ -384,9 +380,9 @@ class UPS(Asset, SNMPSim):
         battery_level = self.state.battery_level
         should_transfer, reason = self.state.process_voltage(event.in_volt.new)
 
-        load_update = self._get_ups_load_update(should_transfer)
-        if load_update:
-            asset_event.load.old, asset_event.load.new = load_update
+        upstream_load_change = self._get_ups_load_update(should_transfer)
+        if upstream_load_change:
+            asset_event.load.old, asset_event.load.new = upstream_load_change
 
         high_line_t_reason = self.state.InputLineFailCause.highLineVoltage
 

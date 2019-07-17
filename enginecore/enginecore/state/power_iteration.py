@@ -225,17 +225,9 @@ class PowerIteration:
         next_volt_events = [event.get_next_voltage_event()]
         next_load_events = None
 
-        if (
-            parent_keys
-            and event.get_next_load_event()
-            and not event.streamed_load_updates
-        ):
-            new_branches = [
-                LoadBranch(event.get_next_load_event(), self) for _ in parent_keys
-            ]
-            self._load_branches.extend(new_branches)
-            next_load_events = [b.src_event for b in new_branches]
-        elif event.streamed_load_updates:
+        # when load needs to be forked in multiple direction,
+        # asset needs to set streamed_load_updates on the asset_event
+        if event.streamed_load_updates:
             new_branches, parent_keys = [], []
             for pkey in event.streamed_load_updates:
                 load_e = event.streamed_load_event(pkey)
@@ -244,6 +236,13 @@ class PowerIteration:
                     new_branches.append(
                         LoadBranch(event.streamed_load_event(pkey), self)
                     )
+            self._load_branches.extend(new_branches)
+            next_load_events = [b.src_event for b in new_branches]
+        # Process load for single parent
+        elif parent_keys and event.get_next_load_event():
+            new_branches = [
+                LoadBranch(event.get_next_load_event(), self) for _ in parent_keys
+            ]
             self._load_branches.extend(new_branches)
             next_load_events = [b.src_event for b in new_branches]
 
