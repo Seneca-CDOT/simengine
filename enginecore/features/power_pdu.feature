@@ -79,5 +79,7 @@ Feature: Power Chaining for PDU (with Multiple Children)
 
 
         Examples: Downstream power-off chaining
-            | out-num | oid-ini-value | oid-new-value | 73     | 74     | 3      | 4      |
-            | 1       | 1             | 2             | online | online | online | online |
+            | out-num | oid-ini-value | oid-new-value | 73      | 74     | 3       | 4      |
+            | 1       | 1             | 2             | online  | online | online  | online |
+            | 3       | 1             | 2             | offline | online | offline | online |
+
