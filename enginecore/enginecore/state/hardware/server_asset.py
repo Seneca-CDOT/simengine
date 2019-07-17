@@ -54,29 +54,36 @@ class Server(StaticAsset):
         # keep track of load udpates for multi-psu servers
         load_upd = {}
         extra_draw = 0.0
-        draw_redistrib = 0.0
+
+        drawing_extra = (
+            lambda x: asset_event.calculate_load(x, x.input_voltage) < x.load
+        )
+
+        new_asset_load = asset_event.calculate_load(self.state, event.in_volt.new)
+        old_asset_load = asset_event.calculate_load(self.state, event.in_volt.old)
 
         # initialize load for PSUs (as unchaned)
         for key in self._psu_sm:
             psu_sm = self._psu_sm[key]
 
             load_upd[key] = LoadEventDataPair(psu_sm.load, psu_sm.load, target=key)
+            # if alternative power source is off, grab extra load from it
             if psu_sm.key != event.source_key and not psu_sm.status:
                 extra_draw += psu_sm.draw_percentage
-            elif psu_sm.key != event.source_key:
-                draw_redistrib += psu_sm.draw_percentage
-                load_upd[key].new = (
-                    load_upd[key].old
-                    - asset_event.calculate_load(self.state, event.in_volt.new)
-                    * e_src_psu.draw_percentage
-                )
 
-        load_upd[e_src_psu.key].old = asset_event.calculate_load(
-            self.state, event.in_volt.old
-        ) * (e_src_psu.draw_percentage + extra_draw)
-        load_upd[e_src_psu.key].new = asset_event.calculate_load(
-            self.state, event.in_volt.new
-        ) * (e_src_psu.draw_percentage + extra_draw)
+            # if alternative power source is currently having extra load
+            # that the volt event source asset is supposed to be drawing
+            elif psu_sm.key != event.source_key and drawing_extra(psu_sm):
+                load_upd[key].new = (
+                    load_upd[key].old - new_asset_load * e_src_psu.draw_percentage
+                )
+                # asset load should not change since we are just redistributing
+                # same load
+                asset_event.state.new = asset_event.state.old
+
+        src_psu_draw = e_src_psu.draw_percentage + extra_draw
+        load_upd[e_src_psu.key].old = old_asset_load * src_psu_draw
+        load_upd[e_src_psu.key].new = new_asset_load * src_psu_draw
 
         if asset_event.out_volt.new > min_voltage and not asset_event.state.old:
             asset_event.state.new = self.state.power_up()
