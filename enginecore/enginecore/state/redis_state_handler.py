@@ -52,8 +52,7 @@ class RedisStateHandler(Component):
     @handler(RedisChannels.model_update_channel)
     def on_model_reload_reqeust(self, _):
         """Detect topology changes to the system architecture"""
-        pass
-        # self._reload_model()
+        self._engine.reload_model()
 
     # -- Battery Updates --
     @handler(RedisChannels.battery_update_channel)

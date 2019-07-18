@@ -73,7 +73,7 @@ class Engine(Component):
         self._reload_model(force_snmp_init)
         logging.info("Physical Environment:\n%s", self._sys_environ)
 
-    def _reload_model(self, force_snmp_init=True):
+    def reload_model(self, force_snmp_init=True):
         """Re-create system topology (instantiate assets based on graph ref)"""
 
         RECORDER.enabled = False
