@@ -212,11 +212,11 @@ class Engine(Component):
                 self.fire(event, self._assets[parent_key])
 
     def _chain_load_events(self, load_events):
-        """Chain load events by dispatching load events against
+        """Chain load events by dispatching more load events against
         parents of the updated child asset"""
 
         # load & voltage branches are completed
-        if self._power_iter_handler.current_iteration.power_iteration_done:
+        if self._power_iter_handler.current_iteration.iteration_done:
             self._mark_load_branches_done()
 
         if not load_events:

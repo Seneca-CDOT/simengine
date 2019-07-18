@@ -2,8 +2,8 @@
 import logging
 
 
-class PowerBranch:
-    """A graph path representing power-event flow"""
+class EngineEventBranch:
+    """A graph path representing event flow"""
 
     def __init__(self, src_event, power_iter):
         self._src_event = src_event
@@ -19,7 +19,7 @@ class PowerBranch:
         return self.src_event
 
 
-class VoltageBranch(PowerBranch):
+class VoltageBranch(EngineEventBranch):
     """Voltage Branch represents a graph path of chained voltage
     events propagated downstream:
     [:AssetVoltageEvent]┐           [:AssetVoltageEvent]┐
@@ -31,7 +31,7 @@ class VoltageBranch(PowerBranch):
     """
 
 
-class LoadBranch(PowerBranch):
+class LoadBranch(EngineEventBranch):
     """Voltage Branch represents a graph path of chained load events
     propagated upstream:
                       [:AssetLoadEvent]┐           [:AssetLoadEvent]┐
@@ -65,12 +65,12 @@ class BranchTracker:
         """True if all the branches are completed"""
         return self.num_branches_active == 0
 
-    def complete_branch(self, branch: PowerBranch):
+    def complete_branch(self, branch: EngineEventBranch):
         """Remove branch from a list of completed branches"""
         self._branches_active.remove(branch)
         self._branches_done.append(branch)
 
-    def add_branch(self, branch: PowerBranch):
+    def add_branch(self, branch: EngineEventBranch):
         """Add branch to the collection of tracked branches"""
         self._branches_active.append(branch)
 
@@ -79,7 +79,47 @@ class BranchTracker:
         self._branches_active.extend(branches)
 
 
-class PowerIteration:
+class EngineIteration:
+    """Iteration keeps track of event flow caused by one source event"""
+
+    def __init__(self, src_event):
+        """Initialize engine iteration 
+        Args:
+            src_event(Event): cursed event that caused a domino effect and
+                              started this iteration
+        """
+        self._src_event = src_event
+        self._src_event.power_iter = self
+
+    @property
+    def iteration_done(self):
+        """Indicates if iteration is completed or not (still in progress)"""
+        raise NotImplementedError()
+
+    def launch(self):
+        """Start iteration processing"""
+        raise NotImplementedError()
+
+
+class ThermalIteration(EngineIteration):
+    """Thermal Iteration is launched when room temperature either drops or
+    rises;
+    """
+
+    data_source = None
+
+    def __init__(self, src_event):
+        super().__init__(src_event)
+        self._thermal_branches = BranchTracker()
+
+    def iteration_done(self):
+        return self._thermal_branches.completed
+
+    def launch(self):
+        return self._src_event.get_next_ambient_event()
+
+
+class PowerIteration(EngineIteration):
     """Power Iteration is initialized when a new incoming voltage event is
     detected (either due to some asset being powered down or wallpower 
     blackout/restoration).
@@ -92,15 +132,13 @@ class PowerIteration:
     data_source = None
 
     def __init__(self, src_event):
+        super().__init__(src_event)
 
         self._volt_branches = BranchTracker()
         self._load_branches = BranchTracker()
 
         self._last_processed_volt_event = None
         self._last_processed_load_event = None
-
-        self._src_event = src_event
-        self._src_event.power_iter = self
 
     def __str__(self):
         return (
@@ -128,7 +166,7 @@ class PowerIteration:
         return self._load_branches.completed
 
     @property
-    def power_iteration_done(self):
+    def iteration_done(self):
         """Power iteration is completed when both downstream and upstream
         power event propagation is exhausted"""
         return self.all_load_branches_done and self.all_voltage_branches_done
@@ -191,7 +229,8 @@ class PowerIteration:
         """Wall-power voltage was updated, retrieve chain events associated
         with mains-powered outlets
         Args:
-            event(AssetPowerEvent):
+            event(PowerEvent): contains details on what exactly happened with the mains
+                                (voltage changes)
         """
         wp_outlets = self.data_source.get_mains_powered_assets()
 
@@ -205,10 +244,10 @@ class PowerIteration:
     def _process_hardware_asset_event(self, event):
         """One of the hardware assets went online/online
         Args:
-            event(AssetPowerEvent): contains asset event results caused 
-                                    by input power event (e.g. output voltage
-                                    change due to input voltage drop etc.) or
-                                    asset getting powered down by the user
+            event(PowerEvent): contains asset event results caused 
+                                by input power event (e.g. output voltage
+                                change due to input voltage drop etc.) or
+                                asset getting powered down by the user
         """
 
         # find neighbouring nodes (parents & children)
