@@ -19,7 +19,7 @@ from enginecore.state.net.ws_requests import ServerToClientRequests
 from enginecore.state.state_initializer import initialize, clear_temp
 from enginecore.state.engine_data_source import HardwareGraphDataSource
 from enginecore.state.power_iteration import PowerIteration
-from enginecore.state.power_events import AssetPowerEvent, EventFactory
+from enginecore.state.power_events import AssetPowerEvent, SNMPEvent
 
 
 class AllVoltageBranchesDone(Event):
@@ -242,11 +242,7 @@ class Engine(Component):
             logging.warning("Asset [%s] does not exist!", asset_key)
             return
 
-        # snmpsimd format has crazy number of whitespaces in object id
-        oid = oid.replace(" ", "")
-        # value is stored as "datatype | oid-value"
-        _, oid_value = value.split("|")
-        affected_keys, oid_details = self._data_source.get_asset_oid_info(
+        affected_asset_key, oid_details = self._data_source.get_asset_oid_info(
             asset_key, oid
         )
 
@@ -256,14 +252,14 @@ class Engine(Component):
             )
             return
 
-        oid_value_name = oid_details["specs"][oid_value]
-        oid_name = oid_details["name"]
+        snmp_event = SNMPEvent(
+            asset=self._assets[affected_asset_key],
+            oid=oid,
+            oid_value_name=oid_details["name"],
+            oid_name=oid_details["specs"][value],
+        )
 
-        for key in affected_keys:
-            self.fire(
-                EventFactory.get_signal_event_from_spec(oid_name)[oid_value_name],
-                self._assets[key],
-            )
+        # self._power_iter_queue.put(PowerIteration(snmp_event))
 
     def stop(self, code=None):
         self._power_iter_queue.put(None)

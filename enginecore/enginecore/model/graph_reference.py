@@ -113,14 +113,16 @@ class GraphReference:
 
         keys_oid_powers = []
         oid_specs = {}
-        for record in results:
-            keys_oid_powers.append(record["asset"].get("key"))
-            oid_specs = {
-                "name": record["oid"]["OIDName"],
-                "specs": dict(record["oid_specs"]),
-            }
 
-        return keys_oid_powers, oid_specs
+        record = results.single()
+
+        asset_key = record["asset"].get("key")
+        oid_specs = {
+            "name": record["oid"]["OIDName"],
+            "specs": dict(record["oid_specs"]),
+        }
+
+        return asset_key, oid_specs
 
     @classmethod
     def get_asset_oid_by_name(cls, session, asset_key, oid_name):

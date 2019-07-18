@@ -76,29 +76,6 @@ class SignalRebootEvent(SignalEvent):
     """Asset was signaled to reboot through network"""
 
 
-class EventFactory:
-    """Map oid description to engine signal events"""
-
-    STATE_SPECS = {
-        "OutletState": {
-            "switchOff": SignalDownEvent(),
-            "switchOn": SignalUpEvent(),
-            "immediateReboot": SignalRebootEvent(),
-            "delayedOff": SignalDownEvent(delayed=True),
-            "delayedOn": SignalUpEvent(delayed=True),
-        },
-        "PowerOff": {
-            "switchOff": SignalDownEvent(),
-            "switchOffGraceful": SignalDownEvent(graceful=True),
-        },
-    }
-
-    @classmethod
-    def get_signal_event_from_spec(cls, spec_name):
-        """Map OID & their values to events"""
-        return EventFactory.STATE_SPECS[spec_name]
-
-
 class PowerEvent(Event):
     """Power event within an engine that is associated with 
     a power iteration (see PowerIteration)
@@ -127,6 +104,53 @@ class PowerEvent(Event):
     @branch.setter
     def branch(self, value):
         self._branch = value
+
+
+class SNMPEvent(PowerEvent):
+    """"""
+
+    STATE_SPECS = {
+        "OutletState": {
+            "switchOff": SignalDownEvent,
+            "switchOn": SignalUpEvent,
+            "immediateReboot": SignalRebootEvent,
+            "delayedOff": functools.partial(SignalDownEvent, delayed=True),
+            "delayedOn": functools.partial(SignalUpEvent, delayed=True),
+        },
+        "PowerOff": {
+            "switchOff": SignalDownEvent,
+            "switchOffGraceful": functools.partial(SignalDownEvent, graceful=True),
+        },
+    }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        required_args = ["asset", "oid", "oid_value_name", "oid_name"]
+
+        if not all(r_arg in kwargs for r_arg in required_args):
+            raise KeyError("Needs arguments: " + ",".join(required_args))
+
+        self._asset = kwargs["asset"]
+        self._oid = kwargs["oid"]
+        self._oid_value_name = kwargs["oid_value_name"]
+        self._oid_name = kwargs["oid_name"]
+
+    @property
+    def oid_value_name(self):
+        """Abstract name of oid value given internally by the engine 
+        (to ensure cross-vendor support)"""
+        return self._oid_value_name
+
+    @property
+    def oid_name(self):
+        """Abstract name of oid given internally by the engine"""
+        return self._oid_name
+
+    def get_next_signal_event(self):
+        """Map OID & their values to events"""
+        return SNMPEvent.STATE_SPECS[self.oid_name][self.oid_value_name](
+            power_iter=self.power_iter, branch=self.branch
+        )
 
 
 class AssetPowerEvent(PowerEvent):

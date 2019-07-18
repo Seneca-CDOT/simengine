@@ -41,7 +41,13 @@ class RedisStateHandler(Component):
         """React to OID getting updated through SNMP interface"""
         value = (self._redis_store.get(data)).decode()
         asset_key, oid = data.split("-")
-        self._engine.handle_oid_update(int(asset_key), oid, value)
+
+        # snmpsimd format has crazy number of whitespaces in object id
+        oid = oid.replace(" ", "")
+        # value is stored as "datatype | oid-value"
+        _, oid_value = value.split("|")
+
+        self._engine.handle_oid_update(int(asset_key), oid, oid_value)
 
     @handler(RedisChannels.model_update_channel)
     def on_model_reload_reqeust(self, _):
