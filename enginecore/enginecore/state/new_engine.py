@@ -37,6 +37,70 @@ class AllLoadBranchesDone(Event):
     success = True
 
 
+class EventConsumer:
+    def __init__(self):
+
+        # queue of engine events waiting to be processed
+        self._event_queue = queue.Queue()
+        # work-in-progress
+        self._current_iteration = None
+        self._worker_thread = None
+        self._on_iteration_launched = None
+
+    @property
+    def current_iteration(self):
+        """Iteration that is in progress/not yet completed
+        (e.g. power downstream update still going on)"""
+        return self._current_iteration
+
+    def start(self, on_iteration_launched=None):
+        """Launches consumer thread
+        Args:
+            on_iteration_launched(callable): called when event queue returns
+                                             new iteration
+        """
+        self._on_iteration_launched = on_iteration_launched
+
+        # initialize processing thread
+        self._worker_thread = threading.Thread(target=self._worker)
+        self._worker_thread.daemon = True
+        self._worker_thread.start()
+
+    def stop(self):
+        """Join consumer thread (stop processing power queued power iterations)"""
+        self.queue_iteration(None)
+        self._worker_thread.join()
+
+    def queue_iteration(self, event):
+        """Queue an iteration for later processing;
+        it will get dequeued once current_iteration is completed
+        """
+        self._event_queue.put(event)
+
+    def mark_iteration_done(self):
+        """Complete an iteration"""
+        self._current_iteration = None
+        self._event_queue.task_done()
+
+    def _worker(self):
+        """Consumer processing event queue"""
+
+        while True:
+            # new processing iteration/loop was initialized
+            next_iter = self._event_queue.get()
+
+            if not next_iter:
+                return
+
+            assert self._current_iteration is None
+
+            self._current_iteration = next_iter
+            launch_results = self._current_iteration.launch()
+
+            if self._on_iteration_launched:
+                self._on_iteration_launched(*launch_results)
+
+
 class Engine(Component):
     """Top-level component that initializes assets & handles state changes
     (thermal, power, oid) by dispatching events against hardware assets.
@@ -61,16 +125,15 @@ class Engine(Component):
         self._completion_trackers = []
 
         self._sys_environ = ServerRoom().register(self)
-        self._power_iter_queue = queue.Queue()
-        self._current_power_iter = None
 
-        self._worker_thread = None
+        self._power_iter_handler = EventConsumer()
+        self._thermal_iter_handler = EventConsumer()
+
         self._data_source = data_source
-
         PowerIteration.data_source = data_source
 
         # Register assets and reset power state
-        self._reload_model(force_snmp_init)
+        self.reload_model(force_snmp_init)
         logging.info("Physical Environment:\n%s", self._sys_environ)
 
     def reload_model(self, force_snmp_init=True):
@@ -96,33 +159,13 @@ class Engine(Component):
         ISystemEnvironment.set_ambient(21)
         RECORDER.enabled = True
 
-        # initialize power processing thread
-        self._worker_thread = threading.Thread(
-            target=self.power_worker, name="power_worker"
-        )
-
-        self._worker_thread.daemon = True
-        self._worker_thread.start()
+        self._power_iter_handler.start(on_iteration_launched=self._chain_power_events)
+        self._thermal_iter_handler.start()
 
     @property
     def assets(self):
         """Hardware assets that are present in the system topology"""
         return self._assets
-
-    def power_worker(self):
-        """Consumer processing power event queue"""
-
-        while True:
-            # new power-loop was initialized
-            next_power_iter = self._power_iter_queue.get()
-
-            if not next_power_iter:
-                return
-
-            assert self._current_power_iter is None
-
-            self._current_power_iter = next_power_iter
-            self._chain_power_events(*self._current_power_iter.launch())
 
     def _notify_trackers(self, event):
         """Dispatch power completion events to clients"""
@@ -145,9 +188,8 @@ class Engine(Component):
         worker thread is given permission to accept new power
         events)
         """
-        self._current_power_iter = None
         self._notify_trackers(AllLoadBranchesDone)
-        self._power_iter_queue.task_done()
+        self._power_iter_handler.mark_iteration_done()
 
     def _chain_power_events(self, volt_events, load_events=None):
         """Chain power events by dispatching input power events
@@ -157,9 +199,9 @@ class Engine(Component):
         """
 
         # reached the end of a stream of voltage updates
-        if self._current_power_iter.all_voltage_branches_done:
+        if self._power_iter_handler.current_iteration.all_voltage_branches_done:
             self._notify_trackers(AllVoltageBranchesDone)
-            if self._current_power_iter.all_load_branches_done:
+            if self._power_iter_handler.current_iteration.all_load_branches_done:
                 self._mark_load_branches_done()
 
         for child_key, event in volt_events:
@@ -174,7 +216,7 @@ class Engine(Component):
         parents of the updated child asset"""
 
         # load & voltage branches are completed
-        if self._current_power_iter.power_iteration_done:
+        if self._power_iter_handler.current_iteration.power_iteration_done:
             self._mark_load_branches_done()
 
         if not load_events:
@@ -206,7 +248,7 @@ class Engine(Component):
             asset=None, old_out_volt=old_voltage, new_out_volt=new_voltage
         )
 
-        self._power_iter_queue.put(PowerIteration(volt_event))
+        self._power_iter_handler.queue_iteration(PowerIteration(volt_event))
 
     def handle_state_update(self, asset_key, old_state, new_state):
         """Asset state changes to a new value,
@@ -229,7 +271,7 @@ class Engine(Component):
             old_state=old_state,
             new_state=new_state,
         )
-        self._power_iter_queue.put(PowerIteration(volt_event))
+        self._power_iter_handler.queue_iteration(PowerIteration(volt_event))
 
     def handle_oid_update(self, asset_key, oid, value):
         """React to OID update in redis store 
@@ -259,12 +301,13 @@ class Engine(Component):
             oid_name=oid_details["specs"][value],
         )
 
-        # self._power_iter_queue.put(PowerIteration(snmp_event))
+        # self._power_iter_handler.queue_iteration(PowerIteration(snmp_event))
 
     def stop(self, code=None):
-        self._power_iter_queue.put(None)
-        self._worker_thread.join()
+        self._power_iter_handler.stop()
+        self._thermal_iter_handler.stop()
         self._sys_environ.stop()
+
         HardwareGraphDataSource.cache_clear_all()
         super().stop(code)
 
@@ -275,7 +318,7 @@ class Engine(Component):
         affected by the input change
         """
         self._chain_power_events(
-            *self._current_power_iter.process_power_event(asset_event)
+            *self._power_iter_handler.current_iteration.process_power_event(asset_event)
         )
 
     def InputVoltageDownEvent_success(self, input_volt_event, asset_event):
@@ -283,7 +326,7 @@ class Engine(Component):
         affected by the input change
         """
         self._chain_power_events(
-            *self._current_power_iter.process_power_event(asset_event)
+            *self._power_iter_handler.current_iteration.process_power_event(asset_event)
         )
 
     # def SignalDown_success(self, evt, event_result):
@@ -298,12 +341,16 @@ class Engine(Component):
         """Callback called when asset finishes processing load incease event that had
         happened to its child"""
         self._chain_load_events(
-            self._current_power_iter.process_load_event(asset_load_event)
+            self._power_iter_handler.current_iteration.process_load_event(
+                asset_load_event
+            )
         )
 
     def ChildLoadDownEvent_success(self, child_load_event, asset_load_event):
         """Callback called when asset finishes processing load drop event that had
         happened to its child"""
         self._chain_load_events(
-            self._current_power_iter.process_load_event(asset_load_event)
+            self._power_iter_handler.current_iteration.process_load_event(
+                asset_load_event
+            )
         )

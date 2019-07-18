@@ -34,7 +34,6 @@ class RedisStateHandler(Component):
     def on_wallpower_state_change(self, data):
         """On blackout/power restorations"""
         # self._notify_client(ServerToClientRequests.mains_upd, {"mains": data["status"]})
-        # self.fire(PowerEventMap.map_mains_event(data["status"]), self._sys_environ)
 
     @handler(RedisChannels.oid_update_channel)
     def on_snmp_device_oid_change(self, data):
