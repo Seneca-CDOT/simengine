@@ -293,7 +293,7 @@ class UPS(Asset, SNMPSim):
         else:
             self._launch_battery_charge(power_up_on_charge=True)
 
-    @handler("AmbientDecreased", "AmbientIncreased")
+    @handler("AmbientUpEvent", "AmbientDownEvent")
     def on_ambient_updated(self, event, *args, **kwargs):
         self._state.update_temperature(7)
 

@@ -132,7 +132,12 @@ class ISystemEnvironment:
 
     @classmethod
     def set_ambient_props(cls, props):
-        """Update runtime thermal properties of the room temperature"""
+        """Update runtime thermal properties of the room temperature
+        Args:
+            props: ambient behaviour specs such as "event" (upon what event: up/down),
+                   "degrees" (how much rises/dropw), "rate" (seconds),
+                   "pause_at" (should stop at this temperature)
+        """
 
         graph_ref = GraphReference()
         with graph_ref.get_session() as session:

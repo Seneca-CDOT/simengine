@@ -76,7 +76,7 @@ class SignalRebootEvent(SignalEvent):
     """Asset was signaled to reboot through network"""
 
 
-class PowerEvent(Event):
+class EngineEvent(Event):
     """Power event within an engine that is associated with 
     a power iteration (see PowerIteration)
     and power branch (Either VoltageBranch or LoadBranch)
@@ -106,7 +106,46 @@ class PowerEvent(Event):
         self._branch = value
 
 
-class SNMPEvent(PowerEvent):
+class AmbientEvent(EngineEvent):
+    """Ambient has changed (room temerature within the server enclosure)"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        required_args = ["old_temp", "new_temp"]
+
+        if not all(r_arg in kwargs for r_arg in required_args):
+            raise KeyError("Needs arguments: " + ",".join(required_args))
+
+        self._temp = EventDataPair(kwargs["old_temp"], kwargs["new_temp"])
+
+    @property
+    def temperature(self):
+        """Retrieve temperature change"""
+        return self._temp
+
+    def get_next_thermal_event(self):
+        """Get next event to be dispatched against server hardware"""
+
+        ambient_event = (
+            AmbientUpEvent if self.temperature.difference > 0 else AmbientDownEvent
+        )
+        return ambient_event(
+            power_iter=self.power_iter,
+            branch=self._branch,
+            old_temp=self.temperature.old,
+            new_temp=self.temperature.new,
+        )
+
+
+class AmbientUpEvent(AmbientEvent):
+    """Ambient went up"""
+
+
+class AmbientDownEvent(AmbientEvent):
+    """Ambient went down"""
+
+
+class SNMPEvent(EngineEvent):
     """"""
 
     STATE_SPECS = {
@@ -153,7 +192,7 @@ class SNMPEvent(PowerEvent):
         )
 
 
-class AssetPowerEvent(PowerEvent):
+class AssetPowerEvent(EngineEvent):
     """Asset power event aggregates 2 event types:
     Voltage & Load
     """
@@ -293,7 +332,7 @@ class AssetPowerEvent(PowerEvent):
         )
 
 
-class InputVoltageEvent(PowerEvent):
+class InputVoltageEvent(EngineEvent):
     """Input Voltage drop/spike event dispatched against
     a particular hardware device
     """
@@ -355,7 +394,7 @@ class InputVoltageDownEvent(InputVoltageEvent):
     (when input voltage to the asset drops)"""
 
 
-class LoadEvent(PowerEvent):
+class LoadEvent(EngineEvent):
     """Load event is emitted whenever there is load 
     change somewhere in the system (due to voltage changes or power updates)"""
 

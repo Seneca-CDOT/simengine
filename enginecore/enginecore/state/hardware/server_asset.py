@@ -249,7 +249,7 @@ class ServerWithBMC(Server):
         sensor = self._sensor_repo.get_sensor_by_name(source)
         sensor.add_pd_thermal_impact(controller, drive, event)
 
-    @handler("AmbientDecreased", "AmbientIncreased")
+    @handler("AmbientUpEvent", "AmbientDownEvent")
     def on_ambient_updated(self, event, *args, **kwargs):
         """Update thermal sensor readings on ambient changes """
         self._sensor_repo.adjust_thermal_sensors(

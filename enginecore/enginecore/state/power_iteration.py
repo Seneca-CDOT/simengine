@@ -19,6 +19,10 @@ class EngineEventBranch:
         return self.src_event
 
 
+class ThermalBranch(EngineEventBranch):
+    pass
+
+
 class VoltageBranch(EngineEventBranch):
     """Voltage Branch represents a graph path of chained voltage
     events propagated downstream:
@@ -116,7 +120,22 @@ class ThermalIteration(EngineIteration):
         return self._thermal_branches.completed
 
     def launch(self):
-        return self._src_event.get_next_ambient_event()
+        self.process_thermal_event(self._src_event)
+
+    def process_thermal_event(self, event):
+        if not event or event.branch:
+            self._thermal_branches.complete_branch(event.branch)
+            return None
+
+        all_asset_keys = ThermalIteration.data_source.get_all_assets()
+        next_ambient_events = []
+
+        for _ in all_asset_keys:
+            next_event = self._src_event.get_next_thermal_event()
+            next_ambient_events.append(next_event)
+            self._thermal_branches.add_branch(ThermalBranch(next_event, self))
+
+        return zip(all_asset_keys, next_ambient_events)
 
 
 class PowerIteration(EngineIteration):

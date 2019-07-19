@@ -18,8 +18,8 @@ from enginecore.state.net.ws_requests import ServerToClientRequests
 
 from enginecore.state.state_initializer import initialize, clear_temp
 from enginecore.state.engine_data_source import HardwareGraphDataSource
-from enginecore.state.power_iteration import PowerIteration
-from enginecore.state.power_events import AssetPowerEvent, SNMPEvent
+from enginecore.state.power_iteration import PowerIteration, ThermalIteration
+from enginecore.state.power_events import AssetPowerEvent, SNMPEvent, AmbientEvent
 
 
 class AllVoltageBranchesDone(Event):
@@ -160,7 +160,9 @@ class Engine(Component):
         RECORDER.enabled = True
 
         self._power_iter_handler.start(on_iteration_launched=self._chain_power_events)
-        self._thermal_iter_handler.start()
+        self._thermal_iter_handler.start(
+            on_iteration_launched=self._chain_thermal_events
+        )
 
     @property
     def assets(self):
@@ -225,13 +227,19 @@ class Engine(Component):
         for asset_key, event in load_events:
             self.fire(event, self._assets[asset_key])
 
+    def _chain_thermal_events(self, thermal_events):
+        for asset_key, event in thermal_events:
+            self.fire(event, self._assets[asset_key])
+
     def handle_ambient_update(self, old_temp, new_temp):
         """Ambient changes to a new value, initiate a chain of thermal reactions
         Args:
             old_temp(float): old room temperature
             new_temp(float): new room temperature
         """
-        pass
+        self._thermal_iter_handler.queue_iteration(
+            ThermalIteration(AmbientEvent(old_temp=old_temp, new_temp=new_temp))
+        )
 
     def handle_voltage_update(self, old_voltage, new_voltage):
         """Wallpower voltage changes to a new value,
@@ -352,5 +360,21 @@ class Engine(Component):
         self._chain_load_events(
             self._power_iter_handler.current_iteration.process_load_event(
                 asset_load_event
+            )
+        )
+
+    def AmbientDownEvent_success(self, ambient_event, asset_thermal_event):
+        """When asset is powered down """
+        self._chain_thermal_events(
+            self._thermal_iter_handler.current_iteration.process_thermal_event(
+                asset_thermal_event
+            )
+        )
+
+    def AmbientUpEvent_success(self, ambient_event, asset_thermal_event):
+        """When asset is powered up """
+        self._chain_thermal_events(
+            self._thermal_iter_handler.current_iteration.process_thermal_event(
+                asset_thermal_event
             )
         )
