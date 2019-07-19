@@ -120,14 +120,16 @@ class ThermalIteration(EngineIteration):
         return self._thermal_branches.completed
 
     def launch(self):
-        self.process_thermal_event(self._src_event)
+        return self.process_thermal_event(self._src_event)
 
     def process_thermal_event(self, event):
         if not event or event.branch:
             self._thermal_branches.complete_branch(event.branch)
             return None
 
-        all_asset_keys = ThermalIteration.data_source.get_all_assets()
+        all_asset_keys = [
+            a["key"] for a in ThermalIteration.data_source.get_all_assets()
+        ]
         next_ambient_events = []
 
         for _ in all_asset_keys:
@@ -135,7 +137,7 @@ class ThermalIteration(EngineIteration):
             next_ambient_events.append(next_event)
             self._thermal_branches.add_branch(ThermalBranch(next_event, self))
 
-        return zip(all_asset_keys, next_ambient_events)
+        return (zip(all_asset_keys, next_ambient_events),)
 
 
 class PowerIteration(EngineIteration):

@@ -20,7 +20,11 @@ def step_impl(context):
 
 @given('ambient is "{temp:d}" degrees')
 def step_impl(context, temp):
+
+    old_ambient = ISystemEnvironment.get_ambient()
     ISystemEnvironment.set_ambient(temp)
+    context.engine.handle_ambient_update(old_ambient, temp)
+    context.tracker.wait_thermal_queue()
 
 
 @then('ambient is set to "{temp:d}" after "{delay:d}" seconds')

@@ -22,6 +22,11 @@ from enginecore.state.power_iteration import PowerIteration, ThermalIteration
 from enginecore.state.power_events import AssetPowerEvent, SNMPEvent, AmbientEvent
 
 
+class AllThermalBranchesDone(Event):
+    """Dispatched when all hardware assets finish
+    processing an ambient event"""
+
+
 class AllVoltageBranchesDone(Event):
     """Dispatched when power iteration finishes downstream
     voltage event propagation to all the leaf nodes that 
@@ -131,6 +136,7 @@ class Engine(Component):
 
         self._data_source = data_source
         PowerIteration.data_source = data_source
+        ThermalIteration.data_source = data_source
 
         # Register assets and reset power state
         self.reload_model(force_snmp_init)
@@ -228,6 +234,14 @@ class Engine(Component):
             self.fire(event, self._assets[asset_key])
 
     def _chain_thermal_events(self, thermal_events):
+        """Chain thermal events by dispatching them against assets"""
+
+        if self._thermal_iter_handler.current_iteration.iteration_done:
+            self._notify_trackers(AllThermalBranchesDone)
+
+        if not thermal_events:
+            return
+
         for asset_key, event in thermal_events:
             self.fire(event, self._assets[asset_key])
 

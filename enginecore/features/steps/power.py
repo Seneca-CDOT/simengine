@@ -22,17 +22,16 @@ class TestCompletionTracker(Component):
 
     volt_done_queue = None
     load_done_queue = None
+    th_done_queue = None
 
     def __init__(self, timeout):
 
         super().__init__()
         self._timeout = None if timeout < 0 else timeout
 
-        # initialize event queue
-        if not self.volt_done_queue:
-            self.volt_done_queue = Queue()
-        if not self.load_done_queue:
-            self.load_done_queue = Queue()
+        self.volt_done_queue = Queue()
+        self.load_done_queue = Queue()
+        self.th_done_queue = Queue()
 
     @handler("AllVoltageBranchesDone")
     def on_volt_branch_done(self, event, *args, **kwargs):
@@ -43,8 +42,15 @@ class TestCompletionTracker(Component):
         """Wait for engine to complete a power iteration"""
         self.load_done_queue.put(event)
 
+    @handler("AllThermalBranchesDone")
+    def on_th_branch_done(self, event, *args, **kwargs):
+        self.th_done_queue.put(event)
+
     def wait_load_queue(self):
         return self.load_done_queue.get(timeout=self._timeout)
+
+    def wait_thermal_queue(self):
+        return self.th_done_queue.get(timeout=self._timeout)
 
 
 @then("Engine is up and running")
