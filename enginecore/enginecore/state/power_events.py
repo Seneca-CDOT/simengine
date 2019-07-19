@@ -109,6 +109,8 @@ class EngineEvent(Event):
 class AmbientEvent(EngineEvent):
     """Ambient has changed (room temerature within the server enclosure)"""
 
+    success = True
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         required_args = ["old_temp", "new_temp"]
@@ -140,9 +142,13 @@ class AmbientEvent(EngineEvent):
 class AmbientUpEvent(AmbientEvent):
     """Ambient went up"""
 
+    success = True
+
 
 class AmbientDownEvent(AmbientEvent):
     """Ambient went down"""
+
+    success = True
 
 
 class SNMPEvent(EngineEvent):

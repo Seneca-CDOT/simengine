@@ -42,8 +42,12 @@ class AllLoadBranchesDone(Event):
     success = True
 
 
-class EventConsumer:
-    def __init__(self):
+class EngineEventConsumer:
+    """This wrapper watches an event queue in a separate thread
+    and launches a processing iteration (e.g. a chain of power events
+    that occured due to power outage)"""
+
+    def __init__(self, iteration_worker_name="unspecified"):
 
         # queue of engine events waiting to be processed
         self._event_queue = queue.Queue()
@@ -51,6 +55,7 @@ class EventConsumer:
         self._current_iteration = None
         self._worker_thread = None
         self._on_iteration_launched = None
+        self._iteration_worker_name = iteration_worker_name
 
     @property
     def current_iteration(self):
@@ -67,7 +72,9 @@ class EventConsumer:
         self._on_iteration_launched = on_iteration_launched
 
         # initialize processing thread
-        self._worker_thread = threading.Thread(target=self._worker)
+        self._worker_thread = threading.Thread(
+            target=self._worker, name=self._iteration_worker_name
+        )
         self._worker_thread.daemon = True
         self._worker_thread.start()
 
@@ -76,19 +83,24 @@ class EventConsumer:
         self.queue_iteration(None)
         self._worker_thread.join()
 
-    def queue_iteration(self, event):
+    def queue_iteration(self, iteration):
         """Queue an iteration for later processing;
         it will get dequeued once current_iteration is completed
+        Args:
+            iteration(EngineIteration): to be queued, event consumer will stop
+                                        if None is supplied
         """
-        self._event_queue.put(event)
+        self._event_queue.put(iteration)
 
     def mark_iteration_done(self):
-        """Complete an iteration"""
+        """Complete an iteration (so it can process next event in a queue if 
+        available)"""
         self._current_iteration = None
         self._event_queue.task_done()
 
     def _worker(self):
-        """Consumer processing event queue"""
+        """Consumer processing event queue, calls a callback supplied in
+        start()"""
 
         while True:
             # new processing iteration/loop was initialized
@@ -131,8 +143,8 @@ class Engine(Component):
 
         self._sys_environ = ServerRoom().register(self)
 
-        self._power_iter_handler = EventConsumer()
-        self._thermal_iter_handler = EventConsumer()
+        self._power_iter_handler = EngineEventConsumer("power_worker")
+        self._thermal_iter_handler = EngineEventConsumer("thermal_worker")
 
         self._data_source = data_source
         PowerIteration.data_source = data_source
