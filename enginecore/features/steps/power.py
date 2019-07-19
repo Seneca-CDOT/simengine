@@ -14,6 +14,7 @@ from hamcrest import *
 from enginecore.state.state_initializer import configure_env
 from enginecore.state.net.ws_requests import ServerToClientRequests
 from enginecore.state.new_engine import Engine
+from enginecore.state.api.environment import ISystemEnvironment
 
 
 class TestCompletionTracker(Component):
@@ -66,6 +67,24 @@ def step_impl(context):
     context.engine.handle_voltage_update(old_voltage=0, new_voltage=120)
 
     logging.info(context.tracker.wait_load_queue())
+
+
+@when("power outage happens")
+def step_impl(context):
+
+    if ISystemEnvironment.mains_status():
+        ISystemEnvironment.power_outage()
+        context.engine.handle_voltage_update(old_voltage=120, new_voltage=0)
+        logging.info(context.tracker.wait_load_queue())
+
+
+@when("power is restored")
+def step_impl(context):
+
+    if not ISystemEnvironment.mains_status():
+        ISystemEnvironment.power_restore()
+        context.engine.handle_voltage_update(old_voltage=0, new_voltage=120)
+        logging.info(context.tracker.wait_load_queue())
 
 
 @given('wallpower voltage "{old_volt:d}" is set to "{new_volt:d}"')
