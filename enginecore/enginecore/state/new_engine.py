@@ -342,6 +342,9 @@ class Engine(Component):
         self._thermal_iter_handler.stop()
         self._sys_environ.stop()
 
+        for asset_key in self._assets:
+            self._assets[asset_key].stop()
+
         HardwareGraphDataSource.cache_clear_all()
         super().stop(code)
 

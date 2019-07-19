@@ -52,3 +52,7 @@ class PDU(Asset, SNMPSim):
             self._state.update_agent(self._snmp_agent.pid)
 
         return e_result
+
+    def stop(self, code=None):
+        self._snmp_agent.stop_agent()
+        super().stop(code)

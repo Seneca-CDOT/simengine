@@ -438,3 +438,7 @@ class UPS(Asset, SNMPSim):
     def on_power_off_request_received(self, event, *args, **kwargs):
         """Called on voltage drop"""
         raise NotImplementedError
+
+    def stop(self, code=None):
+        self._snmp_agent.stop_agent()
+        super().stop(code)
