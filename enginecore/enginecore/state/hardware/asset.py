@@ -122,6 +122,10 @@ class Asset(Component):
         """When user preses power button to turn asset on"""
         self.state_reason = asset_events.ButtonPowerUpPressed
 
+    @handler("AmbientUpEvent", "AmbientDownEvent")
+    def on_ambient_updated(self, event, *args, **kwargs):
+        return event
+
     def _process_parent_volt_e(self, event):
         """Process parent voltage event by analyzing if voltage is 
         within the accepted threshold and if asset power state 

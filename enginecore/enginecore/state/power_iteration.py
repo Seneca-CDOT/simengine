@@ -116,6 +116,7 @@ class ThermalIteration(EngineIteration):
         super().__init__(src_event)
         self._thermal_branches = BranchTracker()
 
+    @property
     def iteration_done(self):
         return self._thermal_branches.completed
 
@@ -123,21 +124,25 @@ class ThermalIteration(EngineIteration):
         return self.process_thermal_event(self._src_event)
 
     def process_thermal_event(self, event):
-        if not event or event.branch:
+
+        # thermal branch completes once hadware asset finishes processing
+        # an event
+        if event.branch:
             self._thermal_branches.complete_branch(event.branch)
             return None
 
         all_asset_keys = [
             a["key"] for a in ThermalIteration.data_source.get_all_assets()
         ]
-        next_ambient_events = []
+        new_thermal_branches = []
 
         for _ in all_asset_keys:
             next_event = self._src_event.get_next_thermal_event()
-            next_ambient_events.append(next_event)
-            self._thermal_branches.add_branch(ThermalBranch(next_event, self))
+            new_thermal_branches.append(ThermalBranch(next_event, self))
 
-        return (zip(all_asset_keys, next_ambient_events),)
+        self._thermal_branches.extend(new_thermal_branches)
+
+        return (zip(all_asset_keys, [b.src_event for b in new_thermal_branches]),)
 
 
 class PowerIteration(EngineIteration):

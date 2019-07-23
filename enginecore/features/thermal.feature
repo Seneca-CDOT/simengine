@@ -8,7 +8,9 @@ Feature: Ambient temperature changes
         Given the system model is empty
         And Outlet asset with key "1" is created
         And Outlet asset with key "2" is created
+        And UPS asset with key "190" and "1024" port is created
         And asset "1" powers target "2"
+        And asset "2" powers target "190"
 
     @power-behaviour
     Scenario: Ambient goes up on power outage
