@@ -181,6 +181,11 @@ class SNMPEvent(EngineEvent):
         self._oid_name = kwargs["oid_name"]
 
     @property
+    def asset(self):
+        """Asset associated with snmp object id (e.g. outlet controlled by oid)"""
+        return self._asset
+
+    @property
     def oid_value_name(self):
         """Abstract name of oid value given internally by the engine 
         (to ensure cross-vendor support)"""

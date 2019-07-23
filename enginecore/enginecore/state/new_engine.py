@@ -331,8 +331,8 @@ class Engine(Component):
         snmp_event = SNMPEvent(
             asset=self._assets[affected_asset_key],
             oid=oid,
-            oid_value_name=oid_details["name"],
-            oid_name=oid_details["specs"][value],
+            oid_value_name=oid_details["specs"][value],
+            oid_name=oid_details["name"],
         )
 
         self._power_iter_handler.queue_iteration(PowerIteration(snmp_event))
@@ -366,13 +366,17 @@ class Engine(Component):
             *self._power_iter_handler.current_iteration.process_power_event(asset_event)
         )
 
-    # def SignalDown_success(self, evt, event_result):
-    #     """When asset is powered down """
-    #     self._power_success(event_result)
+    def SignalDown_success(self, signal_event, asset_event):
+        """When asset is powered down """
+        self._chain_power_events(
+            *self._power_iter_handler.current_iteration.process_power_event(asset_event)
+        )
 
-    # def SignalUp_success(self, evt, event_result):
-    #     """When asset is powered up """
-    #     self._power_success(event_result)
+    def SignalUp_success(self, signal_event, asset_event):
+        """When asset is powered up """
+        self._chain_power_events(
+            *self._power_iter_handler.current_iteration.process_power_event(asset_event)
+        )
 
     def ChildLoadUpEvent_success(self, child_load_event, asset_load_event):
         """Callback called when asset finishes processing load incease event that had

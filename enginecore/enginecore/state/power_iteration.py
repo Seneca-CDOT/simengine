@@ -210,6 +210,8 @@ class PowerIteration(EngineIteration):
         self._last_processed_volt_event = event
 
         # asset caused by power loop (individual asset power update)
+        if "oid" in event.kwargs:
+            return self._process_snmp_event(event)
         if event.kwargs["asset"]:
             return self._process_hardware_asset_event(event)
 
@@ -245,6 +247,9 @@ class PowerIteration(EngineIteration):
             return None
 
         return zip(parent_keys, load_events)
+
+    def _process_snmp_event(self, event):
+        return (zip([event.asset.key], [event.get_next_signal_event()]),)
 
     def _process_wallpower_event(self, event):
         """Wall-power voltage was updated, retrieve chain events associated
