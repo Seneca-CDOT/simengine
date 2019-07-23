@@ -1,5 +1,6 @@
 """Initialize redis state based on reference model """
 import os
+import subprocess
 import tempfile
 import shutil
 
@@ -67,7 +68,9 @@ def configure_env(relative=False):
         # str(os.popen('/usr/local/bin/redis-cli script load "$(cat {})"'
         # .format(lua_script_path)).read())
         str(
-            os.popen('redis-cli script load "$(cat {})"'.format(lua_script_path)).read()
+            subprocess.check_output(
+                ["redis-cli", "script" "load", '"$(cat {})"'.format(lua_script_path)]
+            )
         ),
     )
 
