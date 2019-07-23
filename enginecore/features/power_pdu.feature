@@ -67,8 +67,8 @@ Feature: Power Chaining for PDU (with Multiple Children)
         # Testing with APC PDU which has:
         # 1 -> for online
         # 2 -> for offline
-        When asset "7" oid "1.3.6.1.4.1.318.1.1.12.3.3.1.1.4.<oid-ini-value>" is set to "<oid-ini-value>"
-        And asset "7" oid "1.3.6.1.4.1.318.1.1.12.3.3.1.1.4.<oid-new-value>" is set to "<oid-new-value>"
+        When asset "7" oid "1.3.6.1.4.1.318.1.1.12.3.3.1.1.4.<out-num>" is set to "<oid-ini-value>"
+        And asset "7" oid "1.3.6.1.4.1.318.1.1.12.3.3.1.1.4.<out-num>" is set to "<oid-new-value>"
 
         Then asset "73" is "<73>"
         Then asset "74" is "<74>"

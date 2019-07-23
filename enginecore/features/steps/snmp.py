@@ -81,3 +81,4 @@ def step_impl(context, key, oid_num, oid_value):
     )
 
     context.engine.handle_oid_update(key, oid_num, oid_value)
+    context.tracker.wait_load_queue()
