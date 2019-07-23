@@ -27,6 +27,26 @@ class ServerRoom(Component):
     and power restorations after blackouts.
     """
 
+    # On clean system start, some room properties need to be set to defaults
+    ambient_defaults = {
+        "up": {"event": "up", "pause_at": 21},
+        "down": {"event": "down", "pause_at": 28},
+        "shared": {"degrees": 1, "rate": 20, "start": 19, "end": 28},
+    }
+
+    voltage_defaults = {
+        "mu": 120,
+        "sigma": 1,
+        "min": 117,
+        "max": 124,
+        "method": "uniform",
+        "rate": 6,
+        "enabled": False,
+        # randomizer properties
+        "start": 110,
+        "end": 128,
+    }
+
     def __init__(self):
         super(ServerRoom, self).__init__()
 
@@ -38,29 +58,21 @@ class ServerRoom(Component):
 
         # set up default values on the first run (if not set by the user)
         if not in_state.StateManager.get_ambient_props():
-            shared_attr = {"degrees": 1, "rate": 20, "start": 19, "end": 28}
             in_state.StateManager.set_ambient_props(
-                {**shared_attr, **{"event": "down", "pause_at": 28}}
+                {
+                    **ServerRoom.ambient_defaults["shared"],
+                    **ServerRoom.ambient_defaults["down"],
+                }
             )
             in_state.StateManager.set_ambient_props(
-                {**shared_attr, **{"event": "up", "pause_at": 21}}
+                {
+                    **ServerRoom.ambient_defaults["shared"],
+                    **ServerRoom.ambient_defaults["up"],
+                }
             )
 
         if not in_state.StateManager.get_voltage_props():
-            in_state.StateManager.set_voltage_props(
-                {
-                    "mu": 120,
-                    "sigma": 1,
-                    "min": 117,
-                    "max": 124,
-                    "method": "uniform",
-                    "rate": 6,
-                    "enabled": False,
-                    # randomizer properties
-                    "start": 110,
-                    "end": 128,
-                }
-            )
+            in_state.StateManager.set_voltage_props(ServerRoom.voltage_defaults)
 
         in_state.StateManager.get_store().set("voltage", str(float(0)))
         # initialize server room environment
@@ -70,7 +82,7 @@ class ServerRoom(Component):
         self._init_voltage_thread()
 
     def stop(self, code=None):
-        """Clean-up on stop"""
+        """Clean-up on stop (join threads)"""
 
         self._stop_event.set()
 
