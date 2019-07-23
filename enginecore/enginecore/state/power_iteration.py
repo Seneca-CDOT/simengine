@@ -249,6 +249,7 @@ class PowerIteration(EngineIteration):
         return zip(parent_keys, load_events)
 
     def _process_snmp_event(self, event):
+        self._volt_branches.add_branch(VoltageBranch(event, self))
         return (zip([event.asset.key], [event.get_next_signal_event()]),)
 
     def _process_wallpower_event(self, event):

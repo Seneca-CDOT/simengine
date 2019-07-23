@@ -318,6 +318,7 @@ class Engine(Component):
             logging.warning("Asset [%s] does not exist!", asset_key)
             return
 
+        # get asset key associated with the oid & oid details
         affected_asset_key, oid_details = self._data_source.get_asset_oid_info(
             asset_key, oid
         )
@@ -366,13 +367,13 @@ class Engine(Component):
             *self._power_iter_handler.current_iteration.process_power_event(asset_event)
         )
 
-    def SignalDown_success(self, signal_event, asset_event):
+    def SignalDownEvent_success(self, signal_event, asset_event):
         """When asset is powered down """
         self._chain_power_events(
             *self._power_iter_handler.current_iteration.process_power_event(asset_event)
         )
 
-    def SignalUp_success(self, signal_event, asset_event):
+    def SignalUpEvent_success(self, signal_event, asset_event):
         """When asset is powered up """
         self._chain_power_events(
             *self._power_iter_handler.current_iteration.process_power_event(asset_event)
