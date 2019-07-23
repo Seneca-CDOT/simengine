@@ -82,4 +82,27 @@ Feature: Power Chaining for PDU (with Multiple Children)
             | out-num | oid-ini-value | oid-new-value | 73      | 74     | 3       | 4      |
             | 1       | 1             | 2             | online  | online | online  | online |
             | 3       | 1             | 2             | offline | online | offline | online |
+            | 4       | 2             | 1             | online  | online | online  | online |
+            | 4       | 1             | 1             | online  | online | online  | online |
 
+    @snmp-behaviour
+    Scenario Outline: Outlet with off SNMP state cannot be changed
+
+        # create snmp conditions
+        When asset "7" oid "1.3.6.1.4.1.318.1.1.12.3.3.1.1.4.3" is set to "<oid-ini-value>"
+        And asset "7" oid "1.3.6.1.4.1.318.1.1.12.3.3.1.1.4.3" is set to "<oid-new-value>"
+
+        # try toggling the outlet
+        And asset "73" goes "<73-ini-state>"
+        And asset "73" goes "<73-new-state>"
+
+        Then asset "73" is "<73>"
+
+        # everythin powered by the PDU
+        Then asset "3" is "<3>"
+
+
+        Examples: Downstream power-off chaining
+            | oid-ini-value | oid-new-value | 73-ini-state | 73-new-state | 73      | 3       |
+            | 1             | 2             | online       | online       | offline | offline |
+            | 2             | 1             | online       | offline      | offline | offline |
