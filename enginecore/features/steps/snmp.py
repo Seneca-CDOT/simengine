@@ -71,7 +71,6 @@ def set_oid_value(oid, value, host="localhost", port=1024):
 @when('asset "{key:d}" oid "{oid_num}" is set to "{oid_value}"')
 def step_impl(context, key, oid_num, oid_value):
 
-    # oid = context.hardware[key].get_oid_by_name(oid_name).oid
     snmp_asset_info = context.hardware[key].asset_info
 
     set_oid_value(
@@ -80,3 +79,5 @@ def step_impl(context, key, oid_num, oid_value):
         host=snmp_asset_info["host"],
         port=snmp_asset_info["port"],
     )
+
+    context.engine.handle_oid_update(key, oid_num, oid_value)

@@ -335,7 +335,7 @@ class Engine(Component):
             oid_name=oid_details["specs"][value],
         )
 
-        # self._power_iter_handler.queue_iteration(PowerIteration(snmp_event))
+        self._power_iter_handler.queue_iteration(PowerIteration(snmp_event))
 
     def stop(self, code=None):
         self._power_iter_handler.stop()
