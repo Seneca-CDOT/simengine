@@ -51,6 +51,7 @@ class EngineEventConsumer:
 
         # queue of engine events waiting to be processed
         self._event_queue = queue.Queue()
+        self._iteration_done_event = threading.Event()
         # work-in-progress
         self._current_iteration = None
         self._worker_thread = None
@@ -77,10 +78,16 @@ class EngineEventConsumer:
         )
         self._worker_thread.daemon = True
         self._worker_thread.start()
+        self._iteration_done_event.set()
 
     def stop(self):
         """Join consumer thread (stop processing power queued power iterations)"""
+        if self._current_iteration:
+            self.mark_iteration_done()
+            self._event_queue.join()
+
         self.queue_iteration(None)
+        self._iteration_done_event.set()
         self._worker_thread.join()
 
     def queue_iteration(self, iteration):
@@ -91,18 +98,24 @@ class EngineEventConsumer:
                                         if None is supplied
         """
         self._event_queue.put(iteration)
+        if not self._current_iteration:
+            self._iteration_done_event.set()
 
     def mark_iteration_done(self):
         """Complete an iteration (so it can process next event in a queue if 
         available)"""
         self._current_iteration = None
         self._event_queue.task_done()
+        self._iteration_done_event.set()
 
     def _worker(self):
         """Consumer processing event queue, calls a callback supplied in
         start()"""
 
         while True:
+
+            self._iteration_done_event.wait()
+
             # new processing iteration/loop was initialized
             next_iter = self._event_queue.get()
 
@@ -116,6 +129,8 @@ class EngineEventConsumer:
 
             if self._on_iteration_launched:
                 self._on_iteration_launched(*launch_results)
+
+            self._iteration_done_event.clear()
 
 
 class Engine(Component):
@@ -250,6 +265,7 @@ class Engine(Component):
 
         if self._thermal_iter_handler.current_iteration.iteration_done:
             self._notify_trackers(AllThermalBranchesDone)
+            self._thermal_iter_handler.mark_iteration_done()
 
         if not thermal_events:
             return
