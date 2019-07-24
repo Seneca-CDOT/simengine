@@ -30,7 +30,7 @@ class GraphReference:
 
     def close(self):
         """ Close as db """
-        # self._driver.close()
+        self._driver.close()
 
     def get_session(self):
         """ Get a database session """

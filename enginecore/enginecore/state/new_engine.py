@@ -161,6 +161,7 @@ class Engine(Component):
         self._power_iter_handler = EngineEventConsumer("power_worker")
         self._thermal_iter_handler = EngineEventConsumer("thermal_worker")
 
+        data_source.init_connection()
         self._data_source = data_source
         PowerIteration.data_source = data_source
         ThermalIteration.data_source = data_source
@@ -363,6 +364,8 @@ class Engine(Component):
             self._assets[asset_key].stop()
 
         HardwareGraphDataSource.cache_clear_all()
+        HardwareGraphDataSource.close()
+
         super().stop(code)
 
     # **Events are camel-case

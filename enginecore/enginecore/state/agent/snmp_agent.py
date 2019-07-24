@@ -63,8 +63,10 @@ class SNMPAgent(Agent):
             lookup_oid, self._asset_key, redis_script_sha
         )
 
-        with open(rec_public_path, "a") as pub, open(rec_private_path, "a") as priv:
+        with open(rec_public_path, "a") as pub:
             pub.write(snmpsim_config)
+
+        with open(rec_private_path, "a") as priv:
             priv.write(snmpsim_config)
 
     def start_agent(self):

@@ -19,7 +19,12 @@ class HardwareDataSource:
 
 
 class HardwareGraphDataSource(HardwareDataSource):
-    graph_ref = GraphReference()
+
+    graph_ref = None
+
+    @classmethod
+    def init_connection(cls):
+        cls.graph_ref = GraphReference()
 
     @classmethod
     def get_all_assets(cls):
@@ -69,3 +74,8 @@ class HardwareGraphDataSource(HardwareDataSource):
         cls.get_mains_powered_assets.cache_clear()
         cls.get_parent_assets.cache_clear()
         cls.get_asset_oid_info.cache_clear()
+
+    @classmethod
+    def close(cls):
+        """Close down driver"""
+        cls.graph_ref.close()
