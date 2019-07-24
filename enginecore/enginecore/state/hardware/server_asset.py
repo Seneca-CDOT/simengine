@@ -23,7 +23,7 @@ import enginecore.state.hardware.internal_state as in_state
 from enginecore.state.agent import IPMIAgent, StorCLIEmulator
 from enginecore.state.sensor.repository import SensorRepository
 from enginecore.state.state_initializer import get_temp_workplace_dir
-from enginecore.state.power_events import EventDataPair
+from enginecore.state.engine.events import EventDataPair
 
 
 @register_asset

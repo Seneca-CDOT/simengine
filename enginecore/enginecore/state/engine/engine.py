@@ -1,10 +1,9 @@
 import logging
 
-import queue
-import threading
+
 import math
 
-from circuits import Component, Event, Worker, Debugger, handler
+from circuits import Component, Event
 
 from circuits.web import Logger, Server, Static
 from circuits.web.dispatchers import WebSocketsDispatcher
@@ -17,9 +16,11 @@ from enginecore.state.net.ws_server import WebSocket
 from enginecore.state.net.ws_requests import ServerToClientRequests
 
 from enginecore.state.state_initializer import initialize, clear_temp
-from enginecore.state.engine_data_source import HardwareGraphDataSource
-from enginecore.state.power_iteration import PowerIteration, ThermalIteration
-from enginecore.state.power_events import AssetPowerEvent, SNMPEvent, AmbientEvent
+
+from enginecore.state.engine.iteration import PowerIteration, ThermalIteration
+from enginecore.state.engine.iteration_consumer import EngineIterationConsumer
+from enginecore.state.engine.data_source import HardwareGraphDataSource
+from enginecore.state.engine.events import AssetPowerEvent, SNMPEvent, AmbientEvent
 
 
 class AllThermalBranchesDone(Event):
@@ -40,97 +41,6 @@ class AllLoadBranchesDone(Event):
     load event propagation across all load branches"""
 
     success = True
-
-
-class EngineEventConsumer:
-    """This wrapper watches an event queue in a separate thread
-    and launches a processing iteration (e.g. a chain of power events
-    that occured due to power outage)"""
-
-    def __init__(self, iteration_worker_name="unspecified"):
-
-        # queue of engine events waiting to be processed
-        self._event_queue = queue.Queue()
-        self._iteration_done_event = threading.Event()
-        # work-in-progress
-        self._current_iteration = None
-        self._worker_thread = None
-        self._on_iteration_launched = None
-        self._iteration_worker_name = iteration_worker_name
-
-    @property
-    def current_iteration(self):
-        """Iteration that is in progress/not yet completed
-        (e.g. power downstream update still going on)"""
-        return self._current_iteration
-
-    def start(self, on_iteration_launched=None):
-        """Launches consumer thread
-        Args:
-            on_iteration_launched(callable): called when event queue returns
-                                             new iteration
-        """
-        self._on_iteration_launched = on_iteration_launched
-
-        # initialize processing thread
-        self._worker_thread = threading.Thread(
-            target=self._worker, name=self._iteration_worker_name
-        )
-        self._worker_thread.daemon = True
-        self._worker_thread.start()
-        self._iteration_done_event.set()
-
-    def stop(self):
-        """Join consumer thread (stop processing power queued power iterations)"""
-        if self._current_iteration:
-            self.mark_iteration_done()
-            self._event_queue.join()
-
-        self.queue_iteration(None)
-        self._iteration_done_event.set()
-        self._worker_thread.join()
-
-    def queue_iteration(self, iteration):
-        """Queue an iteration for later processing;
-        it will get dequeued once current_iteration is completed
-        Args:
-            iteration(EngineIteration): to be queued, event consumer will stop
-                                        if None is supplied
-        """
-        self._event_queue.put(iteration)
-        if not self._current_iteration:
-            self._iteration_done_event.set()
-
-    def mark_iteration_done(self):
-        """Complete an iteration (so it can process next event in a queue if 
-        available)"""
-        self._current_iteration = None
-        self._event_queue.task_done()
-        self._iteration_done_event.set()
-
-    def _worker(self):
-        """Consumer processing event queue, calls a callback supplied in
-        start()"""
-
-        while True:
-
-            self._iteration_done_event.wait()
-
-            # new processing iteration/loop was initialized
-            next_iter = self._event_queue.get()
-
-            if not next_iter:
-                return
-
-            assert self._current_iteration is None
-
-            self._current_iteration = next_iter
-            launch_results = self._current_iteration.launch()
-
-            if self._on_iteration_launched:
-                self._on_iteration_launched(*launch_results)
-
-            self._iteration_done_event.clear()
 
 
 class Engine(Component):
@@ -158,8 +68,8 @@ class Engine(Component):
 
         self._sys_environ = ServerRoom().register(self)
 
-        self._power_iter_handler = EngineEventConsumer("power_worker")
-        self._thermal_iter_handler = EngineEventConsumer("thermal_worker")
+        self._power_iter_handler = EngineIterationConsumer("power_worker")
+        self._thermal_iter_handler = EngineIterationConsumer("thermal_worker")
 
         data_source.init_connection()
         self._data_source = data_source
@@ -325,11 +235,11 @@ class Engine(Component):
         self._power_iter_handler.queue_iteration(PowerIteration(volt_event))
 
     def handle_oid_update(self, asset_key, oid, value):
-        """React to OID update in redis store 
+        """React to OID update
         Args:
             asset_key(int): key of the asset oid belongs to
             oid(str): updated oid
-            value(str): OID value in snmpsim format "datatype|value"
+            value(str): OID value
         """
         if asset_key not in self._assets:
             logging.warning("Asset [%s] does not exist!", asset_key)
@@ -356,6 +266,7 @@ class Engine(Component):
         self._power_iter_handler.queue_iteration(PowerIteration(snmp_event))
 
     def stop(self, code=None):
+        """Cleanup threads/hardware assets"""
         self._power_iter_handler.stop()
         self._thermal_iter_handler.stop()
         self._sys_environ.stop()
@@ -367,6 +278,10 @@ class Engine(Component):
         HardwareGraphDataSource.close()
 
         super().stop(code)
+
+    # Chain events processed by the hardware assets (e.g. by dispatching next events)
+    # (these callbacks are called by circuit when an
+    # asset finishes processing incoming eent)
 
     # **Events are camel-case
     # pylint: disable=C0103,W0613

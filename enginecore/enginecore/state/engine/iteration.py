@@ -1,5 +1,4 @@
 """Tools for keeping track of the ongoing donwtream & upstream power event flow"""
-import logging
 
 
 class EngineEventBranch:
