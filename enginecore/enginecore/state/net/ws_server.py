@@ -340,12 +340,11 @@ class WebSocket(Component):
     def on_asset_power(self, event, *args, **kwargs):
         """Handle engine events by passing updates to 
         server clients"""
-        if not hasattr(event, "asset"):
+        if not event or not hasattr(event, "asset") or event.asset is None:
             return
 
         payload = {"key": event.asset.key}
         if hasattr(event, "load") and not event.load.unchanged():
-            print(event.load.new)
             payload["load"] = event.load.new
         if hasattr(event, "state") and not event.state.unchanged():
             payload["status"] = event.state.new
