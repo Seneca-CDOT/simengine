@@ -1,20 +1,11 @@
 import logging
 
-
 import math
-
 from circuits import Component, Event
 
-from circuits.web import Logger, Server, Static
-from circuits.web.dispatchers import WebSocketsDispatcher
-
 from enginecore.state.hardware.room import ServerRoom, Asset
-
 from enginecore.tools.recorder import RECORDER
 from enginecore.state.api import ISystemEnvironment
-from enginecore.state.net.ws_server import WebSocket
-from enginecore.state.net.ws_requests import ServerToClientRequests
-
 from enginecore.state.state_initializer import initialize, clear_temp
 
 from enginecore.state.engine.iteration import PowerIteration, ThermalIteration
@@ -64,14 +55,17 @@ class Engine(Component):
         # assets will store all the devices/items including PDUs, switches etc.
         self._assets = {}
 
+        # completion trackers will be notified of events happening in the system
         self._completion_trackers = []
 
         self._sys_environ = ServerRoom().register(self)
 
+        # track iterations (thermal/power) in separate threads
         self._power_iter_handler = EngineIterationConsumer("power_worker")
         self._thermal_iter_handler = EngineIterationConsumer("thermal_worker")
 
         data_source.init_connection()
+
         self._data_source = data_source
         PowerIteration.data_source = data_source
         ThermalIteration.data_source = data_source
@@ -117,7 +111,7 @@ class Engine(Component):
         """Dispatch power completion events to clients"""
 
         for comp_tracker in self._completion_trackers:
-            self.fire(event(), comp_tracker)
+            self.fire(event, comp_tracker)
 
     def subscribe_tracker(self, tracker):
         """Subcribe external engine client to completion events"""
@@ -134,7 +128,7 @@ class Engine(Component):
         worker thread is given permission to accept new power
         events)
         """
-        self._notify_trackers(AllLoadBranchesDone)
+        self._notify_trackers(AllLoadBranchesDone())
         self._power_iter_handler.mark_iteration_done()
 
     def _chain_power_events(self, volt_events, load_events=None):
@@ -146,7 +140,7 @@ class Engine(Component):
 
         # reached the end of a stream of voltage updates
         if self._power_iter_handler.current_iteration.all_voltage_branches_done:
-            self._notify_trackers(AllVoltageBranchesDone)
+            self._notify_trackers(AllVoltageBranchesDone())
             if self._power_iter_handler.current_iteration.all_load_branches_done:
                 self._mark_load_branches_done()
 
@@ -175,7 +169,7 @@ class Engine(Component):
         """Chain thermal events by dispatching them against assets"""
 
         if self._thermal_iter_handler.current_iteration.iteration_done:
-            self._notify_trackers(AllThermalBranchesDone)
+            self._notify_trackers(AllThermalBranchesDone())
             self._thermal_iter_handler.mark_iteration_done()
 
         if not thermal_events:
@@ -190,9 +184,10 @@ class Engine(Component):
             old_temp(float): old room temperature
             new_temp(float): new room temperature
         """
-        self._thermal_iter_handler.queue_iteration(
-            ThermalIteration(AmbientEvent(old_temp=old_temp, new_temp=new_temp))
-        )
+        amb_event = AmbientEvent(old_temp=old_temp, new_temp=new_temp)
+        self._notify_trackers(amb_event)
+
+        self._thermal_iter_handler.queue_iteration(ThermalIteration(amb_event))
 
     def handle_voltage_update(self, old_voltage, new_voltage):
         """Wallpower voltage changes to a new value,
@@ -208,6 +203,7 @@ class Engine(Component):
         volt_event = AssetPowerEvent(
             asset=None, old_out_volt=old_voltage, new_out_volt=new_voltage
         )
+        self._notify_trackers(volt_event)
 
         self._power_iter_handler.queue_iteration(PowerIteration(volt_event))
 
@@ -232,6 +228,8 @@ class Engine(Component):
             old_state=old_state,
             new_state=new_state,
         )
+
+        self._notify_trackers(volt_event)
         self._power_iter_handler.queue_iteration(PowerIteration(volt_event))
 
     def handle_oid_update(self, asset_key, oid, value):
@@ -283,66 +281,67 @@ class Engine(Component):
     # (these callbacks are called by circuit when an
     # asset finishes processing incoming eent)
 
+    def _on_asset_power_event_success(self, asset_event):
+        """Notify current power iteration that hardware asset
+        finished processing power event"""
+        self._notify_trackers(asset_event)
+        self._chain_power_events(
+            *self._power_iter_handler.current_iteration.process_power_event(asset_event)
+        )
+
+    def _on_asset_load_event_success(self, asset_event):
+        """Notify current power iteration that hardware asset
+        finished processing load event"""
+        self._notify_trackers(asset_event)
+        self._chain_load_events(
+            self._power_iter_handler.current_iteration.process_load_event(asset_event)
+        )
+
+    def _on_asset_thermal_event_success(self, asset_event):
+        """Notify current thermal iteration that hardware asset
+        finished processing thermal changes"""
+        self._chain_thermal_events(
+            self._thermal_iter_handler.current_iteration.process_thermal_event(
+                asset_event
+            )
+        )
+
     # **Events are camel-case
     # pylint: disable=C0103,W0613
     def InputVoltageUpEvent_success(self, input_volt_event, asset_event):
         """Callback called when InputVoltageUpEvent was handled by the asset
         affected by the input change
         """
-        self._chain_power_events(
-            *self._power_iter_handler.current_iteration.process_power_event(asset_event)
-        )
+        self._on_asset_power_event_success(asset_event)
 
     def InputVoltageDownEvent_success(self, input_volt_event, asset_event):
         """Callback called when InputVoltageDown was handled by the asset
         affected by the input change
         """
-        self._chain_power_events(
-            *self._power_iter_handler.current_iteration.process_power_event(asset_event)
-        )
+        self._on_asset_power_event_success(asset_event)
 
     def SignalDownEvent_success(self, signal_event, asset_event):
-        """When asset is powered down """
-        self._chain_power_events(
-            *self._power_iter_handler.current_iteration.process_power_event(asset_event)
-        )
+        """When asset is powered down through network interface"""
+        self._on_asset_power_event_success(asset_event)
 
     def SignalUpEvent_success(self, signal_event, asset_event):
-        """When asset is powered up """
-        self._chain_power_events(
-            *self._power_iter_handler.current_iteration.process_power_event(asset_event)
-        )
+        """When asset is powered up through network interface"""
+        self._on_asset_power_event_success(asset_event)
 
     def ChildLoadUpEvent_success(self, child_load_event, asset_load_event):
         """Callback called when asset finishes processing load incease event that had
         happened to its child"""
-        self._chain_load_events(
-            self._power_iter_handler.current_iteration.process_load_event(
-                asset_load_event
-            )
-        )
+        self._on_asset_load_event_success(asset_load_event)
 
     def ChildLoadDownEvent_success(self, child_load_event, asset_load_event):
         """Callback called when asset finishes processing load drop event that had
         happened to its child"""
-        self._chain_load_events(
-            self._power_iter_handler.current_iteration.process_load_event(
-                asset_load_event
-            )
-        )
+        self._on_asset_load_event_success(asset_load_event)
 
     def AmbientDownEvent_success(self, ambient_event, asset_thermal_event):
         """When asset is powered down """
-        self._chain_thermal_events(
-            self._thermal_iter_handler.current_iteration.process_thermal_event(
-                asset_thermal_event
-            )
-        )
+        self._on_asset_thermal_event_success(asset_thermal_event)
 
     def AmbientUpEvent_success(self, ambient_event, asset_thermal_event):
         """When asset is powered up """
-        self._chain_thermal_events(
-            self._thermal_iter_handler.current_iteration.process_thermal_event(
-                asset_thermal_event
-            )
-        )
+        self._on_asset_thermal_event_success(asset_thermal_event)

@@ -1,9 +1,14 @@
 """RedisStateHandler handles published data in enginecore redis pub/sub channels"""
 import logging
-from circuits import Component, handler
+import os
+
+from circuits.web import Logger, Server, Static
+from circuits.web.dispatchers import WebSocketsDispatcher
+from circuits import Component, Debugger, handler
 import redis
 
 from enginecore.state.redis_channels import RedisChannels
+from enginecore.state.net.ws_server import WebSocket
 
 
 class RedisStateHandler(Component):
@@ -11,7 +16,27 @@ class RedisStateHandler(Component):
 
     def __init__(self, engine_cls, debug=False, force_snmp_init=True):
         super(RedisStateHandler, self).__init__()
+
+        logging.info("Initializing websocket server...")
+        # set up a web socket server
+        socket_conf = {
+            "host": os.environ.get("SIMENGINE_SOCKET_HOST"),
+            "port": int(os.environ.get("SIMENGINE_SOCKET_PORT")),
+        }
+        self._server = Server((socket_conf["host"], socket_conf["port"])).register(self)
+
+        # Worker(process=False).register(self)
+        Static().register(self._server)
+        Logger().register(self._server)
+        if debug:
+            Debugger(events=False).register(self)
+        self._ws = WebSocket().register(self._server)
+
+        WebSocketsDispatcher("/simengine").register(self._server)
+
+        logging.info("Initializing engine...")
         self._engine = engine_cls(force_snmp_init=force_snmp_init).register(self)
+        self._engine.subscribe_tracker(self._ws)
 
         # Use redis pub/sub communication
         logging.info("Initializing redis connection...")
@@ -22,7 +47,7 @@ class RedisStateHandler(Component):
     def on_asset_power_state_change(self, data):
         """On user changing asset status"""
         self._engine.handle_state_update(
-            data["key"], data["status"], data["status"] ^ 1
+            data["key"], data["status"] ^ 1, data["status"]
         )
 
     @handler(RedisChannels.voltage_update_channel)

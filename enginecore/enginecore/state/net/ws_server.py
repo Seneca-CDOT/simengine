@@ -336,8 +336,24 @@ class WebSocket(Component):
         if sock in self._data_subscribers:
             self._data_subscribers.remove(sock)
 
-    @handler("NotifyClient")
-    def notify_client(self, data):
+    @handler("AssetPowerEvent", "AssetLoadEvent")
+    def on_asset_power(self, event, *args, **kwargs):
+        """Handle engine events by passing updates to 
+        server clients"""
+        if not hasattr(event, "asset"):
+            return
+
+        payload = {"key": event.asset.key}
+        if hasattr(event, "load") and not event.load.unchanged():
+            print(event.load.new)
+            payload["load"] = event.load.new
+        if hasattr(event, "state") and not event.state.unchanged():
+            payload["status"] = event.state.new
+        client_request = ServerToClientRequests.asset_upd
+
+        self._notify_client({"request": client_request.name, "payload": payload})
+
+    def _notify_client(self, data):
         """This handler is called upon state changes 
         and is meant to notify web-client of any events 
         

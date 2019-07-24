@@ -471,7 +471,7 @@ class LoadEvent(EngineEvent):
 
     @property
     def load(self):
-        """Load changes associated with the event"""
+        """Get load update (old/new values) associated with this event"""
         return self._load
 
     def __str__(self):
