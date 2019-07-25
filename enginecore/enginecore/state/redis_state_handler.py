@@ -77,14 +77,9 @@ class RedisStateHandler(Component):
     @handler(RedisChannels.battery_update_channel)
     def on_battery_level_change(self, data):
         """On UPS battery charge drop/increase"""
-        pass
-        # self._notify_client(
-        #     ServerToClientRequests.asset_upd,
-        #     {
-        #         "key": data["key"],
-        #         "battery": self._engine.assets[data["key"]].state.battery_level,
-        #     },
-        # )
+        self._engine.handle_battery_update(
+            data["key"], data["old_battery"], data["new_battery"]
+        )
 
     @handler(RedisChannels.battery_conf_charge_channel)
     def on_battery_charge_factor_up(self, data):

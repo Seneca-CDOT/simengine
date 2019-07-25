@@ -385,6 +385,14 @@ class WebSocket(Component):
 
             self._notify_clients({"request": client_request.name, "payload": payload})
 
+    @handler("BatteryEvent")
+    def on_battery_change(self, event, *args, **kwargs):
+        """Notify frontend of battery udpate"""
+        payload = {"key": event.asset.key, "battery": event.battery.new}
+        self._notify_clients(
+            {"request": ServerToClientRequests.asset_upd.name, "payload": payload}
+        )
+
     def _notify_clients(self, data):
         """This handler is called upon state changes 
         and is meant to notify web-client of any events 

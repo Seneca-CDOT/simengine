@@ -87,6 +87,17 @@ class IUPSStateManager(ISnmpDeviceStateManager):
         """Get current level (high-precision)"""
         return int(IStateManager.get_store().get(self.redis_key + ":battery").decode())
 
+    def _update_battery(self, charge_level):
+        """Battery level setter
+        Args:
+            charge_level(int): new charge level in high-precision format (0-1000)
+        """
+        # make sure new charge level is within acceptable range
+        charge_level = max(charge_level, 0)
+        charge_level = min(charge_level, self._max_battery_level)
+
+        IStateManager.get_store().set(self.redis_key + ":battery", int(charge_level))
+
     @property
     def battery_max_level(self):
         """Max battery level"""

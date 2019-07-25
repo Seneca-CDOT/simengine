@@ -16,6 +16,7 @@ from enginecore.state.engine.events import (
     SNMPEvent,
     AmbientEvent,
     MainsPowerEvent,
+    BatteryEvent,
 )
 
 
@@ -271,6 +272,25 @@ class Engine(Component):
         )
 
         self._power_iter_handler.queue_iteration(PowerIteration(snmp_event))
+
+    def handle_battery_update(self, key, old_battery, new_battery):
+        """When UPS updates its battery levels (engine only notifies any
+        state subscribers of the event)
+        Args:
+            key(int): key of a ups that is powered by the battery
+            old_battery(int): old charge
+            new_battery(int): new battery charge
+        """
+        if old_battery == new_battery:
+            return
+
+        self._notify_trackers(
+            BatteryEvent(
+                asset=self._assets[key],
+                old_battery=old_battery,
+                new_battery=new_battery,
+            )
+        )
 
     def stop(self, code=None):
         """Cleanup threads/hardware assets"""

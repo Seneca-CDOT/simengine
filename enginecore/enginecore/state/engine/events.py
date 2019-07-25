@@ -88,6 +88,30 @@ class EngineEvent(Event):
         self._branch = value
 
 
+class BatteryEvent(EngineEvent):
+    """Event occuring due to UPS battery update"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        required_args = ["old_battery", "new_battery", "asset"]
+
+        if not all(r_arg in kwargs for r_arg in required_args):
+            raise KeyError("Needs arguments: " + ",".join(required_args))
+
+        self._battery = EventDataPair(kwargs["old_battery"], kwargs["new_battery"])
+        self._asset = kwargs["asset"]
+
+    @property
+    def battery(self):
+        """Battery level change associated with this event"""
+        return self._battery
+
+    @property
+    def asset(self):
+        """UPS asset battery belongs to"""
+        return self._asset
+
+
 class MainsPowerEvent(EngineEvent):
     """Event associated with power outage or power restoration"""
 
