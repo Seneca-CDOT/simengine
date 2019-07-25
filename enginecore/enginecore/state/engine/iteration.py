@@ -123,6 +123,10 @@ class ThermalIteration(EngineIteration):
         return self.process_thermal_event(self._src_event)
 
     def process_thermal_event(self, event):
+        """Process thermal event"""
+
+        if not event:
+            return
 
         # thermal branch completes once hadware asset finishes processing
         # an event

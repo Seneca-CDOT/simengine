@@ -7,11 +7,10 @@ For example, it switches to battery if upstream power is offline or voltage is t
 
 import logging
 import json
-import time
 import math
 from datetime import datetime as dt
 
-from threading import Thread
+from threading import Thread, Event
 from circuits import handler
 import enginecore.state.hardware.internal_state as in_state
 from enginecore.state.hardware.asset import Asset
@@ -52,6 +51,7 @@ class UPS(Asset, SNMPSim):
         # Threads responsible for battery charge/discharge
         self._battery_drain_t = None
         self._battery_charge_t = None
+        self._stop_event = Event()
 
         self._start_time_battery = None
 
@@ -63,9 +63,6 @@ class UPS(Asset, SNMPSim):
             self.state.full_recharge_time * 60 * 60
         )
 
-        # set temp on start
-        self._state.update_temperature(7)
-
     def _cacl_time_left(self, wattage):
         """Approximate runtime estimation based on current battery level"""
         return (
@@ -74,6 +71,10 @@ class UPS(Asset, SNMPSim):
 
     def _calc_full_power_time_left(self, wattage):
         """Approximate runtime estimation for the fully-charged battery"""
+
+        if math.isclose(wattage, 0.0):
+            wattage = 0.01
+
         close_wattage = min(self._runtime_details, key=lambda x: abs(int(x) - wattage))
         close_timeleft = self._runtime_details[close_wattage]
 
@@ -132,7 +133,12 @@ class UPS(Asset, SNMPSim):
 
         # keep draining battery while its level remains above 0
         # UPS is on and parent is down
-        while battery_level > 0 and self.state.status and self.state.on_battery:
+        while (
+            battery_level > 0
+            and self.state.status
+            and self.state.on_battery
+            and not self._stop_event.is_set()
+        ):
 
             # calculate new battery level
             battery_level = battery_level - (
@@ -156,7 +162,7 @@ class UPS(Asset, SNMPSim):
                 self._increase_transfer_severity()
 
             old_battery_lvl = battery_level
-            time.sleep(1)
+            self._stop_event.wait(1)
 
         # kill the thing if still breathing
         if self.state.status and self.state.on_battery:
@@ -181,7 +187,9 @@ class UPS(Asset, SNMPSim):
 
         # keep charging battery while its level is less than max & parent is up
         while (
-            battery_level < self.state.battery_max_level and not self.state.on_battery
+            battery_level < self.state.battery_max_level
+            and not self.state.on_battery
+            and not self._stop_event.is_set()
         ):
             # calculate new battery level
             battery_level = battery_level + (
@@ -208,7 +216,7 @@ class UPS(Asset, SNMPSim):
                 self.state.publish_power()
 
             old_battery_lvl = battery_level
-            time.sleep(1)
+            self._stop_event.wait(1)
 
     def _launch_battery_drain(
         self, t_reason=in_state.UPSStateManager.InputLineFailCause.deepMomentarySag
@@ -441,4 +449,5 @@ class UPS(Asset, SNMPSim):
 
     def stop(self, code=None):
         self._snmp_agent.stop_agent()
+        self._stop_event.set()
         super().stop(code)
