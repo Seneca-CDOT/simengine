@@ -8,7 +8,6 @@ Both server types have a unique VM (domain) assigned to them
 import os
 import time
 import logging
-import math
 import operator
 from threading import Thread
 
@@ -54,6 +53,7 @@ class Server(StaticAsset):
         # keep track of load udpates for multi-psu servers
         load_upd = {}
         extra_draw = 0.0
+        load_should_change = True
 
         drawing_extra = (
             lambda x: asset_event.calculate_load(x, x.input_voltage) < x.load
@@ -80,6 +80,7 @@ class Server(StaticAsset):
                 # asset load should not change since we are just redistributing
                 # same load
                 asset_event.state.new = asset_event.state.old
+                load_should_change = False
 
         src_psu_draw = e_src_psu.draw_percentage + extra_draw
         load_upd[e_src_psu.key].old = old_asset_load * src_psu_draw
@@ -89,7 +90,7 @@ class Server(StaticAsset):
             asset_event.state.new = self.state.power_up()
 
         asset_event.streamed_load_updates = load_upd
-        if not asset_event.state.unchanged():
+        if load_should_change:
             asset_event.calc_load_from_volt()
             self._update_load(self.state.load + load_upd[e_src_psu.key].difference)
 
@@ -102,6 +103,7 @@ class Server(StaticAsset):
 
         assert event.source_key in self._psu_sm
         e_src_psu = self._psu_sm[event.source_key]
+        alt_power_present = False
 
         # keep track of load udpates for multi-psu servers
         load_upd = {}
@@ -127,12 +129,13 @@ class Server(StaticAsset):
                 and psu_sm.output_voltage > min_voltage
             ):
                 asset_event.state.new = asset_event.state.old
+                alt_power_present = True
                 load_upd[psu_key].new = (
                     load_upd[psu_key].new - load_upd[e_src_psu.key].difference
                 )
 
         # state needs to change
-        if not asset_event.state.unchanged():
+        if not alt_power_present:
             asset_event.state.new = self.state.power_off()
 
             # TODO: set load even when state is unchanged
