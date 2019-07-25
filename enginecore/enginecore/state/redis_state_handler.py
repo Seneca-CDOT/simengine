@@ -55,11 +55,6 @@ class RedisStateHandler(Component):
         """React to voltage drop or voltage restoration"""
         self._engine.handle_voltage_update(data["old_voltage"], data["new_voltage"])
 
-    @handler(RedisChannels.mains_update_channel)
-    def on_wallpower_state_change(self, data):
-        """On blackout/power restorations"""
-        # self._notify_client(ServerToClientRequests.mains_upd, {"mains": data["status"]})
-
     @handler(RedisChannels.oid_update_channel)
     def on_snmp_device_oid_change(self, data):
         """React to OID getting updated through SNMP interface"""
