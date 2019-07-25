@@ -9,6 +9,7 @@ import os
 import time
 import logging
 import operator
+import math
 from threading import Thread
 
 from circuits import handler
@@ -56,7 +57,9 @@ class Server(StaticAsset):
         load_should_change = True
 
         drawing_extra = (
-            lambda x: asset_event.calculate_load(x, x.input_voltage) < x.load
+            lambda x: asset_event.calculate_load(self.state, x.input_voltage)
+            * x.draw_percentage
+            < x.load
         )
 
         new_asset_load = asset_event.calculate_load(self.state, event.in_volt.new)
@@ -73,7 +76,11 @@ class Server(StaticAsset):
 
             # if alternative power source is currently having extra load
             # that the volt event source asset is supposed to be drawing
-            elif psu_sm.key != event.source_key and drawing_extra(psu_sm):
+            elif (
+                psu_sm.key != event.source_key
+                and math.isclose(event.in_volt.old, 0.0)
+                and drawing_extra(psu_sm)
+            ):
                 load_upd[key].new = (
                     load_upd[key].old - new_asset_load * e_src_psu.draw_percentage
                 )

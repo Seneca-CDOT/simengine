@@ -11,6 +11,7 @@ Feature: Server Load Handling
         Given the system model is empty
         And Outlet asset with key "1" is created
 
+    @dual-psu-asset
     Scenario Outline: Dual-PSU load re-destribution
         # initialize model & engine
         # (1)-[powers]->[1801:   server ]
@@ -61,6 +62,38 @@ Feature: Server Load Handling
             | 1     | 2     | offline | offline | online  | offline | 4.0 | 0.0 | 4.0  | 0.0  | 4.0 |
             | 1     | 2     | offline | offline | offline | online  | 0.0 | 4.0 | 0.0  | 4.0  | 4.0 |
             | 1     | 2     | offline | offline | offline | offline | 0.0 | 0.0 | 0.0  | 0.0  | 0.0 |
+
+
+
+    @dual-psu-asset
+    Scenario Outline: Dual-PSU load changes with wallpower voltage
+        # initialize model & engine
+        # (1)-[powers]->[1801:   server ]
+        # (2)-[powers]->[1802     180   ]
+        Given Outlet asset with key "2" is created
+        And Server asset with key "180", "2" PSU(s) and "480" Wattage is created
+
+        And asset "1" powers target "1801"
+        And asset "2" powers target "1802"
+        And Engine is up and running
+
+        When wallpower voltage "<ini-volt>" is updated to "<new-volt>"
+
+        # check load for assets
+        Then asset "1" load is set to "<1>"
+        Then asset "2" load is set to "<2>"
+
+        And asset "1801" load is set to "<1801>"
+        And asset "1802" load is set to "<1802>"
+
+        And asset "180" load is set to "<180>"
+
+        Examples: Downstream voltage drop chaining
+            | ini-volt | new-volt | 1   | 2   | 1801 | 1802 | 180 |
+            | 120      | 0        | 0.0 | 0.0 | 0.0  | 0.0  | 0.0 |
+            | 120      | 240      | 1.0 | 1.0 | 1.0  | 1.0  | 2.0 |
+            | 120      | 60       | 4.0 | 4.0 | 4.0  | 4.0  | 8.0 |
+
 
 
     Scenario Outline: Single PSU server acts just like a regular asset
