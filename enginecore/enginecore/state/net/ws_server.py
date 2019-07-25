@@ -351,14 +351,26 @@ class WebSocket(Component):
         if not event.state.unchanged():
             payload["status"] = event.state.new
 
-        self._notify_client({"request": client_request.name, "payload": payload})
+        self._notify_clients({"request": client_request.name, "payload": payload})
 
     @handler("MainsPowerEvent")
     def on_mains_change(self, event, *args, **kwargs):
         """Notify frontend of wallpower changes"""
         client_request = ServerToClientRequests.mains_upd
         payload = {"mains": event.mains.new}
-        self._notify_client({"request": client_request.name, "payload": payload})
+        self._notify_clients({"request": client_request.name, "payload": payload})
+
+    @handler("AmbientEvent")
+    def on_ambient_change(self, event, *args, **kwargs):
+        """Handle ambient event dispatched by engine so that the server
+        client(s) are updated"""
+        payload = {
+            "ambient": event.temperature.new,
+            "rising": event.temperature.difference > 0,
+        }
+        self._notify_clients(
+            {"request": ServerToClientRequests.ambient_upd.name, "payload": payload}
+        )
 
     @handler("AssetLoadEvent")
     def on_asset_load_change(self, event, *args, **kwargs):
@@ -371,14 +383,19 @@ class WebSocket(Component):
             client_request = ServerToClientRequests.asset_upd
             payload = {"key": event.asset.key, "load": event.load.new}
 
-            self._notify_client({"request": client_request.name, "payload": payload})
+            self._notify_clients({"request": client_request.name, "payload": payload})
 
-    def _notify_client(self, data):
+    def _notify_clients(self, data):
         """This handler is called upon state changes 
         and is meant to notify web-client of any events 
         
         Args:
-            data: data to be sent to ws clients
+            data: data to be sent to ws clients 
+                  must be in a format: 
+                {
+                    "request": <ServerToClientRequests.request.name>,
+                    "payload": <data>
+                }
         """
 
         for client in self._data_subscribers:
