@@ -55,7 +55,7 @@ class EventDataPair:
 
     def unchanged(self):
         """Returns true if event did not affect state"""
-        return self.old == self.new
+        return self.old == self.new or self.new is None
 
 
 class EngineEvent(Event):
@@ -86,6 +86,21 @@ class EngineEvent(Event):
     @branch.setter
     def branch(self, value):
         self._branch = value
+
+
+class MainsPowerEvent(EngineEvent):
+    """Event associated with power outage or power restoration"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "mains" not in kwargs:
+            raise KeyError("Mains state is missing")
+        self._mains = EventDataPair(kwargs["mains"] ^ 1, kwargs["mains"])
+
+    @property
+    def mains(self):
+        """Indicates wallpower state change"""
+        return self._mains
 
 
 class SignalEvent(EngineEvent):

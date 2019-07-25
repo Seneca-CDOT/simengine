@@ -11,7 +11,12 @@ from enginecore.state.state_initializer import initialize, clear_temp
 from enginecore.state.engine.iteration import PowerIteration, ThermalIteration
 from enginecore.state.engine.iteration_consumer import EngineIterationConsumer
 from enginecore.state.engine.data_source import HardwareGraphDataSource
-from enginecore.state.engine.events import AssetPowerEvent, SNMPEvent, AmbientEvent
+from enginecore.state.engine.events import (
+    AssetPowerEvent,
+    SNMPEvent,
+    AmbientEvent,
+    MainsPowerEvent,
+)
 
 
 class AllThermalBranchesDone(Event):
@@ -204,6 +209,10 @@ class Engine(Component):
             asset=None, old_out_volt=old_voltage, new_out_volt=new_voltage
         )
         self._notify_trackers(volt_event)
+        if math.isclose(old_voltage, 0.0) or math.isclose(new_voltage, 0.0):
+            self._notify_trackers(
+                MainsPowerEvent(mains=int(math.isclose(old_voltage, 0.0)))
+            )
 
         self._power_iter_handler.queue_iteration(PowerIteration(volt_event))
 

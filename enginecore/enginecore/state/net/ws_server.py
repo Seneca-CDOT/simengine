@@ -336,21 +336,42 @@ class WebSocket(Component):
         if sock in self._data_subscribers:
             self._data_subscribers.remove(sock)
 
-    @handler("AssetPowerEvent", "AssetLoadEvent")
-    def on_asset_power(self, event, *args, **kwargs):
+    @handler("AssetPowerEvent")
+    def on_asset_power_change(self, event, *args, **kwargs):
         """Handle engine events by passing updates to 
         server clients"""
-        if not event or not hasattr(event, "asset") or event.asset is None:
+        if not event or event.asset is None:
             return
 
-        payload = {"key": event.asset.key}
-        if hasattr(event, "load") and not event.load.unchanged():
-            payload["load"] = event.load.new
-        if hasattr(event, "state") and not event.state.unchanged():
-            payload["status"] = event.state.new
         client_request = ServerToClientRequests.asset_upd
+        payload = {"key": event.asset.key}
+
+        if not event.load.unchanged():
+            payload["load"] = event.load.new
+        if not event.state.unchanged():
+            payload["status"] = event.state.new
 
         self._notify_client({"request": client_request.name, "payload": payload})
+
+    @handler("MainsPowerEvent")
+    def on_mains_change(self, event, *args, **kwargs):
+        """Notify frontend of wallpower changes"""
+        client_request = ServerToClientRequests.mains_upd
+        payload = {"mains": event.mains.new}
+        self._notify_client({"request": client_request.name, "payload": payload})
+
+    @handler("AssetLoadEvent")
+    def on_asset_load_change(self, event, *args, **kwargs):
+        """Handle load changes event propagated by the engine by sending update
+        to the frontend"""
+        if not event:
+            return
+
+        if not event.load.unchanged():
+            client_request = ServerToClientRequests.asset_upd
+            payload = {"key": event.asset.key, "load": event.load.new}
+
+            self._notify_client({"request": client_request.name, "payload": payload})
 
     def _notify_client(self, data):
         """This handler is called upon state changes 
