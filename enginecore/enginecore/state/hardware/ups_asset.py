@@ -72,8 +72,9 @@ class UPS(Asset, SNMPSim):
     def _calc_full_power_time_left(self, wattage):
         """Approximate runtime estimation for the fully-charged battery"""
 
-        if math.isclose(wattage, 0.0):
-            wattage = 0.01
+        # Prevent from TimeTick value failing bounding constraints
+        if wattage < 0.1:
+            wattage = 0.1
 
         close_wattage = min(self._runtime_details, key=lambda x: abs(int(x) - wattage))
         close_timeleft = self._runtime_details[close_wattage]
@@ -167,8 +168,9 @@ class UPS(Asset, SNMPSim):
         # kill the thing if still breathing
         if self.state.status and self.state.on_battery:
             self._snmp_agent.stop_agent()
+            old_state = self.state.status
             self.state.power_off()
-            self.state.publish_power()
+            self.state.publish_power(old_state, self.state.status)
 
     def _charge_battery(self, power_up_on_charge=False):
         """Charge battery when there's upstream power source & battery is not full
@@ -211,9 +213,10 @@ class UPS(Asset, SNMPSim):
             if (not powered and power_up_on_charge) and (
                 battery_level > self.state.min_restore_charge_level
             ):
+                old_state = self.state.status
                 e_result = self.power_up()
                 powered = e_result.new_state
-                self.state.publish_power()
+                self.state.publish_power(old_state, self.state.status)
 
             old_battery_lvl = battery_level
             self._stop_event.wait(1)
