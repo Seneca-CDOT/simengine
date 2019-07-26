@@ -35,7 +35,7 @@ class EventDataPair:
     def old(self, value):
         if self._is_valid_value and not self._is_valid_value(value):
             raise ValueError("Provided event data value is invalid")
-        self._old_value = value
+        self._old_value = max(0, value)
 
     @property
     def new(self):
@@ -51,7 +51,7 @@ class EventDataPair:
     def new(self, value):
         if self._is_valid_value and not self._is_valid_value(value):
             raise ValueError("Provided event data value is invalid")
-        self._new_value = value
+        self._new_value = max(0, value)
 
     def unchanged(self):
         """Returns true if event did not affect state"""
