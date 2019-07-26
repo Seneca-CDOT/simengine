@@ -372,7 +372,9 @@ class UPS(Asset, SNMPSim):
             self._launch_battery_drain(reason)
             asset_event.out_volt.new = 120.0
 
-        if not math.isclose(asset_event.load.new, 0):
+        if not math.isclose(asset_event.load.new, 0) and not math.isclose(
+            asset_event.load.new, self.state.load
+        ):
             self._update_load(self.state.load + asset_event.load.difference)
 
         return asset_event

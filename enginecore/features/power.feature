@@ -1,5 +1,5 @@
-@sequential
 @power-behaviour
+@state-behaviour
 Feature: Power Chaining for Hardware Assets
     This is a set of simple power scenarios where one device can power another.
     Powering down a particular asset can cause a chain reaction of power events

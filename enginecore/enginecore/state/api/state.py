@@ -139,9 +139,10 @@ class IStateManager:
         Returns:
             int: Asset's status after power-off operation
         """
-        self._sleep_shutdown()
         if self.status:
+            self._sleep_shutdown()
             self._set_state_off()
+            return 0
         return self.status
 
     @record
@@ -154,6 +155,7 @@ class IStateManager:
         """
         if self.status:
             self._set_state_off()
+            return 0
         return self.status
 
     @record
@@ -170,6 +172,7 @@ class IStateManager:
             # udpate machine start time & turn on
             self._reset_boot_time()
             self._set_state_on()
+            return 1
         return self.status
 
     def _update_input_voltage(self, voltage: float):

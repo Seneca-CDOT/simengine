@@ -1,6 +1,6 @@
 @pdu-asset
-@sequential
 @power-behaviour
+@state-behaviour
 Feature: Power Chaining for PDU (with Multiple Children)
     Testing a multi-children power scenarios where one device can power more than one device.
     Powering down a particular asset can cause a chain reaction of power events

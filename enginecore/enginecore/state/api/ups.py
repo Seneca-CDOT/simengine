@@ -192,6 +192,8 @@ class IUPSStateManager(ISnmpDeviceStateManager):
     @Randomizer.randomize_method()
     def power_up(self):
 
+        powered = self.status
+
         if self.battery_level and not self.status:
             self._sleep_powerup()
             time.sleep(self.get_config_on_delay())
@@ -199,10 +201,9 @@ class IUPSStateManager(ISnmpDeviceStateManager):
             self._reset_boot_time()
             self._set_state_on()
 
-        powered = self.status
-        if powered:
             self._reset_power_off_oid()
             self._update_load(self.power_usage)
+            powered = 1
 
         return powered
 
