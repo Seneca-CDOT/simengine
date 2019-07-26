@@ -109,7 +109,13 @@ def step_impl(context, key, state):
     state_m = context.hardware[key]
 
     old_state = state_m.status
-    new_state = state_m.power_up() if state == "online" else state_m.shut_down()
+
+    if state == "online":
+        state_m.power_up()
+        new_state = 1
+    else:
+        state_m.shut_down()
+        new_state = 0
 
     context.engine.handle_state_update(key, old_state, new_state)
 

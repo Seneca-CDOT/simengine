@@ -46,7 +46,7 @@ class EngineIterationConsumer:
     def stop(self):
         """Join consumer thread (stop processing power queued power iterations)"""
         if self._current_iteration:
-            self.mark_iteration_done()
+            self._complete_task()
             self._event_queue.join()
 
         self.queue_iteration(None)
@@ -64,9 +64,15 @@ class EngineIterationConsumer:
         if not self._current_iteration:
             self._iteration_done_event.set()
 
-    def mark_iteration_done(self):
-        """Complete an iteration (so it can process next event in a queue if 
-        available)"""
+    def unfreeze_task_queue(self):
+        """Signal that current iteration is done (so handler can process
+         next event in a queue if available)"""
+
+        assert self.current_iteration.iteration_done
+        self._complete_task()
+
+    def _complete_task(self):
+        """Resets current iteration and signals _worker to accept new queued tasks"""
         self._current_iteration = None
         self._event_queue.task_done()
         self._iteration_done_event.set()

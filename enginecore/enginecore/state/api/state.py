@@ -195,25 +195,25 @@ class IStateManager:
         """Hardware-specific powerup delay"""
         self._sleep_delay("onDelay")
 
-    def _set_redis_asset_state(self, state, publish=True):
+    def _set_redis_asset_state(self, state):
         """Update redis value of the asset power status"""
         IStateManager.get_store().set(self.redis_key + ":state", state)
-        if publish:
-            self._publish_power()
 
     def _set_state_on(self):
         """Set state to online"""
-        self._set_redis_asset_state(1)
+        self._publish_power(self.status, 1)
 
     def _set_state_off(self):
         """Set state to offline"""
-        self._set_redis_asset_state(0)
+        self._publish_power(self.status, 0)
 
-    def _publish_power(self):
+    def _publish_power(self, old_state, new_state):
         """Notify daemon of power updates"""
         IStateManager.get_store().publish(
             RedisChannels.state_update_channel,
-            json.dumps({"key": self.key, "status": self.status}),
+            json.dumps(
+                {"key": self.key, "old_state": old_state, "new_state": new_state}
+            ),
         )
 
     def _reset_boot_time(self):

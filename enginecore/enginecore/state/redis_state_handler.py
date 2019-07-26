@@ -1,6 +1,8 @@
 """RedisStateHandler handles published data in enginecore redis pub/sub channels"""
 import logging
 import os
+import math
+from queue import Queue, Empty
 
 from circuits.web import Logger, Server, Static
 from circuits.web.dispatchers import WebSocketsDispatcher
@@ -11,11 +13,33 @@ from enginecore.state.redis_channels import RedisChannels
 from enginecore.state.net.ws_server import WebSocket
 
 
+class EngineStateTracker(Component):
+    timeout = 3
+
+    def __init__(self):
+        super().__init__()
+        self._load_done_queue = Queue()
+
+    @handler("AllLoadBranchesDone")
+    def on_load_branch_done(self, event, *args, **kwargs):
+        """Handler waits for engine to complete a power iteration"""
+        self._load_done_queue.put(event)
+
+    def wait_load_queue(self):
+        """Block execution until load iteration is completed"""
+        try:
+            return self._load_done_queue.get(timeout=EngineStateTracker.timeout)
+        except Empty:
+            pass
+
+
 class RedisStateHandler(Component):
     """Notifies engine of redis store updates of interest"""
 
     def __init__(self, engine_cls, debug=False, force_snmp_init=True):
         super(RedisStateHandler, self).__init__()
+
+        self._state_tracker = EngineStateTracker()
 
         logging.info("Initializing websocket server...")
         # set up a web socket server
@@ -37,6 +61,7 @@ class RedisStateHandler(Component):
         logging.info("Initializing engine...")
         self._engine = engine_cls(force_snmp_init=force_snmp_init).register(self)
         self._engine.subscribe_tracker(self._ws)
+        self._engine.subscribe_tracker(self._state_tracker)
 
         # Use redis pub/sub communication
         logging.info("Initializing redis connection...")
@@ -47,13 +72,17 @@ class RedisStateHandler(Component):
     def on_asset_power_state_change(self, data):
         """On user changing asset status"""
         self._engine.handle_state_update(
-            data["key"], data["status"] ^ 1, data["status"]
+            data["key"], data["old_state"], data["new_state"]
         )
+        if data["old_state"] != data["new_state"]:
+            self._state_tracker.wait_load_queue()
 
     @handler(RedisChannels.voltage_update_channel)
     def on_voltage_state_change(self, data):
         """React to voltage drop or voltage restoration"""
         self._engine.handle_voltage_update(data["old_voltage"], data["new_voltage"])
+        if not math.isclose(data["old_voltage"], data["new_voltage"]):
+            self._state_tracker.wait_load_queue()
 
     @handler(RedisChannels.oid_update_channel)
     def on_snmp_device_oid_change(self, data):

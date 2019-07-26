@@ -114,7 +114,7 @@ class Engine(Component):
         return self._assets
 
     def _notify_trackers(self, event):
-        """Dispatch power completion events to clients"""
+        """Dispatch completion events to clients"""
 
         for comp_tracker in self._completion_trackers:
             self.fire(event, comp_tracker)
@@ -135,7 +135,7 @@ class Engine(Component):
         events)
         """
         self._notify_trackers(AllLoadBranchesDone())
-        self._power_iter_handler.mark_iteration_done()
+        self._power_iter_handler.unfreeze_task_queue()
 
     def _chain_power_events(self, volt_events, load_events=None):
         """Chain power events by dispatching input power events
@@ -176,7 +176,7 @@ class Engine(Component):
 
         if self._thermal_iter_handler.current_iteration.iteration_done:
             self._notify_trackers(AllThermalBranchesDone())
-            self._thermal_iter_handler.mark_iteration_done()
+            self._thermal_iter_handler.unfreeze_task_queue()
 
         if not thermal_events:
             return
@@ -229,6 +229,7 @@ class Engine(Component):
             return
 
         updated_asset = self._assets[asset_key]
+        updated_asset.state.set_redis_asset_state(new_state)
         out_volt = updated_asset.state.input_voltage
 
         volt_event = AssetPowerEvent(
