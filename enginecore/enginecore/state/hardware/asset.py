@@ -4,22 +4,20 @@
 # **due to circuit callback signature
 # pylint: disable=W0613
 
-import logging
-import time
-
 from circuits import Component, handler
 from enginecore.state.hardware import event_results
 from enginecore.state.hardware.asset_definition import SUPPORTED_ASSETS
-from enginecore.state.hardware import asset_events
 
 
 class Asset(Component):
-    """Abstract Asset Class """
+    """Top asset component that aggregates behaviour shared
+    among all hardware devices; (all hardware assets must derive
+    from here)"""
 
     def __init__(self, state):
         super(Asset, self).__init__()
         self._state = state
-        self._state_reason = asset_events.ButtonPowerUpPressed
+        self._state_reason = None
         self.state.update_input_voltage(0)
 
         self.state.reset_boot_time()
@@ -48,14 +46,6 @@ class Asset(Component):
     @state_reason.setter
     def state_reason(self, value):
         self._state_reason = value
-
-    @property
-    def power_state_caused_by_user(self):
-        """Returns true if user powered down/up the asset (and not AC power event)"""
-        return (
-            self.state_reason == asset_events.ButtonPowerDownPressed
-            or self.state_reason == asset_events.ButtonPowerUpPressed
-        )
 
     def _update_load(self, new_load):
         """Update load for this asset"""
@@ -111,16 +101,6 @@ class Asset(Component):
         self._update_load(new_load)
         asset_load_event.load.new = new_load
         return asset_load_event
-
-    @handler("ButtonPowerDownPressed")
-    def on_btn_power_down(self, event):
-        """When user presses power button to turn asset off"""
-        self.state_reason = asset_events.ButtonPowerDownPressed
-
-    @handler("ButtonPowerUpPressed")
-    def on_btn_power_up(self, event):
-        """When user preses power button to turn asset on"""
-        self.state_reason = asset_events.ButtonPowerUpPressed
 
     @handler("AmbientUpEvent", "AmbientDownEvent")
     def on_ambient_updated(self, event, *args, **kwargs):
