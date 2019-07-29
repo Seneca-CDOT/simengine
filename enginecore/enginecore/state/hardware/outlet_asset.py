@@ -10,7 +10,6 @@ from circuits import handler
 
 import enginecore.state.hardware.internal_state as in_state
 from enginecore.state.hardware.asset import Asset
-from enginecore.state.hardware import event_results
 
 from enginecore.state.hardware.asset_definition import register_asset
 

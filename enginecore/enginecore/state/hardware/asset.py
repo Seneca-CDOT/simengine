@@ -5,7 +5,6 @@
 # pylint: disable=W0613
 
 from circuits import Component, handler
-from enginecore.state.hardware import event_results
 from enginecore.state.hardware.asset_definition import SUPPORTED_ASSETS
 
 
@@ -54,43 +53,23 @@ class Asset(Component):
     def power_up(self):
         """Power up this asset 
         Returns: 
-            PowerEventResult: tuple indicating asset key, type, old & new states
+            int: new state after power_up operation
         """
-        old_state = self.state.status
-        return event_results.PowerEventResult(
-            asset_key=self.state.key,
-            asset_type=self.state.asset_type,
-            old_state=old_state,
-            load_change=0,
-            new_state=self.state.power_up(),
-        )
+        return self.state.power_up()
 
     def shut_down(self):
         """Shut down this asset 
         Returns: 
-            PowerEventResult: tuple indicating asset key, type, old & new states
+            int: new state after power_up operation
         """
-        old_state = self.state.status
-        return event_results.PowerEventResult(
-            asset_key=self.state.key,
-            asset_type=self.state.asset_type,
-            old_state=old_state,
-            load_change=0,
-            new_state=self.state.shut_down(),
-        )
+        return self.state.shut_down()
 
     def power_off(self):
         """Power down this asset 
         Returns: 
-            PowerEventResult: tuple indicating asset key, type, old & new states
+            int: new state after power_up operation
         """
-        old_state = self.state.status
-        return event_results.PowerEventResult(
-            asset_key=self.state.key,
-            asset_type=self.state.asset_type,
-            old_state=old_state,
-            new_state=self.state.power_off(),
-        )
+        return self.state.power_off()
 
     @handler("ChildLoadUpEvent", "ChildLoadDownEvent")
     def on_child_load_update(self, event, *args, **kwargs):
@@ -104,6 +83,7 @@ class Asset(Component):
 
     @handler("AmbientUpEvent", "AmbientDownEvent")
     def on_ambient_updated(self, event, *args, **kwargs):
+        """Process Ambient temperature changes"""
         return event
 
     def _process_parent_volt_e(self, event):
