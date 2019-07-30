@@ -26,8 +26,8 @@ def configure_command(configure_state_group):
         "--drain-speed",
         type=float,
         help="Update factor of the battery drain (1 sets to regular speed)",
-        choices=range(1, 101),
-        metavar="[1-101]",
+        choices=range(1, 10001),
+        metavar="[1-10001]",
     )
 
     conf_ups_action.add_argument(
@@ -35,8 +35,8 @@ def configure_command(configure_state_group):
         "--charge-speed",
         type=float,
         help="Update factor of the battery charge (1 sets to regular speed)",
-        choices=range(1, 101),
-        metavar="[1-101]",
+        choices=range(1, 10001),
+        metavar="[1-10001]",
     )
 
     conf_sensor_action = conf_state_subp.add_parser(

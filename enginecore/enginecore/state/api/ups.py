@@ -120,7 +120,7 @@ class IUPSStateManager(ISnmpDeviceStateManager):
 
     @property
     def output_voltage(self):
-        return self.input_voltage if not self.on_battery else self.status * 120.0
+        return self.status * 120.0 if self.on_battery else self.input_voltage
 
     @property
     def wattage(self):

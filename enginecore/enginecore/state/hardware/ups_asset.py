@@ -168,9 +168,7 @@ class UPS(Asset, SNMPSim):
         # kill the thing if still breathing
         if self.state.status and self.state.on_battery:
             self._snmp_agent.stop_agent()
-            old_state = self.state.status
-            self.state.power_off()
-            self.state.publish_power(old_state, self.state.status)
+            self.state.publish_power(old_state=1, new_state=0)
 
     def _charge_battery(self, power_up_on_charge=False):
         """Charge battery when there's upstream power source & battery is not full
@@ -214,8 +212,7 @@ class UPS(Asset, SNMPSim):
                 battery_level > self.state.min_restore_charge_level
             ):
                 old_state = self.state.status
-                e_result = self.power_up()
-                powered = e_result.new_state
+                powered = self.power_up()
                 self.state.publish_power(old_state, self.state.status)
 
             old_battery_lvl = battery_level
@@ -303,10 +300,6 @@ class UPS(Asset, SNMPSim):
             self._launch_battery_drain(t_reason=self.state.transfer_reason)
         else:
             self._launch_battery_charge(power_up_on_charge=True)
-
-    @handler("AmbientUpEvent", "AmbientDownEvent")
-    def on_ambient_updated(self, event, *args, **kwargs):
-        self._state.update_temperature(7)
 
     def _get_ups_load_update(self, should_transfer):
         """Get formatted load event result 

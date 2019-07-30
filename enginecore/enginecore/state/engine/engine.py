@@ -223,7 +223,11 @@ class Engine(Component):
             return
 
         updated_asset = self._assets[asset_key]
-        out_volt = updated_asset.state.input_voltage
+        out_volt = (
+            updated_asset.state.input_voltage
+            if new_state
+            else updated_asset.state.output_voltage
+        )
 
         # notify updated hardware device of button event
         btn_event = (
