@@ -1,4 +1,8 @@
-# pylint: disable=no-name-in-module,function-redefined,missing-docstring,unused-import
+"""Implementation of feature steps for managing system power
+(power outages/hardware power states etc.)
+"""
+
+# pylint: disable=no-name-in-module,function-redefined,missing-docstring,unused-import,unused-wildcard-import, wildcard-import
 import logging
 import os
 import sys
@@ -32,6 +36,7 @@ class TestCompletionTracker(Component):
         self.load_done_queue = Queue()
         self.th_done_queue = Queue()
 
+    # pylint: disable=unused-argument
     @handler("AllVoltageBranchesDone")
     def on_volt_branch_done(self, event, *args, **kwargs):
         self.volt_done_queue.put(event)
@@ -44,6 +49,8 @@ class TestCompletionTracker(Component):
     @handler("AllThermalBranchesDone")
     def on_th_branch_done(self, event, *args, **kwargs):
         self.th_done_queue.put(event)
+
+    # pylint: enable=unused-argument
 
     def wait_load_queue(self):
         return self.load_done_queue.get(timeout=self._timeout)

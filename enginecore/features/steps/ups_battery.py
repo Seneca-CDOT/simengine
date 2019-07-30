@@ -1,13 +1,14 @@
 """Steps for testing UPS battery transfer logic and UPS snmp interface reporting correct
 OID key/value pairs
 """
+# pylint: disable=no-name-in-module,function-redefined,missing-docstring,unused-import,unused-wildcard-import, wildcard-import
+
 import logging
 import time
 
 from hamcrest import *
-
-# pylint: disable=no-name-in-module,function-redefined,missing-docstring,unused-import
 from behave import given, when, then, step
+
 from snmp import query_snmp_interface
 
 
