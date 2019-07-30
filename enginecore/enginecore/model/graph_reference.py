@@ -8,7 +8,6 @@ to db sessions and contains commonly used queries """
 import os
 import json
 import time
-from functools import lru_cache
 from enum import Enum
 
 from neo4j.v1 import GraphDatabase, basic_auth
@@ -298,7 +297,6 @@ class GraphReference:
         return assets
 
     @classmethod
-    @lru_cache(maxsize=32)
     def get_affected_assets(cls, session, asset_key):
         """Get information about assets affected by a change in parent's state
 

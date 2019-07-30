@@ -82,3 +82,11 @@ def step_impl(context, key, oid_num, oid_value):
 
     context.engine.handle_oid_update(key, oid_num, oid_value)
     context.tracker.wait_load_queue()
+
+
+@then('SNMP interface for asset "{key:d}" is "{snmp_state}"')
+def step_impl(context, key, snmp_state):
+    snmp_asset_info = context.hardware[key].asset_info
+    res = query_snmp_interface(
+        oid="1.3.6.1.2.1.1", host=snmp_asset_info["host"], port=snmp_asset_info["port"]
+    )
