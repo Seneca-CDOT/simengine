@@ -120,3 +120,5 @@ Feature: Power Chaining for PDU (with Multiple Children)
             | asset-key | asset-ini-state | asset-new-state | snmp-state  |
             | 1         | online          | offline         | unreachable |
             | 7         | online          | offline         | unreachable |
+            | 1         | offline         | online          | reachable   |
+            | 7         | offline         | online          | reachable   |

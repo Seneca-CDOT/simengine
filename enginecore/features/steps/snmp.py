@@ -88,5 +88,9 @@ def step_impl(context, key, oid_num, oid_value):
 def step_impl(context, key, snmp_state):
     snmp_asset_info = context.hardware[key].asset_info
     res = query_snmp_interface(
-        oid="1.3.6.1.2.1.1", host=snmp_asset_info["host"], port=snmp_asset_info["port"]
+        oid="1.3.6.1.2.1.1.5.0",
+        host=snmp_asset_info["host"],
+        port=snmp_asset_info["port"],
     )
+
+    assert_that(res, (none if snmp_state == "unreachable" else not_none)())

@@ -6,8 +6,6 @@ Plus there's an SNMP agent running in the background
 # **due to circuit callback signature
 # pylint: disable=W0613
 
-
-from circuits import handler
 import enginecore.state.hardware.internal_state as in_state
 from enginecore.state.hardware.asset import Asset
 from enginecore.state.hardware.snmp_asset import SNMPSim
@@ -19,7 +17,7 @@ from enginecore.state.hardware.asset_definition import register_asset
 class PDU(Asset, SNMPSim):
     """Provides reactive logic for PDU & manages snmp simulator instance
     Example:
-        powers down when upstream power becomes unavailable 
+        powers down when upstream power becomes unavailable (and SNMP agent is unreachable)
         powers back up when upstream power is restored
     """
 
@@ -30,28 +28,29 @@ class PDU(Asset, SNMPSim):
         Asset.__init__(self, state=PDU.StateManagerCls(asset_info))
         SNMPSim.__init__(self, self._state)
 
-    # @handler("ParentAssetPowerDown")
-    def on_power_off_request_received(self, event, *args, **kwargs):
-        """Power off & stop snmp simulator instance when parent is down"""
+    def power_up(self):
+        """Power up this asset 
+        Returns: 
+            int: new state after power_up operation
+        """
 
-        e_result = self.power_off()
-
-        event.success = e_result.new_state != e_result.old_state
-        if event.success:
-            self._snmp_agent.stop_agent()
-
-        return e_result
-
-    # @handler("ParentAssetPowerUp")
-    def on_power_up_request_received(self, event, *args, **kwargs):
-        """Power up PDU when upstream power source is restored """
-        e_result = self.power_up()
-        event.success = e_result.new_state != e_result.old_state
-        if event.success:
+        powered = super().power_up()
+        if powered:
             self._snmp_agent.start_agent()
             self._state.update_agent(self._snmp_agent.pid)
 
-        return e_result
+        return powered
+
+    def power_off(self):
+        """Power down this asset 
+        Returns: 
+            int: new state after power_up operation
+        """
+        powered = super().power_off()
+        if not powered:
+            self._snmp_agent.stop_agent()
+
+        return powered
 
     def stop(self, code=None):
         self._snmp_agent.stop_agent()
