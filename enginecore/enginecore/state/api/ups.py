@@ -85,7 +85,8 @@ class IUPSStateManager(ISnmpDeviceStateManager):
     @property
     def battery_level(self):
         """Get current level (high-precision)"""
-        return int(IStateManager.get_store().get(self.redis_key + ":battery").decode())
+        battery_lvl = IStateManager.get_store().get(self.redis_key + ":battery")
+        return int(battery_lvl.decode()) if battery_lvl else 0
 
     def _update_battery(self, charge_level):
         """Battery level setter

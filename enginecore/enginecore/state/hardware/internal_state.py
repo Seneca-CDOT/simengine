@@ -67,6 +67,9 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         Args:
             charge_level(int): new battery level (between 0 & 1000)
         """
+        charge_level = max(charge_level, 0)
+        charge_level = min(charge_level, self._max_battery_level)
+
         old_charge_level = self.battery_level
         self._update_battery(charge_level)
         self._update_battery_oids(charge_level, self.battery_level)
