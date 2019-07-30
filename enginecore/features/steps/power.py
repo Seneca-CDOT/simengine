@@ -132,6 +132,13 @@ def step_impl(context, key, state):
     assert_that(context.hardware[key].status, equal_to(state_num))
 
 
+@then('after "{seconds:d}" seconds, asset "{key:d}" is "{state}"')
+def step_impl(context, seconds, key, state):
+    time.sleep(seconds)
+    state_num = 1 if state == "online" else 0
+    assert_that(context.hardware[key].status, equal_to(state_num))
+
+
 @then('asset "{key:d}" input voltage is "{volt:d}"')
 def step_impl(context, key, volt):
     assert_that(context.hardware[key].input_voltage, equal_to(volt))

@@ -40,6 +40,14 @@ def step_impl(context, old_volt, high_th, volt_change, key):
     _check_volt_threshold(context, key, high_th, old_volt, volt_change)
 
 
+@given('UPS "{key:d}" battery "{factor_type}" factor is set to "{factor_num:d}"')
+def step_impl(context, key, factor_type, factor_num):
+    if factor_type == "drain":
+        context.engine.assets[key].drain_speed_factor = factor_num
+    else:
+        context.engine.assets[key].charge_speed_factor = factor_num
+
+
 @then('UPS "{key:d}" is "{expected_state}" battery')
 def step_impl(context, key, expected_state):
     on_battery = context.hardware[key].on_battery
