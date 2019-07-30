@@ -1,3 +1,5 @@
+
+# not ci friendly because this requires a VM running (with vm name set in behave.ini)
 @not-ci-friendly
 @server-asset
 @voltage-behaviour

@@ -1,5 +1,6 @@
 @voltage-behaviour
 @power-behaviour
+@quick-test
 Feature: System handles voltage updates
     Voltage may affect asset states by causing them to power off (if underpowered)
     or back up (AC restored)
