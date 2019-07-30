@@ -101,15 +101,13 @@ class Asset(Component):
         # check new input voltage
         # Asset is underpowered (volt is too low)
         if new_out_volt <= min_voltage and asset_event.state.old:
-            power_action = self.state.power_off
+            power_action = self.power_off
         # Asset was offline and underpowered, power back up
         elif new_out_volt > min_voltage and not asset_event.state.old:
-            power_action = self.state.power_up
+            power_action = self.power_up
 
         # re-set output voltage values in case of power condition
         if power_action:
-            # TODO: should call asset implementations
-            # (on_power_up_request_received/on_power_off_request_received)
             asset_event.state.new = power_action()
             asset_event.out_volt.old = old_out_volt * asset_event.state.old
             asset_event.out_volt.new = new_out_volt * asset_event.state.new
@@ -121,6 +119,11 @@ class Asset(Component):
             )
 
         return asset_event
+
+    @handler("PowerButtonOnEvent", "PowerButtonOffEvent", priority=10)
+    def on_power_button_pressed(self, event, *args, **kwargs):
+        """Update redis state once request goes through"""
+        self.state.set_redis_asset_state(event.state.new)
 
     @handler("InputVoltageUpEvent", "InputVoltageDownEvent", priority=-1)
     def detect_input_voltage(self, event, *args, **kwargs):

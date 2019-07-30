@@ -127,6 +127,32 @@ class MainsPowerEvent(EngineEvent):
         return self._mains
 
 
+class PowerButtonEvent(EngineEvent):
+    """Asset's power state changed due to user turning asset off/on"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        required_args = ["old_state", "new_state"]
+
+        if not all(r_arg in kwargs for r_arg in required_args):
+            raise KeyError("Needs arguments: " + ",".join(required_args))
+
+        self._state = EventDataPair(kwargs["old_state"], kwargs["new_state"])
+
+    @property
+    def state(self):
+        """Retrieve temperature change"""
+        return self._state
+
+
+class PowerButtonOnEvent(PowerButtonEvent):
+    """Asset was powered on by a user"""
+
+
+class PowerButtonOffEvent(PowerButtonEvent):
+    """Asset was powered off by a user"""
+
+
 class SignalEvent(EngineEvent):
     """Asset was signaled to update its power state through network interface"""
 
