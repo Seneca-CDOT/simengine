@@ -76,7 +76,13 @@ class Asset(Component):
 
     @handler("ChildLoadUpEvent", "ChildLoadDownEvent")
     def on_child_load_update(self, event, *args, **kwargs):
-        """Process child load changes by updating load of the device"""
+        """Process child asset load changes by updating load of this device
+        Args:
+            event(ChildLoadEvent): load event associated with a child node
+                                   powered by this asset
+        Returns:
+            AssetLoadEvent: contains load update details for this asset
+        """
         asset_load_event = event.get_next_load_event(self)
         new_load = asset_load_event.load.old + event.load.difference
 
@@ -141,7 +147,13 @@ class Asset(Component):
     @handler("InputVoltageUpEvent")
     def on_input_voltage_up(self, event, *args, **kwargs):
         """React to input voltage spike;
-        Asset can power up on volt increase if it was down;
+        Asset can power up on volt increase if it was offline;
+        Args:
+            event(InputVoltageUpEvent): input voltage event indicating
+                                        that source voltage has increased
+        Returns:
+            AssetPowerEvent: event indicating possible power changes due to 
+                             voltage change (e.g. load, power state changes etc.)
         """
         return self._process_parent_volt_e(event)
 
@@ -149,16 +161,15 @@ class Asset(Component):
     def on_input_voltage_down(self, event, *args, **kwargs):
         """React to input voltage drop;
         Asset can power off if input voltage drops below the acceptable
-        threshold"""
+        threshold.
+        Args:
+            event(InputVoltageDownEvent): input voltage event indicating
+                                          that source voltage has dropped
+        Returns:
+            AssetPowerEvent: event indicating possible power changes due to 
+                             voltage change (e.g. load, power state changes etc.)
+        """
         return self._process_parent_volt_e(event)
-
-    def on_power_up_request_received(self, event, *args, **kwargs):
-        """Called on voltage spike"""
-        raise NotImplementedError
-
-    def on_power_off_request_received(self, event, *args, **kwargs):
-        """Called on voltage drop"""
-        raise NotImplementedError
 
     def __str__(self):
         return self.state.__str__()

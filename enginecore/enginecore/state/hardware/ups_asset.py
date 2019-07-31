@@ -447,14 +447,6 @@ class UPS(Asset, SNMPSim):
             )
         return upd_result
 
-    def on_power_up_request_received(self, event, *args, **kwargs):
-        """Called on voltage spike"""
-        raise NotImplementedError
-
-    def on_power_off_request_received(self, event, *args, **kwargs):
-        """Called on voltage drop"""
-        raise NotImplementedError
-
     def __str__(self):
         return super().__str__() + (
             " [charge-state]\n"
