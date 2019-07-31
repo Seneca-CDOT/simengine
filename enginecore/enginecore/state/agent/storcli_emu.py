@@ -5,6 +5,7 @@ import os
 import logging
 import time
 from distutils import dir_util
+import select
 
 import json
 import socket
@@ -85,6 +86,13 @@ class StorCLIEmulator:
         os.makedirs(self._storcli_dir)
         dir_util.copy_tree(os.environ.get("SIMENGINE_STORCLI_TEMPL"), self._storcli_dir)
 
+        self.start_server(asset_key, socket_port)
+
+    def start_server(self, asset_key, socket_port):
+        """Launch storcli thread"""
+
+        self._stop_event = threading.Event()
+
         self._socket_t = threading.Thread(
             target=self._listen_cmds,
             args=(socket_port,),
@@ -93,6 +101,11 @@ class StorCLIEmulator:
 
         self._socket_t.daemon = True
         self._socket_t.start()
+
+    def stop_server(self):
+        """Stop """
+        self._stop_event.set()
+        self._serversocket.close()
 
     def _strcli_header(self, ctrl_num=0, status="Success"):
         """Reusable header for storcli output"""
@@ -581,15 +594,23 @@ class StorCLIEmulator:
     def _listen_cmds(self, socket_port):
         """Start storcli websocket server """
 
-        serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        serversocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        serversocket.bind(("", socket_port))
-        serversocket.listen(5)
+        self._serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._serversocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self._serversocket.bind(("", socket_port))
+        self._serversocket.listen(5)
 
-        conn, _ = serversocket.accept()
+        try:
+            conn, _ = self._serversocket.accept()
+        except OSError:
+            logger.warning("Could not initialize socket server!")
+            return
 
         with conn:
-            while True:
+            while not self._stop_event.is_set():
+
+                scout_r, _, _ = select.select([conn], [], [])
+                if not scout_r:
+                    continue
 
                 data = conn.recv(1024)
                 if not data:
@@ -660,3 +681,6 @@ class StorCLIEmulator:
 
                 # Send the message
                 conn.sendall(bytes(json.dumps(reply) + "\n", "UTF-8"))
+
+        self._serversocket.close()
+        conn.close()
