@@ -125,12 +125,34 @@ Feature: Server Load Handling
 
         And asset "9" load is set to "<9>"
 
+        Examples: All Power Sources present
+            | key-1 | key-2 | 1-ini  | 2-ini  | 1-new  | 2-new  | 1    | 2    | 22   | 91   | 92   | 9   |
+            | 1     | 2     | online | online | online | online | 2.25 | 2.25 | 2.25 | 2.25 | 2.25 | 4.0 |
+
+
+        Examples: Having both power sources offline should result in zero load
+            | key-1 | key-2 | 1-ini  | 2-ini  | 1-new   | 2-new   | 1    | 2    | 22   | 91   | 92   | 9    |
+            | 1     | 2     | online | online | offline | offline | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+            | 1     | 22    | online | online | offline | offline | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+            | 91    | 92    | online | online | offline | offline | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+            | 91    | 92    | online | online | offline | offline | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+
+
         # manipulate 2 input power streams for the server
         # (each powering a PSU)
         Examples: Switching states from online to offline for outlets powering 2 PSUs should affect load
-            | key-1 | key-2 | 1-ini  | 2-ini  | 1-new   | 2-new  | 1    | 2    | 22   | 91   | 92   | 9   |
-            | 1     | 2     | online | online | online  | online | 2.25 | 2.25 | 2.25 | 2.25 | 2.25 | 4.0 |
-            | 1     | 2     | online | online | offline | online | 0.00 | 4.25 | 4.25 | 0.0  | 4.25 | 4.0 |
+            | key-1 | key-2 | 1-ini  | 2-ini  | 1-new   | 2-new   | 1    | 2    | 22   | 91   | 92   | 9   |
+            | 1     | 2     | online | online | online  | online  | 2.25 | 2.25 | 2.25 | 2.25 | 2.25 | 4.0 |
+            | 1     | 2     | online | online | offline | online  | 0.00 | 4.25 | 4.25 | 0.0  | 4.25 | 4.0 |
+            | 1     | 2     | online | online | online  | offline | 4.25 | 0.00 | 0.00 | 4.25 | 0.00 | 4.0 |
+            | 1     | 22    | online | online | online  | offline | 4.25 | 0.00 | 0.00 | 4.25 | 0.00 | 4.0 |
+
+        Examples: Switching states from online to offline for PSUs should affect load
+            | key-1 | key-2 | 1-ini  | 2-ini  | 1-new   | 2-new   | 1    | 2    | 22   | 91   | 92   | 9   |
+            | 91    | 92    | online | online | offline | online  | 0.00 | 4.25 | 4.25 | 0.0  | 4.25 | 4.0 |
+            | 91    | 92    | online | online | online  | offline | 4.25 | 0.00 | 0.00 | 4.25 | 0.00 | 4.0 |
+            | 91    | 92    | online | online | online  | offline | 4.25 | 0.00 | 0.00 | 4.25 | 0.00 | 4.0 |
+
 
 
     Scenario Outline: Single PSU server acts just like a regular asset
