@@ -88,6 +88,26 @@ def step_impl(context, key, psu_num, wattage):
         context.hardware[psu_key] = IStateManager.get_state_manager_by_key(psu_key)
 
 
+@given('ServerBMC asset with key "{key:d}" and "{wattage:d}" Wattage is created')
+def step_impl(context, key, wattage):
+
+    sm.create_server(
+        key,
+        {
+            "domain_name": context.config.userdata["test_vm"],
+            "power_consumption": wattage,
+            "psu_power_consumption": 0,
+            "psu_power_source": 120,
+        },
+        server_variation=sm.ServerVariations.ServerWithBMC,
+    )
+
+    context.hardware[key] = IStateManager.get_state_manager_by_key(key)
+
+    for psu_key in context.hardware[key].asset_info["children"]:
+        context.hardware[psu_key] = IStateManager.get_state_manager_by_key(psu_key)
+
+
 @given(
     'Lamp asset with key "{key:d}", minimum "{min_volt:d}" Voltage and "{wattage:d}" Wattage is created'
 )
