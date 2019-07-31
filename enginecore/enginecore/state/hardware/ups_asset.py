@@ -455,6 +455,16 @@ class UPS(Asset, SNMPSim):
         """Called on voltage drop"""
         raise NotImplementedError
 
+    def __str__(self):
+        return super().__str__() + (
+            " [charge-state]\n"
+            "   - thread active: {0.charging_battery}\n"
+            "   - speed factor: {0.charge_speed_factor}\n"
+            " [drain-state]\n"
+            "   - thread active: {0.draining_battery}\n"
+            "   - speed factor: {0.drain_speed_factor}\n"
+        ).format(self)
+
     def stop(self, code=None):
         self._snmp_agent.stop_agent()
         self._stop_event.set()
