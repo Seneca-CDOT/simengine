@@ -45,6 +45,23 @@ class Server(StaticAsset):
 
         self.state.power_up()
 
+    def _psu_drawing_extra(self, psu_sm):
+        """Check if a particular psu is drawing extra power
+        Returns:
+            boolean: True if psu is drawing above the expected value 
+                     (meaning it is taking over someone else's load)
+        """
+
+        calc_load = lambda consumption, voltage: consumption / voltage if voltage else 0
+
+        psu_draw = (
+            calc_load(self.state.power_consumption, psu_sm.input_voltage)
+            * psu_sm.draw_percentage
+        )
+        psu_draw += calc_load(psu_sm.power_consumption, psu_sm.input_voltage)
+
+        return psu_draw < psu_sm.load
+
     @handler("InputVoltageUpEvent")
     def on_input_voltage_up(self, event, *args, **kwargs):
         asset_event = event.get_next_power_event(self)
@@ -56,12 +73,6 @@ class Server(StaticAsset):
         load_upd = {}
         extra_draw = 0.0
         load_should_change = True
-
-        drawing_extra = (
-            lambda x: asset_event.calculate_load(self.state, x.input_voltage)
-            * x.draw_percentage
-            < x.load
-        )
 
         new_asset_load = asset_event.calculate_load(self.state, event.in_volt.new)
         old_asset_load = asset_event.calculate_load(self.state, event.in_volt.old)
@@ -80,7 +91,7 @@ class Server(StaticAsset):
             elif (
                 psu_sm.key != event.source_key
                 and math.isclose(event.in_volt.old, 0.0)
-                and drawing_extra(psu_sm)
+                and self._psu_drawing_extra(psu_sm)
             ):
                 # asset load should not change (we are just redistributing same load)
                 load_upd[key].new = (
@@ -293,6 +304,11 @@ class ServerWithBMC(Server):
     def on_asset_did_power_on(self):
         """Update senosrs on power online"""
         self._sensor_repo.power_up_sensors()
+
+    def stop(self, code=None):
+        self._ipmi_agent.stop_agent()
+        self._storcli_emu.stop_server()
+        super().stop(code)
 
 
 @register_asset
