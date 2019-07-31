@@ -182,7 +182,7 @@ class IStateManager:
 
     def _update_load(self, load: float):
         """Update power load for the asset"""
-        load = load if load >= 0.0 else 0.0
+        load = max(load, 0.0)
         IStateManager.get_store().set(self.redis_key + ":load", load)
 
     def _sleep_delay(self, delay_type):
@@ -409,29 +409,23 @@ class IStateManager:
 
         graph_ref = GraphReference()
         with graph_ref.get_session() as session:
-
             play_path = GraphReference.get_play_path(session)
-            if not play_path:
-                return ([], [])
 
-            play_files = [
-                f
-                for f in os.listdir(play_path)
-                if os.path.isfile(os.path.join(play_path, f))
-            ]
+        if not play_path:
+            return ([], [])
 
-            return (
-                [
-                    os.path.splitext(f)[0]
-                    for f in play_files
-                    if os.path.splitext(f)[1] != ".py"
-                ],
-                [
-                    os.path.splitext(f)[0]
-                    for f in play_files
-                    if os.path.splitext(f)[1] == ".py"
-                ],
-            )
+        play_files = [
+            f
+            for f in os.listdir(play_path)
+            if os.path.isfile(os.path.join(play_path, f))
+        ]
+
+        is_py_file = lambda f: os.path.splitext(f)[1] == ".py"
+
+        return (
+            [os.path.splitext(f)[0] for f in play_files if not is_py_file(f)],
+            [os.path.splitext(f)[0] for f in play_files if is_py_file(f)],
+        )
 
     @classmethod
     def execute_play(cls, play_name):

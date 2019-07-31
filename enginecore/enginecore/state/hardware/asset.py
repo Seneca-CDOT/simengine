@@ -4,6 +4,7 @@
 # **due to circuit callback signature
 # pylint: disable=W0613
 
+import logging
 from circuits import Component, handler
 from enginecore.state.hardware.asset_definition import SUPPORTED_ASSETS
 
@@ -129,10 +130,8 @@ class Asset(Component):
     def detect_input_voltage(self, event, *args, **kwargs):
         """Update input voltage"""
         self.state.update_input_voltage(kwargs["new_in_volt"])
-        print(
-            "VOLTAGE {} {}, in[{}]".format(
-                event.name, self.key, self.state.input_voltage
-            )
+        logging.info(
+            "VOLTAGE %s %s, in[%s]", event.name, self.key, self.state.input_voltage
         )
 
     @handler("InputVoltageUpEvent")

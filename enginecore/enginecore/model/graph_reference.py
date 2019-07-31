@@ -460,7 +460,6 @@ class GraphReference:
             MATCH (outlet:Outlet) WHERE NOT (outlet)-[:POWERED_BY]->(:Asset) RETURN outlet.key as key
             """
         )
-        # print(results['key'])
         return list(map(lambda x: x.get("key"), results))
 
     @classmethod

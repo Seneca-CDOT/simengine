@@ -99,7 +99,6 @@ def step_impl(context, key, min_volt, wattage):
 @given('asset "{source_key:d}" powers target "{dest_key:d}"')
 def step_impl(context, source_key, dest_key):
 
-    # print(context.hardware)
     assert_that(source_key, is_in(context.hardware))
     assert_that(dest_key, is_in(context.hardware))
 
