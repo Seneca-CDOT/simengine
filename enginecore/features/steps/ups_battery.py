@@ -55,6 +55,16 @@ def step_impl(context, key, expected_state):
     assert_that(on_battery if expected_state == "on" else not on_battery)
 
 
+@then('UPS "{key:d}" battery is "{expected_charge_state}"')
+def step_impl(context, key, expected_charge_state):
+    ups_asset = context.engine.assets[key]
+
+    should_be_draining = expected_charge_state == "draining"
+
+    assert_that(ups_asset.draining_battery, equal_to(should_be_draining))
+    assert_that(ups_asset.charging_battery, not_(equal_to(should_be_draining)))
+
+
 @then('UPS "{key:d}" transfer reason is set to "{t_reason}"')
 def step_impl(context, key, t_reason):
     # Test both snmp interface and ups instance

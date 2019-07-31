@@ -410,6 +410,16 @@ class UPS(Asset, SNMPSim):
         return asset_event
 
     @property
+    def draining_battery(self):
+        """Returns true if UPS battery is being drained"""
+        return self._battery_drain_t is not None and self._battery_drain_t.isAlive()
+
+    @property
+    def charging_battery(self):
+        """Returns true if UPS battery is getting re-charged"""
+        return self._battery_charge_t is not None and self._battery_charge_t.isAlive()
+
+    @property
     def charge_speed_factor(self):
         """Estimated charge/sec will be multiplied by this value"""
         return self._charge_speed_factor
