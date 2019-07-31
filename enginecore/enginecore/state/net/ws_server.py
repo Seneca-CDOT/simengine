@@ -23,7 +23,15 @@ logger = logging.getLogger(__name__)
 
 
 class WebSocket(Component):
-    """Simple Web-Socket server that handles interactions between frontend & enginecore """
+    """a Web-Socket server that handles interactions between:
+    - frontend & enginecore
+    - cli client & enginecore (see state_client.py)
+
+    WebSocket also manages action recorder, handles replay requests
+    
+    WebSocket is added as event tracker to the engine so any completion
+    events dispatched by engine are passed to websocket client
+    """
 
     channel = "wsserver"
 
@@ -338,6 +346,9 @@ class WebSocket(Component):
         if sock in self._data_subscribers:
             self._data_subscribers.remove(sock)
 
+    # == Engine state handlers (passes engine events to websocket client) ==
+
+    # pylint: disable=unused-argument
     @handler("AssetPowerEvent")
     def on_asset_power_change(self, event, *args, **kwargs):
         """Handle engine events by passing updates to 
@@ -394,6 +405,8 @@ class WebSocket(Component):
         self._notify_clients(
             {"request": ServerToClientRequests.asset_upd.name, "payload": payload}
         )
+
+    # pylint: enable=unused-argument
 
     def _notify_clients(self, data):
         """This handler is called upon state changes 
