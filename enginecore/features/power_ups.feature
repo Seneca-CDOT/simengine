@@ -54,9 +54,9 @@ Feature: UPS goes offline when it runs out of battery
         And asset "1" is "<ps-ini-state>"
 
         # Toggle UPS state
-        When asset "8" goes "<ups-ini-state>"
+        When asset "1" goes "<ps-new-state>"
+        And asset "8" goes "<ups-ini-state>"
         And asset "8" goes "<ups-new-state>"
-        And asset "1" goes "<ps-new-state>"
 
         Then UPS "8" is "<battery-status>" battery
         And UPS "8" battery is "<battery-charge-status>"
@@ -67,7 +67,7 @@ Feature: UPS goes offline when it runs out of battery
 
         Examples: UPS starts battery charge when powered on with power source online
             | ps-ini-state | ps-new-state | ups-ini-state | ups-new-state | battery-status | battery-charge-status |
-            | online       | online       | offline       | online        | not on         | charging              |
+            | online       | online       | offline       | online        | not on         | inactive              |
             | offline      | online       | offline       | online        | not on         | charging              |
 
 

@@ -127,17 +127,14 @@ class Asset(Component):
     def on_power_button_pressed(self, event, *args, **kwargs):
         """Update redis state once request goes through"""
         self.state.set_redis_asset_state(event.state.new)
-        logger.debug("Hardware asset was powered by a user:")
-        logger.debug(self)
 
     @handler("InputVoltageUpEvent", "InputVoltageDownEvent", priority=-1)
     def detect_input_voltage(self, event, *args, **kwargs):
         """Update input voltage
-        (called after every other handler due to priority set to -1)
+        (called before every other handler due to priority set to -1)
         """
-
         self.state.update_input_voltage(kwargs["new_in_volt"])
-        logger.info(
+        logger.debug(
             "VOLTAGE %s %s, in[%s]", event.name, self.key, self.state.input_voltage
         )
 

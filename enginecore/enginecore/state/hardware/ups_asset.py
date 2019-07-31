@@ -292,8 +292,8 @@ class UPS(Asset, SNMPSim):
 
         return e_result
 
-    @handler("ButtonPowerUpPressed")
-    def on_ups_signal_up(self):
+    @handler("PowerButtonOnEvent")
+    def on_ups_signal_up(self, event, *args, **kwargs):
         """When user powers up UPS device"""
 
         if self.state.on_battery:
