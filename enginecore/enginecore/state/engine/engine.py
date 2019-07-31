@@ -13,6 +13,8 @@ from enginecore.state.engine.iteration_consumer import EngineIterationConsumer
 from enginecore.state.engine.data_source import HardwareGraphDataSource
 from enginecore.state.engine import events
 
+logger = logging.getLogger(__name__)
+
 
 class AllThermalBranchesDone(Event):
     """Dispatched when all hardware assets finish
@@ -50,7 +52,7 @@ class Engine(Component):
         super(Engine, self).__init__()
 
         ### Set-up WebSocket & Redis listener ###
-        logging.info("Starting simengine daemon...")
+        logger.info("Starting simengine daemon...")
 
         # assets will store all the devices/items including PDUs, switches etc.
         self._assets = {}
@@ -72,13 +74,13 @@ class Engine(Component):
 
         # Register assets and reset power state
         self.reload_model(force_snmp_init)
-        logging.info("Physical Environment:\n%s", self._sys_environ)
+        logger.info("Physical Environment:\n%s", self._sys_environ)
 
     def reload_model(self, force_snmp_init=True):
         """Re-create system topology (instantiate assets based on graph ref)"""
 
         RECORDER.enabled = False
-        logging.info("Initializing system topology...")
+        logger.info("Initializing system topology...")
 
         self._assets = {}
 
@@ -255,7 +257,7 @@ class Engine(Component):
             value(str): OID value
         """
         if asset_key not in self._assets:
-            logging.warning("Asset [%s] does not exist!", asset_key)
+            logger.warning("Asset [%s] does not exist!", asset_key)
             return
 
         # get asset key associated with the oid & oid details
@@ -264,7 +266,7 @@ class Engine(Component):
         )
 
         if not oid_details:
-            logging.warning(
+            logger.warning(
                 "OID:[%s] for asset:[%s] cannot be processed by engine!", oid, asset_key
             )
             return

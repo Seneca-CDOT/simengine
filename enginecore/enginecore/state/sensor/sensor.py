@@ -14,6 +14,8 @@ from enum import Enum
 from enginecore.state.api.environment import ISystemEnvironment
 from enginecore.model.graph_reference import GraphReference
 
+logger = logging.getLogger(__name__)
+
 
 class HDComponents(Enum):
     """Thermal storage target types"""
@@ -275,7 +277,7 @@ class Sensor:
                             new_calc_value if new_calc_value > ambient else int(ambient)
                         )
 
-                        logging.info(
+                        logger.debug(
                             "Thermal impact of CPU load at (%s%%) updated: (%s°)->(%s°)",
                             current_cpu_load,
                             cpu_impact_degrees_1,
@@ -347,7 +349,7 @@ class Sensor:
                     )
 
                     if updated:
-                        logging.info("temperature sensor was updated to %s°", new_temp)
+                        logger.info("temperature sensor was updated to %s°", new_temp)
 
                 time.sleep(rel["rate"])
 
@@ -430,7 +432,7 @@ class Sensor:
                             new_sensor_value = int(pause_at)
 
                         if needs_update:
-                            logging.info(
+                            logger.info(
                                 "Current sensor value (%s°) will be updated to %s°",
                                 current_value,
                                 int(new_sensor_value),
@@ -558,7 +560,6 @@ class Sensor:
 
     def start_thermal_impact(self):
         """Enable thread execution responsible for thermal updates"""
-        # logging.info("Sensor:[%s] - initializing thermal processes", self._s_name)
         self._init_thermal_impact()
         self.enable_thermal_impact()
 

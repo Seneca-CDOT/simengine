@@ -10,6 +10,8 @@ from enginecore.model.graph_reference import GraphReference
 from enginecore.state.sensor.file_locks import SensorFileLocks
 from enginecore.state.sensor.sensor import Sensor, SensorGroups
 
+logger = logging.getLogger(__name__)
+
 
 class SensorRepository:
     """A sensor repository for a particular IPMI device"""
@@ -107,7 +109,7 @@ class SensorRepository:
                         else new_ambient
                     )
 
-                    logging.info(
+                    logger.debug(
                         "Sensor:[%s] updated from %s° to %s° due to ambient changes (%s°)->(%s°)",
                         sensor.name,
                         old_sensor_value,

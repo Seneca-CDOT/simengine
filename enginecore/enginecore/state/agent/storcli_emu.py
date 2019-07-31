@@ -15,6 +15,8 @@ from string import Template
 from enginecore.model.graph_reference import GraphReference
 from enginecore.tools.query_helpers import to_camelcase
 
+logger = logging.getLogger(__name__)
+
 
 class StorCLIEmulator:
     """This component emulates storcli behaviour
@@ -596,13 +598,13 @@ class StorCLIEmulator:
                 try:
                     received = json.loads(data)
                 except json.decoder.JSONDecodeError as parse_err:
-                    logging.info(data)
-                    logging.info("Invalid JSON: ")
-                    logging.info(parse_err)
+                    logger.warning(data)
+                    logger.warning("Invalid JSON: ")
+                    logger.warning(parse_err)
 
                 argv = received["argv"]
 
-                logging.info("Data received: %s", str(received))
+                logger.debug("Data received: %s", str(received))
 
                 reply = {"stdout": "", "stderr": "", "status": 0}
 

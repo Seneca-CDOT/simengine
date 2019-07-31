@@ -25,6 +25,8 @@ from enginecore.state.sensor.repository import SensorRepository
 from enginecore.state.state_initializer import get_temp_workplace_dir
 from enginecore.state.engine.events import EventDataPair
 
+logger = logging.getLogger(__name__)
+
 
 @register_asset
 class Server(StaticAsset):
@@ -179,7 +181,7 @@ class ServerWithBMC(Server):
         )
 
         self.state.update_agent(self._ipmi_agent.pid)
-        logging.info(self._ipmi_agent)
+        logger.info(self._ipmi_agent)
 
         self.state.update_cpu_load(0)
         self._cpu_load_t = None
@@ -221,7 +223,7 @@ class ServerWithBMC(Server):
                 if cpu_time_1:
                     self.state.update_cpu_load(calc_cpu_load(cpu_time_1, cpu_time_2))
                     cpu_i = "server[{0.key}] CPU load:{0.cpu_load}%".format(self.state)
-                    logging.info(cpu_i)
+                    logger.debug(cpu_i)
 
                 cpu_time_1 = cpu_time_2
             else:

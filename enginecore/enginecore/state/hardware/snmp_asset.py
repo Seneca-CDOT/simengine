@@ -5,6 +5,8 @@ import logging
 from circuits import handler
 from enginecore.state.agent import SNMPAgent
 
+logger = logging.getLogger(__name__)
+
 
 class SNMPSim:
     """Snmp simulator running snmpsim program"""
@@ -15,7 +17,7 @@ class SNMPSim:
         self._state = state
         self._state.update_agent(self._snmp_agent.pid)
 
-        logging.info(self._snmp_agent)
+        logger.info(self._snmp_agent)
 
     @handler("PowerButtonOffEvent")
     def on_asset_did_power_off(self, event, *args, **kwargs):

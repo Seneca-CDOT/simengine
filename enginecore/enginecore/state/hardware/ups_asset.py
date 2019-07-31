@@ -18,6 +18,8 @@ from enginecore.state.hardware.snmp_asset import SNMPSim
 
 from enginecore.state.hardware.asset_definition import register_asset
 
+logger = logging.getLogger(__name__)
+
 
 @register_asset
 class UPS(Asset, SNMPSim):
@@ -115,7 +117,7 @@ class UPS(Asset, SNMPSim):
         elif last_reason == self.state.InputLineFailCause.deepMomentarySag:
             new_reason = self.state.InputLineFailCause.blackout
         else:
-            logging.warning(
+            logger.warning(
                 "The UPS is not in momentary line fail state: %s", last_reason.name
             )
             return
@@ -147,7 +149,7 @@ class UPS(Asset, SNMPSim):
             )
 
             if to_adv_percentage(battery_level) != to_adv_percentage(old_battery_lvl):
-                logging.info("on battery: %s %%", to_adv_percentage(battery_level))
+                logger.info("on battery: %s %%", to_adv_percentage(battery_level))
 
             seconds_on_battery = (dt.now() - self._start_time_battery).seconds
 
@@ -197,9 +199,7 @@ class UPS(Asset, SNMPSim):
             )
 
             if to_adv_percentage(battery_level) != to_adv_percentage(old_battery_lvl):
-                logging.info(
-                    "charging battery: %s %%", to_adv_percentage(battery_level)
-                )
+                logger.info("charging battery: %s %%", to_adv_percentage(battery_level))
 
             # update state details
             self.state.update_battery(battery_level)
@@ -224,7 +224,7 @@ class UPS(Asset, SNMPSim):
         """Start a thread that will decrease battery level """
 
         if self._battery_drain_t and self._battery_drain_t.isAlive():
-            logging.warning("Battery drain is already running!")
+            logger.warning("Battery drain is already running!")
             self.state.update_transfer_reason(t_reason)
             self._increase_transfer_severity()
             return
@@ -252,7 +252,7 @@ class UPS(Asset, SNMPSim):
         """Start a thread that will charge battery level """
 
         if self._battery_charge_t and self._battery_charge_t.isAlive():
-            logging.warning("Battery is already charging!")
+            logger.warning("Battery is already charging!")
             return
 
         self.state.update_time_on_battery(0)

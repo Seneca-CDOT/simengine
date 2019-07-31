@@ -19,6 +19,8 @@ from enginecore.state.net.ws_requests import (
     ClientToServerRequests,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class WebSocket(Component):
     """Simple Web-Socket server that handles interactions between frontend & enginecore """
@@ -38,7 +40,7 @@ class WebSocket(Component):
         """Called upon new client connecting to the ws """
 
         self._clients.append(sock)
-        logging.info("WebSocket Client Connected %s:%s", host, port)
+        logger.info("WebSocket Client Connected %s:%s", host, port)
 
     def _write_data(self, sock, request, data):
         """Send data to the web-server socket client
@@ -274,7 +276,7 @@ class WebSocket(Component):
             )
 
         if not assets and not 0 in rand_session_specs["asset_keys"]:
-            logging.error("No assets selected for random actions")
+            logger.warning("No assets selected for random actions")
             return
 
         state_managers = list(map(IStateManager.get_state_manager_by_key, assets))
@@ -322,7 +324,7 @@ class WebSocket(Component):
         """
 
         client_data = json.loads(data)
-        logging.info(client_data)
+        logger.debug(data)
         self.fire(
             Event.create(
                 client_data["request"],

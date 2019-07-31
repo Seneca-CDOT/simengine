@@ -8,6 +8,8 @@ import logging
 from circuits import Component, handler
 from enginecore.state.hardware.asset_definition import SUPPORTED_ASSETS
 
+logger = logging.getLogger(__name__)
+
 
 class Asset(Component):
     """Top asset component that aggregates behaviour shared
@@ -125,12 +127,17 @@ class Asset(Component):
     def on_power_button_pressed(self, event, *args, **kwargs):
         """Update redis state once request goes through"""
         self.state.set_redis_asset_state(event.state.new)
+        logger.debug("Hardware asset was powered by a user:")
+        logger.debug(self)
 
     @handler("InputVoltageUpEvent", "InputVoltageDownEvent", priority=-1)
     def detect_input_voltage(self, event, *args, **kwargs):
-        """Update input voltage"""
+        """Update input voltage
+        (called after every other handler due to priority set to -1)
+        """
+
         self.state.update_input_voltage(kwargs["new_in_volt"])
-        logging.info(
+        logger.info(
             "VOLTAGE %s %s, in[%s]", event.name, self.key, self.state.input_voltage
         )
 
@@ -155,6 +162,9 @@ class Asset(Component):
     def on_power_off_request_received(self, event, *args, **kwargs):
         """Called on voltage drop"""
         raise NotImplementedError
+
+    def __str__(self):
+        return self.state.__str__()
 
     @classmethod
     def get_supported_assets(cls):

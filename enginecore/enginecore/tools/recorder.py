@@ -10,6 +10,8 @@ import pickle
 import json
 import codecs
 
+logger = logging.getLogger(__name__)
+
 
 class Recorder:
     """Recorder can be used to record and replay methods or functions
@@ -151,7 +153,7 @@ class Recorder:
         """
 
         if self._replaying:
-            logging.warning("Cannot load actions while replaying")
+            logger.warning("Cannot load actions while replaying")
             return
 
         json_unpickle = lambda x: pickle.loads(codecs.decode(x.encode(), "base64"))
@@ -247,14 +249,13 @@ class Recorder:
                 action=action["work"].__name__, args=action["work"].args
             )
 
-            logging.info(action_info)
             # perform action
             action["work"]()
 
             # simulate pause between 2 actions
             if next_action:
                 next_delay = (next_action["time"] - action["time"]).seconds
-                logging.info("Paused for %s seconds...", next_delay)
+                logger.info("Paused for %s seconds...", next_delay)
                 time.sleep(next_delay)
 
         self._replaying = False
