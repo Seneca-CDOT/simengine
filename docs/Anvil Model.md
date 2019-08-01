@@ -46,7 +46,7 @@ We will need to allocate IP addresses for the SNMP simulators on the host machin
     You may need to re-configure your firewall and expose port 161 (SNMP) as well as port 623 (IPMI) to the striker systems.
 
 !!! note
-    Network assignment will be lost on system reboot
+    Network assignment will be lost on system reboot, make sure to run the script on system start
 
 ## VM
 
@@ -60,7 +60,7 @@ We will need to allocate IP addresses for the SNMP simulators on the host machin
     -     an-striker01                   shut off
     -     an-striker02                   shut off
 
-The installation of the VMs plus minor setup need to be performed prior to the system modelling stage.
+The installation of the VMs plus minor setup need to be performed prior to the system modelling stage. You can use the official 'anvil-generate-iso' tool to create striker dashboards (see [An!Wiki page](https://www.alteeve.com/w/Build_the_Anvil!_m2_Install_Media) for more details).
 
 **Resources**
 
@@ -204,9 +204,10 @@ simengine-cli model power-link -s61 -d71 # [an-pdu02]={port-1}=>{psu-1}=>[an-a01
 simengine-cli model power-link -s62 -d81 # [an-pdu02]={port-2}=>{psu-1}=>[an-a01n02]
 
 # Power Up Striker Servers
-simengine-cli model power-link -s58 -d91 # [an-pdu01]={port-1}=>{psu-2}=>[an-a01n01]
-simengine-cli model power-link -s68 -d101 # [an-pdu02]={port-1}=>{psu-1}=>[an-a01n01]
+simengine-cli model power-link -s58 -d91  # [an-pdu01]={port-8}=>{psu-1}=>[an-striker01]
+simengine-cli model power-link -s68 -d101 # [an-pdu02]={port-8}=>{psu-1}=>[an-striker02]
 ```
+
 Re-start the daemon:
 `sudo systemctl start simengine-core`
 
@@ -228,27 +229,31 @@ You can customize the layout by positioning the assets in the preferred way. Cli
 
 ## Management
 
+Make sure all 6 hardware assets (2 UPSes, 2 PDUs and 2 Anvil Nodes) are reachable from the striker servers `an-striker01` and `an-striker01` prior to launching installation step with the striker dashboard. Double check your firewall rules if both `snmpsimd` and `ipmi_sim` processes are running but network interfaces appear unavailable.
+
+Once this step is completed, you can proceed to [building anvil cluster](https://www.alteeve.com/w/Build_an_m2_Anvil!).
+
 **UPS**
 
-UPSes’ SNMP interface can be reached at `192.168.124.3` & `192.168.124.4`
+UPSes’ SNMP interface can be reached at `10.20.3.1` & `10.20.3.2`
 
 For example:
 
-`snmpwalk -Cc -c public -v 1 192.168.124.3 .1.3.6.1.4.1.318.1.1.1.2.2`
+`snmpwalk -Cc -c public -v 1 10.20.3.1 .1.3.6.1.4.1.318.1.1.1.2.2`
 
-`snmpwalk -Cc -c public -v 1 192.168.124.4 .1.3.6.1.4.1.318.1.1.1.2.2`
+`snmpwalk -Cc -c public -v 1 10.20.3.2 .1.3.6.1.4.1.318.1.1.1.2.2`
 
 More documentation on UPS management can be found here: [link](https://simengine.readthedocs.io/en/latest/AssetsConfigurations/#ups);
 
 **PDU**
 
-PDUs SNMP interface is accessible at `192.168.124.5` & `192.168.124.6`
+PDUs SNMP interface is accessible at `10.20.2.1` & `10.20.2.2`
 
 For example:
 
-`snmpwalk -Cc -c public -v 1 192.168.124.5`
+`snmpwalk -Cc -c public -v 1 10.20.2.1`
 
-`snmpwalk -Cc -c public -v 1 192.168.124.6`
+`snmpwalk -Cc -c public -v 1 10.20.2.2`
 
 **Server-BMC**
 
@@ -256,11 +261,11 @@ Servers that support BMC interface can be accessed from both host machine & the 
 
 Running from host example:
 
-`ipmitool -H localhost -p 9001 -U ipmiusr -P test sdr list # server 7 (an-a01n01)`
+`ipmitool -H 10.20.11.1 -U ipmiusr -P test sdr list # server 7 (an-a01n01)`
 
-`ipmitool -H localhost -p 9101 -U ipmiusr -P test sdr list # server 8 (an-a01n02)`
+`ipmitool -H 10.20.11.2 -U ipmiusr -P test sdr list # server 8 (an-a01n02)`
 
-VM:
+Or inside anvil VMs:
 
 `sudo ipmitool sdr list`
 
