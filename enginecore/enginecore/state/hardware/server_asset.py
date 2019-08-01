@@ -132,6 +132,15 @@ class Server(StaticAsset):
 
         alt_power_present = False
 
+        if not math.isclose(
+            self.state.load * e_src_psu.draw_percentage, e_src_psu.load
+        ):
+            source_psu_own_load = asset_event.calculate_load(
+                e_src_psu, event.in_volt.old
+            )
+        else:
+            source_psu_own_load = 0
+
         # keep track of load udpates for multi-psu servers
         load_upd = {}
 
@@ -154,7 +163,9 @@ class Server(StaticAsset):
                 alt_power_present = True
                 if e_src_psu_offline:
                     load_upd[psu_key].new = (
-                        load_upd[psu_key].new - load_upd[e_src_psu.key].difference
+                        load_upd[psu_key].new
+                        - load_upd[e_src_psu.key].difference
+                        - source_psu_own_load
                     )
 
         # state needs to change when all power sources are offline

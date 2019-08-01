@@ -338,7 +338,7 @@ class OutletStateManager(state_api.IOutletStateManager, StateManager):
         return self.get_oid_value_by_name("OutletConfigPowerOnTime")
 
 
-class StaticDeviceStateManager(state_api.IStaticDeviceManager, StateManager):
+class StaticDeviceStateManager(state_api.IStaticDeviceStateManager, StateManager):
     """Dummy Device that doesn't do much except drawing power """
 
     pass
