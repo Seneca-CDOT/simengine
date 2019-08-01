@@ -21,15 +21,32 @@ This table summarises the general layout of the `simengine` system model we are 
 
 ## Network Configuration
 
-We will need to allocate IP addresses for the SNMP simulators on the host machine (machine that will run `simengine`). In this example, we will temporarily add IP addresses to the existing `enp4s0` interface:
+We will need to allocate IP addresses for the SNMP simulators on the host machine (machine that will run `simengine`). In this example, we will temporarily add network interfaces and assign IP addresses:
 
-    sudo ip addr add dev enp4s0 192.168.124.3/24 # UPS 1
-    sudo ip addr add dev enp4s0 192.168.124.4/24 # UPS 2
-    sudo ip addr add dev enp4s0 192.168.124.5/24 # PDU 1
-    sudo ip addr add dev enp4s0 192.168.124.6/24 # PDU 2
+    ifconfig bcn1_bridge1:1 10.20.3.1/16
+    ifconfig bcn1_bridge1:1 netmask 255.255.0.0
+
+    ifconfig bcn1_bridge1:2 10.20.3.2/16
+    ifconfig bcn1_bridge1:2 netmask 255.255.0.0
+
+    ifconfig bcn1_bridge1:3 10.20.2.1/16
+    ifconfig bcn1_bridge1:3 netmask 255.255.0.0
+
+    ifconfig bcn1_bridge1:4 10.20.2.2/16
+    ifconfig bcn1_bridge1:4 netmask 255.255.0.0
+
+    ifconfig bcn1_bridge1:5 10.20.11.1/16
+    ifconfig bcn1_bridge1:5 netmask 255.255.0.0
+
+    ifconfig bcn1_bridge1:6 10.20.11.2/16
+    ifconfig bcn1_bridge1:6 netmask 255.255.0.0
+
 
 !!! note
     You may need to re-configure your firewall and expose port 161 (SNMP) as well as port 623 (IPMI) to the striker systems.
+
+!!! note
+    Network assignment will be lost on system reboot
 
 ## VM
 
@@ -45,10 +62,16 @@ We will need to allocate IP addresses for the SNMP simulators on the host machin
 
 The installation of the VMs plus minor setup need to be performed prior to the system modelling stage.
 
-For hardware resources, it is recommended to have:
+**Resources**
+
+For hardware resources, it is recommended to allocate:
+
+Memory:
 - `8192 MiB` per each `an-a01n0x` node
-- `100 Gib` per each `an-a01n0x` node
 - `1024 MiB` per each `an-striker0x` control server
+
+Storage:
+- `100 Gib` per each `an-a01n0x` node
 - `50 Gib` per each `an-striker0x` control server
 
 
@@ -66,23 +89,24 @@ Update `.xml` configurations:
 
 You will need to change the top-level tag to `<domain type='kvm' xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'>` and also add `qemu` command line arguments (after `</devices>`):
 
-    <qemu:commandline>
-        <qemu:arg value='-chardev'/>
-        <qemu:arg value='socket,id=ipmi0,host=localhost,port=9002,reconnect=10'/>
-        <qemu:arg value='-device'/>
-        <qemu:arg value='ipmi-bmc-extern,id=bmc0,chardev=ipmi0'/>
-        <qemu:arg value='-device'/>
-        <qemu:arg value='isa-ipmi-bt,bmc=bmc0'/>
-        <qemu:arg value='-serial'/>
-        <qemu:arg value='mon:tcp::9012,server,telnet,nowait'/>
-        <qemu:arg value='-chardev'/>
-        <qemu:arg value='socket,id=simengine-storage-tcp,host=localhost,port=50000,reconnect=2'/>
-        <qemu:arg value='-device'/>
-        <qemu:arg value='virtio-serial'/>
-        <qemu:arg value='-device'/>
-        <qemu:arg value='virtserialport,chardev=simengine-storage-tcp,name=systems.cdot.simengine.storage.net'/>
-    </qemu:commandline>
-
+```xml
+ <qemu:commandline>
+    <qemu:arg value='-chardev'/>
+    <qemu:arg value='socket,id=ipmi0,host=127.0.0.1,port=9002,reconnect=2'/>
+    <qemu:arg value='-device'/>
+    <qemu:arg value='ipmi-bmc-extern,id=bmc0,chardev=ipmi0'/>
+    <qemu:arg value='-device'/>
+    <qemu:arg value='isa-ipmi-bt,bmc=bmc0'/>
+    <qemu:arg value='-serial'/>
+    <qemu:arg value='mon:tcp::9012,server,telnet,nowait'/>
+    <qemu:arg value='-chardev'/>
+    <qemu:arg value='socket,id=simengine-storage-tcp,host=localhost,port=50000,reconnect=2'/>
+    <qemu:arg value='-device'/>
+    <qemu:arg value='virtio-serial'/>
+    <qemu:arg value='-device'/>
+    <qemu:arg value='virtserialport,chardev=simengine-storage-tcp,name=systems.cdot.simengine.storage.net'/>
+  </qemu:commandline>
+```
 **an-a01n02**
 
 Almost identical steps need to be performed for the second VM (note that ipmi socket is assigned a different port this time (`port=9102`) which we will later pass as one of the command line arguments to `simengine-cli`).
@@ -91,22 +115,24 @@ Almost identical steps need to be performed for the second VM (note that ipmi so
 
 Change the top-level tag to `<domain type='kvm' xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'>` , add `qemu` command line arguments (after `</devices>`) as following:
 
-    <qemu:commandline>
-        <qemu:arg value='-chardev'/>
-        <qemu:arg value='socket,id=ipmi0,host=localhost,port=9102,reconnect=10'/>
-        <qemu:arg value='-device'/>
-        <qemu:arg value='ipmi-bmc-extern,id=bmc0,chardev=ipmi0'/>
-        <qemu:arg value='-device'/>
-        <qemu:arg value='isa-ipmi-bt,bmc=bmc0'/>
-        <qemu:arg value='-serial'/>
-        <qemu:arg value='mon:tcp::9012,server,telnet,nowait'/>
-        <qemu:arg value='-chardev'/>
-        <qemu:arg value='socket,id=simengine-storage-tcp,host=localhost,port=50001,reconnect=2'/>
-        <qemu:arg value='-device'/>
-        <qemu:arg value='virtio-serial'/>
-        <qemu:arg value='-device'/>
-        <qemu:arg value='virtserialport,chardev=simengine-storage-tcp,name=systems.cdot.simengine.storage.net'/>
-    </qemu:commandline>
+```xml
+<qemu:commandline>
+    <qemu:arg value='-chardev'/>
+    <qemu:arg value='socket,id=ipmi0,host=127.0.0.1,port=9102,reconnect=2'/>
+    <qemu:arg value='-device'/>
+    <qemu:arg value='ipmi-bmc-extern,id=bmc0,chardev=ipmi0'/>
+    <qemu:arg value='-device'/>
+    <qemu:arg value='isa-ipmi-bt,bmc=bmc0'/>
+    <qemu:arg value='-serial'/>
+    <qemu:arg value='mon:tcp::9012,server,telnet,nowait'/>
+    <qemu:arg value='-chardev'/>
+    <qemu:arg value='socket,id=simengine-storage-tcp,host=localhost,port=50001,reconnect=10'/>
+    <qemu:arg value='-device'/>
+    <qemu:arg value='virtio-serial'/>
+    <qemu:arg value='-device'/>
+    <qemu:arg value='virtserialport,chardev=simengine-storage-tcp,name=systems.cdot.simengine.storage.net'/>
+  </qemu:commandline>
+```
 
 **storcli64**
 
@@ -116,7 +142,7 @@ The binary can be found in simengine repo: [link](https://github.com/Seneca-CDOT
 
 ## System Model
 
-At this stage, we should be ready to model our HA topology. You will need to drop the existing model in case the data store is not empty:
+At this stage, we should be ready to model our HA topology. Drop the existing model in case the data store is not empty:
 
 `simengine-cli model drop`
 
@@ -126,46 +152,61 @@ And pause the engine daemon:
 
 Running the source code below should re-create the Anvil topology; `model create` will add new assets to the data store & `model power-link` will link assets together:
 
-    # Create 2 outlets, one powers 'an-ups01' another one powers 'an-ups02'
-    simengine-cli model create outlet --asset-key=1 -x=-861 -y=-171
-    simengine-cli model create outlet -k2 -x=-861 -y=351
+```bash
+# Create 2 outlets, one powers 'an-ups01' another one powers 'an-ups02'
+simengine-cli model create outlet --asset-key=1 -x=-861 -y=-171
+simengine-cli model create outlet -k2 -x=-861 -y=351
 
-    # Add 2 UPSs
-    simengine-cli model create ups -k=3 --name=an-ups01 --host=192.168.124.3 --port=161 -x=-895 -y=-182
-    simengine-cli model create ups -k=4 --name=an-ups02 --host=192.168.124.4 --port=161 -x=-895 -y=347
+# Add 2 UPSs
+simengine-cli model create ups -k=3 --name=an-ups01 --host=10.20.3.1 --port=161 -x=-895 -y=-182
+simengine-cli model create ups -k=4 --name=an-ups02 --host=10.20.3.2 --port=161 -x=-895 -y=347
 
-    # Create 2 PDUs
-    simengine-cli model create pdu -k=5 -n=an-pdu01 --host=192.168.124.5 --port=161 -x=-36 -y=-161
-    simengine-cli model create pdu -k=6 -n=an-pdu02 --host=192.168.124.6 --port=161 -x=-36 -y=567
+# Create 2 PDUs
+simengine-cli model create pdu -k=5 -n=an-pdu01 --host=10.20.2.1 --port=161 -x=-36 -y=-161
+simengine-cli model create pdu -k=6 -n=an-pdu02 --host=10.20.2.2 --port=161 -x=-36 -y=567
 
-    # Add 2 Servers
-    simengine-cli model create server-bmc -k=7 --domain-name=an-a01n01 --power-consumption=360 -x=-162 -y=320
-    simengine-cli model create server-bmc -k=8 --domain-name=an-a01n02 --power-consumption=360 --port=9101 --vmport=9102 --storcli-port=50001 -x=-171 -y=86
+# Add 2 Servers
+simengine-cli model create server-bmc -k=7 \
+    --domain-name=an-a01n01 \
+    --power-consumption=360 \
+    -x=-162 -y=320 \
+    --host=10.20.11.1 \
+    --port=623 \
+    --interface="bcn1_bridge1:5"
+simengine-cli model create server-bmc -k=8 \
+    --domain-name=an-a01n02 \
+    --power-consumption=360 \
+    --host=10.20.11.2 \
+    --port=623 \
+    --vmport=9102 \
+    --storcli-port=50001 \
+    -x=-171 -y=86 \
+    --interface="bcn1_bridge1:6"
 
-    # Add 2 Striker Servers
-    simengine-cli model create server -k=9 --domain-name=an-striker01 --power-consumption=240 --psu-num=1 -x=738 -y=101
-    simengine-cli model create server -k=10 --domain-name=an-striker02 --power-consumption=240 --psu-num=1 -x=734 -y=326
+# Add 2 Striker Servers
+simengine-cli model create server -k=9 --domain-name=an-striker01 --power-consumption=240 --psu-num=1 -x=738 -y=101
+simengine-cli model create server -k=10 --domain-name=an-striker02 --power-consumption=240 --psu-num=1 -x=734 -y=326
 
-    ### Power Components
-    # connect outlets & UPSs
-    simengine-cli model power-link -s1 -d3   # {_Mains_}==>[an-ups01]
-    simengine-cli model power-link -s2 -d4   # {_Mains_}==>[an-ups02]
+### Power Components
+# connect outlets & UPSs
+simengine-cli model power-link -s1 -d3   # {_Mains_}==>[an-ups01]
+simengine-cli model power-link -s2 -d4   # {_Mains_}==>[an-ups02]
 
-    # connect ups & pdus
-    simengine-cli model power-link -s31 -d5  # [an-ups01]==>[an-pdu01]
-    simengine-cli model power-link -s41 -d6  # [an-ups02]==>[an-pdu02]
+# connect ups & pdus
+simengine-cli model power-link -s31 -d5  # [an-ups01]==>[an-pdu01]
+simengine-cli model power-link -s41 -d6  # [an-ups02]==>[an-pdu02]
 
-    # Power up servers
-    simengine-cli model power-link -s51 -d72 # [an-pdu01]={port-1}=>{psu-2}=>[an-a01n01]
-    simengine-cli model power-link -s52 -d82 # [an-pdu01]={port-2}=>{psu-2}=>[an-a01n02]
+# Power up servers
+simengine-cli model power-link -s51 -d72 # [an-pdu01]={port-1}=>{psu-2}=>[an-a01n01]
+simengine-cli model power-link -s52 -d82 # [an-pdu01]={port-2}=>{psu-2}=>[an-a01n02]
 
-    simengine-cli model power-link -s61 -d71 # [an-pdu02]={port-1}=>{psu-1}=>[an-a01n01]
-    simengine-cli model power-link -s62 -d81 # [an-pdu02]={port-2}=>{psu-1}=>[an-a01n02]
+simengine-cli model power-link -s61 -d71 # [an-pdu02]={port-1}=>{psu-1}=>[an-a01n01]
+simengine-cli model power-link -s62 -d81 # [an-pdu02]={port-2}=>{psu-1}=>[an-a01n02]
 
-    # Power Up Striker Servers
-    simengine-cli model power-link -s58 -d91 # [an-pdu01]={port-1}=>{psu-2}=>[an-a01n01]
-    simengine-cli model power-link -s68 -d101 # [an-pdu02]={port-1}=>{psu-1}=>[an-a01n01]
-
+# Power Up Striker Servers
+simengine-cli model power-link -s58 -d91 # [an-pdu01]={port-1}=>{psu-2}=>[an-a01n01]
+simengine-cli model power-link -s68 -d101 # [an-pdu02]={port-1}=>{psu-1}=>[an-a01n01]
+```
 Re-start the daemon:
 `sudo systemctl start simengine-core`
 
