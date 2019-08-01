@@ -4,18 +4,18 @@ Simengine can support various topology layouts; In this section we will attempt 
 
 This table summarises the general layout of the `simengine` system model we are going to configure:
 
-| **key** | **Name**     | **Type**   | **Interface**                                        |
-| ------- | ------------ | ---------- | ---------------------------------------------------- |
-| 1       | outlet-1     | outlet     |                                                      |
-| 2       | outlet-2     | outlet     |                                                      |
-| 3       | ups01        | ups        | SNMP → reachable at 192.168.124.3 (default port 161) |
-| 4       | ups02        | ups        | SNMP → reachable at 192.168.124.4                    |
-| 5       | pdu01        | pdu        | SNMP → reachable at 192.168.124.5                    |
-| 6       | pdu02        | pdu        | SNMP → reachable at 192.168.124.6                    |
-| 7       | an-a01n01    | server-bmc | IPMI → reachable at localhost:9001 (or from the VM)  |
-| 8       | an-a01n02    | server-bmc | IPMI → reachable at localhost:9101 (or from the VM)  |
-| 9       | an-striker01 | server     |                                                      |
-| 10      | an-striker02 | server     |                                                      |
+| **key** | **Name**     | **Type**   | **Address**                                          | **Interface**  |
+| ------- | ------------ | ---------- | ---------------------------------------------------- | -------------- |
+| 1       | outlet-1     | outlet     |                                                      |                |
+| 2       | outlet-2     | outlet     |                                                      |                |
+| 3       | ups01        | ups        | SNMP → reachable at 10.20.3.1 (default port 161)     | bcn1_bridge1:1 |
+| 4       | ups02        | ups        | SNMP → reachable at 10.20.3.2                        | bcn1_bridge1:2 |
+| 5       | pdu01        | pdu        | SNMP → reachable at 10.20.2.1                        | bcn1_bridge1:3 |
+| 6       | pdu02        | pdu        | SNMP → reachable at 10.20.2.2                        | bcn1_bridge1:4 |
+| 7       | an-a01n01    | server-bmc | IPMI → reachable at 10.20.11.1 (or from the VM)      | bcn1_bridge1:5 |
+| 8       | an-a01n02    | server-bmc | IPMI → reachable at 10.20.11.2 (or from the VM)      | bcn1_bridge1:6 |
+| 9       | an-striker01 | server     |                                                      |                |
+| 10      | an-striker02 | server     |                                                      |                |
 
 4 VMs will be running so the host machine should preferably have more than 4 cores.
 
@@ -29,7 +29,7 @@ We will need to allocate IP addresses for the SNMP simulators on the host machin
     sudo ip addr add dev enp4s0 192.168.124.6/24 # PDU 2
 
 !!! note
-    You may need to re-configure your firewall and expose port 161 to the striker systems.
+    You may need to re-configure your firewall and expose port 161 (SNMP) as well as port 623 (IPMI) to the striker systems.
 
 ## VM
 
