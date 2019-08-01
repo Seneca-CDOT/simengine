@@ -189,6 +189,9 @@ class Asset(Component):
         return self.state.__str__()
 
     def stop(self, code=None):
+        """Gracefully stop asset by closing all the connections,
+        agents (if supported) and joining threads
+        """
         self.state.close_connection()
         super().stop(code)
 

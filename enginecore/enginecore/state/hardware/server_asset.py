@@ -5,12 +5,11 @@ Both server types have a unique VM (domain) assigned to them
 # **due to circuit callback signature
 # pylint: disable=W0613
 
-import os
 import time
 import logging
 import operator
 import math
-from threading import Thread
+from threading import Thread, Event
 
 from circuits import handler
 
@@ -189,6 +188,7 @@ class ServerWithBMC(Server):
         super(ServerWithBMC, self).__init__(asset_info)
 
         server_dir = self._create_asset_workplace_dir()
+        self._stop_event = Event()
 
         self._sensor_repo = SensorRepository(asset_info["key"], enable_thermal=True)
 
@@ -228,7 +228,7 @@ class ServerWithBMC(Server):
             100 * (abs(ns_to_sec(t2) - ns_to_sec(t1)) / sample_rate_sec), 100
         )
 
-        while True:
+        while not self._stop_event.is_set():
             if self.state.status and self.state.vm_is_active():
 
                 # more details on libvirt api:
@@ -248,7 +248,7 @@ class ServerWithBMC(Server):
                 cpu_time_1 = 0
                 self.state.update_cpu_load(0)
 
-            time.sleep(sample_rate_sec)
+            self._stop_event.wait(sample_rate_sec)
 
     def add_sensor_thermal_impact(self, source, target, event):
         """Add new thermal relationship at the runtime"""
@@ -315,6 +315,11 @@ class ServerWithBMC(Server):
     def stop(self, code=None):
         self._ipmi_agent.stop_agent()
         self._sensor_repo.stop()
+        self._stop_event.set()
+
+        if self._cpu_load_t is not None and self._cpu_load_t.isAlive():
+            self._cpu_load_t.join()
+
         super().stop(code)
 
 
@@ -324,6 +329,12 @@ class PSU(StaticAsset):
 
     channel = "engine-psu"
     StateManagerCls = in_state.PSUStateManager
+
+    class IPMIstatus:
+        """hex codes for IPMI status"""
+
+        off = "0x08"
+        on = "0x01"
 
     def __init__(self, asset_info):
         super(PSU, self).__init__(asset_info)
@@ -348,15 +359,15 @@ class PSU(StaticAsset):
             )
             psu_status.sensor_value = value
 
-    @handler("ButtonPowerDownPressed")
-    def on_asset_did_power_off(self):
+    @handler("PowerButtonOffEvent")
+    def on_asset_did_power_off(self, event, *args, **kwargs):
         """PSU status was set to failed"""
-        self._set_psu_status("0x08")
+        self._set_psu_status(PSU.IPMIstatus.off)
 
-    @handler("ButtonPowerUpPressed")
-    def on_asset_did_power_on(self):
+    @handler("PowerButtonOnEvent")
+    def on_asset_did_power_on(self, event, *args, **kwargs):
         """PSU was brought back up"""
-        self._set_psu_status("0x01")
+        self._set_psu_status(PSU.IPMIstatus.on)
 
     def _update_load_sensors(self, load, arith_op):
         """Update psu sensors associated with load
