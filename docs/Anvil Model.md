@@ -17,7 +17,7 @@ This table summarises the general layout of the `simengine` system model we are 
 | 9       | an-striker01 | server     |                                                      |                |
 | 10      | an-striker02 | server     |                                                      |                |
 
-4 VMs will be running so the host machine should preferably have more than 4 cores.
+4 VMs will be running so the host machine should preferably have more than 4 cores (ideally, `500GB` available disk space, `8` CPU cores and `32GB` memory).
 
 ## Network Configuration
 
@@ -44,6 +44,13 @@ We will need to allocate IP addresses for the SNMP simulators on the host machin
     -     an-striker02                   shut off
 
 The installation of the VMs plus minor setup need to be performed prior to the system modelling stage.
+
+For hardware resources, it is recommended to have:
+- `8192 MiB` per each `an-a01n0x` node
+- `100 Gib` per each `an-a01n0x` node
+- `1024 MiB` per each `an-striker0x` control server
+- `50 Gib` per each `an-striker0x` control server
+
 
 ### BMC and storcli64
 
