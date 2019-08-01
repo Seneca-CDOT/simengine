@@ -98,6 +98,7 @@ def step_impl(context, key, wattage):
             "power_consumption": wattage,
             "psu_power_consumption": 0,
             "psu_power_source": 120,
+            "storcli_enabled": False,
         },
         server_variation=sm.ServerVariations.ServerWithBMC,
     )

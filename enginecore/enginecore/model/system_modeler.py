@@ -515,11 +515,15 @@ def create_server(key, attr, server_variation=ServerVariations.Server):
         )
         attr["type"] = server_variation.name.lower()
         attr["key"] = key
+        attr["storcli_enabled"] = (
+            True if not "storcli_enabled" in attr else attr["storcli_enabled"]
+        )
 
         s_attr = [
             "domain_name",
             "power_consumption",
             "power_source",
+            "storcli_enabled,",
         ] + CREATE_SHARED_ATTR
         props_stm = qh.get_props_stm(attr, supported_attr=s_attr)
 

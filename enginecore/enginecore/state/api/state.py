@@ -38,6 +38,10 @@ class IStateManager:
         self._asset_key = asset_info["key"]
         self._asset_info = asset_info
 
+    def close_connection(self):
+        """Close bolt driver connections"""
+        self._graph_ref.close()
+
     @property
     def key(self) -> int:
         """Asset Key """

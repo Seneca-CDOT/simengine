@@ -22,7 +22,6 @@ import enginecore.state.hardware.internal_state as in_state
 
 from enginecore.state.agent import IPMIAgent, StorCLIEmulator
 from enginecore.state.sensor.repository import SensorRepository
-from enginecore.state.state_initializer import get_temp_workplace_dir
 from enginecore.state.engine.events import EventDataPair
 
 logger = logging.getLogger(__name__)
@@ -38,10 +37,18 @@ class Server(StaticAsset):
     def __init__(self, asset_info):
         super(Server, self).__init__(asset_info)
         self._psu_sm = {}
+        self._storcli_emu = None
 
         for i in range(1, asset_info["num_components"] + 1):
             psu_key = self.key * 10 + i
             self._psu_sm[psu_key] = IStateManager.get_state_manager_by_key(psu_key)
+
+        if "storcli_enabled" in asset_info and asset_info["storcli_enabled"]:
+            server_dir = self._create_asset_workplace_dir()
+
+            self._storcli_emu = StorCLIEmulator(
+                asset_info["key"], server_dir, socket_port=asset_info["storcliPort"]
+            )
 
         self.state.power_up()
 
@@ -165,6 +172,11 @@ class Server(StaticAsset):
 
         return asset_event
 
+    def stop(self, code=None):
+        if self._storcli_emu is not None:
+            self._storcli_emu.stop_server()
+        super().stop(code)
+
 
 @register_asset
 class ServerWithBMC(Server):
@@ -176,9 +188,7 @@ class ServerWithBMC(Server):
     def __init__(self, asset_info):
         super(ServerWithBMC, self).__init__(asset_info)
 
-        # create state directory
-        ipmi_dir = os.path.join(get_temp_workplace_dir(), str(asset_info["key"]))
-        os.makedirs(ipmi_dir)
+        server_dir = self._create_asset_workplace_dir()
 
         self._sensor_repo = SensorRepository(asset_info["key"], enable_thermal=True)
 
@@ -186,11 +196,8 @@ class ServerWithBMC(Server):
         ipmi_conf = {
             k: asset_info[k] for k in asset_info if k in IPMIAgent.lan_conf_attributes
         }
-        self._ipmi_agent = IPMIAgent(ipmi_dir, ipmi_conf, self._sensor_repo)
-        self._storcli_emu = StorCLIEmulator(
-            asset_info["key"], ipmi_dir, socket_port=asset_info["storcliPort"]
-        )
 
+        self._ipmi_agent = IPMIAgent(server_dir, ipmi_conf, self._sensor_repo)
         self.state.update_agent(self._ipmi_agent.pid)
         logger.info(self._ipmi_agent)
 
@@ -307,7 +314,7 @@ class ServerWithBMC(Server):
 
     def stop(self, code=None):
         self._ipmi_agent.stop_agent()
-        self._storcli_emu.stop_server()
+        self._sensor_repo.stop()
         super().stop(code)
 
 

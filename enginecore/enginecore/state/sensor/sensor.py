@@ -41,7 +41,7 @@ class Sensor:
 
     thresholds_types = ["lnr", "lcr", "lnc", "unc", "ucr", "unr"]
 
-    def __init__(self, sensor_dir, server_key, s_details, s_locks):
+    def __init__(self, sensor_dir, server_key, s_details, s_locks, graph_ref):
         self._s_dir = sensor_dir
         self._server_key = server_key
 
@@ -64,7 +64,7 @@ class Sensor:
 
         self._th_cpu_t_name_fmt = "s:[cpu_load]->t:[{target}]"
 
-        self._graph_ref = GraphReference()
+        self._graph_ref = graph_ref
 
         if "index" in self._s_specs:
             self._s_addr = hex(

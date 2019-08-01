@@ -5,8 +5,10 @@
 # pylint: disable=W0613
 
 import logging
+import os
 from circuits import Component, handler
 from enginecore.state.hardware.asset_definition import SUPPORTED_ASSETS
+from enginecore.state.state_initializer import get_temp_workplace_dir
 
 logger = logging.getLogger(__name__)
 
@@ -74,26 +76,17 @@ class Asset(Component):
         """
         return self.state.power_off()
 
-    @handler("ChildLoadUpEvent", "ChildLoadDownEvent")
-    def on_child_load_update(self, event, *args, **kwargs):
-        """Process child asset load changes by updating load of this device
-        Args:
-            event(ChildLoadEvent): load event associated with a child node
-                                   powered by this asset
+    def _create_asset_workplace_dir(self):
+        """Create temp workplace directory for the asset 
+        (under /tmp/$SIMENGINE_WORKPLACE_TEMP/<asset_key>)
         Returns:
-            AssetLoadEvent: contains load update details for this asset
+            str: path to newly created asset directory
         """
-        asset_load_event = event.get_next_load_event(self)
-        new_load = asset_load_event.load.old + event.load.difference
+        asset_dir = os.path.join(get_temp_workplace_dir(), str(self.key))
+        if not os.path.exists(asset_dir):
+            os.makedirs(asset_dir)
 
-        self._update_load(new_load)
-        asset_load_event.load.new = new_load
-        return asset_load_event
-
-    @handler("AmbientUpEvent", "AmbientDownEvent")
-    def on_ambient_updated(self, event, *args, **kwargs):
-        """Process Ambient temperature changes"""
-        return event
+        return asset_dir
 
     def _process_parent_volt_e(self, event):
         """Process parent voltage event by analyzing if voltage is 
@@ -128,6 +121,27 @@ class Asset(Component):
             )
 
         return asset_event
+
+    @handler("ChildLoadUpEvent", "ChildLoadDownEvent")
+    def on_child_load_update(self, event, *args, **kwargs):
+        """Process child asset load changes by updating load of this device
+        Args:
+            event(ChildLoadEvent): load event associated with a child node
+                                   powered by this asset
+        Returns:
+            AssetLoadEvent: contains load update details for this asset
+        """
+        asset_load_event = event.get_next_load_event(self)
+        new_load = asset_load_event.load.old + event.load.difference
+
+        self._update_load(new_load)
+        asset_load_event.load.new = new_load
+        return asset_load_event
+
+    @handler("AmbientUpEvent", "AmbientDownEvent")
+    def on_ambient_updated(self, event, *args, **kwargs):
+        """Process Ambient temperature changes"""
+        return event
 
     @handler("PowerButtonOnEvent", "PowerButtonOffEvent", priority=10)
     def on_power_button_pressed(self, event, *args, **kwargs):
@@ -173,6 +187,10 @@ class Asset(Component):
 
     def __str__(self):
         return self.state.__str__()
+
+    def stop(self, code=None):
+        self.state.close_connection()
+        super().stop(code)
 
     @classmethod
     def get_supported_assets(cls):

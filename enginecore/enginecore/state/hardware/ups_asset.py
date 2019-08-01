@@ -460,4 +460,9 @@ class UPS(Asset, SNMPSim):
     def stop(self, code=None):
         self._snmp_agent.stop_agent()
         self._stop_event.set()
+
+        for thread in [self._battery_charge_t, self._battery_drain_t]:
+            if thread is not None and thread.isAlive():
+                thread.join()
+
         super().stop(code)
