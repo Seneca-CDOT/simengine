@@ -12,6 +12,33 @@ Feature: Server Load Handling
         And Outlet asset with key "1" is created
 
     @dual-psu-asset
+    Scenario Outline: Toggling server power should affect PSU load
+        Given Outlet asset with key "2" is created
+        And Server asset with key "7", "2" PSU(s) and "480" Wattage is created
+
+        And asset "1" powers target "71"
+        And asset "2" powers target "72"
+        And Engine is up and running
+        And asset "7" is "<server-ini>"
+
+        When asset "7" goes "<server-new>"
+
+        # check load for assets
+        Then asset "1" load is set to "<1>"
+        Then asset "2" load is set to "<2>"
+
+        And asset "71" load is set to "<71>"
+        And asset "72" load is set to "<72>"
+
+        And asset "7" load is set to "<7>"
+        Examples: Toggling server status results in load update
+            | server-ini | server-new | 1   | 2   | 71  | 72  | 7   |
+            | online     | online     | 2.0 | 2.0 | 2.0 | 2.0 | 4.0 |
+            | online     | offline    | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
+            | offline    | online     | 2.0 | 2.0 | 2.0 | 2.0 | 4.0 |
+
+
+    @dual-psu-asset
     Scenario Outline: Dual-PSU load re-destribution
         # initialize model & engine
         # (1)-[powers]->[1801:   server ]
