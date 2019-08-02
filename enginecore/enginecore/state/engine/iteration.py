@@ -1,4 +1,5 @@
 """Tools for keeping track of the ongoing donwtream & upstream power event flow"""
+from enginecore.state.engine import events
 
 
 class EngineEventBranch:
@@ -19,6 +20,9 @@ class EngineEventBranch:
 
 
 class ThermalBranch(EngineEventBranch):
+    """A branch associated with a flow of thermal events
+    (is discarded as soon as event belonging to the branch is processed)"""
+
     pass
 
 
@@ -29,7 +33,7 @@ class VoltageBranch(EngineEventBranch):
          |              |                |              |
     (Asset#1)-[:InputVoltageEvent]->(Asset#2)-[:InputVoltageEvent]->(Asset#3)
 
-    It stops when child nodes are exhausted or voltage event propogation is stopped
+    It stops when child nodes are exhausted or voltage event propagation is stopped
     (e.g. when it encounters a UPS)
     """
 
@@ -218,10 +222,12 @@ class PowerIteration(EngineIteration):
         self._last_processed_volt_event = event
 
         # asset caused by power loop (individual asset power update)
-        if "oid" in event.kwargs:
+        if isinstance(event, events.SNMPEvent):
             return self._process_snmp_event(event)
-        if event.kwargs["asset"]:
+        if isinstance(event, events.AssetPowerEvent) and event.kwargs["asset"]:
             return self._process_hardware_asset_event(event)
+        if isinstance(event, events.PowerButtonEvent):
+            return self._process_btn_asset_event(event)
 
         # wallpower voltage caused power loop
         return self._process_wallpower_event(event)
@@ -257,6 +263,11 @@ class PowerIteration(EngineIteration):
         return zip(parent_keys, load_events)
 
     def _process_snmp_event(self, event):
+        """Power-related SNMP OID was updated, retrieve signal event
+        and initialize new voltage branch
+        Args:
+            event(SNMPEvent): should contain oid details
+        """
         self._volt_branches.add_branch(VoltageBranch(event, self))
         return (zip([event.asset.key], [event.get_next_signal_event()]),)
 
@@ -276,6 +287,14 @@ class PowerIteration(EngineIteration):
 
         return ([(k, b.src_event) for k, b in zip(wp_outlets, new_branches)], None)
 
+    def _process_btn_asset_event(self, event):
+        """User "pressed" a power button on one of the assets (either using UI or cli)
+        Args:
+            event(PowerButtonEvent): contains state changes and asset details
+        """
+        self._volt_branches.add_branch(VoltageBranch(event, self))
+        return (zip([event.asset.key], [event]),)
+
     def _process_hardware_asset_event(self, event):
         """One of the hardware assets went online/online
         Args:
@@ -285,7 +304,7 @@ class PowerIteration(EngineIteration):
                                 asset getting powered down by the user
         """
 
-        # find neighbouring nodes (parents & children)
+        # find neighboring nodes (parents & children)
         child_keys, parent_keys = self.data_source.get_affected_assets(event.asset.key)
 
         # no branch assigned to the event yet
@@ -294,8 +313,8 @@ class PowerIteration(EngineIteration):
             self._volt_branches.add_branch(VoltageBranch(event, self))
             event.calc_load_from_volt()
 
-        # voltage events will be displatched downstream to children of the updated node
-        # load events (if any) will be displatched to parents of the updated node
+        # voltage events will be dispatched downstream to children of the updated node
+        # load events (if any) will be dispatched to parents of the updated node
         next_volt_events = [event.get_next_voltage_event()]
         next_load_events = None
 

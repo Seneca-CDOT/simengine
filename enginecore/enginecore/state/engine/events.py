@@ -130,19 +130,45 @@ class MainsPowerEvent(EngineEvent):
 class PowerButtonEvent(EngineEvent):
     """Asset's power state changed due to user turning asset off/on"""
 
+    success = True
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        required_args = ["old_state", "new_state"]
+        required_args = ["old_state", "new_state", "asset"]
 
         if not all(r_arg in kwargs for r_arg in required_args):
             raise KeyError("Needs arguments: " + ",".join(required_args))
 
         self._state = EventDataPair(kwargs["old_state"], kwargs["new_state"])
+        self._asset = kwargs["asset"]
 
     @property
     def state(self):
-        """Retrieve temperature change"""
+        """Retrieve state changes due to user pressing power button"""
         return self._state
+
+    @property
+    def asset(self):
+        """hardware asset this event occurred to"""
+        return self._asset
+
+    def get_next_power_event(self):
+        """Get next power event that has occurred due to user "pressing"
+        power button"""
+        out_volt = {
+            0: self._asset.state.input_voltage,
+            1: self._asset.state.output_voltage,
+        }[self.state.new]
+
+        return AssetPowerEvent(
+            asset=self._asset,
+            old_out_volt=self.state.old * out_volt,
+            new_out_volt=self.state.new * out_volt,
+            old_state=self.state.old,
+            new_state=self.state.new,
+            power_iter=self.power_iter,
+            branch=self._branch,
+        )
 
 
 class PowerButtonOnEvent(PowerButtonEvent):
