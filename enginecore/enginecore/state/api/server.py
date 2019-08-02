@@ -85,13 +85,13 @@ class IBMCServerStateManager(IServerStateManager):
                        belong to a sensor of type fan
         Returns:
             Random RPM value divided by 10 (unit accepted by IPMI_sim) 
-            if at leat one lower & one upper thresholds are present,
+            if at least one lower & one upper thresholds are present,
             returns the old sensor value otherwise
         """
 
         sensor = SensorRepository(self.key).get_sensor_by_name(sensor_name)
         if sensor.group != SensorGroups.fan:
-            raise ValueError('Only sensors of type "fan" are acceped')
+            raise ValueError('Only sensors of type "fan" are accepted')
 
         thresholds = sensor.thresholds
         get_th_by_group = lambda g: filter(lambda x: x.startswith(g), thresholds)
@@ -109,12 +109,12 @@ class IBMCServerStateManager(IServerStateManager):
 
     def _get_rand_pd_properties(self) -> list:
         """Get random settable physical drive attributes
-        such as error counts occured while
+        such as error counts occurred while
         reading/writing & pd state
         """
 
         rand_err = lambda prop: random.randrange(
-            *self.get_storage_radnomizer_prop(prop)
+            *self.get_storage_randomizer_prop(prop)
         )
 
         return [
@@ -129,10 +129,11 @@ class IBMCServerStateManager(IServerStateManager):
         ]
 
     def _get_rand_ctrl_props(self) -> list:
-        """Get random settable controller attributes such as alarm state & memory errors"""
+        """Get random settable controller attributes such 
+        as alarm state & memory errors"""
 
         rand_err = lambda prop: random.randrange(
-            *self.get_storage_radnomizer_prop(prop)
+            *self.get_storage_randomizer_prop(prop)
         )
 
         return [
@@ -173,7 +174,7 @@ class IBMCServerStateManager(IServerStateManager):
                 session, self.key, proptype.name, slc
             )
 
-    def get_storage_radnomizer_prop(self, proptype: StorageRandProps) -> slice:
+    def get_storage_randomizer_prop(self, proptype: StorageRandProps) -> slice:
         """Get a randrange associated with a particular storage device"""
         with self._graph_ref.get_session() as session:
             return GraphReference.get_storage_randomizer_prop(
@@ -344,7 +345,8 @@ class IBMCServerStateManager(IServerStateManager):
 
     @classmethod
     def update_thermal_cpu_target(cls, attr):
-        """Create new or update existing thermal relationship between CPU usage and sensor"""
+        """Create new or update existing thermal
+        relationship between CPU usage and sensor"""
         new_rel = sys_modeler.set_thermal_cpu_target(attr)
         if not new_rel:
             return
