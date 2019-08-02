@@ -37,6 +37,7 @@ class Server(StaticAsset):
         super(Server, self).__init__(asset_info)
         self._psu_sm = {}
         self._storcli_emu = None
+        self.removeHandler(super().on_power_button_press)
 
         for i in range(1, asset_info["num_components"] + 1):
             psu_key = self.key * 10 + i
@@ -68,6 +69,63 @@ class Server(StaticAsset):
 
         return psu_draw < psu_sm.load
 
+    @handler("PowerButtonOffEvent")
+    def on_power_button_off(self, event, *args, **kwargs):
+        """React to server shut down by setting up upstream load for
+        server PSUs"""
+        asset_event = event.get_next_power_event()
+        load_upd = {}
+        asset_event.load.new = asset_event.calculate_load(
+            self.state, self.state.input_voltage
+        )
+
+        for key in self._psu_sm:
+            psu_sm = self._psu_sm[key]
+
+            load_upd[key] = EventDataPair(psu_sm.load, psu_sm.load)
+            if not psu_sm.status:
+                continue
+
+            load_upd[key].new = (
+                load_upd[key].new - asset_event.load.new * psu_sm.draw_percentage
+            )
+
+        asset_event.streamed_load_updates = load_upd
+        return asset_event
+
+    @handler("PowerButtonOnEvent")
+    def on_power_button_on(self, event, *args, **kwargs):
+        """React to power button event by notifying engine of
+        state changes associated with it"""
+
+        asset_event = event.get_next_power_event()
+        load_upd = {}
+        extra_draw = 0.0
+        online_psus = []
+
+        asset_event.load.new = asset_event.calculate_load(
+            self.state, self.state.input_voltage
+        )
+
+        # for each psu, check if
+        for key in self._psu_sm:
+            psu_sm = self._psu_sm[key]
+
+            load_upd[key] = EventDataPair(psu_sm.load, psu_sm.load)
+            if not psu_sm.status:
+                extra_draw += psu_sm.draw_percentage
+            else:
+                load_upd[key].new = (
+                    load_upd[key].new + asset_event.load.new * psu_sm.draw_percentage
+                )
+                online_psus.append(key)
+
+        for key in online_psus:
+            load_upd[key].new = load_upd[key].new + extra_draw / len(online_psus)
+
+        asset_event.streamed_load_updates = load_upd
+        return asset_event
+
     @handler("InputVoltageUpEvent")
     def on_input_voltage_up(self, event, *args, **kwargs):
         asset_event = event.get_next_power_event(self)
@@ -75,7 +133,7 @@ class Server(StaticAsset):
 
         e_src_psu = self._psu_sm[event.source_key]
 
-        # keep track of load udpates for multi-psu servers
+        # keep track of load updates for multi-psu servers
         load_upd = {}
         extra_draw = 0.0
         load_should_change = True
@@ -83,7 +141,7 @@ class Server(StaticAsset):
         new_asset_load = asset_event.calculate_load(self.state, event.in_volt.new)
         old_asset_load = asset_event.calculate_load(self.state, event.in_volt.old)
 
-        # initialize load for PSUs (as unchaned)
+        # initialize load for PSUs (as unchanged)
         for key in self._psu_sm:
             psu_sm = self._psu_sm[key]
 
@@ -141,10 +199,10 @@ class Server(StaticAsset):
         else:
             source_psu_own_load = 0
 
-        # keep track of load udpates for multi-psu servers
+        # keep track of load updates for multi-psu servers
         load_upd = {}
 
-        # initialize load for PSUs (as unchaned)
+        # initialize load for PSUs (as unchanged)
         for key in self._psu_sm:
             load_upd[key] = EventDataPair(
                 self._psu_sm[key].load, self._psu_sm[key].load
