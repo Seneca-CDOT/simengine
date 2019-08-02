@@ -2,7 +2,7 @@
 
 Simengine can support various topology layouts; In this section we will attempt to model [alteeve’s](https://www.alteeve.com/c/) high-availability system called _Anvil_ which consists of 2 striker dashboard machines, 2 target servers with IPMI interface, 2 PDUs, 2 Switches and 2 UPSes. High-level system map can be found on alteeve’s wiki [page](https://www.alteeve.com/w/Build_an_m2_Anvil!#Logical_Map.3B_Hardware_And_Plumbing).
 
-This table summarises the general layout of the `simengine` system model we are going to configure:
+This table summarizes the general layout of the `simengine` system model we are going to configure:
 
 | **key** | **Name**     | **Type**   | **Address**                                          | **Interface**  |
 | ------- | ------------ | ---------- | ---------------------------------------------------- | -------------- |
@@ -17,48 +17,24 @@ This table summarises the general layout of the `simengine` system model we are 
 | 9       | an-striker01 | server     |                                                      |                |
 | 10      | an-striker02 | server     |                                                      |                |
 
+
+`an-a01n01` and `an-a01n02` are two managed servers whereas `an-striker01` and `an-striker02` are two nodes running control software "Striker Dashboard". 
+
 4 VMs will be running so the host machine should preferably have more than 4 cores (ideally, `500GB` available disk space, `8` CPU cores and `32GB` memory).
-
-## Network Configuration
-
-We will need to allocate IP addresses for the SNMP simulators on the host machine (machine that will run `simengine`). In this example, we will temporarily add network interfaces and assign IP addresses:
-
-    ifconfig bcn1_bridge1:1 10.20.3.1/16
-    ifconfig bcn1_bridge1:1 netmask 255.255.0.0
-
-    ifconfig bcn1_bridge1:2 10.20.3.2/16
-    ifconfig bcn1_bridge1:2 netmask 255.255.0.0
-
-    ifconfig bcn1_bridge1:3 10.20.2.1/16
-    ifconfig bcn1_bridge1:3 netmask 255.255.0.0
-
-    ifconfig bcn1_bridge1:4 10.20.2.2/16
-    ifconfig bcn1_bridge1:4 netmask 255.255.0.0
-
-    ifconfig bcn1_bridge1:5 10.20.11.1/16
-    ifconfig bcn1_bridge1:5 netmask 255.255.0.0
-
-    ifconfig bcn1_bridge1:6 10.20.11.2/16
-    ifconfig bcn1_bridge1:6 netmask 255.255.0.0
-
-
-!!! note
-    You may need to re-configure your firewall and expose port 161 (SNMP) as well as port 623 (IPMI) to the striker systems.
-
-!!! note
-    Network assignment will be lost on system reboot, make sure to run the script on system start
 
 ## VM
 
 4 VMs will be managed by the simulation engine — `an-a01n01` & `an-a01n02` will be running Fedora 28 and striker dashboards (`an-striker01` & `an-striker02`) will be hosted on CentOS-based system.
 
-    [root@narnia enginecore]# virsh list --all
-    Id    Name                           State
-    ----------------------------------------------------
-    -     an-a01n01                      shut off
-    -     an-a01n02                      shut off
-    -     an-striker01                   shut off
-    -     an-striker02                   shut off
+```bash
+[root@host enginecore]$ virsh list --all
+Id    Name                           State
+----------------------------------------------------
+-     an-a01n01                      shut off
+-     an-a01n02                      shut off
+-     an-striker01                   shut off
+-     an-striker02                   shut off
+```
 
 The installation of the VMs plus minor setup need to be performed prior to the system modelling stage. You can use the official 'anvil-generate-iso' tool to create striker dashboards (see [An!Wiki page](https://www.alteeve.com/w/Build_the_Anvil!_m2_Install_Media) for more details).
 
@@ -107,6 +83,7 @@ You will need to change the top-level tag to `<domain type='kvm' xmlns:qemu='htt
     <qemu:arg value='virtserialport,chardev=simengine-storage-tcp,name=systems.cdot.simengine.storage.net'/>
   </qemu:commandline>
 ```
+
 **an-a01n02**
 
 Almost identical steps need to be performed for the second VM (note that ipmi socket is assigned a different port this time (`port=9102`) which we will later pass as one of the command line arguments to `simengine-cli`).
@@ -140,9 +117,103 @@ You will need to upload `storcli64` binary to the target vms (`an-a01n01` and `a
 
 The binary can be found in simengine repo: [link](https://github.com/Seneca-CDOT/simengine/blob/master/storage-emulation-tests/guest/storcli64)
 
+
+## Network Configuration
+
+**Virtual Network**
+
+You will need to define 4 virtual networks (`sn1_bridge1`, `sn2_bridge1` and `bcn1_bridge1`, `bcn2_bridge1`) using [net-define script](https://github.com/Seneca-CDOT/simengine/blob/master/enginecore/script/bridges) and configure virtual `NIC`s for the VMs;
+
+***Using Virsh .XML***
+
+One way to connect guests to the newly-defined interfaces is to copy `<interface>...</interface>` tags in `an-*.xml` vm config dump files located in [data folder](https://github.com/Seneca-CDOT/simengine/blob/master/data/) and paste in xml configuration by running `virsh edit` for all 4 vms;
+
+***Virt-Manager Tool (Alternative to Using Virsh .XML)***
+
+Alternatively, you can use `virt-manager` GUI - double-click a vm and configure hardware in the `Show Virtual Hardware details` tab (lightbulb icon);
+
+Each `an-a01n0x` vm will have 6 virtual network interfaces configured, whereas Striker systems `an-striker0x` will be using 2 virtual network interfaces.
+
+`an-a01n0x` NAT (repeat this step for all anvil nodes):
+
+1) Click `Add Hardware` and select `Network`
+
+2) Select `default` NAT as "Network source"
+
+3) Select `e1000` as its "Device Model"
+
+4) Click finish and add another `NAT` nic using the steps outlined above
+
+`an-a01n0x` Isolated network `sn1_bridge1` (repeat this step for all anvil nodes):
+
+1) Click `Add Hardware` and select `Network`
+
+2) Select `Virtual network sn1_bridge1` isolated network as "Network source"
+
+3) Select `e1000` as its "Device Model"
+
+4) Click finish and add another `Isolated Network` nic using the steps outlined above
+
+`an-a01n0x` Isolated network `bcn1_bridge1` (repeat this step for all anvil nodes):
+
+1) Click `Add Hardware` and select `Network`
+
+2) Select `Virtual network bcn1_bridge1` isolated network as "Network source"
+
+3) Select `e1000` as its "Device Model"
+
+4) Click finish and add another `Isolated Network` nic using the steps outlined above
+
+`an-striker0x` NAT (repeat this step for all striker nodes):
+
+1) Click `Add Hardware` and select `Network`
+
+2) Select `default` NAT as "Network source"
+
+3) Select `e1000` as its "Device Model"
+
+`an-striker0x` Isolated network `bcn1_bridge1` (repeat this step for all striker nodes):
+
+1) Click `Add Hardware` and select `Network`
+
+2) Select `Virtual network bcn1_bridge1` isolated network as "Network source"
+
+3) Select `e1000` as its "Device Model"
+
+**Host Network**
+
+We will need to allocate IP addresses for the SNMP simulators on the host machine (machine that will run `simengine`). In this example, we will temporarily add network interfaces and assign IP addresses:
+
+```bash
+ifconfig bcn1_bridge1:1 10.20.3.1/16
+ifconfig bcn1_bridge1:1 netmask 255.255.0.0
+
+ifconfig bcn1_bridge1:2 10.20.3.2/16
+ifconfig bcn1_bridge1:2 netmask 255.255.0.0
+
+ifconfig bcn1_bridge1:3 10.20.2.1/16
+ifconfig bcn1_bridge1:3 netmask 255.255.0.0
+
+ifconfig bcn1_bridge1:4 10.20.2.2/16
+ifconfig bcn1_bridge1:4 netmask 255.255.0.0
+
+ifconfig bcn1_bridge1:5 10.20.11.1/16
+ifconfig bcn1_bridge1:5 netmask 255.255.0.0
+
+ifconfig bcn1_bridge1:6 10.20.11.2/16
+ifconfig bcn1_bridge1:6 netmask 255.255.0.0
+```
+
+!!! note
+    You may need to re-configure your firewall and expose port 161 (SNMP) as well as port 623 (IPMI) to the striker systems.
+
+!!! note
+    Network assignment will be lost on system reboot, make sure to run the script on system start
+
+
 ## System Model
 
-At this stage, we should be ready to model our HA topology. Drop the existing model in case the data store is not empty:
+At this stage, we should be ready to model our high-availability hardware topology. Drop the existing model in case the data store is not empty:
 
 `simengine-cli model drop`
 
