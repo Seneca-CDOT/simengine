@@ -378,7 +378,7 @@ class ServerWithBMC(Server):
 
     @handler("ButtonPowerUpPressed")
     def on_asset_did_power_on(self):
-        """Update senosrs on power online"""
+        """Update sensors on power online"""
         self._sensor_repo.power_up_sensors()
 
     def stop(self, code=None):

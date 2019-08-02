@@ -37,6 +37,33 @@ Feature: Server Load Handling
             | online     | offline    | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
             | offline    | online     | 2.0 | 2.0 | 2.0 | 2.0 | 4.0 |
 
+    @dual-psu-asset
+    @server-bmc-asset
+    Scenario Outline: Toggling server bmc power should affect PSU load
+        Given Outlet asset with key "2" is created
+        And ServerBMC asset with key "7" and "480" Wattage is created
+
+        And asset "1" powers target "71"
+        And asset "2" powers target "72"
+        And Engine is up and running
+        And asset "7" is "<server-ini>"
+
+        When asset "7" goes "<server-new>"
+
+        # check load for assets
+        Then asset "1" load is set to "<1>"
+        Then asset "2" load is set to "<2>"
+
+        And asset "71" load is set to "<71>"
+        And asset "72" load is set to "<72>"
+
+        And asset "7" load is set to "<7>"
+        Examples: Toggling server status results in load update
+            | server-ini | server-new | 1    | 2    | 71   | 72   | 7   |
+            | online     | online     | 2.25 | 2.25 | 2.25 | 2.25 | 4.0 |
+            | online     | offline    | 0.25 | 0.25 | 0.25 | 0.25 | 0.0 |
+            | offline    | online     | 2.25 | 2.25 | 2.25 | 2.25 | 4.0 |
+
 
     @dual-psu-asset
     Scenario Outline: Dual-PSU load re-destribution
@@ -122,6 +149,8 @@ Feature: Server Load Handling
             | 120      | 60       | 4.0 | 4.0 | 4.0  | 4.0  | 8.0 |
 
 
+    @dual-psu-asset
+    @server-bmc-asset
     Scenario Outline: Load is distributed with ServerBMC with PSUs drawing power
         Given Outlet asset with key "2" is created
         And Outlet asset with key "22" is created
