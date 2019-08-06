@@ -12,6 +12,7 @@ Feature: Server Load Handling
         And Outlet asset with key "1" is created
 
     @dual-psu-asset
+    @server-power-toggle
     Scenario Outline: Toggling server power should affect PSU load
         Given Outlet asset with key "2" is created
         And Server asset with key "7", "2" PSU(s) and "480" Wattage is created
@@ -39,6 +40,7 @@ Feature: Server Load Handling
 
     @dual-psu-asset
     @server-bmc-asset
+    @server-power-toggle
     Scenario Outline: Toggling server bmc power should affect PSU load
         Given Outlet asset with key "2" is created
         And ServerBMC asset with key "7" and "480" Wattage is created
@@ -66,6 +68,38 @@ Feature: Server Load Handling
 
     @dual-psu-asset
     @server-bmc-asset
+    @server-power-toggle
+    Scenario Outline: Special Server case with PSU power change and then server state toggling
+
+        Given Outlet asset with key "2" is created
+        And ServerBMC asset with key "7" and "480" Wattage is created
+
+        And asset "1" powers target "71"
+        And asset "2" powers target "72"
+        And Engine is up and running
+        And asset "7" is "<server-ini>"
+
+        When asset "<psu-key>" goes "<psu-ini>"
+        And asset "7" goes "<server-new>"
+
+        # check load for assets
+        Then asset "1" load is set to "<1>"
+        And asset "2" load is set to "<2>"
+
+        And asset "71" load is set to "<71>"
+        And asset "72" load is set to "<72>"
+
+        And asset "7" load is set to "<7>"
+        Examples: Toggling server and psu status results in load update
+            | psu-key | psu-ini | server-ini | server-new | 1    | 2    | 71   | 72   | 7   |
+            | 71      | offline | online     | offline    | 0.00 | 0.25 | 0.0  | 0.25 | 0.0 |
+            | 72      | offline | online     | offline    | 0.25 | 0.00 | 0.25 | 0.0  | 0.0 |
+
+
+
+    @dual-psu-asset
+    @server-bmc-asset
+    @server-power-toggle
     Scenario Outline: Special Server case with server going offline and then PSU power change
 
         Given Outlet asset with key "2" is created
@@ -92,7 +126,6 @@ Feature: Server Load Handling
             | server-ini | server-new | psu-key | psu-ini | psu-new | 1    | 2    | 71   | 72   | 7   |
             | online     | offline    | 71      | offline | online  | 2.25 | 2.25 | 2.25 | 2.25 | 4.0 |
             | online     | offline    | 72      | offline | online  | 2.25 | 2.25 | 2.25 | 2.25 | 4.0 |
-
 
     @dual-psu-asset
     Scenario Outline: Dual-PSU load re-destribution

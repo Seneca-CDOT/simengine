@@ -74,20 +74,23 @@ class Server(StaticAsset):
         server PSUs"""
         asset_event = event.get_next_power_event()
         load_upd = {}
-        asset_event.load.new = asset_event.calculate_load(
-            self.state, self.state.input_voltage
-        )
+
+        in_volt = 0.0
+        for key in self._psu_sm:
+            if self._psu_sm[key].status:
+                in_volt = self._psu_sm[key].output_voltage
+                break
+
+        asset_event.load.new = asset_event.calculate_load(self.state, in_volt)
 
         for key in self._psu_sm:
             psu_sm = self._psu_sm[key]
 
             load_upd[key] = EventDataPair(psu_sm.load, psu_sm.load)
-            if not psu_sm.status:
+            if not psu_sm.status or math.isclose(psu_sm.input_voltage, 0.0):
                 continue
 
-            load_upd[key].new = (
-                load_upd[key].new - asset_event.load.new * psu_sm.draw_percentage
-            )
+            load_upd[key].new = psu_sm.power_usage
 
         asset_event.streamed_load_updates = load_upd
         return asset_event
