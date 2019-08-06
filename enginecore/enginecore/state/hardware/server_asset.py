@@ -135,47 +135,60 @@ class Server(StaticAsset):
         # keep track of load updates for multi-psu servers
         load_upd = {}
         extra_draw = 0.0
-        load_should_change = True
+
+        should_change_load = True
+        should_power_up = not asset_event.state.old and not math.isclose(
+            event.in_volt.new, 0.0
+        )
 
         new_asset_load = asset_event.calculate_load(self.state, event.in_volt.new)
         old_asset_load = asset_event.calculate_load(self.state, event.in_volt.old)
 
-        # initialize load for PSUs (as unchanged)
+        # initialize load for PSUs
+        # and process alternative power sources (PSUs)
         for key in self._psu_sm:
-            psu_sm = self._psu_sm[key]
 
+            psu_sm = self._psu_sm[key]
             load_upd[key] = EventDataPair(0.0, 0.0)
+
+            if psu_sm.key == event.source_key:
+                continue
+
             # if alternative power source is off, grab extra load from it
-            if psu_sm.key != event.source_key and not psu_sm.status:
+            if not psu_sm.status:
                 extra_draw += psu_sm.draw_percentage
 
             # if alternative power source is currently having extra load
             # that the volt event source asset is supposed to be drawing
-            elif (
-                psu_sm.key != event.source_key
-                and math.isclose(event.in_volt.old, 0.0)
-                and self._psu_drawing_extra(psu_sm)
+            # then redistribute it back so that load is equal among all psus
+            elif math.isclose(event.in_volt.old, 0.0) and self._psu_drawing_extra(
+                psu_sm
             ):
                 # asset load should not change (we are just redistributing same load)
                 load_upd[key].old = psu_sm.load
                 load_upd[key].new = (
                     psu_sm.load - new_asset_load * e_src_psu.draw_percentage
                 )
-                load_should_change = False
+                should_change_load = False
+            # add load to a psu due to server powering up
+            elif should_power_up:
+                load_upd[psu_sm.key].new = new_asset_load * psu_sm.draw_percentage
 
+        # set load for the PSU voltage event is associated with
         src_psu_draw = e_src_psu.draw_percentage + extra_draw
         load_upd[e_src_psu.key].old = old_asset_load * src_psu_draw
         load_upd[e_src_psu.key].new = new_asset_load * src_psu_draw
 
         # power up if server is offline
-        if not asset_event.state.old:
+        if should_power_up:
             asset_event.state.new = self.state.power_up()
+            self._update_load(self.state.power_consumption / event.in_volt.new)
 
-        asset_event.streamed_load_updates = load_upd
-        if load_should_change:
+        elif should_change_load:
             asset_event.calc_load_from_volt()
             self._update_load(self.state.load + load_upd[e_src_psu.key].difference)
 
+        asset_event.streamed_load_updates = load_upd
         return asset_event
 
     @handler("InputVoltageDownEvent")
