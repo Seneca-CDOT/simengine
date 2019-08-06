@@ -135,7 +135,7 @@ class Server(StaticAsset):
         asset_event.streamed_load_updates = load_upd
         return asset_event
 
-    @handler("InputVoltageUpEvent", "InputVoltageDownEvent", priority=-1)
+    @handler("InputVoltageUpEvent", "InputVoltageDownEvent", priority=10)
     def detect_input_voltage(self, event, *args, **kwargs):
         """Update input voltage
         (called after every other handler due to priority set to -1)

@@ -68,3 +68,27 @@ Feature: Server Voltage Handling
             | 1     | 2     | offline | online  | online  | online  | online  | online  | online |
             | 1     | 2     | offline | offline | offline | online  | offline | online  | online |
             | 1     | 2     | offline | offline | online  | offline | online  | offline | online |
+
+
+    @dual-psu-asset
+    @server-bmc-asset
+    @server-power-toggle
+    @wip
+    Scenario: More complicated case with server and psu power update
+
+        Given Outlet asset with key "2" is created
+        And ServerBMC asset with key "7" and "480" Wattage is created
+
+        And asset "1" powers target "71"
+        And asset "2" powers target "72"
+
+        And Engine is up and running
+
+        And asset "71" is "offline"
+        And asset "7" is "offline"
+        And asset "72" is "offline"
+
+        When asset "71" goes "online"
+
+        Then asset "7" is "online"
+        Then asset "71" is "online"
