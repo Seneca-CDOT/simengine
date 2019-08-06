@@ -51,6 +51,15 @@ class Server(StaticAsset):
 
         self.state.power_up()
 
+    def _psu_out_voltage(self):
+        """Find server input voltage
+        (by finding a psu powering this asset that outputs voltage)
+        """
+        for key in self._psu_sm:
+            if self._psu_sm[key].status:
+                return self._psu_sm[key].output_voltage
+        return 0.0
+
     def _psu_drawing_extra(self, psu_sm):
         """Check if a particular psu is drawing extra power
         Returns:
@@ -75,13 +84,9 @@ class Server(StaticAsset):
         asset_event = event.get_next_power_event()
         load_upd = {}
 
-        in_volt = 0.0
-        for key in self._psu_sm:
-            if self._psu_sm[key].status:
-                in_volt = self._psu_sm[key].output_voltage
-                break
-
-        asset_event.load.new = asset_event.calculate_load(self.state, in_volt)
+        asset_event.load.new = asset_event.calculate_load(
+            self.state, self.state.input_voltage
+        )
 
         for key in self._psu_sm:
             psu_sm = self._psu_sm[key]
@@ -122,11 +127,20 @@ class Server(StaticAsset):
                 )
                 online_psus.append(key)
 
+        extra_load = asset_event.load.new * extra_draw / len(online_psus)
+
         for key in online_psus:
-            load_upd[key].new = load_upd[key].new + extra_draw / len(online_psus)
+            load_upd[key].new = load_upd[key].new + extra_load
 
         asset_event.streamed_load_updates = load_upd
         return asset_event
+
+    @handler("InputVoltageUpEvent", "InputVoltageDownEvent", priority=-1)
+    def detect_input_voltage(self, event, *args, **kwargs):
+        """Update input voltage
+        (called after every other handler due to priority set to -1)
+        """
+        self.state.update_input_voltage(max(self._psu_out_voltage(), event.in_volt.new))
 
     @handler("InputVoltageUpEvent")
     def on_input_voltage_up(self, event, *args, **kwargs):
@@ -140,7 +154,7 @@ class Server(StaticAsset):
         extra_draw = 0.0
 
         should_change_load = True
-        should_power_up = not asset_event.state.old and not math.isclose(
+        should_power_up = not self.state.status and not math.isclose(
             event.in_volt.new, 0.0
         )
 
@@ -184,7 +198,7 @@ class Server(StaticAsset):
 
         # power up if server is offline
         if should_power_up:
-            asset_event.state.new = self.state.power_up()
+            asset_event.state.new = self.power_up()
             self._update_load(self.state.power_consumption / event.in_volt.new)
 
         elif should_change_load:

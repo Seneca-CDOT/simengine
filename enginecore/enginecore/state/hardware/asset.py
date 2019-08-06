@@ -163,7 +163,7 @@ class Asset(Component):
         """Update input voltage
         (called after every other handler due to priority set to -1)
         """
-        self.state.update_input_voltage(kwargs["new_in_volt"])
+        self.state.update_input_voltage(event.in_volt.new)
         logger.debug(
             "VOLTAGE %s %s, in[%s]", event.name, self.key, self.state.input_voltage
         )

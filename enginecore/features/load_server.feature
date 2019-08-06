@@ -69,6 +69,7 @@ Feature: Server Load Handling
     @dual-psu-asset
     @server-bmc-asset
     @server-power-toggle
+    @wip
     Scenario Outline: Special Server case with PSU power change and then server state toggling
 
         Given Outlet asset with key "2" is created
@@ -94,7 +95,7 @@ Feature: Server Load Handling
             | psu-key | psu-ini | server-ini | server-new | 1    | 2    | 71   | 72   | 7   |
             | 71      | offline | online     | offline    | 0.00 | 0.25 | 0.0  | 0.25 | 0.0 |
             | 72      | offline | online     | offline    | 0.25 | 0.00 | 0.25 | 0.0  | 0.0 |
-
+            | 72      | offline | offline    | online     | 4.25 | 0.00 | 4.25 | 0.0  | 4.0 |
 
 
     @dual-psu-asset

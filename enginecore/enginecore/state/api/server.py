@@ -38,24 +38,32 @@ class IServerStateManager(IStateManager):
         """
         if self._vm.isActive():
             self._vm.destroy()
-            self._update_load(0.0)
 
     @Randomizer.randomize_method()
     def shut_down(self):
         self._power_off_vm()
+        self._update_load(0.0)
+
         return super().shut_down()
 
     @Randomizer.randomize_method()
     def power_off(self):
         self._power_off_vm()
+        self._update_load(0.0)
+
         return super().power_off()
 
     @Randomizer.randomize_method()
     def power_up(self):
+
+        powered = self.status
+        if powered or math.isclose(self.input_voltage, 0.0):
+            return powered
+
         powered = super().power_up()
         if not self._vm.isActive() and powered:
             self._vm.create()
-            self._update_load(self.power_usage)
+            self._update_load(self.power_consumption / self.input_voltage)
         return powered
 
 
