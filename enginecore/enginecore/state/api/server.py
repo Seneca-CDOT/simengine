@@ -1,8 +1,9 @@
 """Server interfaces for managing servers' states """
 import json
+from enum import Enum
+import math
 import random
 import libvirt
-from enum import Enum
 
 from enginecore.model.graph_reference import GraphReference
 import enginecore.model.system_modeler as sys_modeler
@@ -367,3 +368,26 @@ class IBMCServerStateManager(IServerStateManager):
         graph_ref = GraphReference()
         with graph_ref.get_session() as session:
             return GraphReference.get_thermal_cpu_details(session, asset_key)
+
+
+@Randomizer.register
+class IPSUStateManager(IStateManager):
+    """Exposes state logic for a server PSU asset """
+
+    @Randomizer.randomize_method()
+    def power_up(self):
+        """Power up PSU"""
+
+        powered = self.status
+
+        if powered:
+            return powered
+
+        powered = super().power_up()
+        if powered:
+            if math.isclose(self.input_voltage, 0.0):
+                psu_load = 0.0
+            else:
+                psu_load = self.power_consumption / self.input_voltage
+            self._update_load(self.load + psu_load)
+        return powered

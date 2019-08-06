@@ -5,7 +5,6 @@ Both server types have a unique VM (domain) assigned to them
 # **due to circuit callback signature
 # pylint: disable=W0613
 
-import time
 import logging
 import operator
 import math
@@ -145,7 +144,7 @@ class Server(StaticAsset):
         for key in self._psu_sm:
             psu_sm = self._psu_sm[key]
 
-            load_upd[key] = EventDataPair(psu_sm.load, psu_sm.load)
+            load_upd[key] = EventDataPair(0.0, 0.0)
             # if alternative power source is off, grab extra load from it
             if psu_sm.key != event.source_key and not psu_sm.status:
                 extra_draw += psu_sm.draw_percentage
@@ -158,8 +157,9 @@ class Server(StaticAsset):
                 and self._psu_drawing_extra(psu_sm)
             ):
                 # asset load should not change (we are just redistributing same load)
+                load_upd[key].old = psu_sm.load
                 load_upd[key].new = (
-                    load_upd[key].old - new_asset_load * e_src_psu.draw_percentage
+                    psu_sm.load - new_asset_load * e_src_psu.draw_percentage
                 )
                 load_should_change = False
 
