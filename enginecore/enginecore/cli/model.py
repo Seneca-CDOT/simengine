@@ -179,7 +179,18 @@ def update_command(update_asset_group):
         "-y", type=int, help="y - asset position on the dashboard"
     )
     update_asset_parent.add_argument("-n", "--name", help="Name displayed on the UI")
-
+    update_asset_parent.add_argument(
+        "--power-on-ac",
+        dest="power_on_ac",
+        action="store_true",
+        help="Power up on AC restored",
+    )
+    update_asset_parent.add_argument(
+        "--no-power-on-ac",
+        dest="power_on_ac",
+        action="store_false",
+        help="Don't power up when AC is restored",
+    )
     update_volt_parent = argparse.ArgumentParser(add_help=False)
     update_volt_parent.add_argument(
         "--min-voltage",
@@ -310,6 +321,7 @@ def create_command(create_asset_group):
     """Model creation (cli endpoints to initialize system topology) """
 
     # parent will contain args shared by all the asset types
+    # (such as key, [x,y] positions, name etc.)
     create_asset_parent = argparse.ArgumentParser(add_help=False)
     create_asset_parent.add_argument(
         "-k",
@@ -333,8 +345,21 @@ def create_command(create_asset_group):
         "-y", type=int, help="y - asset position on the dashboard", default=0
     )
 
+    create_asset_parent.add_argument(
+        "--power-on-ac",
+        dest="power_on_ac",
+        action="store_true",
+        help="Power up on AC restored",
+    )
+    create_asset_parent.add_argument(
+        "--no-power-on-ac",
+        dest="power_on_ac",
+        action="store_false",
+        help="Don't power up when AC is restored",
+    )
+
     create_asset_parent.add_argument("-n", "--name", help="Name displayed on the UI")
-    create_asset_parent.set_defaults(new_asset=True)
+    create_asset_parent.set_defaults(new_asset=True, power_on_ac=False)
 
     create_volt_parent = argparse.ArgumentParser(add_help=False)
     create_volt_parent.add_argument(

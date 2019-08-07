@@ -25,6 +25,7 @@ CREATE_SHARED_ATTR = [
     "off_delay",
     "on_delay",
     "min_voltage",
+    "power_on_ac",
 ]
 # Labels used by the app
 SIMENGINE_NODE_LABELS = []
