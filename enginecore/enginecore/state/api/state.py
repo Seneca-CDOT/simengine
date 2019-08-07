@@ -58,6 +58,14 @@ class IStateManager:
         return self._asset_info["type"]
 
     @property
+    def power_on_ac_restored(self) -> bool:
+        """Returns true if asset is configured to power up when AC
+        is restored (voltage is above lower threshold)"""
+        return (
+            self._asset_info["powerOnAc"] if "powerOnAc" in self._asset_info else True
+        )
+
+    @property
     def power_usage(self):
         """Normal power usage in AMPS when powered up"""
         if self.input_voltage and "powerConsumption" in self._asset_info:
@@ -173,7 +181,7 @@ class IStateManager:
         """
         if self._parents_available() and not self.status:
             self._sleep_powerup()
-            # udpate machine start time & turn on
+            # update machine start time & turn on
             self._reset_boot_time()
             self._set_state_on()
             return 1

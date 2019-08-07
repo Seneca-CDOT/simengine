@@ -134,6 +134,7 @@ class Asset(Component):
             new_out_volt > min_voltage
             and not asset_event.state.old
             and not powered_off_by_user
+            and self.state.power_on_ac_restored
         ):
             power_action = self.power_up
 
@@ -143,11 +144,12 @@ class Asset(Component):
             asset_event.out_volt.old = old_out_volt * asset_event.state.old
             asset_event.out_volt.new = new_out_volt * asset_event.state.new
 
-        asset_event.calc_load_from_volt()
-        if not asset_event.load.unchanged():
-            self._update_load(
-                self.state.load - asset_event.load.old + asset_event.load.new
-            )
+        if self.state.status or not asset_event.state.unchanged():
+            asset_event.calc_load_from_volt()
+            if not asset_event.load.unchanged():
+                self._update_load(
+                    self.state.load - asset_event.load.old + asset_event.load.new
+                )
 
         return asset_event
 

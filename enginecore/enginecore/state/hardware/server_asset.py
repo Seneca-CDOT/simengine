@@ -197,7 +197,7 @@ class Server(StaticAsset):
         load_upd[e_src_psu.key].new = new_asset_load * src_psu_draw
 
         # power up if server is offline
-        if should_power_up:
+        if should_power_up and self.state.power_on_ac_restored:
             asset_event.state.new = self.power_up()
             self._update_load(self.state.power_consumption / event.in_volt.new)
 
