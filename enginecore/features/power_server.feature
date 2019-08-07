@@ -73,7 +73,6 @@ Feature: Server Voltage Handling
     @dual-psu-asset
     @server-bmc-asset
     @server-power-toggle
-    @wip
     Scenario: More complicated case with server and psu power update
 
         Given Outlet asset with key "2" is created
