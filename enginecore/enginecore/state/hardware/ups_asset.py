@@ -81,7 +81,7 @@ class UPS(Asset, SNMPSim):
         close_wattage = min(self._runtime_details, key=lambda x: abs(int(x) - wattage))
         close_timeleft = self._runtime_details[close_wattage]
 
-        # inverse proportion, clacluate full power time left
+        # inverse proportion, calculate full power time left
         fp_time_left = (close_timeleft * int(close_wattage)) / wattage
 
         # see if input voltage is present -> adjust time left
