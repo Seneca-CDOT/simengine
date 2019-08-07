@@ -15,6 +15,7 @@ from circuits import handler
 import enginecore.state.hardware.internal_state as in_state
 from enginecore.state.hardware.asset import Asset
 from enginecore.state.hardware.snmp_asset import SNMPSim
+from enginecore.state.api.environment import ISystemEnvironment
 
 from enginecore.state.hardware.asset_definition import register_asset
 
@@ -363,7 +364,7 @@ class UPS(Asset, SNMPSim):
         # voltage is too high, transfer to battery
         if should_transfer and reason == self.state.InputLineFailCause.highLineVoltage:
             self._launch_battery_drain(reason)
-            asset_event.out_volt.new = 120.0
+            asset_event.out_volt.new = ISystemEnvironment.wallpower_volt_standard()
 
         if not math.isclose(asset_event.load.new, 0) and not math.isclose(
             asset_event.load.new, self.state.load
@@ -395,7 +396,7 @@ class UPS(Asset, SNMPSim):
         # voltage is low, transfer to battery
         if should_transfer and self.state.battery_level:
             self._launch_battery_drain(reason)
-            asset_event.out_volt.new = 120.0
+            asset_event.out_volt.new = ISystemEnvironment.wallpower_volt_standard()
 
         # voltage was too high but is okay now
         elif (

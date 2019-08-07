@@ -278,7 +278,7 @@ def update_command(update_asset_group):
     update_server_bmc_action.add_argument(
         "--vmport",
         type=int,
-        help="IPMI serial VM inteface for channel 15 (the system interface)",
+        help="IPMI serial VM interface for channel 15 (the system interface)",
     )
 
     ## Static
@@ -387,7 +387,9 @@ def create_command(create_asset_group):
 
     # power consuming assets group
     create_power_parent = argparse.ArgumentParser(add_help=False)
-    create_power_parent.add_argument("--power-source", type=int, default=120)
+    create_power_parent.add_argument(
+        "--power-source", type=int, default=ISystemEnvironment.wallpower_volt_standard()
+    )
     create_power_parent.add_argument(
         "--power-consumption",
         required=True,
@@ -419,7 +421,10 @@ def create_command(create_asset_group):
     )
 
     create_ups_action.add_argument(
-        "--power-source", help="Asset Voltage", type=int, default=120
+        "--power-source",
+        help="Asset Voltage",
+        type=int,
+        default=ISystemEnvironment.wallpower_volt_standard(),
     )
     create_ups_action.add_argument(
         "--power-consumption",
@@ -450,7 +455,7 @@ def create_command(create_asset_group):
         type=float,
         help="""PSU(s) load distribution (the downstream power is multiplied
         by the value, e.g.  for 2 PSUs if '--psu-load 0.5 0.5',
-        load is divivided equally) \n""",
+        load is divided equally) \n""",
     )
 
     create_server_action.add_argument(
@@ -465,7 +470,7 @@ def create_command(create_asset_group):
         "--psu-power-source",
         nargs="+",
         type=int,
-        default=120,
+        default=ISystemEnvironment.wallpower_volt_standard(),
         help="""PSU Voltage \n""",
     )
 
@@ -510,7 +515,7 @@ def create_command(create_asset_group):
         "--vmport",
         type=int,
         default=9002,
-        help="IPMI serial VM inteface for channel 15 (the system interface)",
+        help="IPMI serial VM interface for channel 15 (the system interface)",
     )
 
     create_server_bmc_action.add_argument(

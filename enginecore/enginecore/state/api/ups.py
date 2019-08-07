@@ -4,7 +4,7 @@ import json
 from enum import Enum
 
 from enginecore.state.redis_channels import RedisChannels
-from enginecore.state.api.state import IStateManager
+from enginecore.state.api.state import IStateManager, ISystemEnvironment
 from enginecore.state.api.snmp_state import ISnmpDeviceStateManager
 from enginecore.tools.randomizer import Randomizer
 
@@ -120,7 +120,10 @@ class IUPSStateManager(ISnmpDeviceStateManager):
 
     @property
     def output_voltage(self):
-        return self.status * 120.0 if self.on_battery else self.input_voltage
+        if self.on_battery:
+            return self.status * ISystemEnvironment.wallpower_volt_standard()
+
+        return self.input_voltage
 
     @property
     def wattage(self):
@@ -198,7 +201,7 @@ class IUPSStateManager(ISnmpDeviceStateManager):
         if self.battery_level and not self.status:
             self._sleep_powerup()
             time.sleep(self.get_config_on_delay())
-            # udpate machine start time & turn on
+            # update machine start time & turn on
             self._reset_boot_time()
             self._set_state_on()
 

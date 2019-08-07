@@ -38,11 +38,6 @@ class Asset(Component):
         return self._state
 
     @property
-    def power_on_when_ac_restore(self):
-        """Indicates if asset should power up when input power is present"""
-        return True
-
-    @property
     def state_reason(self):
         """Reason for asset power state"""
         return self._state_reason
