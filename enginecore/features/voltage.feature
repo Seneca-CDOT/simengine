@@ -19,9 +19,9 @@ Feature: System handles voltage updates
 
     Scenario Outline: Voltage affecting assets' states
 
-        Given wallpower voltage "120" is set to "<ini-volt>"
+        Given wallpower voltage is set to "<ini-volt>"
         # create a certain power condition
-        When wallpower voltage "<ini-volt>" is updated to "<new-volt>"
+        When wallpower voltage is updated to "<new-volt>"
 
         # check states
         Then asset "1" is "<1-state>"
@@ -42,9 +42,9 @@ Feature: System handles voltage updates
 
     Scenario Outline: Input/Output voltage for assets
 
-        Given wallpower voltage "120" is set to "<ini-volt>"
+        Given wallpower voltage is set to "<ini-volt>"
         # create a certain power condition
-        When wallpower voltage "<ini-volt>" is updated to "<new-volt>"
+        When wallpower voltage is updated to "<new-volt>"
 
         # check states
         Then asset "1" input voltage is "<1-in-volt>"

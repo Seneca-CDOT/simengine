@@ -87,7 +87,8 @@ Feature: Load handling and distribution across entire system tolology
         And Engine is up and running
 
         # Create a voltage condition
-        When wallpower voltage "<ini-volt>" is updated to "<new-volt>"
+        When wallpower voltage is updated to "<ini-volt>"
+        And wallpower voltage is updated to "<new-volt>"
 
         # check load for assets
         Then asset "1" load is set to "<1>"

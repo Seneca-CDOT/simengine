@@ -99,9 +99,13 @@ def step_impl(context):
         logging.info(context.tracker.wait_load_queue())
 
 
-@given('wallpower voltage "{old_volt:d}" is set to "{new_volt:d}"')
-@when('wallpower voltage "{old_volt:d}" is updated to "{new_volt:d}"')
-def step_impl(context, old_volt, new_volt):
+@given('wallpower voltage is set to "{new_volt:d}"')
+@when('wallpower voltage is updated to "{new_volt:d}"')
+def step_impl(context, new_volt):
+
+    old_volt = ISystemEnvironment.get_voltage()
+    ISystemEnvironment.set_voltage(new_volt)
+
     context.engine.handle_voltage_update(old_voltage=old_volt, new_voltage=new_volt)
 
     # wait for completion of event loop

@@ -44,8 +44,10 @@ Feature: UPS Voltage Handling
     @snmp-interface
     @ups-battery
     Scenario Outline: Voltage causes UPS change back and forth to battery/input power
-        When wallpower voltage "<volt-1>" is updated to "<volt-2>"
-        And wallpower voltage "<volt-2>" is updated to "<volt-3>"
+        When wallpower voltage is updated to "<volt-1>"
+        And wallpower voltage is updated to "<volt-2>"
+        And wallpower voltage is updated to "<volt-3>"
+
         Then UPS "190" is "<battery-status>" battery
         And UPS "190" transfer reason is set to "<transfer-reason>"
 
@@ -63,9 +65,9 @@ Feature: UPS Voltage Handling
             | 120    | 200    | 0      | on             | blackout        |
 
     Scenario: Voltage propagation is blocked when UPS is running on battery
-        When wallpower voltage "120" is updated to "90"
-        When wallpower voltage "90" is updated to "70"
-        And wallpower voltage "70" is updated to "80"
+        When wallpower voltage is updated to "90"
+        And wallpower voltage is updated to "70"
+        And wallpower voltage is updated to "80"
 
         # check states
         Then asset "190" input voltage is "80"
@@ -76,8 +78,8 @@ Feature: UPS Voltage Handling
 
 
     Scenario: Voltage propagation works when UPS is not on battery
-        When wallpower voltage "120" is updated to "118"
-        When wallpower voltage "118" is updated to "122"
+        When wallpower voltage is updated to "118"
+        And wallpower voltage is updated to "122"
 
         # check states
         Then asset "190" input voltage is "122"

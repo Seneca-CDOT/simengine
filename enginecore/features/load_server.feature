@@ -193,7 +193,7 @@ Feature: Server Load Handling
         And asset "2" powers target "1802"
         And Engine is up and running
 
-        When wallpower voltage "<ini-volt>" is updated to "<new-volt>"
+        When wallpower voltage is updated to "<new-volt>"
 
         # check load for assets
         Then asset "1" load is set to "<1>"
@@ -205,10 +205,10 @@ Feature: Server Load Handling
         And asset "180" load is set to "<180>"
 
         Examples: Downstream voltage drop chaining
-            | ini-volt | new-volt | 1   | 2   | 1801 | 1802 | 180 |
-            | 120      | 0        | 0.0 | 0.0 | 0.0  | 0.0  | 0.0 |
-            | 120      | 240      | 1.0 | 1.0 | 1.0  | 1.0  | 2.0 |
-            | 120      | 60       | 4.0 | 4.0 | 4.0  | 4.0  | 8.0 |
+            | new-volt | 1   | 2   | 1801 | 1802 | 180 |
+            | 0        | 0.0 | 0.0 | 0.0  | 0.0  | 0.0 |
+            | 240      | 1.0 | 1.0 | 1.0  | 1.0  | 2.0 |
+            | 60       | 4.0 | 4.0 | 4.0  | 4.0  | 8.0 |
 
 
     @dual-psu-asset
