@@ -469,7 +469,17 @@ def create_command(create_asset_group):
         help="BMC-enabled server: IPMI user password",
     )
     create_server_bmc_action.add_argument(
+        "--host", type=str, default="localhost", help="IPMI interface host"
+    )
+    create_server_bmc_action.add_argument(
         "--port", type=int, default=9001, help="IPMI interface port"
+    )
+
+    create_server_bmc_action.add_argument(
+        "--interface",
+        type=str,
+        default="",
+        help="Network interface attached to the server",
     )
     create_server_bmc_action.add_argument(
         "--vmport",

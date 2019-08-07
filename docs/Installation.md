@@ -26,11 +26,46 @@ To build a new set of RPMs, run the newtag script:
 
      cd ${GitRepoBase}/rpm/specfiles
      ./newtag
-     
+
 This will bump the product tag and adjust the Version: tags in the spec files, committing all of the changes to origin. Next, push both the code changes and the tag:
 
      git push
      git push --tag
+
+## Licenses
+
+SimEngine is licensed under [GPL V3](https://github.com/Seneca-CDOT/simengine/blob/master/LICENSE.txt);
+
+**Dependencies**
+
+Here’s a list of RPM packages used by the project and their licenses:
+
+```
+python2-snmpsim: BSD
+python3-circuits: MIT
+python-snmpsim-doc: BSD
+python3-neo4j-driver: Apache License, Version 2.0
+OpenIPMI-libs: LGPLv2+ and GPLv2+ or BSD
+OpenIPMI-lanserv: LGPLv2+ and GPLv2+ or BSD
+OpenIPMI: LGPLv2+ and GPLv2+ or BSD
+OpenIPMI-devel: LGPLv2+ and GPLv2+ or BSD
+redis: BSD and MIT
+```
+
+SimEngine is using Neo4j Community Edition ([GPL v3 license](http://www.gnu.org/licenses/quick-guide-gplv3.html)), licensing details can found on this official neo4j support [page](https://neo4j.com/licensing/).
+
+Python PIP Dependencies:
+
+-   [[repo](https://github.com/andymccurdy/redis-py)/[pip](https://pypi.org/project/redis/)] **redis-py** (redis python client, licensed under [MIT](https://github.com/andymccurdy/redis-py/blob/master/LICENSE))
+-   [[repo](https://github.com/circuits/circuits)/[pip](https://pypi.org/project/circuits/)] **circuits** (event-driven framework, licensed under [MIT](https://github.com/circuits/circuits/blob/master/LICENSE))
+-   [[repo](https://github.com/neo4j/neo4j-python-driver)/[pip](https://pypi.org/project/neo4j-driver/)] **neo4j-driver** - (neo4j database client, licensed under [Apache 2.0](https://github.com/neo4j/neo4j-python-driver/blob/2.0/LICENSE.txt))
+-   [[repo](https://github.com/etingof/pysnmp)/[pip](https://pypi.org/project/pysnmp/)] **pysnmp** - (SNMP engine implementation, [BSD 2-Clause "Simplified" License](https://github.com/etingof/pysnmp/blob/master/LICENSE.rst))
+-   [[repo](https://libvirt.org/git/?p=libvirt-python.git;a=summary)/[pip](https://pypi.org/project/libvirt-python/)] **libvirt-python** - (libvirt API, GNU LGPL v2 or later (LGPLv2+) (LGPLv2+))
+-   [[repo](https://github.com/websocket-client/websocket-client)/[pip](https://pypi.org/project/websocket_client/)] **websocket-client** - (client socket implementation, licensed under [BSD 3-Clause](https://github.com/websocket-client/websocket-client/blob/master/LICENSE))
+
+Dashboard:
+
+A list of frontend npm packages and their corresponding licenses can be found [here](https://github.com/Seneca-CDOT/simengine/blob/master/docs/.misc/frontend-licenses.csv).
 
 ## Python API
 

@@ -205,6 +205,7 @@ IPMI_LAN_DEFAULTS = {
     "user": "ipmiusr",
     "password": "test",
     "host": "localhost",
+    "interface": "",
     "port": 9001,
     "vmport": 9002,
     "storcli_port": 50000,
