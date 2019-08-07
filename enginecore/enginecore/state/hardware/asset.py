@@ -55,26 +55,47 @@ class Asset(Component):
         """Update load for this asset"""
         return self.state.update_load(new_load)
 
-    def power_up(self):
-        """Power up this asset 
+    def power_up(self, state_reason=None):
+        """Power up this asset
+        Args:
+            state_reason(PowerStateReason): reason for powering
+                this asset (e.g. due to AC restored or user
+                pressing button etc.)
         Returns: 
             int: new state after power_up operation
         """
+        if not state_reason:
+            state_reason = self.state.PowerStateReason.ac_restored
+
+        self._state_reason = state_reason
         return self.state.power_up()
 
-    def shut_down(self):
-        """Shut down this asset 
-        Returns: 
-            int: new state after power_up operation
-        """
-        return self.state.shut_down()
-
-    def power_off(self):
+    def power_off(self, state_reason=None):
         """Power down this asset 
+        Args:
+            state_reason(PowerStateReason): reason for poweroff
+                (e.g. due to AC loss)
         Returns: 
             int: new state after power_up operation
         """
+        if not state_reason:
+            state_reason = self.state.PowerStateReason.ac_lost
+
+        self._state_reason = state_reason
         return self.state.power_off()
+
+    def shut_down(self, state_reason=None):
+        """Shut down this asset (graceful shutdown)
+        Args:
+            state_reason(PowerStateReason): reason for shutdown
+        Returns: 
+            int: new state after power_up operation
+        """
+        if not state_reason:
+            state_reason = self.state.PowerStateReason.turned_off
+
+        self._state_reason = state_reason
+        return self.state.shut_down()
 
     def _create_asset_workplace_dir(self):
         """Create temp workplace directory for the asset 
@@ -96,6 +117,9 @@ class Asset(Component):
         asset_event = event.get_next_power_event(self)
 
         min_voltage = self.state.min_voltage_prop()
+        powered_off_by_user = (
+            self._state_reason == self.state.PowerStateReason.turned_off
+        )
         power_action = None
 
         old_out_volt, new_out_volt = asset_event.out_volt.old, asset_event.out_volt.new
@@ -104,8 +128,13 @@ class Asset(Component):
         # Asset is underpowered (volt is too low)
         if new_out_volt <= min_voltage and asset_event.state.old:
             power_action = self.power_off
+
         # Asset was offline and underpowered, power back up
-        elif new_out_volt > min_voltage and not asset_event.state.old:
+        elif (
+            new_out_volt > min_voltage
+            and not asset_event.state.old
+            and not powered_off_by_user
+        ):
             power_action = self.power_up
 
         # re-set output voltage values in case of power condition
@@ -148,6 +177,11 @@ class Asset(Component):
         """Update redis state once request goes through
         (higher priority means it will be called first)
         """
+        self._state_reason = {
+            "PowerButtonOnEvent": self.state.PowerStateReason.turned_on,
+            "PowerButtonOffEvent": self.state.PowerStateReason.turned_off,
+        }[event.name]
+
         self.state.set_redis_asset_state(event.state.new)
 
     @handler("PowerButtonOnEvent", "PowerButtonOffEvent")

@@ -62,3 +62,15 @@ Feature: System handles voltage updates
             | 120      | 0        | 0         | 0          | 0         | 0          | 0         | 0          |
             | 120      | 110      | 110       | 110        | 110       | 110        | 110       | 110        |
             | 120      | 108      | 108       | 108        | 108       | 108        | 108       | 0          |
+
+    @corner-case
+    Scenario: Voltage changes are ignored when an outlet is turned off by a user
+        Given asset "1" is "offline"
+        And wallpower voltage is set to "80"
+
+        When wallpower voltage is updated to "120"
+
+        # asset state should not change despite voltage update
+        Then asset "1" is "offline"
+        And asset "2" is "offline"
+        And asset "3" is "offline"
