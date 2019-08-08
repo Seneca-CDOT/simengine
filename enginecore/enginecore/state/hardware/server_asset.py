@@ -196,14 +196,17 @@ class Server(StaticAsset):
         load_upd[e_src_psu.key].old = old_asset_load * src_psu_draw
         load_upd[e_src_psu.key].new = new_asset_load * src_psu_draw
 
-        # power up if server is offline
+        # power up if server is offline & boot-on-power BIOS option is on
         if should_power_up and self.state.power_on_ac_restored:
             asset_event.state.new = self.power_up()
             self._update_load(self.state.power_consumption / event.in_volt.new)
 
-        elif should_change_load:
+        # update load if no state changes
+        elif not should_power_up and should_change_load:
             asset_event.calc_load_from_volt()
             self._update_load(self.state.load + load_upd[e_src_psu.key].difference)
+        elif asset_event.state.unchanged() and not self.state.power_on_ac_restored:
+            load_upd = {}
 
         asset_event.streamed_load_updates = load_upd
         return asset_event
