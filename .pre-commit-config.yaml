@@ -9,3 +9,4 @@ repos:
     hooks:
       - id: prettier
         files: ^dashboard/
+        exclude_types: [svg, png]
