@@ -130,7 +130,7 @@ Feature: Server Load Handling
             | online     | offline    | 72      | offline | online  | 2.25 | 2.25 | 2.25 | 2.25 | 4.0 |
 
     @dual-psu-asset
-    Scenario Outline: Dual-PSU load re-destribution
+    Scenario Outline: Dual-PSU load re-distribution
         # initialize model & engine
         # (1)-[powers]->[1801:   server ]
         # (2)-[powers]->[1802     180   ]

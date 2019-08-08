@@ -3,7 +3,7 @@
 @quick-test
 Feature: Load handling and distribution across entire system tolology
 
-    Load travels uptream and it may change due to either voltage spikes/drops or power update
+    Load travels upstream and it may change due to either voltage spikes/drops or power update
     of hardware assets.
 
     Background:
@@ -42,7 +42,7 @@ Feature: Load handling and distribution across entire system tolology
             | 3         | offline         | online          | 1.0 | 1.0 | 1.0 |
 
     Scenario Outline: Zero load across the system
-            """(this is to verify that enigne doesn't get stuck waiting for load branches to complete)"""
+            """(this is to verify that engine doesn't get stuck waiting for load branches to complete)"""
         # initialize model & engine
         # (1)-[powers]->(2)-[powers]->(3)
         Given Outlet asset with key "1" is created
@@ -102,7 +102,6 @@ Feature: Load handling and distribution across entire system tolology
             | 120      | 60       | 2.0 | 2.0 | 2.0 |
 
     @corner-case
-    @wip
     Scenario Outline: Load propagation is blocked when an asset down the power chain has on-AC-restored option set to off
 
         # create our little digital playground

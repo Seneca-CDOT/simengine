@@ -24,6 +24,7 @@ Feature: Server Voltage Handling
 
         Then asset "1801" is "<1801>"
         And asset "180" is "<180>"
+        And asset "180" vm is "<180>"
 
         Examples: Single-psu server state tests
             | key  | status  | 1801    | 180     |
@@ -31,6 +32,8 @@ Feature: Server Voltage Handling
             | 1801 | offline | offline | offline |
 
     @dual-psu-asset
+    @wip
+
     Scenario Outline: Server powered by 2 PSU's requires at least one power source present
 
         # initialize model & engine
@@ -56,6 +59,7 @@ Feature: Server Voltage Handling
         Then asset "1801" is "<1801>"
         And asset "1802" is "<1802>"
         And asset "180" is "<180>"
+        And asset "180" vm is "<180>"
 
         Examples: Switching states from online to offline for dual power supply
             | key-1 | key-2 | 1-ini  | 2-ini  | 1-new   | 2-new   | 1801    | 1802    | 180     |
@@ -73,6 +77,7 @@ Feature: Server Voltage Handling
     @dual-psu-asset
     @server-bmc-asset
     @server-power-toggle
+    @corner-case
     Scenario: More complicated case with server and psu power update
 
         Given Outlet asset with key "2" is created
@@ -90,4 +95,5 @@ Feature: Server Voltage Handling
         When asset "71" goes "online"
 
         Then asset "7" is "online"
-        Then asset "71" is "online"
+        And asset "180" vm is "<180>"
+        And asset "71" is "online"

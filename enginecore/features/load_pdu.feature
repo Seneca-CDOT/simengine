@@ -41,7 +41,7 @@ Feature: Load distribution with assets that have multiple children
         Then asset "74" load is set to "<74>"
         Then asset "75" load is set to "<75>"
 
-        # everythin powered by the PDU
+        # everything powered by the PDU
         Then asset "3" load is set to "<3>"
         Then asset "4" load is set to "<4>"
         Then asset "5" load is set to "<5>"
