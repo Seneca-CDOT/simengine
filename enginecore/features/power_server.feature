@@ -32,8 +32,6 @@ Feature: Server Voltage Handling
             | 1801 | offline | offline | offline |
 
     @dual-psu-asset
-    @wip
-
     Scenario Outline: Server powered by 2 PSU's requires at least one power source present
 
         # initialize model & engine
@@ -95,5 +93,35 @@ Feature: Server Voltage Handling
         When asset "71" goes "online"
 
         Then asset "7" is "online"
-        And asset "180" vm is "<180>"
+        And asset "7" vm is "online"
         And asset "71" is "online"
+
+    @corner-case
+    @dual-psu-asset
+    @server-bmc-asset
+    Scenario Outline: State of an offline server remains unchanged when it is set not to power when AC restored
+
+        Given Outlet asset with key "2" is created
+        And ServerBMC asset with key "7" and "480" Wattage is created
+        And asset "7" "does not power on" when AC is restored
+
+        And asset "1" powers target "71"
+        And asset "2" powers target "72"
+
+        And Engine is up and running
+        And asset "7" is "offline"
+
+        # Test conditions, when this happens:
+        When asset "<key-1>" goes "<1-new>"
+        And asset "<key-2>" goes "<2-new>"
+
+        # Then the result is:
+        Then asset "7" is "offline"
+        And asset "7" vm is "offline"
+
+        Examples: Check that AC state update does not affect power state of the server asset
+            | key-1 | key-2 | 1-ini   | 2-ini   | 1-new   | 2-new   |
+            | 1     | 2     | offline | offline | online  | online  |
+            | 1     | 2     | offline | offline | offline | online  |
+            | 1     | 2     | offline | offline | online  | offline |
+

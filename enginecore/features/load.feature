@@ -1,7 +1,7 @@
 @load-behaviour
 @power-behaviour
 @quick-test
-Feature: Load handling and distribution across entire system tolology
+Feature: Load handling and distribution across entire system topology
 
     Load travels upstream and it may change due to either voltage spikes/drops or power update
     of hardware assets.

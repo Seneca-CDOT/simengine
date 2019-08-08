@@ -129,6 +129,50 @@ Feature: Server Load Handling
             | online     | offline    | 71      | offline | online  | 2.25 | 2.25 | 2.25 | 2.25 | 4.0 |
             | online     | offline    | 72      | offline | online  | 2.25 | 2.25 | 2.25 | 2.25 | 4.0 |
 
+
+    @corner-case
+    @dual-psu-asset
+    @server-bmc-asset
+    @corner-case
+    Scenario Outline: Load of an offline server remains unchanged when it is set not to power when AC restored
+
+        Given Outlet asset with key "2" is created
+        And ServerBMC asset with key "7" and "480" Wattage is created
+        And asset "7" "does not power on" when AC is restored
+
+        And asset "1" powers target "71"
+        And asset "2" powers target "72"
+
+        And Engine is up and running
+        And asset "7" is "offline"
+        And asset "<key-1>" is "<1-ini>"
+        And asset "<key-2>" is "<2-ini>"
+
+        # Test conditions, when this happens:
+        When asset "<key-1>" goes "<1-new>"
+        And asset "<key-2>" goes "<2-new>"
+
+        # Then the load outcome/result is:
+        Then asset "1" load is set to "<1>"
+        And asset "2" load is set to "<2>"
+
+        And asset "71" load is set to "<71>"
+        And asset "72" load is set to "<72>"
+        And asset "7" load is set to "<7>"
+
+
+        Examples: Check that AC state update does not affect load of the server asset (toggling outlets)
+            | key-1 | key-2 | 1-ini   | 2-ini   | 1-new   | 2-new   | 1    | 2    | 71   | 72   | 7   |
+            | 1     | 2     | offline | offline | online  | online  | 0.25 | 0.25 | 0.25 | 0.25 | 0.0 |
+            | 1     | 2     | offline | offline | offline | online  | 0.00 | 0.25 | 0.00 | 0.25 | 0.0 |
+            | 1     | 2     | offline | offline | online  | offline | 0.25 | 0.00 | 0.25 | 0.00 | 0.0 |
+
+        Examples: Check that AC state update does not affect load of the server asset (toggling PSUs)
+            | key-1 | key-2 | 1-ini   | 2-ini   | 1-new   | 2-new   | 1    | 2    | 71   | 72   | 7   |
+            | 71    | 72    | offline | offline | online  | online  | 0.25 | 0.25 | 0.25 | 0.25 | 0.0 |
+            | 71    | 72    | offline | offline | offline | online  | 0.00 | 0.25 | 0.00 | 0.25 | 0.0 |
+            | 71    | 72    | offline | offline | online  | offline | 0.25 | 0.00 | 0.25 | 0.00 | 0.0 |
+
     @dual-psu-asset
     Scenario Outline: Dual-PSU load re-distribution
         # initialize model & engine
