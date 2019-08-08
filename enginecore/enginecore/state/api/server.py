@@ -57,6 +57,10 @@ class IServerStateManager(IStateManager):
     def power_up(self):
 
         powered = self.status
+
+        if powered and not self._vm.isActive():
+            self._vm.create()
+
         if powered or math.isclose(self.input_voltage, 0.0):
             return powered
 

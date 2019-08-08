@@ -154,9 +154,9 @@ class Server(StaticAsset):
         extra_draw = 0.0
 
         should_change_load = True
-        should_power_up = not self.state.status and not math.isclose(
-            event.in_volt.new, 0.0
-        )
+        should_power_up = (
+            not self.state.status or not self.state.vm_is_active()
+        ) and not math.isclose(event.in_volt.new, 0.0)
 
         new_asset_load = asset_event.calculate_load(self.state, event.in_volt.new)
         old_asset_load = asset_event.calculate_load(self.state, event.in_volt.old)
