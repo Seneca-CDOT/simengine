@@ -205,7 +205,7 @@ class Server(StaticAsset):
         elif not should_power_up and should_change_load:
             asset_event.calc_load_from_volt()
             self._update_load(self.state.load + load_upd[e_src_psu.key].difference)
-        elif asset_event.state.unchanged() and not self.state.power_on_ac_restored:
+        elif not self.state.status and not self.state.power_on_ac_restored:
             load_upd = {}
 
         asset_event.streamed_load_updates = load_upd
