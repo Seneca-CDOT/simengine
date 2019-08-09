@@ -24,7 +24,6 @@
 #include <OpenIPMI/ipmi_msgbits.h>
 #include <OpenIPMI/ipmi_bits.h>
 #include <OpenIPMI/serv.h>
-// #include <hiredis/hiredis.h>
 
 #define PVERSION "0.0.0"
 
@@ -32,20 +31,6 @@
 
 #define CHASSIS_FRU_SIZE 1024
 #define BOARD_FRU_SIZE 2048
-
-#define BOARD_TEMP_SHUTDOWN 105
-#define SWITCH_TEMP_SHUTDOWN 115
-#define FRONT_TEMP_SHUTDOWN 50
-
-#define MARVELL_SEMI_ISREAL_IANA 20495
-#define DISABLE_NETWORK_SRVC_CMD 1
-#define RELOAD_BOARD_FRU_CMD 2
-#define SET_ALL_FANS_DUTY_CMD 3
-#define GET_ALL_FANS_DUTY_CMD 4
-
-#define RESET_REASON_UNKNOWN 0
-#define RESET_REASON_COLD_BOOT 1
-#define RESET_REASON_WARM_BOOT 2
 
 static lmc_data_t *bmc_mc;
 static unsigned int server_id = 0;
@@ -76,6 +61,32 @@ static struct board_info
 int ipmi_sim_module_print_version(sys_data_t *sys, char *options)
 {
   printf("IPMI Simulator module version %s\n", PVERSION);
+  return 0;
+}
+
+static int
+bmc_get_chassis_control(lmc_data_t *mc, int op, unsigned char *val,
+                        void *cb_data)
+{
+  sys_data_t *sys = cb_data;
+  char power_cmd[100] = {0};
+
+  sprintf(power_cmd, "simengine-cli status --value --asset-key=%d", server_id);
+
+  // execute a command
+  FILE *fp = popen(power_cmd, "r");
+  if (fp == NULL)
+  {
+    sys->log(sys, DEBUG, NULL, "Failed to fetch asset status!");
+  }
+
+  // get the command result
+  char result[24] = {0x0};
+  while (fgets(result, sizeof(result), fp) != NULL)
+  {
+    *val = atoi(result);
+  }
+
   return 0;
 }
 
@@ -159,7 +170,7 @@ int ipmi_sim_module_init(sys_data_t *sys, const char *options)
   }
 
   // power control
-  ipmi_mc_set_chassis_control_func(bmc_mc, bmc_set_chassis_control, NULL, sys);
+  ipmi_mc_set_chassis_control_func(bmc_mc, bmc_set_chassis_control, bmc_get_chassis_control, sys);
 
   return 0;
 }
