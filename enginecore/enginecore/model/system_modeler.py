@@ -210,6 +210,7 @@ IPMI_LAN_DEFAULTS = {
     "port": 9001,
     "vmport": 9002,
     "storcli_port": 50000,
+    "storcli_enabled": True,
 }
 
 
@@ -249,7 +250,7 @@ def _add_sensors(asset_key, preset_file):
                     addr = {"index": idx}
                 else:
                     raise KeyError(
-                        "Missing address for a seonsor {}".format(sensor_type)
+                        "Missing address for a sensor {}".format(sensor_type)
                     )
 
                 s_attr = [
@@ -517,15 +518,11 @@ def create_server(key, attr, server_variation=ServerVariations.Server):
         )
         attr["type"] = server_variation.name.lower()
         attr["key"] = key
-        attr["storcli_enabled"] = (
-            True if not "storcli_enabled" in attr else attr["storcli_enabled"]
-        )
 
         s_attr = [
             "domain_name",
             "power_consumption",
             "power_source",
-            "storcli_enabled,",
         ] + CREATE_SHARED_ATTR
         props_stm = qh.get_props_stm(attr, supported_attr=s_attr)
 
@@ -539,6 +536,7 @@ def create_server(key, attr, server_variation=ServerVariations.Server):
 
         # set BMC-server specific attributes if type is bmc
         if server_variation == ServerVariations.ServerWithBMC:
+
             bmc_attr = {**IPMI_LAN_DEFAULTS, **attr}  # merge
 
             set_stm = qh.get_set_stm(

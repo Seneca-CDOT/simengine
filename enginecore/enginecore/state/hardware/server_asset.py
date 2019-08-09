@@ -42,7 +42,7 @@ class Server(StaticAsset):
             psu_key = self.key * 10 + i
             self._psu_sm[psu_key] = IStateManager.get_state_manager_by_key(psu_key)
 
-        if "storcli_enabled" in asset_info and asset_info["storcli_enabled"]:
+        if "storcliEnabled" in asset_info and asset_info["storcliEnabled"]:
             server_dir = self._create_asset_workplace_dir()
 
             self._storcli_emu = StorCLIEmulator(
