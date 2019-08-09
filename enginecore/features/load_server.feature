@@ -383,6 +383,7 @@ Feature: Server Load Handling
 
     @slow
     @server-bmc-asset
+    @ipmi-interface
     Scenario Outline: PSU load sensors get updated with PSU load
 
         Given Outlet asset with key "2" is created

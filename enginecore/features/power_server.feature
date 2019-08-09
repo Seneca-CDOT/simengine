@@ -125,3 +125,36 @@ Feature: Server Voltage Handling
             | 1     | 2     | offline | offline | offline | online  |
             | 1     | 2     | offline | offline | online  | offline |
 
+    @ipmi-interface
+    @server-bmc-asset
+    @slow
+    Scenario Outline: IPMI agent is not available when all power supplies are off
+
+        Given Outlet asset with key "2" is created
+        And ServerBMC asset with key "7" and "480" Wattage is created
+
+        And asset "1" powers target "71"
+        And asset "2" powers target "72"
+        And Engine is up and running
+
+        And asset "<key-1>" is "<1-ini>"
+        And asset "<key-2>" is "<2-ini>"
+
+        When asset "<key-2>" goes "<1-new>"
+        And asset "<key-1>" goes "<2-new>"
+        And pause for "2" seconds
+
+        Then asset "7" ipmi interface is "<ipmi-status>"
+
+        Examples: Outlets - Check that IPMI agent goes offline when all power supplies are off
+            | key-1 | key-2 | 1-ini   | 2-ini   | 1-new   | 2-new   | ipmi-status |
+            | 1     | 2     | offline | offline | online  | online  | reachable   |
+            | 1     | 2     | offline | offline | offline | online  | reachable   |
+            | 1     | 2     | offline | offline | online  | offline | reachable   |
+            | 1     | 2     | offline | offline | offline | offline | unreachable |
+            | 1     | 2     | online  | online  | offline | offline | unreachable |
+
+        Examples: PSUs - Check that IPMI agent goes offline when all power supplies are off
+            | key-1 | key-2 | 1-ini   | 2-ini   | 1-new   | 2-new   | ipmi-status |
+            | 71    | 72    | offline | offline | online  | offline | reachable   |
+            | 71    | 72    | offline | offline | offline | offline | unreachable |

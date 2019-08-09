@@ -4,6 +4,7 @@
 @server-asset
 @thermal-behaviour
 @server-bmc-asset
+@ipmi-interface
 Feature: Internal thermal behaviour for Server's sensors
     ServerBMC supports thermal sensors such as CPU, PSU temperatures etc.
     These sensors are affected by ambient changes in the server rack and can also
