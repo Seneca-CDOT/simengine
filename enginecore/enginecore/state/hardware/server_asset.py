@@ -513,4 +513,4 @@ class PSU(StaticAsset):
     def decrease_load_sensors(self, event, *args, **kwargs):
         """Load is ramped up if child is powered up or child asset's load is increased
         """
-        self._update_load_sensors(event.load.new, operator.sub)
+        self._update_load_sensors(event.load.old, operator.sub)
