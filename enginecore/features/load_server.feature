@@ -380,3 +380,28 @@ Feature: Server Load Handling
             | 1    | offline   | online    | 1.0 | 1.0  | 1.0 |
             | 1801 | offline   | online    | 1.0 | 1.0  | 1.0 |
             | 180  | offline   | online    | 1.0 | 1.0  | 1.0 |
+
+    @slow
+    @server-bmc-asset
+    Scenario Outline: PSU load sensors get updated with PSU load
+
+        Given Outlet asset with key "2" is created
+        And ServerBMC asset with key "7" and "480" Wattage is created
+
+        And asset "1" powers target "71"
+        And asset "2" powers target "72"
+        And Engine is up and running
+        And asset "1" is "<state-ini>"
+
+        When asset "1" goes "<state-new>"
+
+        # ipmi_sim reads from a file with a delay
+        And pause for "2" seconds
+
+        Then asset "7" BMC sensor "<sensor-name>" value is "<sensor-value>"
+
+        Examples: Toggling PSU state to see how it affects sensor
+            | state-ini | state-new | sensor-name  | sensor-value |
+            | online    | online    | PSU1 current | 2 Amps       |
+            | online    | offline   | PSU1 current | 0 Amps       |
+            | offline   | online    | PSU1 current | 2 Amps       |
