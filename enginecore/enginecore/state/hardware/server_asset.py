@@ -270,7 +270,7 @@ class Server(StaticAsset):
         # finalize asset state changes based off PSU and in-volt status
         if not alt_power_present and e_src_psu_offline:
             # state needs to change when all power sources are offline
-            asset_event.state.new = self.state.power_off()
+            asset_event.state.new = self.power_off()
 
         # update server load if all PSUs are off or
         # if in voltage simply dropped (but not to zero)
@@ -401,19 +401,23 @@ class ServerWithBMC(Server):
 
         return event
 
-    def on_power_off_request_received(self, event, *args, **kwargs):
+    def power_off(self, state_reason=None):
         self._ipmi_agent.stop_agent()
-        e_result = self.power_off()
-        if e_result.old_state != e_result.new_state:
-            self._sensor_repo.shut_down_sensors()
-        return e_result
+        old_state = self.state.status
+        new_state = super().power_off(state_reason)
 
-    def on_power_up_request_received(self, event, *args, **kwargs):
+        if old_state != new_state:
+            self._sensor_repo.shut_down_sensors()
+        return new_state
+
+    def power_up(self, state_reason=None):
         self._ipmi_agent.start_agent()
-        e_result = self.power_up()
-        if e_result.old_state != e_result.new_state:
+        old_state = self.state.status
+        new_state = super().power_up(state_reason)
+
+        if old_state != new_state:
             self._sensor_repo.power_up_sensors()
-        return e_result
+        return new_state
 
     @handler("ButtonPowerDownPressed")
     def on_asset_did_power_off(self):
