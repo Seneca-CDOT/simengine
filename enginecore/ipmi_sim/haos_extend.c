@@ -50,7 +50,6 @@
 
 static lmc_data_t *bmc_mc;
 static unsigned int server_id = 0;
-// redisContext *redis_store;
 
 static struct board_info {
     sys_data_t *sys;
@@ -79,15 +78,6 @@ int ipmi_sim_module_print_version(sys_data_t *sys, char *options) {
   printf("IPMI Simulator module version %s\n", PVERSION);
   return 0;
 }
-
-// static int say_hello(emu_out_t  *out,
-// 				   emu_data_t *emu,
-// 				   lmc_data_t *mc,
-// 				   char       **toks) {
-//     out->eprintf(out, "Hi there \n");
-//     return EINVAL;
-        
-// }
 
 static int
 bmc_set_chassis_control(lmc_data_t *mc, int op, unsigned char *val,
@@ -162,15 +152,6 @@ int ipmi_sim_module_init(sys_data_t *sys, const char *options) {
 
   free(initstr);
 
-  // redis_store = redisConnect("localhost", 6379);
-  // if (redis_store != NULL && redis_store->err) {
-  //   sys->log(sys, OS_ERROR, NULL,"Unable to connect to redis: %s", redis_store->errstr);
-  //   return 0;
-  // } else {
-  //    sys->log(sys, DEBUG, NULL, "Connected to Redis\n");
-  // }
-
-  // ipmi_emu_add_cmd("say_hello", NOMC, say_hello);
   rv = ipmi_mc_alloc_unconfigured(sys, 0x20, &bmc_mc);
 
   if (rv) {

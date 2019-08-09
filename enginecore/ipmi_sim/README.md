@@ -1,5 +1,3 @@
-`sudo dnf install hiredis-devel`
-
 
 ### Compile Sensors
 
@@ -23,7 +21,3 @@ cp main.bsdr emu_state/ipmi_sim/ipmisim1/sdr.20.main
 `sudo mkdir /usr/lib64/simengine`
 
 `sudo cp ./haos_extend.so  /usr/lib64/simengine`
-
-### Running Simulator
-
-`ipmi_sim -c ./lan.conf -f ipmisim1.emu -s emu_state`
