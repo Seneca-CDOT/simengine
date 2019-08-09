@@ -1,0 +1,63 @@
+#!/bin/bash
+
+cat > /tmp/bcn1.xml << EOF
+<network>
+  <name>bcn1_bridge1</name>
+  <uuid>5b7605d0-6ec5-4530-b28e-86b681c07801</uuid>
+  <bridge name='bcn1_bridge1' stp='on' delay='0'/>
+  <mac address='52:54:00:bc:cc:6f'/>
+  <domain name='bcn1_bridge1'/>
+</network>
+EOF
+
+cat > /tmp/bcn2.xml << EOF
+<network>
+  <name>bcn2_bridge1</name>
+  <uuid>ba8cf0bf-d69c-44b2-8f60-72ef66448035</uuid>
+  <bridge name='bcn2_bridge1' stp='on' delay='0'/>
+  <mac address='52:54:00:bc:dd:6f'/>
+  <domain name='bcn2_bridge1'/>
+</network>
+EOF
+
+cat > /tmp/sn1.xml << EOF
+<network>
+  <name>sn1_bridge1</name>
+  <uuid>4a46283d-b7ac-4e75-9c90-5bee35ed6bf8</uuid>
+  <bridge name='sn1_bridge1' stp='on' delay='0'/>
+  <mac address='52:54:00:9c:26:b8'/>
+  <domain name='sn1_bridge1'/>
+</network>
+EOF
+
+cat > /tmp/sn2.xml << EOF
+<network>
+  <name>sn2_bridge1</name>
+  <uuid>713799c7-fcc4-46f6-b4c8-fbe9d9605edd</uuid>
+  <bridge name='sn2_bridge1' stp='on' delay='0'/>
+  <mac address='52:54:00:9c:37:c9'/>
+  <domain name='sn2_bridge1'/>
+</network>
+EOF
+
+virsh net-destroy sn1_bridge1
+virsh net-destroy bcn1_bridge1
+
+virsh net-undefine sn1_bridge1
+virsh net-undefine bcn1_bridge1
+
+
+# Define them
+virsh net-define /tmp/bcn1.xml
+virsh net-define /tmp/bcn2.xml
+virsh net-define /tmp/sn1.xml
+virsh net-define /tmp/sn2.xml
+
+# Set them to auto-start
+virsh net-autostart sn1_bridge1
+virsh net-autostart bcn1_bridge1
+
+# Start the networks up
+virsh net-start sn1_bridge1
+virsh net-start bcn1_bridge1
+ 
