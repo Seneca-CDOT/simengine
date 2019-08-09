@@ -186,6 +186,10 @@ class Engine(Component):
             old_temp(float): old room temperature
             new_temp(float): new room temperature
         """
+
+        if math.isclose(old_temp, new_temp):
+            return
+
         amb_event = events.AmbientEvent(old_temp=old_temp, new_temp=new_temp)
         self._notify_trackers(amb_event)
 

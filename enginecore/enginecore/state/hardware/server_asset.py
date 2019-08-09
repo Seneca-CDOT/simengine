@@ -399,6 +399,8 @@ class ServerWithBMC(Server):
             new_ambient=event.temperature.new, old_ambient=event.temperature.old
         )
 
+        return event
+
     def on_power_off_request_received(self, event, *args, **kwargs):
         self._ipmi_agent.stop_agent()
         e_result = self.power_off()
