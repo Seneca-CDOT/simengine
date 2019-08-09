@@ -212,3 +212,17 @@ class IPMIAgent(Agent):
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.stop_agent()
+
+    def __str__(self):
+
+        file_struct_info = (
+            "\n"
+            "   Sensor definitions file: {0.sensor_def_path}\n"
+            "   Compiled sensors located in: {0.emu_state_dir_path}\n"
+            "   Lan configurations: {0.lan_conf_path}\n"
+            "   .emu commands file: {0.ipmisim_emu_path}\n"
+        ).format(self)
+
+        return ("\n" + "-" * 20 + "\n").join(
+            ("IPMI simulator:", super(IPMIAgent, self).__str__(), file_struct_info)
+        )

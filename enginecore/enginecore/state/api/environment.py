@@ -44,6 +44,44 @@ class ISystemEnvironment:
         return int(temp.decode()) if temp else 0
 
     @classmethod
+    def get_voltage(cls):
+        """Get Wall-power voltage"""
+        voltage = cls.get_store().get("voltage")
+        return float(voltage.decode()) if voltage else 120.0
+
+    @classmethod
+    def set_voltage(cls, value):
+        """Update voltage"""
+        old_voltage = cls.get_voltage()
+        cls.get_store().set("voltage", str(float(value)))
+
+        if old_voltage == 0.0 and old_voltage < value:
+            cls.get_store().publish(RedisChannels.mains_update_channel, "1")
+        elif value == 0.0:
+            cls.get_store().publish(RedisChannels.mains_update_channel, "0")
+
+        cls.get_store().publish(
+            RedisChannels.voltage_update_channel, "{}-{}".format(old_voltage, value)
+        )
+
+    @classmethod
+    def get_min_voltage(cls):
+        """Minimum voltage required for assets to function;
+        dropping below this point will result in assets getting powered down
+        Returns:
+            float: minimum voltage (in Volts)
+        """
+        return 90.0
+
+    @classmethod
+    def power_source_available(cls):
+        """Check if the mains is present and voltage is above minimum
+        Returns:
+            bool: true if assets can be powered up by the wall
+        """
+        return cls.get_voltage() >= cls.get_min_voltage()
+
+    @classmethod
     @record
     @Randomizer.randomize_method(
         (lambda self: random.randrange(*self.get_ambient_props()[1].values()),)
@@ -61,21 +99,19 @@ class ISystemEnvironment:
     @Randomizer.randomize_method()
     def power_outage(cls):
         """Simulate complete power outage/restoration"""
-        cls.get_store().set("mains-source", "0")
-        cls.get_store().publish(RedisChannels.mains_update_channel, "0")
+        cls.set_voltage(0.0)
 
     @classmethod
     @record
     @Randomizer.randomize_method()
     def power_restore(cls):
         """Simulate complete power restoration"""
-        cls.get_store().set("mains-source", "1")
-        cls.get_store().publish(RedisChannels.mains_update_channel, "1")
+        cls.set_voltage(120.0)
 
     @classmethod
     def mains_status(cls):
         """Get wall power status"""
-        return int(cls.get_store().get("mains-source").decode())
+        return int(bool(cls.get_voltage()))
 
     @classmethod
     def get_ambient_props(cls) -> tuple:

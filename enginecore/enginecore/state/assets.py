@@ -38,11 +38,11 @@ LoadEventResult = namedtuple(
 LoadEventResult.__new__.__defaults__ = (None,) * len(PowerEventResult._fields)
 
 
-class SystemEnvironment(Component):
+class Room(Component):
     """Represents hardware's environment (Room/ServerRack)"""
 
     def __init__(self):
-        super(SystemEnvironment, self).__init__()
+        super(Room, self).__init__()
 
         # threads to track
         self._temp_warming_t = None
@@ -58,6 +58,8 @@ class SystemEnvironment(Component):
             sm.StateManager.set_ambient_props(
                 {**shared_attr, **{"event": "up", "pause_at": 21}}
             )
+
+        sm.StateManager.power_restore()
 
         self._launch_temp_warming()
         self._launch_temp_cooling()
@@ -238,6 +240,26 @@ class Asset(Component):
         decreased_by = kwargs["child_load"]
         msg = "Asset:[{}] load {} was decreased by {}, new load={};"
         return self._update_load(decreased_by, lambda old, change: old - change, msg)
+
+    @handler("VoltageIncreased")
+    def on_voltage_increase(self, event, *args, **kwargs):
+        """React to voltage spikes"""
+
+        if self.state.status:
+            return
+
+        min_voltage, _ = self.state.min_voltage_prop()
+        if min_voltage and kwargs["new_value"] >= min_voltage:
+            self.state.power_up()
+            self.state.publish_power()
+
+    @handler("VoltageDecreased")
+    def on_voltage_drop(self, event, *args, **kwargs):
+        min_voltage, power_off_timeout = self.state.min_voltage_prop()
+        if min_voltage and kwargs["new_value"] < min_voltage and self.state.status:
+            time.sleep(power_off_timeout)
+            self.state.power_off()
+            self.state.publish_power()
 
     @classmethod
     def get_supported_assets(cls):
@@ -744,18 +766,11 @@ class ServerWithBMC(Server):
         self.state.update_agent(self._ipmi_agent.pid)
 
         agent_info = self.state.agent
-        if not agent_info[1]:
-            logging.error(
-                "Asset:[%s] - agent process (%s) failed to start!",
-                self.state.key,
-                agent_info[0],
-            )
-        else:
-            logging.info(
-                "Asset:[%s] - agent process (%s) is up & running",
-                self.state.key,
-                agent_info[0],
-            )
+        log_msg = "is up & running" if agent_info[1] else "failed to start!"
+        logging.info(
+            "Asset:[%s] - agent process (%s) %s", self.state.key, agent_info[0], log_msg
+        )
+        logging.info(self._ipmi_agent)
 
         self.state.update_cpu_load(0)
         self._cpu_load_t = None

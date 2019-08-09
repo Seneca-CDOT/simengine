@@ -64,7 +64,15 @@ class IStateManager:
     @property
     def wattage(self):
         """Asset wattage (assumes power-source to be 120v)"""
-        return self.load * 120
+        return self.load * ISystemEnvironment.get_voltage()
+
+    def min_voltage_prop(self):
+        """Get minimum voltage required and the poweroff timeout associated with it"""
+
+        if not "minVoltage" in self._asset_info:
+            return None, None
+
+        return self._asset_info["minVoltage"], self._asset_info["voltPowerTimeout"]
 
     @property
     def status(self):
@@ -266,7 +274,7 @@ class IStateManager:
             self._graph_ref.get_session(), self._asset_key
         )
 
-        if not asset_keys and not ISystemEnvironment.mains_status():
+        if not asset_keys and not ISystemEnvironment.power_source_available():
             not_affected_by_mains = False
 
         assets_up = self._check_parents(asset_keys, lambda rvalue, _: rvalue == b"0")

@@ -122,6 +122,16 @@ def update_command(update_asset_group):
         "-y", type=int, help="y - asset position on the dashboard", default=0
     )
 
+    update_asset_parent.add_argument(
+        "--min-voltage", type=float, help="Minimum voltage value for asset to function"
+    )
+
+    update_asset_parent.add_argument(
+        "--volt-power-timeout",
+        type=float,
+        help="Number of seconds asset wll stay online before falling over due \
+             to voltage drop below the minimum (--min-voltage)",
+    )
     update_asset_parent.add_argument("-n", "--name", help="Name displayed on the UI")
 
     # snmp group parent will contain snmp-specific args
@@ -275,6 +285,22 @@ def create_command(create_asset_group):
     create_asset_parent.add_argument(
         "--on-delay", type=int, help="Power on delay in ms", default=0
     )
+
+    create_asset_parent.add_argument(
+        "--min-voltage",
+        type=float,
+        help="Minimum voltage value for asset to function",
+        default=90.0,
+    )
+
+    create_asset_parent.add_argument(
+        "--volt-power-timeout",
+        type=float,
+        help="Number of seconds asset wll stay online before falling over due \
+             to voltage drop below the minimum (--min-voltage)",
+        default=0.7,
+    )
+
     create_asset_parent.add_argument(
         "--off-delay", type=int, help="Power on delay in ms", default=0
     )

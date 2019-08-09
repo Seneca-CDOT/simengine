@@ -65,13 +65,17 @@ class PowerEventManager:
     @classmethod
     def map_ambient_event(cls, old_value, new_value):
         """Ambient changes"""
-        if old_value > new_value:
-            amb_event = events.AmbientDecreased(
-                old_value=old_value, new_value=new_value
-            )
-        else:
-            amb_event = events.AmbientIncreased(
-                old_value=old_value, new_value=new_value
-            )
+        return (
+            events.AmbientDecreased
+            if old_value > new_value
+            else events.AmbientIncreased
+        )(old_value=old_value, new_value=new_value)
 
-        return amb_event
+    @classmethod
+    def map_voltage_event(cls, old_value, new_value):
+        """Voltage changes"""
+        return (
+            events.VoltageDecreased
+            if old_value > new_value
+            else events.VoltageIncreased
+        )(old_value=old_value, new_value=new_value)
