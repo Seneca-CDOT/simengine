@@ -80,6 +80,8 @@ class Engine(Component):
         """Re-create system topology (instantiate assets based on graph ref)"""
 
         RECORDER.enabled = False
+
+        ISystemEnvironment.set_ambient(0)
         logger.info("Initializing system topology...")
 
         self._assets = {}
@@ -96,13 +98,13 @@ class Engine(Component):
                 asset
             ).register(self)
 
-        ISystemEnvironment.set_ambient(21)
-        RECORDER.enabled = True
-
         self._power_iter_handler.start(on_iteration_launched=self._chain_power_events)
         self._thermal_iter_handler.start(
             on_iteration_launched=self._chain_thermal_events
         )
+
+        ISystemEnvironment.set_ambient(21)
+        RECORDER.enabled = True
 
     @property
     def assets(self):
