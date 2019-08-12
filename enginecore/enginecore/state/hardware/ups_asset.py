@@ -42,6 +42,9 @@ class UPS(Asset, SNMPSim):
         super().removeHandler(super().on_input_voltage_up)
         super().removeHandler(super().on_input_voltage_down)
         super().removeHandler(super().on_child_load_update)
+        super().removeHandler(super().on_power_button_press)
+        super().removeHandler(super().set_redis_state_on_btn_press)
+
         self._low_volt_th_oid = self.state.get_oid_by_name("AdvConfigLowTransferVolt")
 
         # Store known { wattage: time_remaining } key/value pairs (runtime graph)
@@ -293,14 +296,25 @@ class UPS(Asset, SNMPSim):
 
         return e_result
 
-    @handler("PowerButtonOnEvent")
-    def on_ups_signal_up(self, event, *args, **kwargs):
-        """When user powers up UPS device"""
+    @handler("PowerButtonOnEvent", "PowerButtonOffEvent")
+    def on_power_button_press(self, event, *args, **kwargs):
+        """React to power button event by notifying engine of
+        state changes associated with it"""
 
-        if self.state.on_battery:
+        asset_event = event.get_next_power_event()
+        asset_event.calc_load_from_volt()
+
+        if self.state.on_battery and asset_event.state.new:
+            asset_event.out_volt.new = 120.0
+        elif not asset_event.state.new:
+            asset_event.out_volt.old = self.state.output_voltage
+
+        super().set_redis_state_on_btn_press(event, args, kwargs)
+
+        if event.name == "PowerButtonOnEvent" and self.state.on_battery:
             self._launch_battery_drain(t_reason=self.state.transfer_reason)
-        else:
-            self._launch_battery_charge(power_up_on_charge=True)
+
+        return asset_event
 
     def _get_ups_load_update(self, should_transfer):
         """Get formatted load event result 
