@@ -1,7 +1,7 @@
 """Tools for managing virtual system environment"""
 import random
+import json
 import redis
-
 
 from enginecore.model.graph_reference import GraphReference
 from enginecore.state.redis_channels import RedisChannels
@@ -35,7 +35,7 @@ class ISystemEnvironment:
     @classmethod
     def reload_model(cls):
         """Request daemon reloading"""
-        cls.get_store().publish(RedisChannels.model_update_channel, "reload")
+        cls.get_store().publish(RedisChannels.model_update_channel, json.dumps({}))
 
     @classmethod
     def get_ambient(cls):
@@ -56,12 +56,17 @@ class ISystemEnvironment:
         cls.get_store().set("voltage", str(float(value)))
 
         if old_voltage == 0.0 and old_voltage < value:
-            cls.get_store().publish(RedisChannels.mains_update_channel, "1")
+            cls.get_store().publish(
+                RedisChannels.mains_update_channel, json.dumps({"status": 1})
+            )
         elif value == 0.0:
-            cls.get_store().publish(RedisChannels.mains_update_channel, "0")
+            cls.get_store().publish(
+                RedisChannels.mains_update_channel, json.dumps({"status": 0})
+            )
 
         cls.get_store().publish(
-            RedisChannels.voltage_update_channel, "{}-{}".format(old_voltage, value)
+            RedisChannels.voltage_update_channel,
+            json.dumps({"old_voltage": old_voltage, "new_voltage": value}),
         )
 
     @classmethod
@@ -91,7 +96,8 @@ class ISystemEnvironment:
         old_temp = cls.get_ambient()
         cls.get_store().set("ambient", str(int(value)))
         cls.get_store().publish(
-            RedisChannels.ambient_update_channel, "{}-{}".format(old_temp, value)
+            RedisChannels.ambient_update_channel,
+            json.dumps({"old_ambient": old_temp, "new_ambient": value}),
         )
 
     @classmethod

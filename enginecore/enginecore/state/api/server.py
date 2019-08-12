@@ -23,7 +23,6 @@ class IServerStateManager(IStateManager):
     def __init__(self, asset_info):
         super(IServerStateManager, self).__init__(asset_info)
         self._vm_conn = libvirt.open("qemu:///system")
-        # print(pd_set_props_rand_args(self))
         self._vm = self._vm_conn.lookupByName(asset_info["domainName"])
 
     def vm_is_active(self):

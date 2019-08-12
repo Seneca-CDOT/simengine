@@ -3,7 +3,8 @@
 import json
 import time
 import curses
-from enginecore.state.assets import Asset
+
+# from enginecore.state.assets import Asset
 from enginecore.state.api import IStateManager, ISystemEnvironment
 
 
@@ -110,7 +111,7 @@ def get_status(**kwargs):
     #### one asset ####
     if kwargs["asset_key"] and kwargs["load"]:
 
-        state_manager = Asset.get_state_manager_by_key(kwargs["asset_key"])
+        state_manager = IStateManager.get_state_manager_by_key(kwargs["asset_key"])
 
         if kwargs["value_only"]:
             print(state_manager.load)
@@ -122,7 +123,7 @@ def get_status(**kwargs):
             )
         return
     elif kwargs["asset_key"] and kwargs["agent"]:
-        state_manager = Asset.get_state_manager_by_key(kwargs["asset_key"])
+        state_manager = IStateManager.get_state_manager_by_key(kwargs["asset_key"])
         agent_info = state_manager.agent
         if agent_info:
             msg = "running" if agent_info[1] else "not running"
@@ -143,7 +144,7 @@ def get_status(**kwargs):
 
         return
     elif kwargs["asset_key"]:
-        state_manager = Asset.get_state_manager_by_key(kwargs["asset_key"])
+        state_manager = IStateManager.get_state_manager_by_key(kwargs["asset_key"])
         if kwargs["value_only"]:
             print(state_manager.status)
         else:

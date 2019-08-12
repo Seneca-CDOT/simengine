@@ -1,11 +1,9 @@
-"""This file contains definitions of State Manager classes 
-
-State managers provide interface for manipulating assets' states
-
-Example: 
-    a Server State Manager will contain server-specific logic for powering up/down a VM 
+"""Contains extended versions of State Managers located in api module;
+Internal States are meant to be manipulated by 
+the hardware assets (server_asset, ups_asset etc.)
+So they expose extra functionality on top of the api components
 """
-
+import json
 from enum import Enum
 
 import pysnmp.proto.rfc1902 as snmp_data_types
@@ -54,12 +52,9 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         Args:
             charge_level(int): new battery level (between 0 & 1000)
         """
-        charge_level = 0 if charge_level < 0 else charge_level
-        charge_level = (
-            self._max_battery_level
-            if charge_level > self._max_battery_level
-            else charge_level
-        )
+        # make sure new charge level is within acceptable range
+        charge_level = max(charge_level, 0)
+        charge_level = min(charge_level, self._max_battery_level)
 
         StateManager.get_store().set(self.redis_key + ":battery", int(charge_level))
         self._update_battery_oids(charge_level, self.battery_level)
@@ -130,12 +125,10 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
                 db_s, int(self._asset_key), "HighPrecOutputCurrent"
             )
 
-            if oid_adv:
-                self._update_oid_value(oid_adv, dt_adv, snmp_data_types.Gauge32(load))
-            if oid_hp:
-                self._update_oid_value(
-                    oid_hp, dt_hp, snmp_data_types.Gauge32(load * 10)
-                )
+        if oid_adv:
+            self._update_oid_value(oid_adv, dt_adv, snmp_data_types.Gauge32(load))
+        if oid_hp:
+            self._update_oid_value(oid_hp, dt_hp, snmp_data_types.Gauge32(load * 10))
 
     # TODO: refactor both _update_load_perc_oids & _update_battery_oids, functions seem quite similair
     def _update_load_perc_oids(self, load):
@@ -156,17 +149,17 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
                 db_s, int(self._asset_key), "HighPrecOutputLoad"
             )
 
-            value_hp = abs(
-                (1000 * (load * state_api.ISystemEnvironment.get_voltage()))
-                / self.output_capacity
-            )
+        value_hp = abs(
+            (1000 * (load * state_api.ISystemEnvironment.get_voltage()))
+            / self.output_capacity
+        )
 
-            if oid_adv:
-                self._update_oid_value(
-                    oid_adv, dt_adv, snmp_data_types.Gauge32(value_hp / 10)
-                )
-            if oid_hp:
-                self._update_oid_value(oid_hp, dt_hp, snmp_data_types.Gauge32(value_hp))
+        if oid_adv:
+            self._update_oid_value(
+                oid_adv, dt_adv, snmp_data_types.Gauge32(value_hp / 10)
+            )
+        if oid_hp:
+            self._update_oid_value(oid_hp, dt_hp, snmp_data_types.Gauge32(value_hp))
 
     def _update_battery_oids(self, charge_level, old_level):
         """Update OIDs associated with UPS Battery
@@ -188,31 +181,29 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
                 db_s, int(self._asset_key), "BasicBatteryStatus"
             )
 
-            if oid_adv:
-                self._update_oid_value(
-                    oid_adv, dt_adv, snmp_data_types.Gauge32(charge_level / 10)
-                )
-            if oid_hp:
-                self._update_oid_value(
-                    oid_hp, dt_hp, snmp_data_types.Gauge32(charge_level)
-                )
+        if oid_adv:
+            self._update_oid_value(
+                oid_adv, dt_adv, snmp_data_types.Gauge32(charge_level / 10)
+            )
+        if oid_hp:
+            self._update_oid_value(oid_hp, dt_hp, snmp_data_types.Gauge32(charge_level))
 
-            if oid_basic:
-                if charge_level <= 100:
-                    low_bat_value = oid_spec["batteryLow"]
-                    self._update_oid_value(
-                        oid_basic, dt_basic, snmp_data_types.Integer32(low_bat_value)
-                    )
-                elif old_level <= 100 and charge_level > 100:
-                    norm_bat_value = oid_spec["batteryNormal"]
-                    self._update_oid_value(
-                        oid_basic, dt_basic, snmp_data_types.Integer32(norm_bat_value)
-                    )
+        if oid_basic:
+            if charge_level <= 100:
+                low_bat_value = oid_spec["batteryLow"]
+                self._update_oid_value(
+                    oid_basic, dt_basic, snmp_data_types.Integer32(low_bat_value)
+                )
+            elif old_level <= 100 and charge_level > 100:
+                norm_bat_value = oid_spec["batteryNormal"]
+                self._update_oid_value(
+                    oid_basic, dt_basic, snmp_data_types.Integer32(norm_bat_value)
+                )
 
     def _publish_battery(self):
         """Publish battery update"""
         StateManager.get_store().publish(
-            RedisChannels.battery_update_channel, self.redis_key
+            RedisChannels.battery_update_channel, json.dumps({"key": self.key})
         )
 
 
@@ -237,11 +228,10 @@ class PDUStateManager(state_api.IPDUStateManager, StateManager):
             oid, data_type, _ = GraphReference.get_asset_oid_by_name(
                 session, int(self._asset_key), "WattageDraw"
             )
-            wattage = wattage if wattage >= 0 else 0
-            if oid:
-                self._update_oid_value(
-                    oid, data_type, snmp_data_types.Integer32(wattage)
-                )
+
+        wattage = wattage if wattage >= 0 else 0
+        if oid:
+            self._update_oid_value(oid, data_type, snmp_data_types.Integer32(wattage))
 
     def update_load(self, load):
         """Update any load state associated with the device in the redis db 
@@ -269,10 +259,11 @@ class OutletStateManager(state_api.IOutletStateManager, StateManager):
             oid, parent_key = GraphReference.get_component_oid_by_name(
                 session, self.key, oid_name
             )
-            if oid:
-                oid = "{}.{}".format(oid, str(self.key)[-1])
-                return int(self._get_oid_value(oid, key=parent_key))
-            return 0
+        if oid:
+            oid = "{}.{}".format(oid, str(self.key)[-1])
+            return int(self._get_oid_value(oid, key=parent_key))
+
+        return 0
 
     def set_parent_oid_states(self, state):
         """Bulk-set parent oid values 
@@ -282,17 +273,18 @@ class OutletStateManager(state_api.IOutletStateManager, StateManager):
         """
         with self._graph_ref.get_session() as session:
             _, oids = GraphReference.get_parent_keys(session, self._asset_key)
-            oid_keys = oids.keys()
-            parents_new_states = {}
-            parent_values = StateManager.get_store().mget(oid_keys)
 
-            for rkey, rvalue in zip(oid_keys, parent_values):
-                #  datatype -> {} | {} <- value
-                parents_new_states[rkey] = "{}|{}".format(
-                    rvalue.split(b"|")[0].decode(), oids[rkey][state.name]
-                )
+        oid_keys = oids.keys()
+        parents_new_states = {}
+        parent_values = StateManager.get_store().mget(oid_keys)
 
-            StateManager.get_store().mset(parents_new_states)
+        for rkey, rvalue in zip(oid_keys, parent_values):
+            #  datatype -> {} | {} <- value
+            parents_new_states[rkey] = "{}|{}".format(
+                rvalue.split(b"|")[0].decode(), oids[rkey][state.name]
+            )
+
+        StateManager.get_store().mset(parents_new_states)
 
     # TODO: move to interface
     def get_config_off_delay(self):

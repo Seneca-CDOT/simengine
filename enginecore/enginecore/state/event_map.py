@@ -1,8 +1,8 @@
 """ Maps redis events to circuit events """
-from enginecore.state import events
+from enginecore.state.hardware import asset_events as events
 
 
-class PowerEventManager:
+class PowerEventMap:
     """This helper maps redis values of OIDs or asset states to circuit events """
 
     STATE_SPECS = {
@@ -22,30 +22,27 @@ class PowerEventManager:
     @classmethod
     def get_state_specs(cls):
         """Map OID & their values to events"""
-        return PowerEventManager.STATE_SPECS
+        return PowerEventMap.STATE_SPECS
 
     @classmethod
     def map_asset_event(cls, value):
         """Map redis asset values to events"""
-        return {
-            "0": events.ButtonPowerDownPressed(),
-            "1": events.ButtonPowerUpPressed(),
-        }[value]
+        return {0: events.ButtonPowerDownPressed(), 1: events.ButtonPowerUpPressed()}[
+            value
+        ]
 
     @classmethod
     def map_child_event(cls, value, new_load, child_key):
         """Map child redis updates to events"""
         return {
-            "0": events.ChildAssetPowerDown(child_key=child_key, child_load=new_load),
-            "1": events.ChildAssetPowerUp(child_key=child_key, child_load=new_load),
+            0: events.ChildAssetPowerDown(child_key=child_key, child_load=new_load),
+            1: events.ChildAssetPowerUp(child_key=child_key, child_load=new_load),
         }[value]
 
     @classmethod
     def map_parent_event(cls, value):
         """Map parent redis updates to events"""
-        return {"0": events.ParentAssetPowerDown(), "1": events.ParentAssetPowerUp()}[
-            value
-        ]
+        return {0: events.ParentAssetPowerDown(), 1: events.ParentAssetPowerUp()}[value]
 
     @classmethod
     def map_load_increased_by(cls, new_load, child_key):
@@ -60,7 +57,7 @@ class PowerEventManager:
     @classmethod
     def map_mains_event(cls, value):
         """Map parent redis updates to events"""
-        return {"0": events.PowerOutage(), "1": events.PowerRestored()}[value]
+        return {0: events.PowerOutage(), 1: events.PowerRestored()}[value]
 
     @classmethod
     def map_ambient_event(cls, old_value, new_value):

@@ -3,13 +3,15 @@
 import time
 import os
 import subprocess
+import json
+
 import redis
 
 from enginecore.model.graph_reference import GraphReference
 from enginecore.tools.utils import format_as_redis_key
 from enginecore.state.redis_channels import RedisChannels
 
-from enginecore.state.asset_definition import SUPPORTED_ASSETS
+from enginecore.state.hardware.asset_definition import SUPPORTED_ASSETS
 from enginecore.tools.recorder import RECORDER as record
 from enginecore.tools.randomizer import Randomizer
 from enginecore.state.api.environment import ISystemEnvironment
@@ -81,7 +83,7 @@ class IStateManager:
         Returns:
             int: 1 if on, 0 if off
         """
-        return int(IStateManager.get_store().get(self.redis_key))
+        return int(IStateManager.get_store().get(self.redis_key + ":state"))
 
     @property
     def agent(self):
@@ -98,7 +100,8 @@ class IStateManager:
     @record
     @Randomizer.randomize_method()
     def shut_down(self):
-        """Implements state logic for graceful power-off event, sleeps for the pre-configured time
+        """Implements state logic for graceful power-off event,
+        sleeps for the pre-configured time
             
         Returns:
             int: Asset's status after power-off operation
@@ -123,7 +126,8 @@ class IStateManager:
     @record
     @Randomizer.randomize_method()
     def power_up(self):
-        """Implements state logic for power up, sleeps for the pre-configured time & resets boot time
+        """Implements state logic for power up;
+        sleeps for the pre-configured time & resets boot time
         
         Returns:
             int: Asset's status after power-on operation
@@ -144,7 +148,8 @@ class IStateManager:
     def _publish_load(self):
         """Publish load changes """
         IStateManager.get_store().publish(
-            RedisChannels.load_update_channel, self.redis_key
+            RedisChannels.load_update_channel,
+            json.dumps({"key": self.key, "load": self.load}),
         )
 
     def _sleep_delay(self, delay_type):
@@ -162,23 +167,23 @@ class IStateManager:
 
     def _set_redis_asset_state(self, state, publish=True):
         """Update redis value of the asset power status"""
-        IStateManager.get_store().set(self.redis_key, state)
+        IStateManager.get_store().set(self.redis_key + ":state", state)
         if publish:
             self._publish_power()
 
     def _set_state_on(self):
         """Set state to online"""
-        self._set_redis_asset_state("1")
+        self._set_redis_asset_state(1)
 
     def _set_state_off(self):
         """Set state to offline"""
-        self._set_redis_asset_state("0")
+        self._set_redis_asset_state(0)
 
     def _publish_power(self):
         """Notify daemon of power updates"""
         IStateManager.get_store().publish(
             RedisChannels.state_update_channel,
-            "{}-{}".format(self.redis_key, self.status),
+            json.dumps({"key": self.key, "status": self.status}),
         )
 
     def _get_oid_value(self, oid, key):
@@ -188,7 +193,9 @@ class IStateManager:
         return redis_store.get(rkey).decode().split("|")[1]
 
     def _reset_boot_time(self):
-        """Reset device start time (used to calculate uptime)"""
+        """Reset device start time (this redis key/value is used to calculate uptime)
+        (see snmppub.lua)
+        """
         IStateManager.get_store().set(
             str(self._asset_key) + ":start_time", int(time.time())
         )
@@ -242,12 +249,13 @@ class IStateManager:
             msg (str, optional): Error message to be printed
         
         Returns: 
-            bool: True if parent keys are missing or all parents were verified with parent_down clause 
+            bool: True if parent keys are missing or all parents 
+                  were verified with parent_down clause 
         """
         if not keys:
             return True
 
-        parent_values = IStateManager.get_store().mget(keys)
+        parent_values = IStateManager.get_store().mget([k + ":state" for k in keys])
         pdown = 0
         pdown_msg = ""
         for rkey, rvalue in zip(keys, parent_values):
@@ -297,9 +305,10 @@ class IStateManager:
     @classmethod
     def _get_assets_states(cls, assets, flatten=True):
         """Query redis store and find states for each asset
-        
+
         Args:
-            flatten(bool): If false, the returned assets in the dict will have their child-components nested
+            flatten(bool): If false, the returned assets in the dict
+                           will have their child-components nested
         Returns:
             dict: Current information on assets including their states, load etc.
         """
@@ -309,7 +318,7 @@ class IStateManager:
             return None
 
         asset_values = cls.get_store().mget(
-            list(map(lambda k: "{}-{}".format(k, assets[k]["type"]), asset_keys))
+            list(map(lambda k: "{}-{}:state".format(k, assets[k]["type"]), asset_keys))
         )
 
         for rkey, rvalue in zip(assets, asset_values):
@@ -335,7 +344,8 @@ class IStateManager:
         """Get states of all system components 
         
         Args:
-            flatten(bool): If false, the returned assets in the dict will have their child-components nested
+            flatten(bool): If false, the returned assets in the dict 
+                           will have their child-components nested
         
         Returns:
             dict: Current information on assets including their states, load etc.
@@ -351,8 +361,10 @@ class IStateManager:
     @classmethod
     def get_state_manager_by_key(cls, key, supported_assets=None):
         """Infer asset manager from key"""
+        from enginecore.state.hardware.room import Asset
+
         if not supported_assets:
-            supported_assets = SUPPORTED_ASSETS
+            supported_assets = Asset.get_supported_assets()
 
         graph_ref = GraphReference()
 

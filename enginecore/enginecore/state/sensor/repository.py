@@ -108,7 +108,7 @@ class SensorRepository:
                     )
 
                     logging.info(
-                        "Sensor:[%s] - value will be updated from %s° to %s° due to ambient changes (%s° -> %s°)",
+                        "Sensor:[%s] updated from %s° to %s° due to ambient changes (%s°)->(%s°)",
                         sensor.name,
                         old_sensor_value,
                         new_sensor_value,

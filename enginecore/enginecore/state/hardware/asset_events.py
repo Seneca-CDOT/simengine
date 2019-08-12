@@ -1,4 +1,5 @@
-"""Contains list of events dispatched by the main listener """
+"""Contains list of events dispatched by the main listener;
+These events will be handled by each individual asset"""
 from circuits import Event
 
 
@@ -6,11 +7,11 @@ from circuits import Event
 
 
 class ButtonPowerDownPressed(Event):
-    """On Asset Did Power Down (equivalent to power button press) """
+    """On Asset Did Power Down (equivalent to power button press by a user) """
 
 
 class ButtonPowerUpPressed(Event):
-    """On Asset Did Power Up  (equivalent to power button press) """
+    """On Asset Did Power Up (equivalent to power button press by a user) """
 
 
 class ParentAssetPowerDown(Event):
@@ -47,6 +48,18 @@ class ChildAssetLoadDecreased(Event):
     """On Child Load Change"""
 
     success = True
+
+
+class VoltageIncreased(Event):
+    """Voltage spike/increase for the Asset"""
+
+    pass
+
+
+class VoltageDecreased(Event):
+    """Voltage drop for the Asset"""
+
+    pass
 
 
 class SignalDown(Event):
@@ -90,17 +103,5 @@ class AmbientIncreased(Event):
 
 class AmbientDecreased(Event):
     """Ambient temperature dropped"""
-
-    pass
-
-
-class VoltageIncreased(Event):
-    """Voltage spike/increase"""
-
-    pass
-
-
-class VoltageDecreased(Event):
-    """Voltage drop"""
 
     pass

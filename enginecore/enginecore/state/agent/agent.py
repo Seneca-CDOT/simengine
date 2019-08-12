@@ -1,5 +1,6 @@
 """Interface for 3-rd party programs managed by the assets (e.g. ipmi_sim, snmpsimd)"""
 import atexit
+import os
 
 
 class Agent:
@@ -10,19 +11,23 @@ class Agent:
     def __init__(self):
         self._process = None
 
-    def start_agent(self):
-        """Logic for starting up the agent """
-        raise NotImplementedError
-
     @property
     def pid(self):
         """Get agent process id"""
         return self._process.pid
 
+    def process_running(self):
+        """Returns true if process is running"""
+        return os.path.exists("/proc/" + str(self.pid))
+
     def stop_agent(self):
         """Logic for agent's termination """
         if not self._process.poll():
             self._process.kill()
+
+    def start_agent(self):
+        """Logic for starting up the agent """
+        raise NotImplementedError
 
     def register_process(self, process):
         """Set process instance
@@ -33,4 +38,5 @@ class Agent:
         atexit.register(self.stop_agent)
 
     def __str__(self):
-        return "Agent #{0.agent_num}: {0.pid}".format(self)
+        agent_msg = "is {}running".format("" if self.process_running() else "not ")
+        return "Agent #{0.agent_num}: {0.pid} ".format(self) + agent_msg

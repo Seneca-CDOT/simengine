@@ -1,4 +1,8 @@
-"""Requests  accepted by the ws_server"""
+"""Requests accepted by the ws_server
+
+- ServerToClientRequests -> requests sent to the socket client
+- ClientToServerRequests -> requests sent by the client to the server
+"""
 from enum import Enum
 
 

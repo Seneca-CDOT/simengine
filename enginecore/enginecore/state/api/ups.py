@@ -1,5 +1,6 @@
 """UPS asset interface """
 import time
+import json
 from enum import Enum
 
 import pysnmp.proto.rfc1902 as snmp_data_types
@@ -32,6 +33,17 @@ class IUPSStateManager(IStateManager):
     def __init__(self, asset_info):
         super().__init__(asset_info)
         self._max_battery_level = 1000  #%
+
+    def _update_battery_process_speed(self, process_channel, factor):
+        """Speed up/slow down battery related process"""
+        IStateManager.get_store().publish(
+            process_channel, json.dumps({"key": self.key, "factor": factor})
+        )
+
+    def _reset_power_off_oid(self):
+        """Reset upsAdvControlUpsOff to 1 """
+        # TODO different vendors may assign other values (not 1)
+        self._update_oid_by_name("PowerOff", snmp_data_types.Integer, 1)
 
     @property
     def battery_level(self):
@@ -110,11 +122,6 @@ class IUPSStateManager(IStateManager):
             )
             return int(self._get_oid_value(oid, key=self._asset_key))
 
-    def _update_battery_process_speed(self, process_channel, factor):
-        """Speed up/slow down battery related process"""
-        rkey = "{}|{}".format(self.redis_key, factor)
-        IStateManager.get_store().publish(process_channel, rkey)
-
     def set_drain_speed_factor(self, factor):
         """Speed up/slow down UPS battery draining process
         (note that this will produce 'unreal' behaviour)
@@ -130,8 +137,3 @@ class IUPSStateManager(IStateManager):
         self._update_battery_process_speed(
             RedisChannels.battery_conf_charge_channel, factor
         )
-
-    def _reset_power_off_oid(self):
-        """Reset upsAdvControlUpsOff to 1 """
-        # TODO different vendors may assign other values (not 1)
-        self._update_oid_by_name("PowerOff", snmp_data_types.Integer, 1)

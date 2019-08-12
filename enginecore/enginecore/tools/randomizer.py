@@ -31,7 +31,8 @@ class ChainedArgs:
         Args:
             instance: class or object to be passed to the args
         Yields:
-            any: random function arguments (one by one) initialized at the ChainedArgs createion
+            any: random function arguments (one by one) initialized 
+                 at the ChainedArgs createion
         """
 
         prev_result = self._arg_list[0](instance)
@@ -133,11 +134,13 @@ class Randomizer:
     def randact(
         cls, instances, num_iter: int = 1, seconds: int = None, nap: callable = None
     ):
-        """Perform random action(s) (one of the methods marked with @Randomizer.randomize_method) 
+        """Perform random action(s) 
+        (one of the methods marked with @Randomizer.randomize_method) 
         on an object or a list of objects (instances marked with @Randomizer.register)
 
         Args:
-            instances: either a list of objects whose methods will be randomized or a single object to be used
+            instances: either a list of objects whose methods will be randomized 
+                       or a single object to be used
             num_iter: number of random actions to be performed
             seconds: perform actions for this number of seconds, alternative to num_iter
             nap: sleep function executed in-between the action, defaults to 1 second nap
@@ -177,7 +180,8 @@ class Randomizer:
     @classmethod
     def register(cls, new_reg_cls):
         """Register class as randomizable with @Randomizer.register decorator
-        Randomizer will search for methods marked with @Randomizer.randomize_method & store them as randomly-replayable
+        Randomizer will search for methods marked with @Randomizer.randomize_method 
+        & store them as randomly-replayable
         """
         cls_details = []
 

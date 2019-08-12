@@ -7,7 +7,8 @@ import sys
 import logging
 from logging import handlers
 
-from enginecore.state.state_listener import StateListener
+from enginecore.state.redis_state_listener import StateListener
+
 
 FORMAT = "[%(threadName)s, %(asctime)s, %(module)s:%(lineno)s] %(message)s"
 DEV_FORMAT = "[%(threadName)s, %(asctime)s, %(module)s:%(lineno)s] %(message)s"
@@ -76,9 +77,17 @@ def configure_env(relative=False):
         "SIMENGINE_SOCKET_PORT", str(8000)
     )
 
+    os.environ["SIMENGINE_REDIS_HOST"] = os.environ.get(
+        "SIMENGINE_REDIS_HOST", "0.0.0.0"
+    )
+    os.environ["SIMENGINE_REDIS_PORT"] = os.environ.get(
+        "SIMENGINE_REDIS_PORT", str(6379)
+    )
+
     os.environ["SIMENGINE_SNMP_SHA"] = os.environ.get(
         "SIMENGINE_SNMP_SHA",
-        # str(os.popen('/usr/local/bin/redis-cli script load "$(cat {})"'.format(lua_script_path)).read())
+        # str(os.popen('/usr/local/bin/redis-cli script load "$(cat {})"'
+        # .format(lua_script_path)).read())
         str(
             os.popen('redis-cli script load "$(cat {})"'.format(lua_script_path)).read()
         ),
@@ -118,6 +127,7 @@ def run():
     configure_env(relative=args["develop"])
 
     # run daemon
+    # StateListener(debug=args["verbose"], force_snmp_init=args["reload_data"]).run()
     StateListener(debug=args["verbose"], force_snmp_init=args["reload_data"]).run()
 
 
