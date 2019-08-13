@@ -52,7 +52,7 @@ def _check_ipmi_status(ipmi_config):
 
     try:
         ipmi_out = subprocess.check_output(query, shell=True).decode("utf-8").strip()
-        return ipmi_out.split()[-1]
+        return ipmi_out.split()[-1]  # get 'on' or 'off' token
     except subprocess.CalledProcessError:
         return "unreachable"
 
@@ -72,3 +72,10 @@ def step_impl(context, key, ipmi_status):
     assert_that(
         status, (is_ if ipmi_status == "unreachable" else is_not)("unreachable")
     )
+
+
+@then('asset "{key:d}" ipmi chassis status is "{ipmi_status}"')
+def step_impl(context, key, ipmi_status):
+    asset_info = context.hardware[key].asset_info
+    status = _check_ipmi_status(asset_info)
+    assert_that(status, is_({"offline": "off", "online": "on"}[ipmi_status]))
