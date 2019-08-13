@@ -63,6 +63,8 @@ rm -rf html/.{doctrees,buildinfo}
 %{_bindir}/snmpsimd.py
 %{python3_sitelib}/%{pypi_name}
 %{python3_sitelib}/%{pypi_name}-%{version}-py%{python3_version}.egg-info
+/usr/snmpsim/data
+/usr/snmpsim/variation
 
 %files -n python-%{pypi_name}-doc
 %doc html
