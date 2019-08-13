@@ -384,6 +384,7 @@ Feature: Server Load Handling
     @slow
     @server-bmc-asset
     @ipmi-interface
+    @unreliable
     Scenario Outline: PSU load sensors get updated with PSU load
 
         Given Outlet asset with key "2" is created
@@ -392,17 +393,19 @@ Feature: Server Load Handling
         And asset "1" powers target "71"
         And asset "2" powers target "72"
         And Engine is up and running
-        And asset "1" is "<state-ini>"
+        And asset "<key-1>" is "<1-ini>"
+        And asset "<key-2>" is "<2-ini>"
 
-        When asset "1" goes "<state-new>"
+        # Test conditions:
+        When asset "<key-1>" goes "<1-new>"
+        And asset "<key-2>" goes "<2-new>"
 
         # ipmi_sim reads from a file with a delay
         And pause for "2" seconds
 
         Then asset "7" BMC sensor "<sensor-name>" value is "<sensor-value>"
 
-        Examples: Toggling PSU state to see how it affects sensor
-            | state-ini | state-new | sensor-name  | sensor-value |
-            | online    | online    | PSU1 current | 2 Amps       |
-            | online    | offline   | PSU1 current | 0 Amps       |
-            | offline   | online    | PSU1 current | 2 Amps       |
+        Examples: All power sources are present
+            | key-1 | key-2 | 1-ini  | 2-ini  | 1-new  | 2-new  | sensor-name  | sensor-value |
+            | 1     | 2     | online | online | online | online | PSU1 current | 2 Amps       |
+            | 1     | 2     | online | online | online | online | PSU2 current | 2 Amps       |

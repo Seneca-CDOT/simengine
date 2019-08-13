@@ -22,14 +22,18 @@ def step_impl(context, key, vm_state):
     conn.close()
 
 
+def _get_ipmi_query(ipmi_config):
+    """Get ipmi command from a set of LAN configurations"""
+    query = "/usr/bin/ipmitool "
+    query += "-H {host} -p {port} -U {user} -P {password}".format(**ipmi_config)
+    return query
+
+
 def _check_ipmi_sensor_value(ipmi_config, sensor_name):
     """Query ipmi interface given ipmi host, port, user, password
     and retrieve sensor value for a specific sensor
     """
-    query = "/usr/bin/ipmitool "
-    query += "-H {host} -p {port} -U {user} -P {password} sdr list".format(
-        **ipmi_config
-    )
+    query = _get_ipmi_query(ipmi_config) + " sdr list"
     query += ' | grep "' + sensor_name + '"'
 
     ipmi_out = subprocess.check_output(query, shell=True).decode("utf-8")
@@ -45,11 +49,7 @@ def _check_ipmi_status(ipmi_config):
     returns on, off or unreachable
     """
 
-    query = "/usr/bin/ipmitool "
-    query += "-H {host} -p {port} -U {user} -P {password} power status".format(
-        **ipmi_config
-    )
-
+    query = _get_ipmi_query(ipmi_config) + " power status"
     try:
         ipmi_out = subprocess.check_output(query, shell=True).decode("utf-8").strip()
         return ipmi_out.split()[-1]  # get 'on' or 'off' token
