@@ -3,7 +3,7 @@
 
 Name:           python-%{pypi_name}
 Version:        0.4.7
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        SNMP Agents simulator
 
 License:        BSD
@@ -55,7 +55,7 @@ rm -rf html/.{doctrees,buildinfo}
 
 %files -n python3-%{pypi_name}
 %license LICENSE.txt docs/source/license.rst
-%doc README.md data/1.3.6.1.6.1.1.0/README-v2c.txt data/1.3.6.1.6.1.1.0/README-v3.txt data/README.txt data/foreignformats/README.txt data/public/1.3.6.1.2.1.100.1.2.0/README-v2c.txt data/public/1.3.6.1.2.1.100.1.2.0/README-v3.txt data/public/1.3.6.1.6.1.1.0/README-v2c.txt data/public/1.3.6.1.6.1.1.0/README-v3.txt data/public/README-v2c.txt data/public/README-v3.txt data/variation/README.txt data/variation/multiplex/README.txt
+#%doc README.md data/1.3.6.1.6.1.1.0/README-v2c.txt data/1.3.6.1.6.1.1.0/README-v3.txt data/README.txt data/foreignformats/README.txt data/public/1.3.6.1.2.1.100.1.2.0/README-v2c.txt data/public/1.3.6.1.2.1.100.1.2.0/README-v3.txt data/public/1.3.6.1.6.1.1.0/README-v2c.txt data/public/1.3.6.1.6.1.1.0/README-v3.txt data/public/README-v2c.txt data/public/README-v3.txt data/variation/README.txt data/variation/multiplex/README.txt
 %{_bindir}/datafile.py
 %{_bindir}/mib2dev.py
 %{_bindir}/pcap2dev.py
