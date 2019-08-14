@@ -460,8 +460,7 @@ class PSU(StaticAsset):
         if "Server" in asset_info["children"][0].labels:
             self.removeHandler(self.on_asset_did_power_off)
             self.removeHandler(self.on_asset_did_power_on)
-            self.removeHandler(self.increase_load_sensors)
-            self.removeHandler(self.decrease_load_sensors)
+            self.removeHandler(self.update_load_sensors)
         else:
             self._sensor_repo = SensorRepository(
                 str(asset_info["key"])[:-1], enable_thermal=True
@@ -486,11 +485,10 @@ class PSU(StaticAsset):
         """PSU was brought back up"""
         self._set_psu_status(PSU.IPMIstatus.on)
 
-    def _update_load_sensors(self, load, arith_op):
+    def _update_load_sensors(self, load):
         """Update psu sensors associated with load
         Args:
             load: amperage change
-            arith_op(operator): operation on old & new load to be performed
         """
 
         if "psuCurrent" in self._psu_sensor_names:
@@ -498,23 +496,17 @@ class PSU(StaticAsset):
                 self._psu_sensor_names["psuCurrent"]
             )
 
-            psu_current.sensor_value = int(arith_op(self._state.load, load))
+            psu_current.sensor_value = int(load)
 
         if "psuPower" in self._psu_sensor_names:
             psu_current = self._sensor_repo.get_sensor_by_name(
                 self._psu_sensor_names["psuPower"]
             )
 
-            psu_current.sensor_value = int((arith_op(self._state.load, load)) * 10)
+            psu_current.sensor_value = int(load) * 10
 
-    @handler("ChildLoadUpEvent", priority=1)
-    def increase_load_sensors(self, event, *args, **kwargs):
-        """Load is ramped up if child is powered up or child asset's load is increased
+    @handler("ChildLoadUpEvent", "ChildLoadDownEvent", priority=1)
+    def update_load_sensors(self, event, *args, **kwargs):
+        """Change values of BMC sensors associated with load
         """
-        self._update_load_sensors(event.load.new, operator.add)
-
-    @handler("ChildLoadDownEvent", priority=1)
-    def decrease_load_sensors(self, event, *args, **kwargs):
-        """Load is ramped up if child is powered up or child asset's load is increased
-        """
-        self._update_load_sensors(event.load.old, operator.sub)
+        self._update_load_sensors(event.load.new)
