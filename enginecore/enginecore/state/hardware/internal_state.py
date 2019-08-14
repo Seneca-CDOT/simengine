@@ -46,7 +46,8 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         )
 
     def update_battery(self, charge_level):
-        """Updates battery level, checks for the charge level being in valid range, sets battery-related OIDs
+        """Updates battery level, checks for the charge level
+        being in valid range, sets battery-related OIDs
         and publishes changes;
 
         Args:
@@ -77,16 +78,17 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         Args:
             timeticks(int): time-on battery (seconds*100)
         """
-        self._update_oid_by_name("TimeOnBattery", snmp_data_types.TimeTicks, timeticks)
+        self._update_oid_by_name("TimeOnBattery", snmp_data_types.TimeTicks(timeticks))
 
     def update_time_left(self, timeticks):
-        """Update OIDs associated with UPS runtime (estimation of how long UPS will be operating)
+        """Update OIDs associated with UPS runtime
+        (estimation of how long UPS will be operating)
         
         Args:
             timeticks(int): time left
         """
         self._update_oid_by_name(
-            "BatteryRunTimeRemaining", snmp_data_types.TimeTicks, timeticks
+            "BatteryRunTimeRemaining", snmp_data_types.TimeTicks(timeticks)
         )
 
     def update_ups_output_status(self, status):
@@ -94,19 +96,16 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         Args:
             status(OutputStatus): new output status
         """
-        self._update_oid_by_name(
-            "BasicOutputStatus", snmp_data_types.Integer, status.name, use_spec=True
-        )
+        self._update_oid_by_name("BasicOutputStatus", status.name, use_spec=True)
 
     def update_transfer_reason(self, status):
-        """Update UPS transfer reason; UPS can switch its mode to 'on battery' for multiple reasons
+        """Update UPS transfer reason;
+        UPS can switch its mode to 'on battery' for multiple reasons
         (e.g. Voltage drop, upstream power failure etc.)
         Args:
             status(InputLineFailCause): new transfer cause
         """
-        self._update_oid_by_name(
-            "InputLineFailCause", snmp_data_types.Integer, status.name, use_spec=True
-        )
+        self._update_oid_by_name("InputLineFailCause", status.name, use_spec=True)
 
     def _update_current_oids(self, load):
         """Update OIDs associated with UPS Output - Current in AMPs
@@ -114,21 +113,13 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         Args:
             load(float): new load in AMPs
         """
-        with self._graph_ref.get_session() as db_s:
-            # 100%
-            oid_adv, dt_adv, _ = GraphReference.get_asset_oid_by_name(
-                db_s, int(self._asset_key), "AdvOutputCurrent"
-            )
-
-            # 1000 (/10=%)
-            oid_hp, dt_hp, _ = GraphReference.get_asset_oid_by_name(
-                db_s, int(self._asset_key), "HighPrecOutputCurrent"
-            )
+        oid_adv = self._get_oid_by_name("AdvOutputCurrent")
+        oid_hp = self._get_oid_by_name("HighPrecOutputCurrent")
 
         if oid_adv:
-            self._update_oid_value(oid_adv, dt_adv, snmp_data_types.Gauge32(load))
+            self._update_oid_value(oid_adv, snmp_data_types.Gauge32(load))
         if oid_hp:
-            self._update_oid_value(oid_hp, dt_hp, snmp_data_types.Gauge32(load * 10))
+            self._update_oid_value(oid_hp, snmp_data_types.Gauge32(load * 10))
 
     # TODO: refactor both _update_load_perc_oids & _update_battery_oids, functions seem quite similair
     def _update_load_perc_oids(self, load):
@@ -138,28 +129,17 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
             load(float): new load in AMPs
         """
 
-        with self._graph_ref.get_session() as db_s:
-            # 100%
-            oid_adv, dt_adv, _ = GraphReference.get_asset_oid_by_name(
-                db_s, int(self._asset_key), "AdvOutputLoad"
-            )
-
-            # 1000 (/10=%)
-            oid_hp, dt_hp, _ = GraphReference.get_asset_oid_by_name(
-                db_s, int(self._asset_key), "HighPrecOutputLoad"
-            )
-
+        oid_adv = self._get_oid_by_name("AdvOutputLoad")
+        oid_hp = self._get_oid_by_name("HighPrecOutputLoad")
         value_hp = abs(
             (1000 * (load * state_api.ISystemEnvironment.get_voltage()))
             / self.output_capacity
         )
 
         if oid_adv:
-            self._update_oid_value(
-                oid_adv, dt_adv, snmp_data_types.Gauge32(value_hp / 10)
-            )
+            self._update_oid_value(oid_adv, snmp_data_types.Gauge32(value_hp / 10))
         if oid_hp:
-            self._update_oid_value(oid_hp, dt_hp, snmp_data_types.Gauge32(value_hp))
+            self._update_oid_value(oid_hp, snmp_data_types.Gauge32(value_hp))
 
     def _update_battery_oids(self, charge_level, old_level):
         """Update OIDs associated with UPS Battery
@@ -167,38 +147,80 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         Args:
             charge_level(int): new battery level (between 0 & 1000)
         """
-        with self._graph_ref.get_session() as db_s:
-            # 100%
-            oid_adv, dt_adv, _ = GraphReference.get_asset_oid_by_name(
-                db_s, int(self._asset_key), "AdvBatteryCapacity"
-            )
-            # 1000 (/10=%)
-            oid_hp, dt_hp, _ = GraphReference.get_asset_oid_by_name(
-                db_s, int(self._asset_key), "HighPrecBatteryCapacity"
-            )
-            # low/good
-            oid_basic, dt_basic, oid_spec = GraphReference.get_asset_oid_by_name(
-                db_s, int(self._asset_key), "BasicBatteryStatus"
-            )
+
+        # 100%
+        oid_adv = self._get_oid_by_name("AdvBatteryCapacity")
+        oid_hp = self._get_oid_by_name("HighPrecBatteryCapacity")
+        oid_basic = self._get_oid_by_name("BasicBatteryStatus")
 
         if oid_adv:
-            self._update_oid_value(
-                oid_adv, dt_adv, snmp_data_types.Gauge32(charge_level / 10)
-            )
+            self._update_oid_value(oid_adv, snmp_data_types.Gauge32(charge_level / 10))
         if oid_hp:
-            self._update_oid_value(oid_hp, dt_hp, snmp_data_types.Gauge32(charge_level))
+            self._update_oid_value(oid_hp, snmp_data_types.Gauge32(charge_level))
 
-        if oid_basic:
-            if charge_level <= 100:
-                low_bat_value = oid_spec["batteryLow"]
-                self._update_oid_value(
-                    oid_basic, dt_basic, snmp_data_types.Integer32(low_bat_value)
-                )
-            elif old_level <= 100 and charge_level > 100:
-                norm_bat_value = oid_spec["batteryNormal"]
-                self._update_oid_value(
-                    oid_basic, dt_basic, snmp_data_types.Integer32(norm_bat_value)
-                )
+        if not oid_basic:
+            return
+
+        if charge_level <= 100:
+            low_bat_value = oid_basic.specs["batteryLow"]
+            self._update_oid_value(oid_basic, snmp_data_types.Integer32(low_bat_value))
+        elif old_level <= 100 < charge_level:
+            norm_bat_value = oid_basic.specs["batteryNormal"]
+            self._update_oid_value(oid_basic, snmp_data_types.Integer32(norm_bat_value))
+
+    def process_voltage(self, voltage):
+        """Update oids associated with UPS voltage
+        Args:
+            voltage: new voltage value
+        Returns: 
+            tuple: true if transfer to battery is needed, transfer reason
+        Raises:
+            ValueError: if UPS has no voltage OIDs defined
+                        or transfer reason cannot be determined
+        """
+
+        oid_in_adv = self._get_oid_by_name("AdvInputLineVoltage")
+        oid_out_adv = self._get_oid_by_name("AdvOutputVoltage")
+
+        if not oid_in_adv or not oid_out_adv:
+            raise ValueError("UPS doesn't support voltage OIDs!")
+
+        oid_voltage_value = snmp_data_types.Gauge32(int(voltage))
+
+        # update input OID parameter
+        self._update_oid_value(oid_in_adv, oid_voltage_value)
+
+        # retrieve thresholds:
+        oid_high_th = self._get_oid_by_name("AdvConfigHighTransferVolt")
+        oid_low_th = self._get_oid_by_name("AdvConfigLowTransferVolt")
+
+        # update output OID value if thresholds are not supported
+        if not oid_high_th or not oid_low_th:
+            self._update_oid_value(oid_out_adv, oid_voltage_value)
+
+            return False, None
+
+        high_th = int(self._get_oid_value(oid_high_th))
+        low_th = int(self._get_oid_value(oid_low_th))
+
+        # new voltage value is within the threasholds
+        if low_th < voltage < high_th:
+            self._update_oid_value(oid_out_adv, oid_voltage_value)
+            return False, None
+
+        # new voltage should cause line transfer:
+        r_out_threshold = self.rated_output_threshold
+
+        if r_out_threshold <= voltage <= low_th:
+            transfer_reason = self.InputLineFailCause.smallMomentarySag
+        elif 0 <= voltage < r_out_threshold:
+            transfer_reason = self.InputLineFailCause.deepMomentarySag
+        elif voltage >= high_th:
+            transfer_reason = self.InputLineFailCause.highLineVoltage
+        else:
+            raise ValueError("Unknow transfer reason!")
+
+        return True, transfer_reason
 
     def _publish_battery(self):
         """Publish battery update"""
@@ -212,26 +234,21 @@ class PDUStateManager(state_api.IPDUStateManager, StateManager):
 
     def _update_current(self, load):
         """Update OID associated with the current amp value """
-        with self._graph_ref.get_session() as session:
-            oid, data_type, _ = GraphReference.get_asset_oid_by_name(
-                session, int(self._asset_key), "AmpOnPhase"
-            )
-            if oid:
-                load = load if load >= 0 else 0
-                self._update_oid_value(
-                    oid, data_type, snmp_data_types.Gauge32(load * 10)
-                )
+        oid = self._get_oid_by_name("AmpOnPhase")
+
+        if not oid:
+            return
+
+        self._update_oid_value(oid, snmp_data_types.Gauge32(max(load, 0) * 10))
 
     def _update_wattage(self, wattage):
         """Update OID associated with the current wattage draw """
-        with self._graph_ref.get_session() as session:
-            oid, data_type, _ = GraphReference.get_asset_oid_by_name(
-                session, int(self._asset_key), "WattageDraw"
-            )
+        oid = self._get_oid_by_name("WattageDraw")
 
-        wattage = wattage if wattage >= 0 else 0
-        if oid:
-            self._update_oid_value(oid, data_type, snmp_data_types.Integer32(wattage))
+        if not oid:
+            return
+
+        self._update_oid_value(oid, snmp_data_types.Integer32(max(wattage, 0)))
 
     def update_load(self, load):
         """Update any load state associated with the device in the redis db 

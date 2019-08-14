@@ -11,7 +11,7 @@ import redis
 from enginecore.state.redis_channels import RedisChannels
 from enginecore.state.engine import Engine
 
-# TODO: fix action recorder set ambient!
+
 class StateListener(Component):
     """Top-level component that instantiates assets 
     & maps redis events to circuit events
@@ -67,11 +67,12 @@ class StateListener(Component):
             RedisChannels.battery_conf_charge_channel,  # update charge speed (factor)
         )
 
+        # SNMPsimd channel
         self._pubsub_streams["snmp"].psubscribe(
             RedisChannels.oid_update_channel  # snmp oid updates
         )
 
-    def monitor_redis(self, pubsub_group):
+    def monitor_redis(self, pubsub_group, json_format=True):
         """Monitors redis pubsub channels for new messages & dispatches
         corresponding events to the Engine
         Args:
@@ -93,7 +94,10 @@ class StateListener(Component):
         logging.info("Received new message in channel [%s]:", channel)
         logging.info(" > %s", data)
 
-        self.fire(Event.create(channel, json.loads(data)), self._engine)
+        self.fire(
+            Event.create(channel, json.loads(data) if json_format else data),
+            self._engine,
+        )
 
     def started(self, _):
         """
@@ -103,10 +107,17 @@ class StateListener(Component):
         logging.info("Initializing pub/sub event handlers...")
 
         # timers will be monitoring new published messages every .5 seconds
-        for stream in self._pubsub_streams.values():
+        for stream_name in ["power", "thermal", "battery"]:
+            stream = self._pubsub_streams[stream_name]
             Timer(
                 0.5, Event.create("monitor_redis", pubsub_group=stream), persist=True
             ).register(self)
+
+        # configure snmp channel:
+        snmp_event = Event.create(
+            "monitor_redis", self._pubsub_streams["snmp"], json_format=False
+        )
+        Timer(0.5, snmp_event, persist=True).register(self)
 
 
 if __name__ == "__main__":

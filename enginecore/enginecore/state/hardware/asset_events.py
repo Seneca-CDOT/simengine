@@ -53,13 +53,13 @@ class ChildAssetLoadDecreased(Event):
 class VoltageIncreased(Event):
     """Voltage spike/increase for the Asset"""
 
-    pass
+    success = True
 
 
 class VoltageDecreased(Event):
     """Voltage drop for the Asset"""
 
-    pass
+    success = True
 
 
 class SignalDown(Event):

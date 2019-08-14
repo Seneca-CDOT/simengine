@@ -3,17 +3,14 @@ import time
 import json
 from enum import Enum
 
-import pysnmp.proto.rfc1902 as snmp_data_types
-from enginecore.model.graph_reference import GraphReference
-
 from enginecore.state.redis_channels import RedisChannels
 from enginecore.state.api.state import IStateManager
-
+from enginecore.state.api.snmp_state import ISnmpDeviceStateManager
 from enginecore.tools.randomizer import Randomizer
 
 
 @Randomizer.register
-class IUPSStateManager(IStateManager):
+class IUPSStateManager(ISnmpDeviceStateManager):
     """Handles UPS state logic """
 
     class OutputStatus(Enum):
@@ -24,11 +21,51 @@ class IUPSStateManager(IStateManager):
         off = 3
 
     class InputLineFailCause(Enum):
-        """Reason for the occurrence of the last transfer to UPS """
+        """Reason for the occurrence of the last transfer to UPS
+        The variable is set to:
+            - noTransfer(1) -- if there is no transfer yet.
+
+            - highLineVoltage(2) -- if the transfer to battery is caused
+            by an over voltage greater than the high transfer voltage.
+            
+            - brownout(3) -- if the duration of the outage is greater than
+            five seconds and the line voltage is between 40% of the
+            rated output voltage and the low transfer voltage.
+            
+            - blackout(4) -- if the duration of the outage is greater than five
+            seconds and the line voltage is between 40% of the rated
+            output voltage and ground.
+            
+            - smallMomentarySag(5) -- if the duration of the outage is less
+            than five seconds and the line voltage is between 40% of the
+            rated output voltage and the low transfer voltage.
+            
+            - deepMomentarySag(6) -- if the duration of the outage is less
+            than five seconds and the line voltage is between 40% of the
+            rated output voltage and ground.  The variable is set to
+            
+            - smallMomentarySpike(7) -- if the line failure is caused by a
+            rate of change of input voltage less than ten volts per cycle.
+            
+            - largeMomentarySpike(8) -- if the line failure is caused by
+            a rate of change of input voltage greater than ten volts per cycle.
+            
+            - selfTest(9) -- if the UPS was commanded to do a self test.
+            
+            - rateOfVoltageChange(10) -- if the failure is due to the rate of change of
+            the line voltage.
+        """
 
         noTransfer = 1
-        blackout = 2
-        deepMomentarySag = 3
+        highLineVoltage = 2
+        brownout = 3
+        blackout = 4
+        smallMomentarySag = 5
+        deepMomentarySag = 6
+        smallMomentarySpike = 7
+        largeMomentarySpike = 8
+        selfTest = 9
+        rateOfVoltageChange = 10
 
     def __init__(self, asset_info):
         super().__init__(asset_info)
@@ -43,7 +80,7 @@ class IUPSStateManager(IStateManager):
     def _reset_power_off_oid(self):
         """Reset upsAdvControlUpsOff to 1 """
         # TODO different vendors may assign other values (not 1)
-        self._update_oid_by_name("PowerOff", snmp_data_types.Integer, 1)
+        self._update_oid_by_name("PowerOff", 1)
 
     @property
     def battery_level(self):
@@ -54,6 +91,11 @@ class IUPSStateManager(IStateManager):
     def battery_max_level(self):
         """Max battery level"""
         return self._max_battery_level
+
+    @property
+    def on_battery(self):
+        """Indicates if UPS is powered by battery at the moment"""
+        return self.get_transfer_reason() != self.InputLineFailCause.noTransfer
 
     @property
     def wattage(self):
@@ -79,6 +121,35 @@ class IUPSStateManager(IStateManager):
         """UPS rated capacity"""
         return self._asset_info["outputPowerCapacity"]
 
+    @property
+    def rated_output_threshold(self):
+        """Threshold derived from the rated output used to determine
+        if transfer to battery is needed (see IUPSStateManager.InputLineFailCause)
+        """
+        ro_percent = 0.4
+
+        if "ratedOutputPercentage" in self._asset_info:
+            ro_percent = self._asset_info["ratedOutputPercentage"]
+
+        in_voltage_oid = self._get_oid_by_name("AdvConfigRatedOutputVoltage")
+        return ro_percent * int(self._get_oid_value(in_voltage_oid))
+
+    @property
+    def momentary_event_period(self):
+        """Power sag/spike time period. Momentary event
+        (see IUPSStateManager.InputLineFailCause) happens
+        before transfer reason is assigned an elevated severity.
+
+        Returns:
+            int: time period in seconds
+        """
+        t_period = 5  # seconds
+
+        if "momentaryEventTime" in self._asset_info:
+            t_period = self._asset_info["momentaryEventTime"]
+
+        return t_period
+
     @Randomizer.randomize_method()
     def shut_down(self):
         time.sleep(self.get_config_off_delay())
@@ -101,26 +172,27 @@ class IUPSStateManager(IStateManager):
 
         return powered
 
+    def get_transfer_reason(self):
+        """Retrieve last transfer reason (why switched from input power to battery)
+        Returns:
+            InputLineFailCause: last transfer cause
+        """
+        oid_t_reason = self._get_oid_by_name("InputLineFailCause")
+        return self.InputLineFailCause(int(self._get_oid_value(oid_t_reason)))
+
     def get_config_off_delay(self):
         """Delay for power-off operation 
         (unlike 'hardware'-determined delay, this value can be configured by the user)
         """
-        with self._graph_ref.get_session() as db_s:
-            oid, _, _ = GraphReference.get_asset_oid_by_name(
-                db_s, int(self._asset_key), "AdvConfigShutoffDelay"
-            )
-            return int(self._get_oid_value(oid, key=self._asset_key))
+        oid = self._get_oid_by_name("AdvConfigShutoffDelay")
+        return int(self._get_oid_value(oid))
 
     def get_config_on_delay(self):
         """Power-on delay
         (unlike 'hardware'-determined delay, this value can be configured by the user)
         """
-
-        with self._graph_ref.get_session() as db_s:
-            oid, _, _ = GraphReference.get_asset_oid_by_name(
-                db_s, int(self._asset_key), "AdvConfigReturnDelay"
-            )
-            return int(self._get_oid_value(oid, key=self._asset_key))
+        oid = self._get_oid_by_name("AdvConfigReturnDelay")
+        return int(self._get_oid_value(oid))
 
     def set_drain_speed_factor(self, factor):
         """Speed up/slow down UPS battery draining process

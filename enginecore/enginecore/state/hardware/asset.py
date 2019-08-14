@@ -5,6 +5,7 @@
 # pylint: disable=W0613
 
 import logging
+import time
 
 from circuits import Component, handler
 from enginecore.state.hardware import event_results
@@ -74,11 +75,13 @@ class Asset(Component):
         
         Args:
             load_change(float): how much AMPs need to be added/subtracted
-            arithmetic_op(callable): calculates new load (receives old load & measured load change)
+            arithmetic_op(callable): calculates new load
+                                     (receives old load & measured load change)
             msg(str): message to be printed
         
         Returns:
-            LoadEventResult: Event result containing old & new load values as well as value subtracted/added
+            LoadEventResult: Event result containing old 
+                             & new load values as well as value subtracted/added
         """
 
         old_load = self.state.load
@@ -117,6 +120,48 @@ class Asset(Component):
         decreased_by = kwargs["child_load"]
         msg = "Asset:[{}] load {} was decreased by {}, new load={};"
         return self._update_load(decreased_by, lambda old, change: old - change, msg)
+
+    @handler("VoltageIncreased")
+    def on_voltage_increase(self, event, *args, **kwargs):
+        """Handle input power voltage increase"""
+        e_result = event_results.VoltageEventResult(
+            asset_key=self.state.key,
+            asset_type=self.state.asset_type,
+            old_voltage=kwargs["old_value"],
+            new_voltage=kwargs["new_value"],
+        )
+
+        # min_voltage, _ = self.state.min_voltage_prop()
+
+        # if kwargs["new_value"] >= min_voltage and not self.state.status:
+        #     self.state.power_up()
+        #     self.state.publish_power()
+        #     event.success = False
+
+        return e_result
+
+    @handler("VoltageDecreased")
+    def on_voltage_decrease(self, event, *args, **kwargs):
+        """Handle input power voltage drop"""
+
+        e_result = event_results.VoltageEventResult(
+            asset_key=self.state.key,
+            asset_type=self.state.asset_type,
+            old_voltage=kwargs["old_value"],
+            new_voltage=kwargs["new_value"],
+        )
+
+        # min_voltage, power_off_timeout = self.state.min_voltage_prop()
+        # if kwargs["new_value"] < min_voltage and self.state.status:
+
+        #     if power_off_timeout:
+        #         time.sleep(power_off_timeout)
+
+        #     self.state.power_off()
+        #     self.state.publish_power()
+        #     event.success = False
+
+        return e_result
 
     @classmethod
     def get_supported_assets(cls):

@@ -1,5 +1,6 @@
 """Aggregates Assets' responses to certain events
-For example, PowerEventResult will be returned to the dispatcher in case the dispatched event was handled succesfully
+For example, PowerEventResult will be returned to the dispatcher
+in case the dispatched event was handled succesfully
 """
 
 from collections import namedtuple
@@ -8,7 +9,13 @@ PowerEventResult = namedtuple(
     "PowerEventResult", "old_state new_state asset_key asset_type"
 )
 PowerEventResult.__new__.__defaults__ = (None,) * len(PowerEventResult._fields)
+
 LoadEventResult = namedtuple(
     "LoadEventResult", "load_change old_load new_load asset_key asset_type"
 )
 LoadEventResult.__new__.__defaults__ = (None,) * len(PowerEventResult._fields)
+
+VoltageEventResult = namedtuple(
+    "VoltageEventResult", "old_voltage new_voltage asset_key asset_type"
+)
+VoltageEventResult.__new__.__defaults__ = (None,) * len(VoltageEventResult._fields)

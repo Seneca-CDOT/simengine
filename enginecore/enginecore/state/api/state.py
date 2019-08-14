@@ -8,7 +8,6 @@ import json
 import redis
 
 from enginecore.model.graph_reference import GraphReference
-from enginecore.tools.utils import format_as_redis_key
 from enginecore.state.redis_channels import RedisChannels
 
 from enginecore.state.hardware.asset_definition import SUPPORTED_ASSETS
@@ -72,7 +71,7 @@ class IStateManager:
         """Get minimum voltage required and the poweroff timeout associated with it"""
 
         if not "minVoltage" in self._asset_info:
-            return None, None
+            return 90, None
 
         return self._asset_info["minVoltage"], self._asset_info["voltPowerTimeout"]
 
@@ -186,12 +185,6 @@ class IStateManager:
             json.dumps({"key": self.key, "status": self.status}),
         )
 
-    def _get_oid_value(self, oid, key):
-        """Retrieve value for a specific OID """
-        redis_store = IStateManager.get_store()
-        rkey = format_as_redis_key(str(key), oid, key_formatted=False)
-        return redis_store.get(rkey).decode().split("|")[1]
-
     def _reset_boot_time(self):
         """Reset device start time (this redis key/value is used to calculate uptime)
         (see snmppub.lua)
@@ -199,44 +192,6 @@ class IStateManager:
         IStateManager.get_store().set(
             str(self._asset_key) + ":start_time", int(time.time())
         )
-
-    def _update_oid_by_name(self, oid_name, oid_type, value, use_spec=False):
-        """Update a specific oid
-        Args:
-            oid_name(str): oid name defined in device preset file
-            oid_type(rfc1902): oid type (rfc1902 specs)
-            value(str): oid value or spec parameter if use_spec is set to True
-            use_spec:
-        Returns:
-            bool: true if oid was successfully updated
-        """
-
-        with self._graph_ref.get_session() as db_s:
-            oid, data_type, oid_spec = GraphReference.get_asset_oid_by_name(
-                db_s, int(self._asset_key), oid_name
-            )
-
-            if oid:
-                new_oid_value = oid_spec[value] if use_spec and oid_spec else value
-                self._update_oid_value(oid, data_type, oid_type(new_oid_value))
-                return True
-
-            return False
-
-    def _update_oid_value(self, oid, data_type, oid_value):
-        """Update oid with a new value
-        
-        Args:
-            oid(str): SNMP object id
-            data_type(int): Data type in redis format
-            oid_value(object): OID value in rfc1902 format 
-        """
-        redis_store = IStateManager.get_store()
-
-        rvalue = "{}|{}".format(data_type, oid_value)
-        rkey = format_as_redis_key(str(self._asset_key), oid, key_formatted=False)
-
-        redis_store.set(rkey, rvalue)
 
     def _check_parents(
         self, keys, parent_down, msg="Cannot perform the action: [{}] parent is off"
@@ -255,9 +210,10 @@ class IStateManager:
         if not keys:
             return True
 
-        parent_values = IStateManager.get_store().mget([k + ":state" for k in keys])
+        parent_values = IStateManager.get_store().mget(keys)
         pdown = 0
         pdown_msg = ""
+
         for rkey, rvalue in zip(keys, parent_values):
             if parent_down(rvalue, rkey):
                 pdown_msg += msg.format(rkey) + "\n"
@@ -285,7 +241,9 @@ class IStateManager:
         if not asset_keys and not ISystemEnvironment.power_source_available():
             not_affected_by_mains = False
 
-        assets_up = self._check_parents(asset_keys, lambda rvalue, _: rvalue == b"0")
+        assets_up = self._check_parents(
+            [k + ":state" for k in asset_keys], lambda rvalue, _: rvalue == b"0"
+        )
         oid_clause = (
             lambda rvalue, rkey: rvalue.split(b"|")[1].decode()
             == oid_keys[rkey]["switchOff"]
