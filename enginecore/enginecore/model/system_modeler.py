@@ -339,6 +339,7 @@ def _add_storage(asset_key, preset_file, storage_state_file):
                 "memoryCorrectable_errors",
                 "memoryUncorrectable_errors",
                 "alarmState",
+                "numDriveGroups",
                 "bgiRate",
                 "prRate",
                 "rebuildRate",
@@ -458,6 +459,7 @@ def _add_storage(asset_key, preset_file, storage_state_file):
 
                 s_attr = [
                     "TYPE",
+                    "DG",
                     "State",
                     "Access",
                     "Cac",
