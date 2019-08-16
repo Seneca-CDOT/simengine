@@ -381,6 +381,14 @@ def create_command(create_asset_group):
         "--snmp-preset", type=str, help="Vendor-specific asset configurations"
     )
 
+    create_snmp_parent.add_argument(
+        "--serial-number", type=str, help="Serial number of a simulated SNMP device"
+    )
+
+    create_snmp_parent.add_argument(
+        "--mac-address", type=str, help="MAC address of a simulated SNMP device"
+    )
+
     # server group
     create_server_parent = argparse.ArgumentParser(add_help=False)
     create_server_parent.add_argument("--domain-name", help="VM domain name")

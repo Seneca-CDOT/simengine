@@ -639,10 +639,16 @@ def create_ups(
         # Add UPS OIDs
         for oid_key, oid_props in data["OIDs"].items():
             if oid_key == "SerialNumber":
-                oid_props["defaultValue"] = qh.generate_id()
+                if "serial_number" in attr and attr["serial_number"]:
+                    oid_props["defaultValue"] = attr["serial_number"]
+                else:
+                    oid_props["defaultValue"] = qh.generate_id()
 
             if oid_key == "MAC":
-                oid_props["defaultValue"] = qh.generate_mac()
+                if "mac_address" in attr and attr["mac_address"]:
+                    oid_props["defaultValue"] = attr["mac_address"]
+                else:
+                    oid_props["defaultValue"] = qh.generate_mac()
 
             props = {**oid_props, **{"OIDName": oid_key}}
             props_stm = qh.get_props_stm(
