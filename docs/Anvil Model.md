@@ -233,12 +233,37 @@ simengine-cli model create outlet --asset-key=1 -x=-861 -y=-171
 simengine-cli model create outlet -k2 -x=-861 -y=351
 
 # Add 2 UPSs
-simengine-cli model create ups -k=3 --name=an-ups01 --host=10.20.3.1 --port=161 -x=-895 -y=-182
-simengine-cli model create ups -k=4 --name=an-ups02 --host=10.20.3.2 --port=161 -x=-895 -y=347
+simengine-cli model create ups -k=3 \
+    --name=an-ups01 \
+    --host=10.20.3.1 \
+    --port=161 \
+    --serial-number="SVPD4D5QTQ3V" \
+    --mac-address="f2325a5b0824" \
+    -x=-895 -y=-182
+simengine-cli model create ups -k=4 \
+    --name=an-ups02 \
+    --host=10.20.3.2 \
+    --port=161 \
+    --serial-number="8IAIMD9RX6KZ" \
+    --mac-address="8117f9db70d4" \
+    -x=-895 -y=347
 
 # Create 2 PDUs
-simengine-cli model create pdu -k=5 -n=an-pdu01 --host=10.20.2.1 --port=161 -x=-36 -y=-161
-simengine-cli model create pdu -k=6 -n=an-pdu02 --host=10.20.2.2 --port=161 -x=-36 -y=567
+simengine-cli model create pdu -k=5 \
+    -n=an-pdu01 \
+    --host=10.20.2.1 \
+    --port=161 \
+    --serial-number="AQ5AKU1OORAX" \
+    --mac-address="37436ab3c583" \
+    -x=-36 -y=-161
+
+simengine-cli model create pdu -k=6 \
+    -n=an-pdu02 \
+    --host=10.20.2.2 \
+    --port=161 \
+    --serial-number="95SQW45SVIFX" \
+    --mac-address="b7bc37aa4d83" \
+    -x=-36 -y=567
 
 # Add 2 Servers
 simengine-cli model create server-bmc -k=7 \
