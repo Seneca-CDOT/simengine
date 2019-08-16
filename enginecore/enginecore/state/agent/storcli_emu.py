@@ -334,6 +334,7 @@ class StorCLIEmulator:
                         {
                             **topology_defaults,
                             **{
+                                "DG": v_drive["DG"],
                                 "Type": v_drive["TYPE"],
                                 "State": v_drive["State"],
                                 "Size": v_drive["Size"],
@@ -343,6 +344,7 @@ class StorCLIEmulator:
                             **topology_defaults,
                             **{
                                 "Arr": 0,
+                                "DG": v_drive["DG"],
                                 "Type": v_drive["TYPE"],
                                 "State": v_drive["State"],
                                 "Size": v_drive["Size"],
@@ -352,13 +354,14 @@ class StorCLIEmulator:
                 )
 
                 self._format_pd_for_output(v_drive["pd"])
-                topology.extend(
-                    map(
-                        lambda pd: {
+                for pdid, pd in enumerate(v_drive["pd"]):
+                    topology.append(
+                        {
                             **topology_defaults,
                             **{
                                 "Arr": 0,
-                                "Row": pd["slotNum"],
+                                "DG": v_drive["DG"],
+                                "Row": pdid,
                                 "EID:Slot": pd["EID:Slt"],
                                 "DID": pd["DID"],
                                 "Type": "DRIVE",
@@ -366,10 +369,8 @@ class StorCLIEmulator:
                                 "Size": pd["Size"],
                                 "FSpace": "-",
                             },
-                        },
-                        v_drive["pd"],
+                        }
                     )
-                )
 
             self._format_pd_for_output(drives["pd"])
 
@@ -490,6 +491,7 @@ class StorCLIEmulator:
 
         # store row with the max char count in a column
         header_lengths = {key: len(str(key)) for key in headers}
+        left_align_cols = []
 
         # calculate paddings for every column
         for table_row in table_options:
@@ -501,14 +503,26 @@ class StorCLIEmulator:
                 if val_len > header_lengths[col_key]:
                     header_lengths[col_key] = val_len
 
+                if (
+                    not isinstance(table_row[col_key], (int, float, complex))
+                    and not col_key == "Size"
+                ):
+                    left_align_cols.append(col_key)
+
         for table_row in table_options:
             row_str = ""
             for col_key in headers:
+                cell_value = table_row[col_key]
 
-                table_cell = "{val:>{width}}".format(
-                    val=table_row[col_key], width=header_lengths[col_key] + 1
+                if col_key in left_align_cols:
+                    cell_format = "{val:<{width}}"
+                else:
+                    cell_format = "{val:>{width}}"
+
+                table_cell = cell_format.format(
+                    val=cell_value, width=header_lengths[col_key]
                 )
-                row_str += table_cell
+                row_str += table_cell + " "
 
             value_rows.append(row_str)
 
