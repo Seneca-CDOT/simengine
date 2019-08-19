@@ -8,7 +8,10 @@ class IStaticDeviceManager(IStateManager):
 
     @property
     def power_usage(self):
-        return self._asset_info["powerConsumption"] / self._asset_info["powerSource"]
+        if self.input_voltage:
+            return self._asset_info["powerConsumption"] / self.input_voltage
+
+        return 0
 
     @Randomizer.randomize_method()
     def power_up(self):

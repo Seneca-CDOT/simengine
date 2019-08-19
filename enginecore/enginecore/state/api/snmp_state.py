@@ -4,6 +4,7 @@ from collections import namedtuple
 from enginecore.state.api.state import IStateManager
 from enginecore.model.graph_reference import GraphReference
 from enginecore.tools.utils import format_as_redis_key
+from enginecore.state.state_initializer import get_temp_workplace_dir
 
 
 class ISnmpDeviceStateManager(IStateManager):
@@ -14,7 +15,12 @@ class ISnmpDeviceStateManager(IStateManager):
     @property
     def snmp_config(self):
         """Snmp lan configurations"""
-        return {"host": self._asset_info["host"], "port": self._asset_info["port"]}
+        a_info = self._asset_info
+        snmp_dir = (
+            a_info["workDir"] if "workDir" in a_info else get_temp_workplace_dir()
+        )
+
+        return {"host": a_info["host"], "port": a_info["port"], "work_dir": snmp_dir}
 
     def _update_oid_by_name(self, oid_name, value, use_spec=False):
         """Update a specific oid
@@ -57,7 +63,7 @@ class ISnmpDeviceStateManager(IStateManager):
 
         redis_store.set(rkey, rvalue)
 
-    def _get_oid_value(self, object_id, key=None):
+    def get_oid_value(self, object_id, key=None):
         """Retrieve value for a specific OID """
         if key is None:
             key = self.key
@@ -66,7 +72,7 @@ class ISnmpDeviceStateManager(IStateManager):
         rkey = format_as_redis_key(str(key), object_id.oid, key_formatted=False)
         return redis_store.get(rkey).decode().split("|")[1]
 
-    def _get_oid_by_name(self, oid_name):
+    def get_oid_by_name(self, oid_name):
         """Get oid by oid name"""
 
         with self._graph_ref.get_session() as db_s:

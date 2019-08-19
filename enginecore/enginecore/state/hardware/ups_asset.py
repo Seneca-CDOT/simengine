@@ -15,6 +15,7 @@ from circuits import handler
 import enginecore.state.hardware.internal_state as in_state
 from enginecore.state.hardware.asset import Asset
 from enginecore.state.hardware.snmp_asset import SNMPSim
+from enginecore.state.hardware import event_results
 
 from enginecore.state.hardware.asset_definition import register_asset
 
@@ -34,6 +35,12 @@ class UPS(Asset, SNMPSim):
     def __init__(self, asset_info):
         Asset.__init__(self, state=UPS.StateManagerCls(asset_info))
         SNMPSim.__init__(self, self._state)
+
+        # remove default logic for handling input voltage updates
+        super().removeHandler(super().on_voltage_increase)
+        super().removeHandler(super().on_voltage_decrease)
+
+        self._low_volt_th_oid = self.state.get_oid_by_name("AdvConfigLowTransferVolt")
 
         # Store known { wattage: time_remaining } key/value pairs (runtime graph)
         self._runtime_details = json.loads(asset_info["runtime"])
@@ -69,7 +76,18 @@ class UPS(Asset, SNMPSim):
         """Approximate runtime estimation for the fully-charged battery"""
         close_wattage = min(self._runtime_details, key=lambda x: abs(int(x) - wattage))
         close_timeleft = self._runtime_details[close_wattage]
-        return (close_timeleft * int(close_wattage)) / wattage  # inverse proportion
+
+        # inverse proportion, clacluate full power time left
+        fp_time_left = (close_timeleft * int(close_wattage)) / wattage
+
+        # see if input voltage is present -> adjust time left
+        lower_threshold = int(self.state.get_oid_value(self._low_volt_th_oid))
+        in_voltage = self.state.input_voltage
+
+        if 0 < in_voltage <= lower_threshold:
+            fp_time_left += fp_time_left * (in_voltage / lower_threshold)
+
+        return fp_time_left
 
     def _calc_battery_discharge(self):
         """Approximate battery discharge per second based on 
@@ -95,7 +113,9 @@ class UPS(Asset, SNMPSim):
         elif last_reason == self.state.InputLineFailCause.deepMomentarySag:
             new_reason = self.state.InputLineFailCause.blackout
         else:
-            logging.warning("The UPS is not in line fail state: %s", last_reason.name)
+            logging.warning(
+                "The UPS is not in momentary line fail state: %s", last_reason.name
+            )
             return
 
         self.state.update_transfer_reason(new_reason)
@@ -105,7 +125,10 @@ class UPS(Asset, SNMPSim):
         """
 
         battery_level = self.state.battery_level
+        old_battery_lvl = -1
+
         outage = False
+        to_adv_percentage = lambda x: int(x * 0.1)
 
         # keep draining battery while its level remains above 0
         # UPS is on and parent is down
@@ -115,6 +138,10 @@ class UPS(Asset, SNMPSim):
             battery_level = battery_level - (
                 self._calc_battery_discharge() * self._drain_speed_factor
             )
+
+            if to_adv_percentage(battery_level) != to_adv_percentage(old_battery_lvl):
+                logging.info("on battery: %s %%", to_adv_percentage(battery_level))
+
             seconds_on_battery = (dt.now() - self._start_time_battery).seconds
 
             # update state details
@@ -124,10 +151,11 @@ class UPS(Asset, SNMPSim):
             )
             self.state.update_time_on_battery(seconds_on_battery * 100)
 
-            if seconds_on_battery > self.state.momentary_event_period and not outage:
+            if seconds_on_battery >= self.state.momentary_event_period and not outage:
                 outage = True
                 self._increase_transfer_severity()
 
+            old_battery_lvl = battery_level
             time.sleep(1)
 
         # kill the thing if still breathing
@@ -146,17 +174,24 @@ class UPS(Asset, SNMPSim):
         """
 
         battery_level = self.state.battery_level
+        old_battery_lvl = -1
         powered = False
+
+        to_adv_percentage = lambda x: int(x * 0.1)
 
         # keep charging battery while its level is less than max & parent is up
         while (
             battery_level < self.state.battery_max_level and not self.state.on_battery
         ):
-
             # calculate new battery level
             battery_level = battery_level + (
                 self._charge_per_second * self._charge_speed_factor
             )
+
+            if to_adv_percentage(battery_level) != to_adv_percentage(old_battery_lvl):
+                logging.info(
+                    "charging battery: %s %%", to_adv_percentage(battery_level)
+                )
 
             # update state details
             self.state.update_battery(battery_level)
@@ -172,6 +207,7 @@ class UPS(Asset, SNMPSim):
                 powered = e_result.new_state
                 self.state.publish_power()
 
+            old_battery_lvl = battery_level
             time.sleep(1)
 
     def _launch_battery_drain(
@@ -181,6 +217,8 @@ class UPS(Asset, SNMPSim):
 
         if self._battery_drain_t and self._battery_drain_t.isAlive():
             logging.warning("Battery drain is already running!")
+            self.state.update_transfer_reason(t_reason)
+            self._increase_transfer_severity()
             return
 
         self._start_time_battery = dt.now()
@@ -190,6 +228,10 @@ class UPS(Asset, SNMPSim):
             in_state.UPSStateManager.OutputStatus.onBattery
         )
         self.state.update_transfer_reason(t_reason)
+
+        # wait for other thread to finish
+        if self._battery_charge_t:
+            self._battery_charge_t.join()
 
         # launch a thread
         self._battery_drain_t = Thread(
@@ -215,6 +257,10 @@ class UPS(Asset, SNMPSim):
             in_state.UPSStateManager.InputLineFailCause.noTransfer
         )
 
+        # wait for battery drain thread to wrap up before charging
+        if self._battery_drain_t:
+            self._battery_drain_t.join()
+
         # launch a thread
         self._battery_charge_t = Thread(
             target=self._charge_battery,
@@ -223,41 +269,6 @@ class UPS(Asset, SNMPSim):
         )
         self._battery_charge_t.daemon = True
         self._battery_charge_t.start()
-
-    ##### React to any events of the connected components #####
-    @handler("ParentAssetPowerDown")
-    def on_parent_asset_power_down(self, event, *args, **kwargs):
-        """Upstream power was lost"""
-
-        # If battery is still alive -> keep UPS up
-        if self.state.battery_level:
-            self._launch_battery_drain()
-            event.success = False
-            return
-
-        # Battery is dead
-        self.state.update_ups_output_status(in_state.UPSStateManager.OutputStatus.off)
-
-        e_result = self.power_off()
-        event.success = e_result.new_state != e_result.old_state
-
-        return e_result
-
-    @handler("ParentAssetPowerUp")
-    def on_power_up_request_received(self, event, *args, **kwargs):
-        """Input power was restored"""
-
-        battery_level = self.state.battery_level
-        self._launch_battery_charge(power_up_on_charge=(not battery_level))
-
-        if battery_level:
-            e_result = self.power_up()
-            event.success = e_result.new_state != e_result.old_state
-
-            return e_result
-
-        event.success = False
-        return None
 
     @handler("SignalDown")
     def on_signal_down_received(self, event, *args, **kwargs):
@@ -278,40 +289,89 @@ class UPS(Asset, SNMPSim):
         """When user powers up UPS device"""
 
         if self.state.on_battery:
-            self._launch_battery_charge()
+            self._launch_battery_drain(t_reason=self.state.get_transfer_reason())
         else:
-            self._launch_battery_drain()
+            self._launch_battery_charge(power_up_on_charge=True)
 
     @handler("AmbientDecreased", "AmbientIncreased")
     def on_ambient_updated(self, event, *args, **kwargs):
         self._state.update_temperature(7)
 
-    @handler("VoltageDecreased")
-    def on_voltage_decreased(self, event, *args, **kwargs):
-        """Handle voltage drop, transfer to battery if needed"""
+    def _get_voltage_event_result(self, event_details):
+        """Get formatted voltage event result"""
 
-        should_transfer, reason = self.state.process_voltage(kwargs["new_value"])
-
-        if should_transfer:
-            self._launch_battery_drain(reason)
-
-        print(should_transfer, reason)
-        print(self.state.get_transfer_reason())
+        return event_results.VoltageEventResult(
+            asset_key=self.state.key,
+            asset_type=self.state.asset_type,
+            old_voltage=event_details["old_value"],
+            new_voltage=event_details["new_value"],
+        )
 
     @handler("VoltageIncreased")
-    def on_voltage_increased(self, event, *args, **kwargs):
+    def on_voltage_increase(self, event, *args, **kwargs):
         """On voltage increase, analyze new voltage and determine if
         it's within the acceptable range
         """
+        power_event_result = None
 
-        should_transfer, reason = self.state.process_voltage(kwargs["new_value"])
+        in_voltage = kwargs["new_value"]
+        old_out_volt = self.state.output_voltage
+        new_out_volt = in_voltage
 
+        should_transfer, reason = self.state.process_voltage(in_voltage)
+
+        # transfer back to input power
         if not should_transfer and self.state.on_battery:
-            self._launch_battery_charge()
+            battery_level = self.state.battery_level
+            self._launch_battery_charge(power_up_on_charge=(not battery_level))
+            if battery_level:
+                power_event_result = self.power_up()
+        # if already on battery (& should stay so), stop voltage propagation
+        elif self.state.on_battery:
+            event.success = False
 
-        elif should_transfer:
+        # voltage is too high, transfer to battery
+        if should_transfer and reason == self.state.InputLineFailCause.highLineVoltage:
             self._launch_battery_drain(reason)
-            # event.sucess = False
+            new_out_volt = 120.0
+
+        # hijack voltage event result:
+        volt_event_result = self._get_voltage_event_result(
+            {"old_value": old_out_volt, "new_value": new_out_volt}
+        )
+
+        return volt_event_result, power_event_result
+
+    @handler("VoltageDecreased")
+    def on_voltage_decrease(self, event, *args, **kwargs):
+        """Handle voltage drop, transfer to battery if needed"""
+
+        power_event_result = None
+
+        in_voltage = kwargs["new_value"]
+        old_out_volt = self.state.output_voltage
+        new_out_volt = in_voltage
+
+        battery_level = self.state.battery_level
+        should_transfer, reason = self.state.process_voltage(in_voltage)
+        high_line_t_reason = self.state.InputLineFailCause.highLineVoltage
+
+        # voltage is low, transfer to battery
+        if self.state.battery_level and should_transfer:
+            self._launch_battery_drain(reason)
+            new_out_volt = 120.0
+
+        # voltage was too high but is okay now
+        elif (
+            self.state.get_transfer_reason() == high_line_t_reason
+            and reason != high_line_t_reason
+        ):
+            self._launch_battery_charge(power_up_on_charge=(not battery_level))
+
+        volt_event_result = self._get_voltage_event_result(
+            {"old_value": old_out_volt, "new_value": new_out_volt}
+        )
+        return volt_event_result, power_event_result
 
     @property
     def charge_speed_factor(self):
@@ -336,3 +396,11 @@ class UPS(Asset, SNMPSim):
         # re-calculate time left based on updated load
         self.state.update_time_left(self._cacl_time_left(self.state.wattage) * 60 * 100)
         return upd_result
+
+    def on_power_up_request_received(self, event, *args, **kwargs):
+        """Called on voltage spike"""
+        raise NotImplementedError
+
+    def on_power_off_request_received(self, event, *args, **kwargs):
+        """Called on voltage drop"""
+        raise NotImplementedError

@@ -40,7 +40,8 @@ def thermal_command(thermal_group):
     storage_command(
         thermal_subp.add_parser(
             "storage",
-            help="Configure/Retrieve thermal relationship between sensors & storage elements",
+            help="Configure/Retrieve thermal relationship \
+                between sensors & storage elements",
         )
     )
 
@@ -66,7 +67,8 @@ def ambient_command(th_ambient_group):
         "--degrees",
         type=float,
         help="Update ambient temperature (in Celsius); \
-            if time period and event are specified, this value will be added to the previous room temp;",
+            if time period and event are specified, \
+            this value will be added to the previous room temp;",
         required=True,
     )
 
@@ -123,7 +125,8 @@ def cpu_usage_command(th_cpu_usg_group):
     th_set_cpu_usg_action.add_argument(
         "-m",
         "--model",
-        help=".JSON model representing CPU usage & corresponding thermal change for the sensor value",
+        help=".JSON model representing CPU usage &\
+            corresponding thermal change for the sensor value",
         type=str,
         required=True,
     )
@@ -194,7 +197,8 @@ def get_thermal_add_args():
     thermal_parent.add_argument(
         "-a",
         "--action",
-        help="Action associated with the event (for instance, on sensor 0x1 going down, \
+        help="Action associated with the event \
+            (for instance, on sensor 0x1 going down, \
             the target sensor value will be either increased or decreased)\
             Action can be omitted and in this case: \
             'increase' action will be assigned to 'down' event & \
@@ -205,7 +209,8 @@ def get_thermal_add_args():
     thermal_parent.add_argument(
         "--model",
         "-m",
-        help="Simengine will use this .JSON model to determine thermal impact for any given source sensor input; \
+        help="Simengine will use this .JSON model to determine \
+            thermal impact for any given source sensor input; \
             Source sensor's default value will be used instead if not specified",
     )
 
@@ -214,7 +219,8 @@ def get_thermal_add_args():
         "--degrees",
         type=float,
         help="Update sensor temperature (in Celsius); \
-            if time period and event are specified, this value will be added to the previous sensor temp;",
+            if time period and event are specified, \
+            this value will be added to the previous sensor temp;",
     )
 
     thermal_parent.add_argument(
@@ -266,7 +272,8 @@ def storage_command(th_storage_group):
 
     th_delete_storage_action = th_storage_subp.add_parser(
         "delete",
-        help="Delete thermal connection between a sensor and a storage component (cv or physical drive)",
+        help="Delete thermal connection between a sensor \
+            and a storage component (cv or physical drive)",
     )
 
     th_delete_storage_action.add_argument(
@@ -333,7 +340,8 @@ def sensor_command(th_sensor_group):
     th_set_sensor_action.add_argument(
         "-t",
         "--target-sensor",
-        help="Name of the target sensor affected by the event associated with the source sensor",
+        help="Name of the target sensor affected by the event \
+            associated with the source sensor",
         type=str,
         required=True,
     )
@@ -383,7 +391,8 @@ def sensor_command(th_sensor_group):
     th_delete_sensor_action.add_argument(
         "-t",
         "--target-sensor",
-        help="Name of the target sensor affected by the event associated with the source sensor",
+        help="Name of the target sensor affected by the event \
+            associated with the source sensor",
         type=str,
         required=True,
     )
@@ -445,7 +454,7 @@ def handle_get_thermal_ambient(kwargs):
     else:
         print("Ambient: {}° ".format(ISystemEnvironment.get_ambient()))
 
-        ambient_props, _ = ISystemEnvironment.get_ambient_props()
+        ambient_props = ISystemEnvironment.get_ambient_props()
         if not ambient_props:
             print("Ambient event properties are not configured yet!")
             return

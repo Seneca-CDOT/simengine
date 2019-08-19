@@ -24,7 +24,6 @@ CREATE_SHARED_ATTR = [
     "key",
     "off_delay",
     "on_delay",
-    "volt_power_timeout",
     "min_voltage",
 ]
 # Labels used by the app
@@ -615,6 +614,7 @@ def create_ups(
             "runtime",
             "power_source",
             "power_consumption",
+            "work_dir",
         ] + CREATE_SHARED_ATTR
 
         props_stm = qh.get_props_stm(

@@ -6,7 +6,6 @@ import os
 import logging
 import pwd
 import grp
-import tempfile
 from enginecore.state.agent.agent import Agent
 
 
@@ -30,16 +29,19 @@ class SNMPAgent(Agent):
     def _init_agent_environment(self):
         """Initialize temp work environment of the agent
         Update ownership since snmpsimd.py will be run by user 'nobody'"""
-        sys_temp = tempfile.gettempdir()
-        simengine_temp = os.path.join(sys_temp, "simengine")
 
-        self._snmp_rec_dir = os.path.join(simengine_temp, str(self._asset_key))
-        os.makedirs(self._snmp_rec_dir)
+        self._snmp_rec_dir = os.path.join(
+            self._snmp_conf["work_dir"], str(self._asset_key)
+        )
 
-        uid = pwd.getpwnam("nobody").pw_uid
-        gid = grp.getgrnam("nobody").gr_gid
+        if not os.path.exists(self._snmp_rec_dir):
+            os.makedirs(self._snmp_rec_dir)
 
-        os.chown(self._snmp_rec_dir, uid, gid)
+        if os.getuid() == 0:
+            uid = pwd.getpwnam("nobody").pw_uid
+            gid = grp.getgrnam("nobody").gr_gid
+
+            os.chown(self._snmp_rec_dir, uid, gid)
 
     def _init_snmprec_files(self):
         """Initialize data files for public/private SNMP communities
@@ -79,11 +81,14 @@ class SNMPAgent(Agent):
             "--variation-module-options=" + var_opt,
             "--data-dir=" + self._snmp_rec_dir,
             "--transport-id-offset=" + str(SNMPAgent.agent_num),
-            "--process-user=nobody",
-            "--process-group=nobody",
             # "--daemonize",
             "--logging-method=file:" + self.log_path,
         ]
+
+        if os.getuid() == 0:
+            cmd.extend(["--process-user=nobody", "--process-group=nobody"])
+        else:
+            cmd.extend(["--cache-dir", self._snmp_rec_dir])
 
         logging.info("Starting agent: %s", " ".join(cmd))
         self.register_process(

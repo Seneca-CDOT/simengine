@@ -33,6 +33,7 @@ class Outlet(Asset):
         self.state.set_parent_oid_states(
             in_state.OutletStateManager.OutletState.switchOff
         )
+        self._state_reason = self.state.PowerStateReason.signal_off
 
     @handler("SignalUp", priority=1)
     def on_signal_up_received(self, event, *args, **kwargs):
@@ -40,8 +41,9 @@ class Outlet(Asset):
         self.state.set_parent_oid_states(
             in_state.OutletStateManager.OutletState.switchOn
         )
+        self._state_reason = self.state.PowerStateReason.signal_on
 
-    @handler("ParentAssetPowerDown", "SignalDown")
+    @handler("SignalDown")
     def on_power_off_request_received(self, event, *args, **kwargs):
         """ React to events with power down """
         if "delayed" in kwargs and kwargs["delayed"]:
@@ -49,7 +51,7 @@ class Outlet(Asset):
 
         return self.power_off()
 
-    @handler("ParentAssetPowerUp", "SignalUp")
+    @handler("SignalUp")
     def on_power_up_request_received(self, event, *args, **kwargs):
         """ React to events with power up """
 
@@ -76,4 +78,5 @@ class Outlet(Asset):
             new_state=e_result_up.new_state,
             asset_key=self.state.key,
             asset_type=self.state.asset_type,
+            load_change=0,
         )

@@ -73,6 +73,6 @@ class PowerEventMap:
         """Voltage changes"""
         return (
             events.VoltageDecreased
-            if old_value > new_value
+            if old_value > new_value or new_value == 0
             else events.VoltageIncreased
         )(old_value=old_value, new_value=new_value)

@@ -54,12 +54,14 @@ class VoltageIncreased(Event):
     """Voltage spike/increase for the Asset"""
 
     success = True
+    complete = True
 
 
 class VoltageDecreased(Event):
     """Voltage drop for the Asset"""
 
     success = True
+    complete = True
 
 
 class SignalDown(Event):

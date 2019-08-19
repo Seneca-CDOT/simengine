@@ -1,6 +1,8 @@
 """Tools for managing virtual system environment"""
 import random
+import math
 import json
+
 import redis
 
 from enginecore.model.graph_reference import GraphReference
@@ -50,46 +52,22 @@ class ISystemEnvironment:
         return float(voltage.decode()) if voltage else 120.0
 
     @classmethod
-    def set_voltage(cls, value):
-        """Update voltage"""
-        old_voltage = cls.get_voltage()
-        cls.get_store().set("voltage", str(float(value)))
-
-        if old_voltage == 0.0 and old_voltage < value:
-            cls.get_store().publish(
-                RedisChannels.mains_update_channel, json.dumps({"status": 1})
-            )
-        elif value == 0.0:
-            cls.get_store().publish(
-                RedisChannels.mains_update_channel, json.dumps({"status": 0})
-            )
-
-        cls.get_store().publish(
-            RedisChannels.voltage_update_channel,
-            json.dumps({"old_voltage": old_voltage, "new_voltage": value}),
-        )
-
-    @classmethod
-    def get_min_voltage(cls):
-        """Minimum voltage required for assets to function;
-        dropping below this point will result in assets getting powered down
-        Returns:
-            float: minimum voltage (in Volts)
-        """
-        return 90.0
-
-    @classmethod
     def power_source_available(cls):
         """Check if the mains is present and voltage is above minimum
         Returns:
             bool: true if assets can be powered up by the wall
         """
-        return cls.get_voltage() >= cls.get_min_voltage()
+        return not math.isclose(cls.get_voltage(), 0.0)
+
+    @staticmethod
+    def sys_env_rand(sys_env_props):
+        """Get random value based on sys environment property (voltage, ambient)"""
+        return random.randrange(sys_env_props["start"], sys_env_props["end"])
 
     @classmethod
     @record
     @Randomizer.randomize_method(
-        (lambda self: random.randrange(*self.get_ambient_props()[1].values()),)
+        (lambda self: self.sys_env_rand(self.get_ambient_props()),)
     )
     def set_ambient(cls, value):
         """Update ambient value"""
@@ -102,13 +80,35 @@ class ISystemEnvironment:
 
     @classmethod
     @record
+    @Randomizer.randomize_method(
+        (lambda self: self.sys_env_rand(self.get_voltage_props()),)
+    )
+    def set_voltage(cls, value):
+        """Update voltage"""
+        old_voltage = cls.get_voltage()
+        cls.get_store().set("voltage", str(float(value)))
+
+        if math.isclose(old_voltage, 0.0) and value > old_voltage:
+            cls.get_store().publish(
+                RedisChannels.mains_update_channel, json.dumps({"status": 1})
+            )
+        elif math.isclose(value, 0.0):
+            cls.get_store().publish(
+                RedisChannels.mains_update_channel, json.dumps({"status": 0})
+            )
+
+        cls.get_store().publish(
+            RedisChannels.voltage_update_channel,
+            json.dumps({"old_voltage": old_voltage, "new_voltage": value}),
+        )
+
+    @classmethod
     @Randomizer.randomize_method()
     def power_outage(cls):
         """Simulate complete power outage/restoration"""
         cls.set_voltage(0.0)
 
     @classmethod
-    @record
     @Randomizer.randomize_method()
     def power_restore(cls):
         """Simulate complete power restoration"""
@@ -137,3 +137,27 @@ class ISystemEnvironment:
         graph_ref = GraphReference()
         with graph_ref.get_session() as session:
             GraphReference.set_ambient_props(session, props)
+
+    @classmethod
+    def get_voltage_props(cls) -> dict:
+        """Get runtime voltage properties (ambient behaviour description)
+        Returns:
+            voltage fluctuation properties such as method being used (normal/gauss) 
+            & properties associated with the random method
+        """
+        graph_ref = GraphReference()
+        with graph_ref.get_session() as session:
+            return GraphReference.get_voltage_props(session)
+
+    @classmethod
+    def set_voltage_props(cls, props):
+        """Update runtime voltage properties of the mains power voltage"""
+
+        graph_ref = GraphReference()
+        with graph_ref.get_session() as session:
+            GraphReference.set_voltage_props(session, props)
+
+    @staticmethod
+    def voltage_random_methods():
+        """Supported voltage fluctuation random methods"""
+        return ["uniform", "gauss"]

@@ -98,7 +98,8 @@ def get_index_from_range_opt(range_opt, actions, start_opt=True):
 def get_action_slice(start, end):
     """Parse start & end range specifiers
     Args:
-        start: start index or starting datestring or time string in a format "%H:%M:%S" or "%Y-%m-%d %H:%M:%S"
+        start: start index or starting datestring or time string
+                in a format "%H:%M:%S" or "%Y-%m-%d %H:%M:%S"
         end: end index or end date/time in a format "%H:%M:%S" or "%Y-%m-%d %H:%M:%S"
     Returns:
         slice: range of actions
@@ -135,13 +136,15 @@ def range_args():
     common_args.add_argument(
         "-s",
         "--start",
-        help="Starting at this action number, or at this time today (format %H:%M:%S) or date (%Y-%m-%d %H:%M:%S)",
+        help="Starting at this action number, or at this time today \
+            (format %H:%M:%S) or date (%Y-%m-%d %H:%M:%S)",
     )
 
     common_args.add_argument(
         "-e",
         "--end",
-        help="Ending at this action number, or at this time today (format %H:%M:%S) or date (%Y-%m-%d %H:%M:%S)",
+        help="Ending at this action number, or at this time today \
+            (format %H:%M:%S) or date (%Y-%m-%d %H:%M:%S)",
     )
 
     return common_args
@@ -159,7 +162,8 @@ def handle_file_command(args, client_request_func):
 
 
 def actions_command(actions_group):
-    """Action command can be used to manage/replay recorded actions performed by SimEngine users"""
+    """Action command can be used to manage/replay recorded
+    actions performed by SimEngine users"""
 
     play_subp = actions_group.add_subparsers()
 
@@ -190,7 +194,8 @@ def actions_command(actions_group):
     )
     status_action = play_subp.add_parser(
         "status",
-        help="Returns recorder status indicating if recorder is enabled and if it is in-process of replaying",
+        help="Returns recorder status indicating if recorder is enabled \
+            and if it is in-process of replaying",
     )
     list_action = play_subp.add_parser(
         "list", help="List action history", parents=[range_args()]
@@ -232,7 +237,8 @@ def actions_command(actions_group):
         "--asset-keys",
         nargs="+",
         type=int,
-        help="Include only these assets when picking a random component, defaults to all if not provided",
+        help="Include only these assets when picking a random component,\
+            defaults to all if not provided",
     )
     rand_action.add_argument(
         "-s",
@@ -251,7 +257,8 @@ def actions_command(actions_group):
         "-m",
         "--min-nap",
         type=float,
-        help="Minimum sleep time, pauses between actions will be set to random if this value is provided",
+        help="Minimum sleep time, pauses between actions will be set to random\
+            if this value is provided",
     )
 
     # cli actions/callbacks

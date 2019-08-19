@@ -38,40 +38,40 @@ class ClientToServerRequests(Enum):
 
     # == MISC
     # update UI layout
-    set_layout = 3
+    set_layout = 10
     # update mains
-    set_mains = 4
+    set_mains = 11
     # execute a play
-    exec_play = 5
+    exec_play = 12
     # subscribe to system updates (such as power events, battery etc.)
-    subscribe = 6
+    subscribe = 13
     # execute actions stored by recorder
-    replay_actions = 7
+    replay_actions = 14
     # set ambient
-    set_ambient = 8
+    set_ambient = 15
+    # voltage update
+    set_voltage = 16
 
     # == Recorder Requests
     # clear action history
-    clear_actions = 9
+    clear_actions = 20
     # get all/range of actions
-    get_actions = 10
-
+    get_actions = 21
     # save/load actions from a file
-    save_actions = 11
-    load_actions = 12
+    save_actions = 22
+    load_actions = 23
     # toggle recorder status
-    set_recorder_status = 13
-    get_recorder_status = 14
+    set_recorder_status = 24
+    get_recorder_status = 25
+    # execute random action
+    exec_rand_actions = 26
 
     # == BMC-asset commands
     # set sensor status
-    set_sensor_status = 15
+    set_sensor_status = 40
     # cv replacement
-    set_cv_replacement_status = 16
+    set_cv_replacement_status = 41
     # udpate controller states
-    set_controller_status = 17
+    set_controller_status = 42
     # update physical drive details
-    set_physical_drive_status = 18
-
-    #
-    exec_rand_actions = 19
+    set_physical_drive_status = 43

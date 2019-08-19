@@ -54,11 +54,12 @@ def status_table_format(assets, stdscr=False):
     """ Display status in a table format 
     Args:
         assets (dict): list of assets supported by the system
-        stdscr (optional): default window return by initscr(), status_table_format uses print if omitted
+        stdscr (optional): default window return by initscr(),
+                           status_table_format uses print if omitted
     """
 
     # format headers
-    headers = ["Asset Key", "Type", "Status", "Children", "Load"]
+    headers = ["Key", "Type", "Status", "Children", "Load"]
     row_format = "{:>10}" * (len(headers) + 1)
 
     headers = row_format.format("", *headers, end="")
@@ -75,9 +76,10 @@ def status_table_format(assets, stdscr=False):
             else "none"
         )
         row = row_format.format(
-            str(i),
+            str(i),  # index
             *[
                 str(asset_key),
+                # asset["name"],
                 asset["type"],
                 str(asset["status"]),
                 children,

@@ -1,11 +1,11 @@
 """Event handler for PDU;
-PDU is a rather dumb device, its power state changes depending on the upstream power (parent)
+PDU is a rather dumb device, its power state changes
+depending on the upstream power (parent)
 Plus there's an SNMP agent running in the background
 """
 # **due to circuit callback signature
 # pylint: disable=W0613
 
-import logging
 
 from circuits import handler
 import enginecore.state.hardware.internal_state as in_state
@@ -30,23 +30,25 @@ class PDU(Asset, SNMPSim):
         Asset.__init__(self, state=PDU.StateManagerCls(asset_info))
         SNMPSim.__init__(self, self._state)
 
-    @handler("ParentAssetPowerDown")
-    def on_parent_asset_power_down(self, event, *args, **kwargs):
+    # @handler("ParentAssetPowerDown")
+    def on_power_off_request_received(self, event, *args, **kwargs):
         """Power off & stop snmp simulator instance when parent is down"""
 
         e_result = self.power_off()
 
-        if e_result.new_state == e_result.old_state:
-            event.success = False
-        else:
+        event.success = e_result.new_state != e_result.old_state
+        if event.success:
             self._snmp_agent.stop_agent()
 
         return e_result
 
-    @handler("ParentAssetPowerUp")
+    # @handler("ParentAssetPowerUp")
     def on_power_up_request_received(self, event, *args, **kwargs):
         """Power up PDU when upstream power source is restored """
         e_result = self.power_up()
         event.success = e_result.new_state != e_result.old_state
+        if event.success:
+            self._snmp_agent.start_agent()
+            self._state.update_agent(self._snmp_agent.pid)
 
         return e_result

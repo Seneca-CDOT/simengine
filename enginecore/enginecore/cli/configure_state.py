@@ -78,7 +78,8 @@ def configure_command(configure_state_group):
         "-k",
         "--asset-key",
         type=int,
-        help="Unique asset key (Required if randomized options are associated with an asset)",
+        help="Unique asset key (Required if randomized \
+             options are associated with an asset)",
     )
 
     conf_rand_action.add_argument(
@@ -133,10 +134,10 @@ def handle_configure_randomizer(args, conf_rand_arguments):
 
     # list all the randoptions
     if args["list"]:
-        _, amb_args = ISystemEnvironment.get_ambient_props()
+        amb_props = ISystemEnvironment.get_ambient_props()
 
         print(
-            "Ambient random arguments: range from {start} to {end}".format(**amb_args)
+            "Ambient random arguments: range from {start} to {end}".format(**amb_props)
         )
 
         if not args["asset_key"]:
@@ -193,7 +194,7 @@ def configure_battery(key, kwargs):
     if not isinstance(state_manager, IUPSStateManager):
         raise argparse.ArgumentTypeError("Asset [{}] is not a ups!".format(key))
 
-    if (kwargs["drain_speed"] and kwargs["charge_speed"]) is None:
+    if kwargs["drain_speed"] is None and kwargs["charge_speed"] is None:
         raise argparse.ArgumentTypeError(
             'Must provide "--drain-speed" or "--charge-speed"'
         )

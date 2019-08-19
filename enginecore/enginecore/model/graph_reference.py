@@ -1,8 +1,15 @@
-"""DB driver (data-layer) that provides access to db sessions and contains commonly used queries """
+"""DB driver (data-layer) that provides access
+to db sessions and contains commonly used queries """
+
+# Minimizing Cypher queries lengths is just too tedious
+# (black formatter will handle most cases):
+# pylint: disable=line-too-long
 
 import os
 import json
 import time
+from functools import lru_cache
+from enum import Enum
 
 from neo4j.v1 import GraphDatabase, basic_auth
 from enginecore.tools.utils import format_as_redis_key
@@ -56,7 +63,8 @@ class GraphReference:
             session: database session
             asset_key(int): key of the affected node
         Returns:
-            tuple: parent asset keys & parent OIDs with state specs that directly affect the node (formatted for Redis)
+            tuple: parent asset keys & parent OIDs with state specs that 
+                   directly affect the node (formatted for Redis)
         """
         results = session.run(
             """
@@ -70,15 +78,8 @@ class GraphReference:
         asset_keys = []
         oid_keys = {}
         for record in results:
-
-            asset_type = record["parent"]["type"]
-
             asset_key = record["parent"].get("key")
-            asset_keys.append(
-                "{asset_key}-{property}".format(
-                    asset_key=asset_key, property=asset_type.lower()
-                )
-            )
+            asset_keys.append(asset_key)
 
             if record["oid"] and record["oid_details"]:
                 oid = record["oid"].get("OID")
@@ -295,6 +296,7 @@ class GraphReference:
         return assets
 
     @classmethod
+    @lru_cache(maxsize=32)
     def get_affected_assets(cls, session, asset_key):
         """Get information about assets affected by a change in parent's state
 
@@ -317,7 +319,7 @@ class GraphReference:
             OPTIONAL MATCH (nextAsset2ndParent)<-[:POWERED_BY]-(nextAsset) 
             WHERE updatedAsset.key <> nextAsset2ndParent.key 
             RETURN collect(nextAsset) as childAssets,
-                   collect(parentAsset) as parentAsset, nextAsset2ndParent
+                   collect(distinct parentAsset) as parentAsset, nextAsset2ndParent
             """,
             key=asset_key,
         )
@@ -596,61 +598,139 @@ class GraphReference:
 
     @classmethod
     def get_ambient_props(cls, session):
-        """Get properties of system environment
+        """Get ambient properties of system environment
         Args:
             session: Graph Database session
         Returns:
-            tuple: ambient events' and system environment props, None if SysEnv is not initialized yet 
+            dict: ambient properties and  events'
         """
+        return cls._get_sys_env_props(session, cls.SysEnvProperty.ambient)
 
-        results = session.run(
-            "MATCH (sys:SystemEnvironment)-[:HAS_PROP]->(props:EnvProp) RETURN sys, collect(props) as props"
+    @classmethod
+    def set_ambient_props(cls, session, properties):
+        """Save ambient properties """
+        s_attr_prop = ["event", "degrees", "rate", "pause_at", "sref"]
+        cls._set_sys_env_props(
+            session, properties, s_attr_prop, env_prop_type=cls.SysEnvProperty.ambient
         )
 
-        amp_props = {}
+    @classmethod
+    def get_voltage_props(cls, session):
+        """Get voltage properties of system environment
+        Args:
+            session: Graph Database session
+        Returns:
+            dict: voltage fluctuation settings
+        """
+
+        return cls._get_sys_env_props(session, cls.SysEnvProperty.voltage)
+
+    class SysEnvProperty(Enum):
+        """Supported system environment properties"""
+
+        ambient = 1  # room temperature
+        voltage = 2  # the mains voltage
+
+    @classmethod
+    def _get_sys_env_props(cls, session, env_prop_type: SysEnvProperty) -> dict:
+        """Get ambient properties of system environment
+        Args:
+            session: Graph Database session
+            env_prop_type: System Environment property
+        Returns:
+            sys environment properties and corresponding events' (if supported)
+            None if SysEnv is not initialized yet 
+        """
+
+        query = []
+        query.append("MATCH (sys:SystemEnvironment { sref: 1 })")
+        query.append(
+            'MATCH (sys)-[:HAS_PROP]->(env_prop:EnvProp {{ name: "{}" }})'.format(
+                env_prop_type.name
+            )
+        )
+
+        query.append("OPTIONAL MATCH (env_prop)-[:HAS_PROP]->(event:EnvProp )")
+
+        query.append("RETURN sys, env_prop, collect(event) as event")
+
+        results = session.run("\n".join(query))
+
+        # validate that property exists
         record = results.single()
 
         if not record:
             return None
 
-        for event_prop in record.get("props"):
-            amp_props[event_prop["event"]] = dict(event_prop)
+        env_prop = dict(record.get("env_prop"))
 
-        sys_env = dict(record.get("sys"))
-        sys_env_props = ["start", "end"]
+        for event_prop in record.get("event"):
+            env_prop[event_prop["event"]] = dict(event_prop)
 
-        return (amp_props, {k: v for (k, v) in sys_env.items() if k in sys_env_props})
+        return env_prop
 
     @classmethod
-    def set_ambient_props(cls, session, properties):
-        """Save ambient properties """
+    def _set_sys_env_props(
+        cls, session, properties: dict, s_attr_prop: list, env_prop_type: SysEnvProperty
+    ):
+        """Update system environment properties"""
+
+        s_attr_rand_prop = ["start", "end"]
+
+        if "event" in properties and properties["event"]:
+            event = properties["event"]
+        else:
+            event = None
 
         query = []
-        # list supported properties (both SysEnv and EnvProp)
-        s_attr_prop = ["event", "degrees", "rate", "pause_at", "sref"]
-        s_attr_sys_env = ["start", "end"]
 
-        # find single node representing physical system environment
         query.append("MERGE (sys:SystemEnvironment { sref: 1 })")
+        query.append(
+            'MERGE (sys)-[:HAS_PROP]->(env_prop:EnvProp {{ name: "{}" }})'.format(
+                env_prop_type.name
+            )
+        )
 
-        # event property associated with either wallpower going down or up
-        if "event" in properties:
+        if event:
             query.append(
-                'MERGE (sys)-[:HAS_PROP]->(env:EnvProp {{ event: "{}" }})'.format(
-                    properties["event"]
+                'MERGE (env_prop)-[:HAS_PROP]->(event:EnvProp {{ event: "{}" }})'.format(
+                    event
                 )
             )
 
-        # set event & sys environment props if provided
         set_stm = []
-        set_stm.append(
-            qh.get_set_stm(properties, node_name="sys", supported_attr=s_attr_sys_env)
-        )
 
-        set_stm.append(qh.get_set_stm(properties, "env", s_attr_prop))
+        if event:
+            set_stm.append(
+                qh.get_set_stm(
+                    properties, node_name="env_prop", supported_attr=s_attr_rand_prop
+                )
+            )
+            set_stm.append(qh.get_set_stm(properties, "event", s_attr_prop))
+        else:
+            set_stm.append(
+                qh.get_set_stm(
+                    properties,
+                    node_name="env_prop",
+                    supported_attr=s_attr_rand_prop + s_attr_prop,
+                )
+            )
+
         query.extend(map(lambda x: "SET {}".format(x) if x else "", set_stm))
 
-        session.run("\n".join(query))
+        return session.run("\n".join(query))
+
+    @classmethod
+    def set_voltage_props(cls, session, properties):
+        """Set voltage properties
+        Args:
+            session: Graph Database session
+        """
+        s_attr_prop = ["mu", "sigma", "min", "max", "method", "rate", "enabled"]
+
+        cls._set_sys_env_props(
+            session, properties, s_attr_prop, env_prop_type=cls.SysEnvProperty.voltage
+        )
 
     @classmethod
     def set_storage_randomizer_prop(cls, session, server_key, proptype, slc):
@@ -663,11 +743,11 @@ class GraphReference:
         """
 
         query = []
-        query.append(
-            "MATCH (:ServerWithBMC {{ key: {} }})-[:SUPPORTS_STORCLI]->(strcli:Storcli)".format(
-                server_key
-            )
+
+        strcli_query = (
+            "MATCH (:ServerWithBMC {{ key: {} }})-[:SUPPORTS_STORCLI]->(strcli:Storcli)"
         )
+        query.append(strcli_query.format(server_key))
 
         query.append(
             "SET strcli.{}='{}'".format(
@@ -687,11 +767,11 @@ class GraphReference:
         """
         default_range = (0, 10)
         query = []
-        query.append(
-            "MATCH (:ServerWithBMC {{ key: {} }})-[:SUPPORTS_STORCLI]->(strcli:Storcli)".format(
-                server_key
-            )
+
+        strcli_query = (
+            "MATCH (:ServerWithBMC {{ key: {} }})-[:SUPPORTS_STORCLI]->(strcli:Storcli)"
         )
+        query.append(strcli_query.format(server_key))
 
         query.append("RETURN strcli.{} as randprop".format(proptype))
         record = session.run("\n".join(query)).single().get("randprop")
@@ -736,9 +816,11 @@ class GraphReference:
             server_key(int): key of the server physical drive belongs to
             controller(int): controller number
             did(int): drive id 
-            properties(dict): e.g. 'media_error_count', 'other_error_count', 'predictive_error_count' or 'state'
+            properties(dict): e.g. 'media_error_count', 'other_error_count'
+                                   'predictive_error_count' or 'state'
         Returns:
-            bool: True if properties were updated, False if controller and/or did are invalid 
+            bool: True if properties were updated, 
+                  False if controller and/or did are invalid 
         """
         query = []
 
