@@ -69,10 +69,10 @@ class PowerEventMap:
         )(old_value=old_value, new_value=new_value)
 
     @classmethod
-    def map_voltage_event(cls, old_value, new_value):
+    def map_voltage_event(cls, source_key, old_value, new_value):
         """Voltage changes"""
         return (
             events.VoltageDecreased
             if old_value > new_value or new_value == 0
             else events.VoltageIncreased
-        )(old_value=old_value, new_value=new_value)
+        )(source_key=source_key, old_value=old_value, new_value=new_value)

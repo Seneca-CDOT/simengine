@@ -9,7 +9,7 @@ from circuits import Component, Event, Timer
 import redis
 
 from enginecore.state.redis_channels import RedisChannels
-from enginecore.state.engine import Engine
+from enginecore.state.redis_state_handler import RedisStateHandler
 from enginecore.state.state_initializer import configure_env
 
 
@@ -38,7 +38,7 @@ class StateListener(Component):
             self._pubsub_streams[stream_name] = self._redis_store.pubsub()
 
         self._subscribe_to_channels()
-        self._engine = Engine(debug, force_snmp_init).register(self)
+        self._engine = RedisStateHandler(debug, force_snmp_init).register(self)
 
     def _subscribe_to_channels(self):
         """Subscribe to redis channels"""

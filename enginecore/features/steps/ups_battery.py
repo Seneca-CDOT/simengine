@@ -1,3 +1,6 @@
+"""Steps for testing UPS battery transfer logic and UPS snmp interface reporting correct
+OID key/value pairs
+"""
 import time
 
 # pylint: disable=no-name-in-module,function-redefined,missing-docstring,unused-import
@@ -13,11 +16,6 @@ from enginecore.state.event_map import PowerEventMap
 import enginecore.state.state_initializer as state_ini
 
 from test_helpers import FakeEngine, query_snmp_interface
-
-
-@given("the system model is empty")
-def step_impl(_):
-    drop_model()
 
 
 @given('UPS asset with key "{key:d}" is created')
@@ -45,7 +43,7 @@ def step_impl(context, key):
     assert context.ups.state.agent[1]
 
 
-@when('voltage "{volt}" drops below "{low_threshold}" threshold by "{volt_change:d}"')
+@when('voltage "{volt:d}" drops below "{low_threshold}" threshold by "{volt_change:d}"')
 def step_impl(context, low_threshold, volt, volt_change):
     low_th_oid = context.ups.state.get_oid_by_name(low_threshold).oid
     low_th_value = query_snmp_interface(low_th_oid)
@@ -53,7 +51,7 @@ def step_impl(context, low_threshold, volt, volt_change):
     assert low_th_value > 0
 
     voltage_event = VoltageDecreased(
-        old_value=volt, new_value=int(low_th_value) - volt_change
+        old_value=volt, new_value=int(low_th_value) - volt_change, source_key=0
     )
     context.engine.queue_event(voltage_event)
     context.engine.run()
@@ -63,7 +61,7 @@ def step_impl(context, low_threshold, volt, volt_change):
 def step_impl(context, volt):
 
     voltage_event = PowerEventMap.map_voltage_event(
-        old_value=context.ups.state.input_voltage, new_value=volt
+        old_value=context.ups.state.input_voltage, new_value=volt, source_key=0
     )
     context.engine.queue_event(voltage_event)
     context.engine.run()
@@ -77,7 +75,7 @@ def step_impl(context, high_threshold, volt, volt_change):
     assert high_value > 0
 
     context.voltage_event = VoltageIncreased(
-        old_value=volt, new_value=int(high_value) + volt_change
+        old_value=volt, new_value=int(high_value) + volt_change, source_key=0
     )
     context.engine.queue_event(context.voltage_event)
     context.engine.run()
@@ -95,13 +93,14 @@ def step_impl(context):
 
 @then('UPS transfer reason is set to "{t_reason}"')
 def step_impl(context, t_reason):
+    # Test both snmp interface and ups instance
     transfer_reason_oid = context.ups.state.get_oid_by_name("InputLineFailCause").oid
     varbind_value = query_snmp_interface(transfer_reason_oid)
-    assert context.ups.state.get_transfer_reason().name == t_reason
+    assert context.ups.state.transfer_reason.name == t_reason
     assert context.ups.state.InputLineFailCause(varbind_value).name == t_reason
 
 
 @then('after "{seconds:d}" seconds, the transfer reason is set to "{t_reason}"')
 def step_impl(context, seconds, t_reason):
     time.sleep(seconds + 1)
-    assert context.ups.state.get_transfer_reason().name == t_reason
+    assert context.ups.state.transfer_reason.name == t_reason

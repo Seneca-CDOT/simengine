@@ -8,18 +8,22 @@ Both server types have a unique VM (domain) assigned to them
 import os
 import time
 import logging
+import math
 import operator
 from threading import Thread
 
 from circuits import handler
 
 from enginecore.state.hardware.static_asset import StaticAsset
+from enginecore.state.api.state import IStateManager
+
 from enginecore.state.hardware.asset_definition import register_asset
 import enginecore.state.hardware.internal_state as in_state
 
 from enginecore.state.agent import IPMIAgent, StorCLIEmulator
 from enginecore.state.sensor.repository import SensorRepository
 from enginecore.state.state_initializer import get_temp_workplace_dir
+from enginecore.state.hardware import event_results
 
 
 @register_asset
@@ -31,7 +35,140 @@ class Server(StaticAsset):
 
     def __init__(self, asset_info):
         super(Server, self).__init__(asset_info)
+        self._psu_sm = {}
+
+        for i in range(1, asset_info["num_components"] + 1):
+            psu_key = self.key * 10 + i
+            self._psu_sm[psu_key] = IStateManager.get_state_manager_by_key(psu_key)
+
         self.state.power_up()
+
+    def _get_server_load_update(self, volt_event_details, power_e_result=None):
+        """Get formatted load event result 
+        (load update that needs to be propagated up the power stream)
+        """
+
+        load_e_results = []
+
+        old_volt, new_volt = (
+            volt_event_details["old_value"],
+            volt_event_details["new_value"],
+        )
+        src_key = volt_event_details["source_key"]
+
+        source_psu = self._psu_sm[src_key]
+
+        calc_load = lambda v: (self.state.power_consumption / v if v else 0)
+
+        # Output voltage can still be 0 for some assets even though
+        # their input voltage > 0
+        # (most devices require at least 90V-100V in order to function)
+        old_out_volt = old_volt * (power_e_result.old_state if power_e_result else 1)
+        new_out_volt = new_volt * (power_e_result.new_state if power_e_result else 1)
+
+        old_load, new_load = (calc_load(volt) for volt in [old_out_volt, new_out_volt])
+
+        if old_load == new_load == 0:
+            return None
+
+        other_psu = [self._psu_sm[k] for k in self._psu_sm if k != src_key]
+        print("\n=" * 10)
+        print("VOLT UPDATE SERVER: PRINTING PSUS")
+        print(other_psu[0])
+        print(source_psu)
+
+        _2nd_parent = other_psu[0]
+        load_change = abs(old_load - new_load)
+        new_source_psu_load = new_load * source_psu.draw_percentage
+        old_source_psu_load = old_load * source_psu.draw_percentage
+
+        load_e_results.append(
+            event_results.LoadEventResult(
+                asset_key=self.state.key,
+                asset_type=self.state.asset_type,
+                parent_key=source_psu.key,
+                old_load=old_source_psu_load,
+                new_load=new_source_psu_load,
+            )
+        )
+
+        # Case where load re-distribution is not needed
+        if (
+            _2nd_parent.load
+            == calc_load(_2nd_parent.output_voltage) * _2nd_parent.draw_percentage
+        ) and math.isclose(old_load, 0):
+            print("Other PSU drawing as expected")
+            return load_e_results
+
+        if math.isclose(new_out_volt, 0) and _2nd_parent.status:
+            print("LOAD REDISTRIBUTION NEEDED!!!" * 3)
+            load_e_results.append(
+                event_results.LoadEventResult(
+                    asset_key=self.state.key,
+                    asset_type=self.state.asset_type,
+                    parent_key=_2nd_parent.key,
+                    old_load=_2nd_parent.load,
+                    new_load=_2nd_parent.load + old_source_psu_load,
+                )
+            )
+        elif not math.isclose(new_out_volt, 0) and _2nd_parent.status:
+            print("&& LOAD REDISTRIBUTION BACK!!!" * 3)
+            load_e_results.append(
+                event_results.LoadEventResult(
+                    asset_key=self.state.key,
+                    asset_type=self.state.asset_type,
+                    parent_key=_2nd_parent.key,
+                    old_load=_2nd_parent.load,
+                    new_load=_2nd_parent.load - new_source_psu_load,
+                )
+            )
+
+        print("=\n" * 10)
+
+        print(load_e_results)
+        print("=\n" * 10)
+
+        return load_e_results
+
+    @handler("VoltageIncreased")
+    def on_voltage_increase(self, event, *args, **kwargs):
+        """Handle input power voltage increase"""
+
+        power_event_result = None
+
+        volt_event_result = self._get_voltage_event_result(kwargs)
+        load_event_result = self._get_server_load_update(kwargs)
+
+        return volt_event_result, power_event_result, load_event_result
+
+    @handler("VoltageDecreased")
+    def on_voltage_decrease(self, event, *args, **kwargs):
+        """Handle input power voltage drop"""
+
+        power_event_result = None
+
+        volt_event_result = self._get_voltage_event_result(kwargs)
+        load_event_result = self._get_server_load_update(kwargs)
+
+        alt_psu_up = len(
+            [
+                self._psu_sm[k]
+                for k in self._psu_sm
+                if k != kwargs["source_key"] and self._psu_sm[k].status
+            ]
+        )
+
+        min_voltage = self.state.min_voltage_prop()
+
+        if kwargs["new_value"] <= min_voltage and self.state.status and not alt_psu_up:
+            power_event_result = event_results.PowerEventResult(
+                asset_key=self.state.key,
+                asset_type=self.state.asset_type,
+                old_state=self.state.status,
+                new_state=self.state.power_off(),
+            )
+
+        return volt_event_result, power_event_result, load_event_result
 
 
 @register_asset
@@ -149,7 +286,6 @@ class ServerWithBMC(Server):
             new_ambient=kwargs["new_value"], old_ambient=kwargs["old_value"]
         )
 
-    # @handler("ParentAssetPowerDown")
     def on_power_off_request_received(self, event, *args, **kwargs):
         self._ipmi_agent.stop_agent()
         e_result = self.power_off()
@@ -157,7 +293,6 @@ class ServerWithBMC(Server):
             self._sensor_repo.shut_down_sensors()
         return e_result
 
-    # @handler("ParentAssetPowerUp")
     def on_power_up_request_received(self, event, *args, **kwargs):
         self._ipmi_agent.start_agent()
         e_result = self.power_up()

@@ -106,7 +106,8 @@ class IStateManager:
     @property
     def input_voltage(self):
         """Asset input voltage in Volts"""
-        return float(IStateManager.get_store().get(self.redis_key + ":in-voltage"))
+        in_volt = IStateManager.get_store().get(self.redis_key + ":in-voltage")
+        return float(in_volt) if in_volt else 0.0
 
     @property
     def output_voltage(self):
@@ -167,23 +168,15 @@ class IStateManager:
             self._set_state_on()
         return self.status
 
-    def _update_input_voltage(self, voltage):
+    def _update_input_voltage(self, voltage: float):
         """Set input voltage"""
         voltage = max(voltage, 0)
         IStateManager.get_store().set(self.redis_key + ":in-voltage", voltage)
 
-    def _update_load(self, load, publish=False):
-        """Update amps"""
-        load = load if load >= 0 else 0
+    def _update_load(self, load: float):
+        """Update power load for the asset"""
+        load = load if load >= 0.0 else 0.0
         IStateManager.get_store().set(self.redis_key + ":load", load)
-
-    def _publish_load(self, old_load):
-        """Publish load changes """
-        print("\n", "PUBLISHING")
-        IStateManager.get_store().publish(
-            RedisChannels.load_update_channel,
-            json.dumps({"key": self.key, "new_load": self.load, "old_load": old_load}),
-        )
 
     def _sleep_delay(self, delay_type):
         """Sleep for n number of ms determined by the delay_type"""
@@ -289,6 +282,16 @@ class IStateManager:
         oids_on = self._check_parents(oid_keys.keys(), oid_clause)
 
         return (parent_assets_up and enough_voltage and oids_on) or (not asset_keys)
+
+    def __str__(self):
+        return (
+            "Asset[{0.asset_type}][{0.key}] \n"
+            " - Status: {0.status} \n"
+            " - Load: {0.load}A\n"
+            " - Power Consumption: {0.power_consumption}W \n"
+            " - Input Voltage: {0.input_voltage}V\n"
+            " - Output Voltage: {0.output_voltage}V\n"
+        ).format(self)
 
     @classmethod
     def get_store(cls):
@@ -434,18 +437,18 @@ class IStateManager:
         with graph_ref.get_session() as session:
 
             play_path = GraphReference.get_play_path(session)
-            if not play_path:
-                return
+        if not play_path:
+            return
 
-            file_filter = (
-                lambda f: os.path.isfile(os.path.join(play_path, f))
-                and os.path.splitext(f)[0] == play_name
-            )
+        file_filter = (
+            lambda f: os.path.isfile(os.path.join(play_path, f))
+            and os.path.splitext(f)[0] == play_name
+        )
 
-            play_file = [f for f in os.listdir(play_path) if file_filter(f)][0]
+        play_file = [f for f in os.listdir(play_path) if file_filter(f)][0]
 
-            subprocess.Popen(
-                os.path.join(play_path, play_file),
-                stderr=subprocess.DEVNULL,
-                close_fds=True,
-            )
+        subprocess.Popen(
+            os.path.join(play_path, play_file),
+            stderr=subprocess.DEVNULL,
+            close_fds=True,
+        )
