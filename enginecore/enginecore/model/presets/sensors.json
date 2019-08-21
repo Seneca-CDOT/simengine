@@ -38,24 +38,6 @@
                 "name": "Frnt_FAN",
                 "offValue": 0,
                 "address": "0x79"
-            },
-            {
-                "thresholds": {
-                    "lnc": 1000
-                },
-                "defaultValue": 1000,
-                "name": "PSU1 Fan",
-                "offValue": 0,
-                "address": "0x51"
-            },
-            {
-                "thresholds": {
-                    "lnc": 1000
-                },
-                "defaultValue": 1000,
-                "name": "PSU2 Fan",
-                "offValue": 0,
-                "address": "0x52"
             }
         ]
     },
@@ -77,6 +59,28 @@
             "voltPowerTimeout": 0.2
         }
     ],
+    "psuFan": {
+        "group": "fan",
+        "addressSpace": "0x51",
+        "sensorDefinitions": [
+            {
+                "thresholds": {
+                    "lnc": 1000
+                },
+                "defaultValue": 1000,
+                "name": "PSU{index} Fan",
+                "offValue": 0
+            },
+            {
+                "thresholds": {
+                    "lnc": 1000
+                },
+                "defaultValue": 1000,
+                "name": "PSU{index} Fan",
+                "offValue": 0
+            }
+        ]
+    },
     "psuStatus": {
         "group": "psu",
         "addressSpace": "0x8",

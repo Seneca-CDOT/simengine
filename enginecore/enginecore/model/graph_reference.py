@@ -1164,7 +1164,7 @@ class GraphReference:
         sensor_match = "MATCH (:PSU {{ key: {} }})<-[:HAS_COMPONENT]-(:Asset)-[:HAS_SENSOR]->(sensor {{ num: {} }})"
         label_match = map(
             "sensor:{}".format,
-            ["psuCurrent", "psuTemperature", "psuStatus", "psuPower"],
+            ["psuCurrent", "psuTemperature", "psuStatus", "psuPower", "psuFan"],
         )
 
         query.extend(
