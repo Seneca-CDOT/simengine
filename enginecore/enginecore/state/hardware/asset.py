@@ -184,7 +184,10 @@ class Asset(Component):
         new_out_volt = new_volt * (power_e_result.new_state if power_e_result else 1)
 
         old_load, new_load = (calc_load(volt) for volt in [old_out_volt, new_out_volt])
-        old_load = self.state.load  # TODO: remove old load from above calculations
+        # print(old_load)
+
+        # old_load = self.state.load  # TODO: remove old load from above calculations
+        # print(old_load)
 
         if old_load == new_load == 0:
             return None
@@ -199,15 +202,58 @@ class Asset(Component):
             )
         ]
 
-    @handler("VoltageIncreased", "VoltageDecreased", priority=-1)
+    def _process_parent_volt_e(self, event):
+
+        calc_load = lambda v: self.state.power_consumption / v if v else 0
+
+        asset_event = event.get_next_power_event(self)
+        asset_event.state.old = self.state.status
+
+        min_voltage = self.state.min_voltage_prop()
+        power_action = None
+
+        # Asset is underpowered (volt is too low)
+        if asset_event.out_volt.new <= min_voltage and asset_event.state.old:
+            power_action = self.state.power_off
+        # Asset was offline and underpowered, power back up
+        elif asset_event.out_volt.new > min_voltage and not asset_event.state.old:
+            power_action = self.state.power_up
+
+        # re-set output voltage values in case of power condition
+        if power_action:
+            asset_event.state.new = power_action()
+            asset_event.out_volt.old = asset_event.out_volt.old * asset_event.state.old
+            asset_event.out_volt.new = asset_event.out_volt.new * asset_event.state.new
+
+        old_load, new_load = (
+            calc_load(volt)
+            for volt in [asset_event.out_volt.old, asset_event.out_volt.new]
+        )
+
+        return asset_event
+
+    @handler("InputVoltageUpEvent", "InputVoltageDownEvent", priority=-1)
     def detect_input_voltage(self, event, *args, **kwargs):
         """Update input voltage"""
-        self.state.update_input_voltage(kwargs["new_value"])
+        self.state.update_input_voltage(kwargs["new_in_volt"])
         print(
             "VOLTAGE {} {}, in[{}]".format(
                 event.name, self.key, self.state.input_voltage
             )
         )
+
+    @handler("InputVoltageUpEvent")
+    def on_parent_volt_up(self, event, *args, **kwargs):
+        # print("[ASSET] parent volt up")
+        # print("         parent event -> ", event)
+        return self._process_parent_volt_e(event)
+
+    @handler("InputVoltageDownEvent")
+    def on_parent_volt_down(self, event, *args, **kwargs):
+        # print("[ASSET] parent volt down")
+        # print("         parent event -> ", event)
+
+        return self._process_parent_volt_e(event)
 
     @handler("VoltageIncreased")
     def on_voltage_increase(self, event, *args, **kwargs):

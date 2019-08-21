@@ -1,5 +1,9 @@
 """A collection of shared utils for BDD tests"""
+import json
+
+
 from pysnmp import hlapi
+import websocket
 from circuits import Component
 
 
@@ -57,3 +61,51 @@ class FakeEngine(Component):
     def started(self, _):
         """Triggered on run/start"""
         self.fire(self._q_events, self._asset)
+
+
+class TestClient:
+    """WebSocket client for simengine"""
+
+    context = None
+    event = None
+    queue = None
+    web_socket = None
+
+    def __init__(self, url="ws://0.0.0.0:8000/simengine"):
+        """Createa a new webs socket client"""
+        self._url = url
+        self.web_socket = None
+
+    @staticmethod
+    def on_message(_, message):
+        """Called when simengine sends a new message"""
+        parsed_msg = json.loads(message)
+        if TestClient.queue:
+            TestClient.queue.put(parsed_msg)
+
+    @staticmethod
+    def on_open(web_socket):
+        """Called when a connection with simengine server is opened"""
+        web_socket.send(json.dumps({"request": "subscribe", "payload": {}}))
+        TestClient.context.engine.handle_voltage_update(old_voltage=0, new_voltage=120)
+
+    @staticmethod
+    def on_error(_, error):
+        """Error with a websocket connection"""
+        print(error)
+
+    @staticmethod
+    def on_close(_):
+        """When connection is closed"""
+        print("### webscocket client closed ###")
+
+    def run_client(self):
+        """run a websocket client"""
+        self.web_socket = websocket.WebSocketApp(
+            self._url,
+            on_message=TestClient.on_message,
+            on_error=TestClient.on_error,
+            on_close=TestClient.on_close,
+        )
+        self.web_socket.on_open = TestClient.on_open
+        self.web_socket.run_forever()

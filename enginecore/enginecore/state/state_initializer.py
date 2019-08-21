@@ -12,7 +12,10 @@ from enginecore.tools.utils import format_as_redis_key
 def get_temp_workplace_dir():
     """Get location of the temp directory"""
     sys_temp = tempfile.gettempdir()
-    simengine_temp = os.path.join(sys_temp, "simengine")
+    sim_temp = os.environ["SIMENGINE_WORKPLACE_TEMP"] = os.environ.get(
+        "SIMENGINE_WORKPLACE_TEMP", "simengine"
+    )
+    simengine_temp = os.path.join(sys_temp, sim_temp)
     return simengine_temp
 
 

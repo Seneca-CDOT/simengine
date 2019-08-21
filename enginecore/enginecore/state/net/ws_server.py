@@ -56,7 +56,8 @@ class WebSocket(Component):
         )
 
     def _cmd_executed_response(self, sock, executed):
-        """Update client on command execution status (if the request went through or not)"""
+        """Update client on command execution status
+        (if the request went through or not)"""
         self._write_data(
             sock, ServerToClientRequests.cmd_executed_status, {"executed": executed}
         )

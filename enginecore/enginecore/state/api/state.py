@@ -112,7 +112,7 @@ class IStateManager:
     @property
     def output_voltage(self):
         """Output voltage for the device"""
-        return self.input_voltage
+        return self.input_voltage * self.status
 
     @property
     def agent(self):
