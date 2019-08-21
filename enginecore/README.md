@@ -4,7 +4,7 @@
 
 ### Project Structure
 
-``` bash
+```bash
 ├── app.py          # main daemon for the event loop (starting point of the app)
 ├── simengine-cli   # command line interface to the engine (see simengine-cli -h)
 ├── script          # various helper scripts (debugging/evalsha for redis etc.)
@@ -23,12 +23,12 @@
 │   │   └── sensor   # ipmi sensors
 │   └── tools        # utilities including state recorder & randomizer
 │
-|   # Project tests
+│   # Project tests
 ├── features   # BDD tests with gherkin-style scenarios/python implementation
 ├── tests      # unittests
 │
 │   # MISC tools/data used by the agent simulating network interfaces (SNMP/IPMI)
-├── ipmi_sim          # plugin library for ipmi_sim 
+├── ipmi_sim          # plugin library for ipmi_sim
 ├── ipmi_template     # sensor templates for ipmi_sim
 └── storcli_template  # output templates for storcli64 commands
 ```
