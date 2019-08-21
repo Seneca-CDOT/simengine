@@ -2,6 +2,37 @@
 
 `enginecore` is the engine itself written in Python3. It is running in the background as an event loop, supporting all the state/interface simulations and manipulation.
 
+### Project Structure
+
+``` bash
+├── app.py          # main daemon for the event loop (starting point of the app)
+├── simengine-cli   # command line interface to the engine (see simengine-cli -h)
+├── script          # various helper scripts (debugging/evalsha for redis etc.)
+│
+│   # main engine module
+├── enginecore
+│   ├── cli          # implementation of cli commands (see simengine-cli -h)
+│   ├── model        # tools for modelling system topology
+│   │   └── presets  # default model parameters for hardware devices (can be overwritten with cli)
+│   ├── state        # state handling/manipulation
+│   │   ├── agent    # snmp/ipmi/storcli64 simulators
+│   │   ├── api      # state api for hardware
+│   │   ├── engine   # engine implementation (events/iterations/event loop)
+│   │   ├── hardware # hardware behaviour
+│   │   ├── net      # websocket interface
+│   │   └── sensor   # ipmi sensors
+│   └── tools        # utilities including state recorder & randomizer
+│
+|   # Project tests
+├── features   # BDD tests with gherkin-style scenarios/python implementation
+├── tests      # unittests
+│
+│   # MISC tools/data used by the agent simulating network interfaces (SNMP/IPMI)
+├── ipmi_sim          # plugin library for ipmi_sim 
+├── ipmi_template     # sensor templates for ipmi_sim
+└── storcli_template  # output templates for storcli64 commands
+```
+
 ## Installation
 
 ### Installing for Development
@@ -28,9 +59,11 @@ Instructions on how to install SimEngine packaged as .rpm can be found [here](ht
 
 The main app daemon can be run as:
 
-```basj
+```bash
 /usr/bin/python3 ./app.py -d -r -v
 ```
+
+**Note**: using some UDP ports (161) requires sudo privileges.
 
 Or it can be managed as a service if built from an [RPM](https://simengine.readthedocs.io/en/latest/Installation/#release-rpm);
 
@@ -90,6 +123,8 @@ You can run tests as:
 ```bash
 python3 -m behave ./features/ -k --stop --no-capture-stderr
 ```
+
+**Note**: running tests requires a VM with a domain name `test-ipmi` and [proper .xml configurations](https://simengine.readthedocs.io/en/latest/Assets%20Configurations/#server-type) (alternatively, you can update [vm name in the config file](./behave.ini)).
 
 You can also control which tests you want to run by using tags, for example this command will test only
 scenarios associated with UPS features and it will ignore tests that are slow to run:
