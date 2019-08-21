@@ -182,3 +182,34 @@ Feature: Power logic for Server asset type
             | server-status | chassis-status |
             | online        | online         |
             | offline       | offline        |
+
+    @slow
+    @server-bmc-asset
+    @ipmi-interface
+    @unreliable
+    Scenario Outline: PSU fans go offline with power loss to a PSU they are cooling
+            """
+            PSU fans go offline with AC (this is outlined in "Power Tests" section
+            on Anvil https://www.alteeve.com/w/Build_an_m2_Anvil!)
+            """
+
+        Given Outlet asset with key "2" is created
+        And ServerBMC asset with key "7" and "480" Wattage is created
+
+        And asset "1" powers target "71"
+        And asset "2" powers target "72"
+        And Engine is up and running
+
+        And asset "1" is "<1-ini>"
+        When asset "1" goes "<1-new>"
+
+        # ipmi_sim reads from a file with a delay
+        And pause for "2" seconds
+
+        Then asset "7" BMC sensor "<sensor-name>" value is "<sensor-value>"
+
+        Examples: AC changes to a PSU affect PSU fan status
+            | 1-ini   | 1-new   | sensor-name | sensor-value |
+            | online  | online  | PSU1 Fan    | 1000 RPM     |
+            | online  | offline | PSU1 Fan    | 0 RPM        |
+            | offline | online  | PSU1 Fan    | 1000 RPM     |
