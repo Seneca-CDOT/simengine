@@ -16,7 +16,7 @@ from enginecore.state.hardware.asset_definition import register_asset
 
 @register_asset
 class Outlet(Asset):
-    """Hadrware manger for outlet asset; some outlets that are not of wallpower type
+    """Hardware manger for outlet asset; some outlets that are not of wallpower type
     (e.g. output outlets belonging to UPS/PDU) can handle SNMP signals for powering
     down/up or reboot
     """

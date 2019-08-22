@@ -75,6 +75,7 @@ class StorCLIEmulator:
 
         self._graph_ref = GraphReference()
         self._server_key = asset_key
+        self._serversocket = None
 
         with self._graph_ref.get_session() as session:
             self._storcli_details = GraphReference.get_storcli_details(
@@ -107,8 +108,10 @@ class StorCLIEmulator:
         self._stop_event.set()
         self._serversocket.close()
 
+    # *** Responses to cli commands ***
     def _strcli_header(self, ctrl_num=0, status="Success"):
-        """Reusable header for storcli output"""
+        """Reusable header for storcli output
+        (this appears at the top of most CLI outputs)"""
 
         with open(os.path.join(self._storcli_dir, "header")) as templ_h:
             options = {
@@ -191,7 +194,8 @@ class StorCLIEmulator:
             return template.substitute(options)
 
     def _get_rate_prop(self, controller_num, rate_type):
-        """Get controller rate property (rate type matches rate template file and the rate template value)"""
+        """Get controller rate property
+        (rate type matches rate template file and the rate template value)"""
 
         rate_file = os.path.join(self._storcli_dir, rate_type)
         with open(rate_file) as templ_h, self._graph_ref.get_session() as session:
@@ -210,7 +214,8 @@ class StorCLIEmulator:
     def _check_vd_state(self, vd_state, physical_drives):
         """Determine status of the virtual drive based on the physical drives' states
         Args:
-            vd_state(dict): virtual drive state properties such as error counts & physical drive status
+            vd_state(dict): virtual drive state properties such as error counts
+                            & physical drive status
             physical_drives(dict): physical drive details
         """
 
@@ -220,11 +225,11 @@ class StorCLIEmulator:
             vd_state["otherErrorCount"] += p_drive["otherErrorCount"]
             vd_state["predictiveErrorCount"] += p_drive["predictiveErrorCount"]
 
-            p_drive_rebuilding = (time.time() - p_drive["timeStamp"]) < p_drive[
+            pd_rebuilding = (time.time() - p_drive["timeStamp"]) < p_drive[
                 "rebuildTime"
             ]
 
-            if p_drive["State"] == "Offln" or p_drive_rebuilding:
+            if p_drive["State"] == "Offln" or pd_rebuilding:
                 vd_state["numPdOffline"] += 1
 
     def _format_pd_for_output(self, physical_drives):
@@ -469,6 +474,7 @@ class StorCLIEmulator:
                     "drive_temp_f": (pd["temperature"] * 9 / 5) + 32,
                     "drive_model": pd["Model"],
                     "drive_size": pd["Size"],
+                    "drive_group": pd["DG"],
                 },
                 pd_drives,
             )
@@ -624,7 +630,10 @@ class StorCLIEmulator:
             return self._strcli_header(controller_num) + "\n" + "\n".join(vd_output)
 
     def _listen_cmds(self, socket_port):
-        """Start storcli websocket server """
+        """Start storcli websocket server
+        for a list of supported storcli64 commands, see
+        https://simengine.readthedocs.io/en/latest/Asset%20Management/#storage-simulation
+        """
 
         self._serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._serversocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -662,6 +671,7 @@ class StorCLIEmulator:
                 reply = {"stdout": "", "stderr": "", "status": 0}
 
                 # Process non-default return cases
+                # (parse command request and return command output)
                 if len(argv) == 2:
                     if argv[1] == "--version":
                         reply["stdout"] = "Version 0.01"

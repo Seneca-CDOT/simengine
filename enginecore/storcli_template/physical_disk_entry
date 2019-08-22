@@ -31,7 +31,7 @@ Drive ${drive_path} Device attributes :
 ===================================
 SN = Y3D0A0FDFSR2
 Manufacturer Id = TOSHIBA 
-Model Number = ${drive_model}      
+Model Number = ${drive_model}
 NAND Vendor = NA
 WWN = 500003952819DBF9
 Firmware Revision = 5205
@@ -49,7 +49,7 @@ Connector Name = Port 0 - 3 x1
 
 Drive ${drive_path} Policies/Settings :
 ===================================
-Drive position = DriveGroup:0, Span:0, Row:0
+Drive position = DriveGroup:${drive_group}, Span:0, Row:0
 Enclosure position = 1
 Connected Port Number = 3(path0) 
 Sequence Number = 2
