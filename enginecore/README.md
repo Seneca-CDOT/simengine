@@ -142,6 +142,7 @@ Here is the list of tags & their use:
 | @voltage-behaviour | tests associated with voltage (drop/increase etc)                                           |
 | @thermal-behaviour | tests associated with temperature and thermal aspects of simulation                         |
 | @load-behaviour    | tests associated with amperage and load distribution in the system                          |
+| @storage-behaviour | tests associated with storage & storcli64                                                   |
 | @ipmi-interface    | check that the simulated BMC returns correct & expected values through IPMI                 |
 | @snmp-interface    | check that snmpsimd is returning correct values through snmp interface                      |
 | @ups-asset         | all tests associated with UPS hardware                                                      |
