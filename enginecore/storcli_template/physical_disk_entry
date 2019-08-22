@@ -29,8 +29,8 @@ S.M.A.R.T alert flagged by drive = No
 
 Drive ${drive_path} Device attributes :
 ===================================
-SN = Y3D0A0FDFSR2
-Manufacturer Id = TOSHIBA 
+SN = ${serial_number}
+Manufacturer Id = ${manufacturer_id} 
 Model Number = ${drive_model}
 NAND Vendor = NA
 WWN = 500003952819DBF9

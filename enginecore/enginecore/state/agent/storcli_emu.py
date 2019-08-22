@@ -475,6 +475,8 @@ class StorCLIEmulator:
                     "drive_model": pd["Model"],
                     "drive_size": pd["Size"],
                     "drive_group": pd["DG"],
+                    "serial_number": pd["serialNumber"],
+                    "manufacturer_id": pd["manufacturerId"],
                 },
                 pd_drives,
             )

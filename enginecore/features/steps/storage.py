@@ -20,7 +20,6 @@ def _recvall(storcli64_socket):
     return data
 
 
-# @then("response for asset "7" when running storcli64 command "storcli64 /c0 /vall show all" is ok")
 @then('response for asset "{key:d}" when running storcli64 command "{command}" is ok')
 def step_impl(context, key, command):
 

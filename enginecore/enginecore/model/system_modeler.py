@@ -431,6 +431,8 @@ def _add_storage(asset_key, preset_file, storage_state_file):
                     "predictiveErrorCount",
                     "rebuildTime",
                     "timeStamp",
+                    "manufacturerId",
+                    "serialNumber",
                 ]
 
                 props_stm = qh.get_props_stm(
@@ -723,10 +725,16 @@ def create_pdu(
 
         # Add PDU OIDS to the model
         for oid_key, oid_props in data["OIDs"].items():
-            if oid_key == "SerialNumber":
+            if "serial_number" in attr and attr["serial_number"]:
+                oid_props["defaultValue"] = attr["serial_number"]
+            else:
                 oid_props["defaultValue"] = qh.generate_id()
+
             if oid_key == "MAC":
-                oid_props["defaultValue"] = qh.generate_mac()
+                if "mac_address" in attr and attr["mac_address"]:
+                    oid_props["defaultValue"] = attr["mac_address"]
+                else:
+                    oid_props["defaultValue"] = qh.generate_mac()
 
             s_attr = ["OID", "OIDName", "defaultValue", "dataType"]
             props_stm = qh.get_props_stm(
