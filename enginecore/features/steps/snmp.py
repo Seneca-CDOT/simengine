@@ -88,6 +88,18 @@ def step_impl(context, key, oid_num, oid_value):
     context.tracker.wait_load_queue()
 
 
+@then('asset "{key:d}" oid "{oid_num}" is set to "{oid_value}"')
+def step_impl(context, key, oid_num, oid_value):
+
+    snmp_asset_info = context.hardware[key].asset_info
+
+    oid_response = query_snmp_interface(
+        oid_num, host=snmp_asset_info["host"], port=snmp_asset_info["port"]
+    )
+
+    assert_that(str(oid_response), equal_to(oid_value))
+
+
 def _ping_snmp(snmp_asset_info, snmp_state):
     """Verify SNMP interface availability given host/port & the desirable state"""
     res = query_snmp_interface(

@@ -8,12 +8,9 @@ Feature: Load distribution with assets that have multiple children
 
     Background:
         Given the system model is empty
-
-    Scenario Outline: Multiple children load chain
-
         # == initialize model & engine ==
         # (1)-[powers]->(2)-[powers]->(3, 4, 5)
-        Given Outlet asset with key "1" is created
+        And Outlet asset with key "1" is created
         And PDU asset with key "7",  minimum "105" Voltage and "1025" port is created
 
         And Lamp asset with key "3", minimum "109" Voltage and "120" Wattage is created
@@ -27,7 +24,10 @@ Feature: Load distribution with assets that have multiple children
         And asset "75" powers target "5"
 
         And Engine is up and running
-        And asset "<asset-key>" is "<asset-ini-state>"
+
+    Scenario Outline: Multiple children load chain
+
+        Given asset "<asset-key>" is "<asset-ini-state>"
 
         # create a certain power condition
         When asset "<asset-key>" goes "<asset-new-state>"
@@ -63,3 +63,34 @@ Feature: Load distribution with assets that have multiple children
             | 7         | offline         | online          | 3.0 | 3.0 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 |
             | 73        | offline         | online          | 3.0 | 3.0 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 |
             | 75        | offline         | online          | 3.0 | 3.0 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 |
+
+    @snmp-interface
+    @wip
+    Scenario Outline: Power-related PDU OIDs get updated with load changes
+
+        Given asset "<asset-key>" is "<asset-ini-state>"
+
+        # create a certain power condition
+        When asset "<asset-key>" goes "<asset-new-state>"
+
+        Then asset "7" oid "<oid>" is set to "<oid-value>"
+
+            """
+            Getting this OID will return the Power in Watts
+            """
+        Examples: Check wattage for APC PDU
+            | asset-key | asset-ini-state | asset-new-state | oid                           | oid-value |
+            | 3         | online          | online          | 1.3.6.1.4.1.318.1.1.12.1.16.0 | 360       |
+            | 3         | online          | offline         | 1.3.6.1.4.1.318.1.1.12.1.16.0 | 240       |
+            | 3         | offline         | online          | 1.3.6.1.4.1.318.1.1.12.1.16.0 | 360       |
+
+
+            """
+            Getting this OID will return the phase/bank load measured
+            in tenths of Amps.
+            """
+        Examples: Check amperage for APC PDU
+            | asset-key | asset-ini-state | asset-new-state | oid                                | oid-value |
+            | 3         | online          | online          | 1.3.6.1.4.1.318.1.1.12.2.3.1.1.2.1 | 30        |
+            | 3         | online          | offline         | 1.3.6.1.4.1.318.1.1.12.2.3.1.1.2.1 | 20        |
+            | 3         | offline         | online          | 1.3.6.1.4.1.318.1.1.12.2.3.1.1.2.1 | 30        |
