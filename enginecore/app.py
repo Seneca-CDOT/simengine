@@ -1,5 +1,7 @@
 #!/usr/bin/python3
-""" Entry point """
+"""Entry point initializing platform environment, state listeners
+and state handlers (engine)
+"""
 
 import argparse
 import os
@@ -8,6 +10,7 @@ import logging
 from logging import handlers
 
 from enginecore.state.redis_state_listener import StateListener
+from enginecore.state.new_engine import Engine
 
 
 FORMAT = "[%(threadName)s, %(asctime)s, %(module)s:%(lineno)s] %(message)s"
@@ -41,7 +44,7 @@ def configure_logger(develop=False):
     root.addHandler(logfile_h)
 
 
-def run():
+def run_app():
     """
     Initilize compnents' states in redis based on a reference model
     & launch event listener daemon
@@ -71,8 +74,10 @@ def run():
     configure_logger(develop=args["develop"])
 
     # run daemon
-    StateListener(debug=args["verbose"], force_snmp_init=args["reload_data"]).run()
+    StateListener(
+        engine_cls=Engine, debug=args["verbose"], force_snmp_init=args["reload_data"]
+    ).run()
 
 
 if __name__ == "__main__":
-    run()
+    run_app()

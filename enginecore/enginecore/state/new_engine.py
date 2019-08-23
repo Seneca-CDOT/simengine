@@ -16,7 +16,7 @@ from enginecore.state.api import ISystemEnvironment
 from enginecore.state.net.ws_server import WebSocket
 from enginecore.state.net.ws_requests import ServerToClientRequests
 
-from enginecore.state.state_initializer import initialize, clear_temp, configure_env
+from enginecore.state.state_initializer import initialize, clear_temp
 from enginecore.state.engine_data_source import HardwareGraphDataSource
 from enginecore.state.power_iteration import PowerIteration
 from enginecore.state.power_events import AssetPowerEvent
@@ -26,6 +26,13 @@ class AllVoltageBranchesDone(Event):
     """Dispatched when power iteration finishes downstream
     voltage event propagation to all the leaf nodes that 
     are descendants of the iteration source event"""
+
+    success = True
+
+
+class AllLoadBranchesDone(Event):
+    """Dispatched when power iteration finishes upstream
+    load event propagation across all load branches"""
 
     success = True
 
@@ -42,15 +49,11 @@ class Engine(Component):
         - Load updates due to voltage changes
     """
 
-    def __init__(
-        self, force_snmp_init=True, debug=True, data_source=HardwareGraphDataSource
-    ):
+    def __init__(self, force_snmp_init=True, data_source=HardwareGraphDataSource):
         super(Engine, self).__init__()
 
         ### Set-up WebSocket & Redis listener ###
         logging.info("Starting simengine daemon...")
-        # TODO: when hooked into redis, either remove this or one from redis
-        configure_env(debug)
 
         # assets will store all the devices/items including PDUs, switches etc.
         self._assets = {}
@@ -101,6 +104,11 @@ class Engine(Component):
         self._worker_thread.daemon = True
         self._worker_thread.start()
 
+    @property
+    def assets(self):
+        """Hardware assets that are present in the system topology"""
+        return self._assets
+
     def power_worker(self):
         """Consumer processing power event queue"""
 
@@ -124,7 +132,7 @@ class Engine(Component):
         """Dispatch power completion events to clients"""
 
         for comp_tracker in self._completion_trackers:
-            self.fire(AllVoltageBranchesDone(), comp_tracker)
+            self.fire(event(), comp_tracker)
 
     def subscribe_tracker(self, tracker):
         """Subcribe external engine client to completion events"""
@@ -135,18 +143,48 @@ class Engine(Component):
         self._completion_trackers.remove(tracker)
         tracker.unregister(self)
 
-    def _chain_power_events(self, volt_events, load_events=None):
+    def _mark_load_branches_done(self):
+        """Set status for all load branches as done
+        (when all load branches are completed, power iteration
+        worker thread is given permission to accept new power
+        events)
+        """
+        self._current_power_iter = None
+        self._notify_trackers(AllLoadBranchesDone)
+        self._power_iter_queue.task_done()
 
-        print(self._current_power_iter)
+    def _chain_power_events(self, volt_events, load_events=None):
+        """Chain power events by dispatching input power events
+        against children of the updated asset;
+        Fire load events against parents of the updated asset if
+        applicable;
+        """
 
         # reached the end of a stream of voltage updates
-        # TODO: when load is implemented, move this to load completion
-        if self._current_power_iter.num_volt_branches_active == 0:
-            self._current_power_iter = None
-            self._notify_trackers(None)
-            self._power_iter_queue.task_done()
+        if self._current_power_iter.all_voltage_branches_done:
+            self._notify_trackers(AllVoltageBranchesDone)
+            if self._current_power_iter.all_load_branches_done:
+                self._mark_load_branches_done()
 
-        for asset_key, event in volt_events:
+        for child_key, event in volt_events:
+            self.fire(event, self._assets[child_key])
+
+        if load_events:
+            for parent_key, event in load_events:
+                self.fire(event, self._assets[parent_key])
+
+    def _chain_load_events(self, load_events):
+        """Chain load events by dispatching load events against
+        parents of the updated child asset"""
+
+        # load & voltage branches are completed
+        if self._current_power_iter.power_iteration_done:
+            self._mark_load_branches_done()
+
+        if not load_events:
+            return
+
+        for asset_key, event in load_events:
             self.fire(event, self._assets[asset_key])
 
     def handle_ambient_update(self, old_temp, new_temp):
@@ -186,7 +224,7 @@ class Engine(Component):
             return
 
         updated_asset = self._assets[asset_key]
-        out_volt = updated_asset.state.output_voltage
+        out_volt = updated_asset.state.input_voltage
 
         volt_event = AssetPowerEvent(
             asset=updated_asset,
@@ -204,20 +242,37 @@ class Engine(Component):
         self._power_iter_queue.put(None)
         self._worker_thread.join()
         self._sys_environ.stop()
+        HardwareGraphDataSource.cache_clear_all()
         super().stop(code)
 
     # **Events are camel-case
     # pylint: disable=C0103,W0613
     def InputVoltageUpEvent_success(self, input_volt_event, asset_event):
-        """Callback called if InputVoltageUpEvent was handled by the child asset
+        """Callback called when InputVoltageUpEvent was handled by the asset
+        affected by the input change
         """
         self._chain_power_events(
             *self._current_power_iter.process_power_event(asset_event)
         )
 
     def InputVoltageDownEvent_success(self, input_volt_event, asset_event):
-        """Callback called if InputVoltageDown was handled by the child asset
+        """Callback called when InputVoltageDown was handled by the asset
+        affected by the input change
         """
         self._chain_power_events(
             *self._current_power_iter.process_power_event(asset_event)
+        )
+
+    def ChildLoadUpEvent_success(self, child_load_event, asset_load_event):
+        """Callback called when asset finishes processing load incease event that had
+        happened to its child"""
+        self._chain_load_events(
+            self._current_power_iter.process_load_event(asset_load_event)
+        )
+
+    def ChildLoadDownEvent_success(self, child_load_event, asset_load_event):
+        """Callback called when asset finishes processing load drop event that had
+        happened to its child"""
+        self._chain_load_events(
+            self._current_power_iter.process_load_event(asset_load_event)
         )

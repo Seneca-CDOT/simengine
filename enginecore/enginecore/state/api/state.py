@@ -54,9 +54,12 @@ class IStateManager:
         return self._asset_info["type"]
 
     @property
-    def power_usage(self) -> float:
+    def power_usage(self):
         """Normal power usage in AMPS when powered up"""
-        return 0
+        if self.input_voltage and "powerConsumption" in self._asset_info:
+            return self._asset_info["powerConsumption"] / self.input_voltage
+
+        return 0.0
 
     @property
     def draw_percentage(self) -> float:
@@ -65,6 +68,7 @@ class IStateManager:
 
     @property
     def power_consumption(self):
+        """How much power this device consumes (wattage)"""
         return (
             self._asset_info["powerConsumption"]
             if "powerConsumption" in self._asset_info

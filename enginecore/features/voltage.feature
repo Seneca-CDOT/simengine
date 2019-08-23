@@ -1,3 +1,5 @@
+@voltage-behaviour
+@power-behaviour
 Feature: System handles voltage updates
     Voltage may affect asset states by causing them to power off (if underpowered)
     or back up (AC restored)
@@ -5,10 +7,6 @@ Feature: System handles voltage updates
 
     Background:
         Given the system model is empty
-
-    @power-behaviour
-    Scenario Outline: Voltage affecting assets' states
-
         # initialize model & engine
         # (1)-[powers]->(2)-[powers]->(3)
         Given Outlet asset with key "1" is created
@@ -17,8 +15,10 @@ Feature: System handles voltage updates
         And asset "1" powers target "2"
         And asset "2" powers target "3"
         And Engine is up and running
-        And wallpower voltage "120" is set to "<ini-volt>"
 
+    Scenario Outline: Voltage affecting assets' states
+
+        Given wallpower voltage "120" is set to "<ini-volt>"
         # create a certain power condition
         When wallpower voltage "<ini-volt>" is updated to "<new-volt>"
 
@@ -39,19 +39,9 @@ Feature: System handles voltage updates
             | 0        | 110      | online  | online  | online  |
             | 0        | 100      | online  | online  | offline |
 
-    @power-behaviour
     Scenario Outline: Input/Output voltage for assets
 
-        # initialize model & engine
-        # (1)-[powers]->(2)-[powers]->(3)
-        Given Outlet asset with key "1" is created
-        And Outlet asset with key "2" is created
-        And Lamp asset with key "3", minimum "109" Voltage and "120" Wattage is created
-        And asset "1" powers target "2"
-        And asset "2" powers target "3"
-        And Engine is up and running
-        And wallpower voltage "120" is set to "<ini-volt>"
-
+        Given wallpower voltage "120" is set to "<ini-volt>"
         # create a certain power condition
         When wallpower voltage "<ini-volt>" is updated to "<new-volt>"
 

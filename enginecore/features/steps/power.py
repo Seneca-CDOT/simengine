@@ -11,37 +11,61 @@ from circuits import Component, handler
 from behave import given, when, then, step
 from hamcrest import *
 
+from enginecore.state.state_initializer import configure_env
 from enginecore.state.net.ws_requests import ServerToClientRequests
 from enginecore.state.new_engine import Engine
 
 
 class TestCompletionTracker(Component):
+    """Track completion of power iterations happening in the engine"""
 
     volt_done_queue = None
+    load_done_queue = None
+
+    def __init__(self, timeout):
+
+        super().__init__()
+        self._timeout = None if timeout < 0 else timeout
+
+        # initialize event queue
+        if not self.volt_done_queue:
+            self.volt_done_queue = Queue()
+        if not self.load_done_queue:
+            self.load_done_queue = Queue()
 
     @handler("AllVoltageBranchesDone")
     def on_volt_branch_done(self, event, *args, **kwargs):
         self.volt_done_queue.put(event)
 
+    @handler("AllLoadBranchesDone")
+    def on_load_branch_done(self, event, *args, **kwargs):
+        """Wait for engine to complete a power iteration"""
+        self.load_done_queue.put(event)
 
+    def wait_load_queue(self):
+        return self.load_done_queue.get(timeout=self._timeout)
+
+
+@then("Engine is up and running")
 @given("Engine is up and running")
 def step_impl(context):
 
-    os.environ["SIMENGINE_WORKPLACE_TEMP"] = "simengine-test"
+    os.environ["SIMENGINE_WORKPLACE_TEMP"] = context.config.userdata["tmp_simengine"]
 
     # Start up simengine (in a thread)
+    configure_env(relative=True)
     context.engine = Engine()
     context.engine.start()
 
-    context.tracker = TestCompletionTracker()
-    context.tracker.volt_done_queue = Queue()
+    context.tracker = TestCompletionTracker(
+        int(context.config.userdata["engine_timeout"])
+    )
 
     context.engine.subscribe_tracker(context.tracker)
 
     context.engine.handle_voltage_update(old_voltage=0, new_voltage=120)
 
-    event = context.tracker.volt_done_queue.get()
-    logging.info(event)
+    logging.info(context.tracker.wait_load_queue())
 
 
 @given('wallpower voltage "{old_volt:d}" is set to "{new_volt:d}"')
@@ -51,8 +75,7 @@ def step_impl(context, old_volt, new_volt):
 
     # wait for completion of event loop
     if new_volt != old_volt:
-        event = context.tracker.volt_done_queue.get()
-        logging.info(event)
+        logging.info(context.tracker.wait_load_queue())
 
 
 @given('asset "{key:d}" is "{state}"')
@@ -67,8 +90,7 @@ def step_impl(context, key, state):
     context.engine.handle_state_update(key, old_state, new_state)
 
     if old_state != new_state:
-        event = context.tracker.volt_done_queue.get()
-        logging.info(event)
+        logging.info(context.tracker.wait_load_queue())
 
 
 @then('asset "{key:d}" load is set to "{load:f}"')
@@ -84,9 +106,9 @@ def step_impl(context, key, state):
 
 @then('asset "{key:d}" input voltage is "{volt:d}"')
 def step_impl(context, key, volt):
-    assert_that(context.hardware[key].input_voltage, close_to(volt, 0.0001))
+    assert_that(context.hardware[key].input_voltage, equal_to(volt))
 
 
 @then('asset "{key:d}" output voltage is "{volt:d}"')
 def step_impl(context, key, volt):
-    assert_that(context.hardware[key].output_voltage, close_to(volt, 0.0001))
+    assert_that(context.hardware[key].output_voltage, equal_to(volt))

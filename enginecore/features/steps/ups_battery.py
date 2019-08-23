@@ -1,106 +1,82 @@
 """Steps for testing UPS battery transfer logic and UPS snmp interface reporting correct
 OID key/value pairs
 """
+import logging
 import time
+
+from hamcrest import *
 
 # pylint: disable=no-name-in-module,function-redefined,missing-docstring,unused-import
 from behave import given, when, then, step
-
-# plyint: enable=no-name-in-module
-
-from enginecore.state.api.state import IStateManager
-from enginecore.model.system_modeler import create_ups, drop_model
-from enginecore.state.hardware.ups_asset import UPS
-from enginecore.state.hardware.asset_events import VoltageDecreased, VoltageIncreased
-from enginecore.state.event_map import PowerEventMap
-import enginecore.state.state_initializer as state_ini
-
-from test_helpers import FakeEngine, query_snmp_interface
+from test_helpers import query_snmp_interface
 
 
-@given('UPS asset with key "{key:d}" is created')
-def step_impl(context, key):
+def _check_volt_threshold(context, key, threshold, old_volt, volt_change):
 
-    create_ups(
-        key,
-        {
-            "work_dir": "/tmp/simengine-test",
-            "power_source": 120,
-            "power_consumption": 24,
-            "host": "localhost",
-            "port": 1024,
-        },
-    )
+    # query snmp to grab oid and threshold oid value
+    th_oid = context.hardware[key].get_oid_by_name(threshold).oid
+    th_value = query_snmp_interface(th_oid)
 
-    state_ini.configure_env(relative=True)
-    state_ini.initialize(force_snmp_init=True)
+    new_volt = int(th_value) + volt_change
+    context.engine.handle_voltage_update(old_voltage=old_volt, new_voltage=new_volt)
 
-    context.ups = UPS(IStateManager.get_state_manager_by_key(key).asset_info)
-    context.ups.start()
-    context.engine = FakeEngine(context.ups)
-
-    assert context.ups.state.status == 1
-    assert context.ups.state.agent[1]
+    # wait for completion of event loop
+    if new_volt != old_volt:
+        event = context.tracker.load_done_queue.get()
+        logging.info(event)
 
 
-@when('voltage "{volt:d}" drops below "{low_threshold}" threshold by "{volt_change:d}"')
-def step_impl(context, low_threshold, volt, volt_change):
-    low_th_oid = context.ups.state.get_oid_by_name(low_threshold).oid
-    low_th_value = query_snmp_interface(low_th_oid)
-
-    assert low_th_value > 0
-
-    voltage_event = VoltageDecreased(
-        old_value=volt, new_value=int(low_th_value) - volt_change, source_key=0
-    )
-    context.engine.queue_event(voltage_event)
-    context.engine.run()
+@when(
+    'voltage "{old_volt:d}" drops below "{low_th}" threshold by "{volt_change:d}" for UPS "{key:d}"'
+)
+def step_impl(context, old_volt, low_th, volt_change, key):
+    _check_volt_threshold(context, key, low_th, old_volt, -volt_change)
 
 
-@when('voltage is set to "{volt:d}"')
-def step_impl(context, volt):
-
-    voltage_event = PowerEventMap.map_voltage_event(
-        old_value=context.ups.state.input_voltage, new_value=volt, source_key=0
-    )
-    context.engine.queue_event(voltage_event)
-    context.engine.run()
+@when(
+    'voltage "{old_volt:d}" spikes above "{high_th}" threshold by "{volt_change:d}" for UPS "{key:d}"'
+)
+def step_impl(context, old_volt, high_th, volt_change, key):
+    _check_volt_threshold(context, key, high_th, old_volt, volt_change)
 
 
-@when('voltage "{volt}" spikes above "{high_threshold}" threshold by "{volt_change:d}"')
-def step_impl(context, high_threshold, volt, volt_change):
-    high_oid = context.ups.state.get_oid_by_name(high_threshold).oid
-    high_value = query_snmp_interface(high_oid)
-
-    assert high_value > 0
-
-    context.voltage_event = VoltageIncreased(
-        old_value=volt, new_value=int(high_value) + volt_change, source_key=0
-    )
-    context.engine.queue_event(context.voltage_event)
-    context.engine.run()
+@then('UPS "{key:d}" is "{expected_state}" battery')
+def step_impl(context, key, expected_state):
+    on_battery = context.hardware[key].on_battery
+    assert_that(on_battery if expected_state == "on" else not on_battery)
 
 
-@then("UPS is on battery")
-def step_impl(context):
-    assert context.ups.state.on_battery
-
-
-@then("UPS is not on battery")
-def step_impl(context):
-    assert not context.ups.state.on_battery
-
-
-@then('UPS transfer reason is set to "{t_reason}"')
-def step_impl(context, t_reason):
+@then('UPS "{key:d}" transfer reason is set to "{t_reason}"')
+def step_impl(context, key, t_reason):
     # Test both snmp interface and ups instance
-    transfer_reason_oid = context.ups.state.get_oid_by_name("InputLineFailCause").oid
+    transfer_reason_oid = (
+        context.hardware[key].get_oid_by_name("InputLineFailCause").oid
+    )
     varbind_value = query_snmp_interface(transfer_reason_oid)
-    assert context.ups.state.transfer_reason.name == t_reason
-    assert context.ups.state.InputLineFailCause(varbind_value).name == t_reason
+
+    assert_that(context.hardware[key].transfer_reason.name, equal_to(t_reason))
+    assert_that(
+        context.hardware[key].InputLineFailCause(varbind_value).name, equal_to(t_reason)
+    )
 
 
-@then('after "{seconds:d}" seconds, the transfer reason is set to "{t_reason}"')
-def step_impl(context, seconds, t_reason):
+@then('after "{seconds:d}" seconds, transfer reason for UPS "{key:d}" is "{t_reason}"')
+def step_impl(context, seconds, key, t_reason):
+
     time.sleep(seconds + 1)
-    assert context.ups.state.transfer_reason.name == t_reason
+    context.execute_steps(
+        'then UPS "{key:d}" transfer reason is set to "{t_reason}"'.format(
+            key=key, t_reason=t_reason
+        )
+    )
+
+
+@then('UPS "{key:d}" time remaining for battery is "{minutes:d}" minutes')
+def step_impl(context, key, minutes):
+    transfer_reason_oid = (
+        context.hardware[key].get_oid_by_name("BatteryRunTimeRemaining").oid
+    )
+
+    convert_to_minutes = lambda ticks: ticks / 6000
+    varbind_value = query_snmp_interface(transfer_reason_oid)
+    assert_that(minutes, close_to(convert_to_minutes(varbind_value), 0.001))

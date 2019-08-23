@@ -34,13 +34,49 @@ class VoltageBranch(PowerBranch):
 class LoadBranch(PowerBranch):
     """Voltage Branch represents a graph path of chained load events
     propagated upstream:
-                      [:AssetLoadEvent]┐              [:AssetLoadEvent]┐
-                        |              |                |              |
-    (Asset#1)<-[:InputVoltageEvent]-(Asset#2)<-[:InputVoltageEvent]-(Asset#3)
+                      [:AssetLoadEvent]┐           [:AssetLoadEvent]┐
+                        |              |             |              |
+    (Asset#1)<-[:ChildLoadEvent]-(Asset#2)<-[:ChildLoadEvent]-(Asset#3)
 
     It stops when there are no parent assets or it runs into a UPS with
     absent input power
     """
+
+
+class BranchTracker:
+    """Utility to keep track of power branches in progress/completed"""
+
+    def __init__(self):
+        self._branches_active = []
+        self._branches_done = []
+
+    @property
+    def num_branches_active(self):
+        """Number of branches/streams still in progress"""
+        return len(self._branches_active)
+
+    @property
+    def num_branches_done(self):
+        """Number of branches/streams still in progress"""
+        return len(self._branches_done)
+
+    @property
+    def completed(self):
+        """True if all the branches are completed"""
+        return self.num_branches_active == 0
+
+    def complete_branch(self, branch: PowerBranch):
+        """Remove branch from a list of completed branches"""
+        self._branches_active.remove(branch)
+        self._branches_done.append(branch)
+
+    def add_branch(self, branch: PowerBranch):
+        """Add branch to the collection of tracked branches"""
+        self._branches_active.append(branch)
+
+    def extend(self, branches: list):
+        """Add many branches to the collection of tracked branches"""
+        self._branches_active.extend(branches)
 
 
 class PowerIteration:
@@ -56,14 +92,12 @@ class PowerIteration:
     data_source = None
 
     def __init__(self, src_event):
-        """Source """
-        self._volt_branches_active = []
-        self._volt_branches_done = []
 
-        self._load_branches_active = []
-        self._load_branches_done = []
+        self._volt_branches = BranchTracker()
+        self._load_branches = BranchTracker()
 
         self._last_processed_volt_event = None
+        self._last_processed_load_event = None
 
         self._src_event = src_event
         self._src_event.power_iter = self
@@ -73,43 +107,31 @@ class PowerIteration:
             "Power Iteration due to incoming event:\n"
             " | {0._src_event}\n"
             "Loop Details:\n"
-            " | Number Voltage Branches in-progress: {0.num_volt_branches_active}\n"
-            " | Number Voltage Branches completed: {0.num_volt_branches_done}\n"
-            " | Number Load Branches in-progress: {0.num_load_branches_active}\n"
-            " | Number Load Branches completed: {0.num_load_branches_done}\n"
+            " | Voltage Branches in-progress: {0._volt_branches.num_branches_active}\n"
+            " | Voltage Branches completed: {0._volt_branches.num_branches_done}\n"
+            " | Load Branches in-progress: {0._load_branches.num_branches_active}\n"
+            " | Load Branches completed: {0._load_branches.num_branches_done}\n"
             " | Last Processed Power Event: \n"
             " | {0._last_processed_volt_event}\n"
+            " | Last Processed Load Event: \n"
+            " | {0._last_processed_load_event}\n"
         ).format(self)
 
     @property
-    def num_volt_branches_active(self):
-        """Number of voltage branches/streams still in progress"""
-        return len(self._volt_branches_active)
+    def all_voltage_branches_done(self):
+        """Returns true if power iteration has no voltage streams in progress"""
+        return self._volt_branches.completed
 
     @property
-    def num_volt_branches_done(self):
-        """Number of voltage branches/streams still in progress"""
-        return len(self._volt_branches_done)
+    def all_load_branches_done(self):
+        """Returns true if power iteration has no load streams in progress"""
+        return self._load_branches.completed
 
     @property
-    def num_load_branches_active(self):
-        """Number of load branches/streams still in progress"""
-        return len(self._load_branches_active)
-
-    @property
-    def num_load_branches_done(self):
-        """Number of load branches/streams still in progress"""
-        return len(self._load_branches_done)
-
-    def complete_volt_branch(self, branch: VoltageBranch):
-        """Remove branch from a list of completed branches"""
-        self._volt_branches_active.remove(branch)
-        self._volt_branches_done.append(branch)
-
-    def complete_load_branch(self, branch: LoadBranch):
-        """Remove branch from a list of completed branches"""
-        self._load_branches_active.remove(branch)
-        self._load_branches_done.append(branch)
+    def power_iteration_done(self):
+        """Power iteration is completed when both downstream and upstream
+        power event propagation is exhausted"""
+        return self.all_load_branches_done and self.all_voltage_branches_done
 
     def launch(self):
         """Start up power iteration by returning events
@@ -126,7 +148,6 @@ class PowerIteration:
             event(AssetPowerEvent):
         """
 
-        logging.info(" \n\nProcessing event branch %s", event.branch)
         self._last_processed_volt_event = event
 
         # asset caused by power loop (individual asset power update)
@@ -136,6 +157,36 @@ class PowerIteration:
         # wallpower voltage caused power loop
         return self._process_wallpower_event(event)
 
+    def process_load_event(self, event):
+        """Takes asset load event and generates upstream load events
+        that will be dispatched against the parent(s);
+        Args:
+            event(AssetLoadEvent):
+        """
+        self._last_processed_load_event = event
+        parent_keys = self.data_source.get_parent_assets(event.asset.key)
+        load_events = None
+
+        if not event.branch:
+            self._load_branches.add_branch(LoadBranch(event, self))
+
+        load_events = [event.get_next_load_event()]
+
+        # forked branch -> replace it with 'n' child parent load branches
+        if len(parent_keys) > 1:
+            new_branches = [
+                LoadBranch(event.get_next_load_event(), self) for _ in parent_keys
+            ]
+
+            self._load_branches.extend(new_branches)
+            load_events = [b.src_event for b in new_branches]
+
+        if not parent_keys or not load_events:
+            self._load_branches.complete_branch(event.branch)
+            return None
+
+        return zip(parent_keys, load_events)
+
     def _process_wallpower_event(self, event):
         """Wall-power voltage was updated, retrieve chain events associated
         with mains-powered outlets
@@ -144,45 +195,77 @@ class PowerIteration:
         """
         wp_outlets = self.data_source.get_mains_powered_assets()
 
-        new_branches = [VoltageBranch(event, self) for _ in wp_outlets]
-        self._volt_branches_active.extend(new_branches)
+        new_branches = [
+            VoltageBranch(event.get_next_voltage_event(), self) for _ in wp_outlets
+        ]
+        self._volt_branches.extend(new_branches)
 
-        return (
-            [
-                (k, b.src_event.get_next_voltage_event())
-                for k, b in zip(wp_outlets, new_branches)
-            ],
-            None,
-        )
+        return ([(k, b.src_event) for k, b in zip(wp_outlets, new_branches)], None)
 
     def _process_hardware_asset_event(self, event):
         """One of the hardware assets went online/online
         Args:
-            event(AssetPowerEvent):
+            event(AssetPowerEvent): contains asset event results caused 
+                                    by input power event (e.g. output voltage
+                                    change due to input voltage drop etc.) or
+                                    asset getting powered down by the user
         """
 
-        from pprint import pprint as pp
-
-        pp(event)
-        pp(event.kwargs["asset"])
+        # find neighbouring nodes (parents & children)
         child_keys, parent_keys = self.data_source.get_affected_assets(event.asset.key)
 
+        # no branch assigned to the event yet
+        # (e.g. asset was powered down by a user)
         if not event.branch:
-            self._volt_branches_active.append(VoltageBranch(event, self))
+            self._volt_branches.add_branch(VoltageBranch(event, self))
+            event.calc_load_from_volt()
 
-        events = [event.get_next_voltage_event()]
+        # voltage events will be displatched downstream to children of the updated node
+        # load events (if any) will be displatched to parents of the updated node
+        next_volt_events = [event.get_next_voltage_event()]
+        next_load_events = None
 
+        # when load needs to be forked in multiple direction,
+        # asset needs to set streamed_load_updates on the asset_event
+        if event.streamed_load_updates:
+            new_branches, parent_keys = [], []
+            for pkey in event.streamed_load_updates:
+                load_e = event.streamed_load_event(pkey)
+                if load_e:
+                    parent_keys.append(pkey)
+                    new_branches.append(
+                        LoadBranch(event.streamed_load_event(pkey), self)
+                    )
+            self._load_branches.extend(new_branches)
+            next_load_events = [b.src_event for b in new_branches]
+        # Process load for single parent
+        elif parent_keys and event.get_next_load_event():
+            new_branches = [
+                LoadBranch(event.get_next_load_event(), self) for _ in parent_keys
+            ]
+            self._load_branches.extend(new_branches)
+            next_load_events = [b.src_event for b in new_branches]
+
+        # delete voltage branch (power stream) when it forks, when
+        # it reaches leaf asset/node or when voltage hasn't changed
+        if (
+            (len(child_keys) > 1 and event.branch)
+            or not child_keys
+            or event.out_volt.unchanged()
+        ):
+            self._volt_branches.complete_branch(event.branch)
+
+        if event.out_volt.unchanged():
+            child_keys = []
         # forked branch -> replace it with 'n' child voltage branches
-        if len(child_keys) > 1:
+        elif len(child_keys) > 1:
             new_branches = [
                 VoltageBranch(event.get_next_voltage_event(), self) for _ in child_keys
             ]
-            self._volt_branches_active.extend(new_branches)
-            events = [b.src_event for b in new_branches]
+            self._volt_branches.extend(new_branches)
+            next_volt_events = [b.src_event for b in new_branches]
 
-        # delete voltage branch (power stream) when it forks
-        # or when it reaches leaf asset/node
-        if (len(child_keys) > 1 and event.branch) or not child_keys:
-            self.complete_volt_branch(event.branch)
-
-        return (zip(child_keys, events), None)
+        return (
+            zip(child_keys, next_volt_events),
+            zip(parent_keys, next_load_events) if next_load_events else None,
+        )

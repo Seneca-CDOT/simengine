@@ -112,7 +112,7 @@ class IUPSStateManager(ISnmpDeviceStateManager):
 
     @property
     def wattage(self):
-        return (self.load + self.idle_ups_amp) * self._asset_info["powerSource"]
+        return self.load * self._asset_info["powerSource"]
 
     @property
     def idle_ups_amp(self):
@@ -164,9 +164,18 @@ class IUPSStateManager(ISnmpDeviceStateManager):
         return t_period
 
     @Randomizer.randomize_method()
+    def power_off(self):
+        powered = super().power_off()
+        if not powered:
+            self._update_load(self.load - self.power_usage)
+
+    @Randomizer.randomize_method()
     def shut_down(self):
         time.sleep(self.get_config_off_delay())
         powered = super().shut_down()
+        if not powered:
+            self._update_load(self.load - self.power_usage)
+
         return powered
 
     @Randomizer.randomize_method()
@@ -182,6 +191,7 @@ class IUPSStateManager(ISnmpDeviceStateManager):
         powered = self.status
         if powered:
             self._reset_power_off_oid()
+            self._update_load(self.power_usage)
 
         return powered
 

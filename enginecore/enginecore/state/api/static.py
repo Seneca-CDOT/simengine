@@ -6,13 +6,6 @@ from enginecore.tools.randomizer import Randomizer
 class IStaticDeviceManager(IStateManager):
     """Exposes state logic for static(dummy) asset """
 
-    @property
-    def power_usage(self):
-        if self.input_voltage:
-            return self._asset_info["powerConsumption"] / self.input_voltage
-
-        return 0
-
     @Randomizer.randomize_method()
     def shut_down(self):
         powered = super().shut_down()
