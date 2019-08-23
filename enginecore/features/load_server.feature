@@ -285,7 +285,6 @@ Feature: Server Load Handling
     Scenario Outline: Load is distributed with ServerBMC with PSUs drawing power
         Given Outlet asset with key "2" is created
         And Outlet asset with key "22" is created
-        # And Server asset with key "9", "2" PSU(s) and "480" Wattage is created
 
         And ServerBMC asset with key "9" and "480" Wattage is created
 
