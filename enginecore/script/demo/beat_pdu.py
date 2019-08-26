@@ -3,6 +3,9 @@
 Then it plays the track using ffplay & toggles PDU outlets on beats (which can
 power light bulbs & flash them in sync with music).
 
+Install:
+    python3 -m pip install librosa numpy matplotlib
+
 Usage:
     beat_pdu.py -H 10.42.1.94 localhost:1025 -t ~/Music/Imperial.mp3 
 
