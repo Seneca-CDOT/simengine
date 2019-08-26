@@ -59,13 +59,12 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         Args:
             charge_level(int): new battery level (between 0 & 1000)
         """
-        # make sure new charge level is within acceptable range
-        charge_level = max(charge_level, 0)
-        charge_level = min(charge_level, self._max_battery_level)
-
-        StateManager.get_store().set(self.redis_key + ":battery", int(charge_level))
+        old_charge_level = self.battery_level
+        self._update_battery(charge_level)
         self._update_battery_oids(charge_level, self.battery_level)
-        self._publish_battery()
+
+        # notify state listener that battery has changed
+        self._publish_battery(old_charge_level, charge_level)
 
     def update_load(self, load):
         """Update any load state associated with the device in the redis db 
@@ -228,10 +227,21 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
 
         return True, transfer_reason
 
-    def _publish_battery(self):
-        """Publish battery update"""
+    def _publish_battery(self, old_battery_lvl, new_battery_lvl):
+        """Publish battery update
+        Args:
+            old_battery_lvl(int): range 0-1000 (what battery level used to be)
+            new_battery_lvl(int): range 0-1000 (new battery charge level)
+        """
         StateManager.get_store().publish(
-            RedisChannels.battery_update_channel, json.dumps({"key": self.key})
+            RedisChannels.battery_update_channel,
+            json.dumps(
+                {
+                    "key": self.key,
+                    "old_battery": old_battery_lvl,
+                    "new_battery": new_battery_lvl,
+                }
+            ),
         )
 
 

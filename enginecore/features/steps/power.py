@@ -12,8 +12,7 @@ from behave import given, when, then, step
 from hamcrest import *
 
 from enginecore.state.state_initializer import configure_env
-from enginecore.state.net.ws_requests import ServerToClientRequests
-from enginecore.state.new_engine import Engine
+from enginecore.state.engine.engine import Engine
 from enginecore.state.api.environment import ISystemEnvironment
 
 

@@ -28,7 +28,7 @@ Feature: Server Voltage Handling
             | 1    | offline | offline | offline |
             | 1801 | offline | offline | offline |
 
-
+    @dual-psu-asset
     Scenario Outline: Server powered by 2 PSU's requires at least one power source present
 
         # initialize model & engine

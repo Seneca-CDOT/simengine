@@ -10,7 +10,7 @@ import logging
 from logging import handlers
 
 from enginecore.state.redis_state_listener import StateListener
-from enginecore.state.new_engine import Engine
+from enginecore.state.engine.engine import Engine
 
 
 FORMAT = "[%(threadName)s, %(asctime)s, %(module)s:%(lineno)s] %(message)s"

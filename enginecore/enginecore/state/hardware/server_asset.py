@@ -8,8 +8,8 @@ Both server types have a unique VM (domain) assigned to them
 import os
 import time
 import logging
-import math
 import operator
+import math
 from threading import Thread
 
 from circuits import handler
@@ -23,7 +23,7 @@ import enginecore.state.hardware.internal_state as in_state
 from enginecore.state.agent import IPMIAgent, StorCLIEmulator
 from enginecore.state.sensor.repository import SensorRepository
 from enginecore.state.state_initializer import get_temp_workplace_dir
-from enginecore.state.power_events import EventDataPair
+from enginecore.state.engine.events import EventDataPair
 
 
 @register_asset
@@ -46,17 +46,19 @@ class Server(StaticAsset):
     @handler("InputVoltageUpEvent")
     def on_input_voltage_up(self, event, *args, **kwargs):
         asset_event = event.get_next_power_event(self)
-        min_voltage = self.state.min_voltage_prop()
-
         assert event.source_key in self._psu_sm
+
         e_src_psu = self._psu_sm[event.source_key]
 
         # keep track of load udpates for multi-psu servers
         load_upd = {}
         extra_draw = 0.0
+        load_should_change = True
 
         drawing_extra = (
-            lambda x: asset_event.calculate_load(x, x.input_voltage) < x.load
+            lambda x: asset_event.calculate_load(self.state, x.input_voltage)
+            * x.draw_percentage
+            < x.load
         )
 
         new_asset_load = asset_event.calculate_load(self.state, event.in_volt.new)
@@ -73,23 +75,27 @@ class Server(StaticAsset):
 
             # if alternative power source is currently having extra load
             # that the volt event source asset is supposed to be drawing
-            elif psu_sm.key != event.source_key and drawing_extra(psu_sm):
+            elif (
+                psu_sm.key != event.source_key
+                and math.isclose(event.in_volt.old, 0.0)
+                and drawing_extra(psu_sm)
+            ):
+                # asset load should not change (we are just redistributing same load)
                 load_upd[key].new = (
                     load_upd[key].old - new_asset_load * e_src_psu.draw_percentage
                 )
-                # asset load should not change since we are just redistributing
-                # same load
-                asset_event.state.new = asset_event.state.old
+                load_should_change = False
 
         src_psu_draw = e_src_psu.draw_percentage + extra_draw
         load_upd[e_src_psu.key].old = old_asset_load * src_psu_draw
         load_upd[e_src_psu.key].new = new_asset_load * src_psu_draw
 
-        if asset_event.out_volt.new > min_voltage and not asset_event.state.old:
+        # power up if server is offline
+        if not asset_event.state.old:
             asset_event.state.new = self.state.power_up()
 
         asset_event.streamed_load_updates = load_upd
-        if not asset_event.state.unchanged():
+        if load_should_change:
             asset_event.calc_load_from_volt()
             self._update_load(self.state.load + load_upd[e_src_psu.key].difference)
 
@@ -98,10 +104,14 @@ class Server(StaticAsset):
     @handler("InputVoltageDownEvent")
     def on_input_voltage_down(self, event, *args, **kwargs):
         asset_event = event.get_next_power_event(self)
-        min_voltage = self.state.min_voltage_prop()
-
         assert event.source_key in self._psu_sm
+
+        # store state info of the PSU causing havoc, keep track
+        # of alternative power sources
         e_src_psu = self._psu_sm[event.source_key]
+        e_src_psu_offline = math.isclose(event.in_volt.new, 0.0)
+
+        alt_power_present = False
 
         # keep track of load udpates for multi-psu servers
         load_upd = {}
@@ -121,21 +131,20 @@ class Server(StaticAsset):
         # and leave this server online if present
         for psu_key in self._psu_sm:
             psu_sm = self._psu_sm[psu_key]
-            if (
-                psu_key != e_src_psu.key
-                and psu_sm.status
-                and psu_sm.output_voltage > min_voltage
-            ):
-                asset_event.state.new = asset_event.state.old
-                load_upd[psu_key].new = (
-                    load_upd[psu_key].new - load_upd[e_src_psu.key].difference
-                )
+            if psu_key != e_src_psu.key and psu_sm.status:
+                alt_power_present = True
+                if e_src_psu_offline:
+                    load_upd[psu_key].new = (
+                        load_upd[psu_key].new - load_upd[e_src_psu.key].difference
+                    )
 
-        # state needs to change
-        if not asset_event.state.unchanged():
+        # state needs to change when all power sources are offline
+        if not alt_power_present:
             asset_event.state.new = self.state.power_off()
 
-            # TODO: set load even when state is unchanged
+        # update server load if all PSUs are off or
+        # if in voltage simply dropped (but not to zero)
+        if not alt_power_present or not e_src_psu_offline:
             asset_event.calc_load_from_volt()
             self._update_load(self.state.load + load_upd[e_src_psu.key].difference)
 

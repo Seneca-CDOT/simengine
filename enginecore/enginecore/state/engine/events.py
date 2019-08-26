@@ -55,7 +55,7 @@ class EventDataPair:
 
     def unchanged(self):
         """Returns true if event did not affect state"""
-        return self.old == self.new
+        return self.old == self.new or self.new is None
 
 
 class EngineEvent(Event):
@@ -86,6 +86,45 @@ class EngineEvent(Event):
     @branch.setter
     def branch(self, value):
         self._branch = value
+
+
+class BatteryEvent(EngineEvent):
+    """Event occuring due to UPS battery update"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        required_args = ["old_battery", "new_battery", "asset"]
+
+        if not all(r_arg in kwargs for r_arg in required_args):
+            raise KeyError("Needs arguments: " + ",".join(required_args))
+
+        self._battery = EventDataPair(kwargs["old_battery"], kwargs["new_battery"])
+        self._asset = kwargs["asset"]
+
+    @property
+    def battery(self):
+        """Battery level change associated with this event"""
+        return self._battery
+
+    @property
+    def asset(self):
+        """UPS asset battery belongs to"""
+        return self._asset
+
+
+class MainsPowerEvent(EngineEvent):
+    """Event associated with power outage or power restoration"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "mains" not in kwargs:
+            raise KeyError("Mains state is missing")
+        self._mains = EventDataPair(kwargs["mains"] ^ 1, kwargs["mains"])
+
+    @property
+    def mains(self):
+        """Indicates wallpower state change"""
+        return self._mains
 
 
 class SignalEvent(EngineEvent):
@@ -471,7 +510,7 @@ class LoadEvent(EngineEvent):
 
     @property
     def load(self):
-        """Load changes associated with the event"""
+        """Get load update (old/new values) associated with this event"""
         return self._load
 
     def __str__(self):
