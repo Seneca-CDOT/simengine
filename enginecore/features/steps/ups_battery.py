@@ -8,7 +8,7 @@ from hamcrest import *
 
 # pylint: disable=no-name-in-module,function-redefined,missing-docstring,unused-import
 from behave import given, when, then, step
-from test_helpers import query_snmp_interface
+from snmp import query_snmp_interface
 
 
 def _check_volt_threshold(context, key, threshold, old_volt, volt_change):

@@ -55,11 +55,6 @@ class PowerEventMap:
         return events.ChildAssetLoadDecreased(child_load=new_load, child_key=child_key)
 
     @classmethod
-    def map_mains_event(cls, value):
-        """Map parent redis updates to events"""
-        return {0: events.PowerOutage(), 1: events.PowerRestored()}[value]
-
-    @classmethod
     def map_ambient_event(cls, old_value, new_value):
         """Ambient changes"""
         return (

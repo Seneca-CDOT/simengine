@@ -1,20 +1,15 @@
 @pdu-asset
 @sequential
 @power-behaviour
-Feature: Power Chaining for Hardware Assets with Multiple Children
+Feature: Power Chaining for PDU (with Multiple Children)
     Testing a multi-children power scenarios where one device can power more than one device.
     Powering down a particular asset can cause a chain reaction of power events
     spread over to its children
 
     Background:
         Given the system model is empty
-
-    Scenario Outline: Multiple children power chain
-
-        # == initialize model & engine ==
-        # (1)-[powers]->(2)-[powers]->(3, 4, 5)
-        Given Outlet asset with key "1" is created
-        And PDU asset with key "7",  minimum "105" Voltage and "1025" port is created
+        And Outlet asset with key "1" is created
+        And PDU asset with key "7",  minimum "105" Voltage and "1024" port is created
 
         And Lamp asset with key "3", minimum "109" Voltage and "120" Wattage is created
         And Lamp asset with key "4", minimum "109" Voltage and "120" Wattage is created
@@ -27,7 +22,13 @@ Feature: Power Chaining for Hardware Assets with Multiple Children
         And asset "75" powers target "5"
 
         And Engine is up and running
-        And asset "<asset-key>" is "<asset-ini-state>"
+
+    Scenario Outline: Multiple children power chain
+
+        # == initialize model & engine ==
+        # (1)-[powers]->(2)-[powers]->(3, 4, 5)
+
+        Given asset "<asset-key>" is "<asset-ini-state>"
 
         # create a certain power condition
         When asset "<asset-key>" goes "<asset-new-state>"
@@ -60,3 +61,48 @@ Feature: Power Chaining for Hardware Assets with Multiple Children
             | 73        | offline         | online          | online | online | online | online | online | online | online | online |
             | 75        | offline         | online          | online | online | online | online | online | online | online | online |
 
+    @snmp-behaviour
+    Scenario Outline: PDU Outlet SNMP control
+
+        # Testing with APC PDU which has:
+        # 1 -> for online
+        # 2 -> for offline
+        When asset "7" oid "1.3.6.1.4.1.318.1.1.12.3.3.1.1.4.<out-num>" is set to "<oid-ini-value>"
+        And asset "7" oid "1.3.6.1.4.1.318.1.1.12.3.3.1.1.4.<out-num>" is set to "<oid-new-value>"
+
+        Then asset "73" is "<73>"
+        Then asset "74" is "<74>"
+
+        # everythin powered by the PDU
+        Then asset "3" is "<3>"
+        Then asset "4" is "<4>"
+
+
+        Examples: Downstream power-off chaining
+            | out-num | oid-ini-value | oid-new-value | 73      | 74     | 3       | 4      |
+            | 1       | 1             | 2             | online  | online | online  | online |
+            | 3       | 1             | 2             | offline | online | offline | online |
+            | 4       | 2             | 1             | online  | online | online  | online |
+            | 4       | 1             | 1             | online  | online | online  | online |
+
+    @snmp-behaviour
+    Scenario Outline: Outlet with off SNMP state cannot be changed
+
+        # create snmp conditions
+        When asset "7" oid "1.3.6.1.4.1.318.1.1.12.3.3.1.1.4.3" is set to "<oid-ini-value>"
+        And asset "7" oid "1.3.6.1.4.1.318.1.1.12.3.3.1.1.4.3" is set to "<oid-new-value>"
+
+        # try toggling the outlet
+        And asset "73" goes "<73-ini-state>"
+        And asset "73" goes "<73-new-state>"
+
+        Then asset "73" is "<73>"
+
+        # everythin powered by the PDU
+        Then asset "3" is "<3>"
+
+
+        Examples: Downstream power-off chaining
+            | oid-ini-value | oid-new-value | 73-ini-state | 73-new-state | 73      | 3       |
+            | 1             | 2             | online       | online       | offline | offline |
+            | 2             | 1             | online       | offline      | offline | offline |

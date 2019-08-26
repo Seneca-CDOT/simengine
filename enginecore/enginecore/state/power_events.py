@@ -58,7 +58,7 @@ class EventDataPair:
         return self.old == self.new
 
 
-class PowerEvent(Event):
+class EngineEvent(Event):
     """Power event within an engine that is associated with 
     a power iteration (see PowerIteration)
     and power branch (Either VoltageBranch or LoadBranch)
@@ -88,7 +88,173 @@ class PowerEvent(Event):
         self._branch = value
 
 
-class AssetPowerEvent(PowerEvent):
+class SignalEvent(EngineEvent):
+    """Asset was signaled to update its power state through network interface"""
+
+    success = True
+
+
+class SignalDownEvent(SignalEvent):
+    """Asset was signaled to shut down through network"""
+
+    def get_next_power_event(self, target_asset):
+        """Get next power event (hardware asset event) that
+        was caused by a signal"""
+
+        asset_event = AssetPowerEvent(
+            asset=target_asset,
+            old_out_volt=target_asset.state.output_voltage,
+            new_out_volt=0,
+            power_iter=self.power_iter,
+            branch=self.branch,
+        )
+
+        asset_event.state.old = target_asset.state.status
+        asset_event.state.new = 0
+
+        return asset_event
+
+
+class SignalUpEvent(SignalEvent):
+    """Asset was signaled to power up through network"""
+
+    def get_next_power_event(self, target_asset):
+        """Get next power event (hardware asset event) that
+        was caused by a signal"""
+
+        asset_event = AssetPowerEvent(
+            asset=target_asset,
+            old_out_volt=target_asset.state.output_voltage,
+            new_out_volt=target_asset.state.input_voltage,
+            power_iter=self.power_iter,
+            branch=self.branch,
+        )
+
+        asset_event.state.old = target_asset.state.status
+        asset_event.state.new = 1
+
+        return asset_event
+
+
+class SignalRebootEvent(SignalEvent):
+    """Asset was signaled to reboot through network"""
+
+    def get_next_power_event(self, target_asset):
+        """Get next power event (hardware asset event) that
+        was caused by a signal"""
+
+        asset_event = AssetPowerEvent(
+            asset=target_asset,
+            old_out_volt=target_asset.state.output_voltage,
+            new_out_volt=target_asset.state.output_voltage,
+            power_iter=self.power_iter,
+            branch=self.branch,
+        )
+
+        asset_event.state.old = target_asset.state.status
+        asset_event.state.new = target_asset.state.status
+
+        return asset_event
+
+
+class AmbientEvent(EngineEvent):
+    """Ambient has changed (room temerature within the server enclosure)"""
+
+    success = True
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        required_args = ["old_temp", "new_temp"]
+
+        if not all(r_arg in kwargs for r_arg in required_args):
+            raise KeyError("Needs arguments: " + ",".join(required_args))
+
+        self._temp = EventDataPair(kwargs["old_temp"], kwargs["new_temp"])
+
+    @property
+    def temperature(self):
+        """Retrieve temperature change"""
+        return self._temp
+
+    def get_next_thermal_event(self):
+        """Get next event to be dispatched against server hardware"""
+
+        ambient_event = (
+            AmbientUpEvent if self.temperature.difference > 0 else AmbientDownEvent
+        )
+        return ambient_event(
+            power_iter=self.power_iter,
+            branch=self._branch,
+            old_temp=self.temperature.old,
+            new_temp=self.temperature.new,
+        )
+
+
+class AmbientUpEvent(AmbientEvent):
+    """Ambient went up"""
+
+    success = True
+
+
+class AmbientDownEvent(AmbientEvent):
+    """Ambient went down"""
+
+    success = True
+
+
+class SNMPEvent(EngineEvent):
+    """SNMP event is triggered when a value under certain SNMP oid gets changed"""
+
+    STATE_SPECS = {
+        "OutletState": {
+            "switchOff": SignalDownEvent,
+            "switchOn": SignalUpEvent,
+            "immediateReboot": SignalRebootEvent,
+            "delayedOff": functools.partial(SignalDownEvent, delayed=True),
+            "delayedOn": functools.partial(SignalUpEvent, delayed=True),
+        },
+        "PowerOff": {
+            "switchOff": SignalDownEvent,
+            "switchOffGraceful": functools.partial(SignalDownEvent, graceful=True),
+        },
+    }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        required_args = ["asset", "oid", "oid_value_name", "oid_name"]
+
+        if not all(r_arg in kwargs for r_arg in required_args):
+            raise KeyError("Needs arguments: " + ",".join(required_args))
+
+        self._asset = kwargs["asset"]
+        self._oid = kwargs["oid"]
+        self._oid_value_name = kwargs["oid_value_name"]
+        self._oid_name = kwargs["oid_name"]
+
+    @property
+    def asset(self):
+        """Asset associated with snmp object id (e.g. outlet controlled by oid)"""
+        return self._asset
+
+    @property
+    def oid_value_name(self):
+        """Abstract name of oid value given internally by the engine 
+        (to ensure cross-vendor support)"""
+        return self._oid_value_name
+
+    @property
+    def oid_name(self):
+        """Abstract name of oid given internally by the engine"""
+        return self._oid_name
+
+    def get_next_signal_event(self):
+        """Map OID & their values to events"""
+        return SNMPEvent.STATE_SPECS[self.oid_name][self.oid_value_name](
+            power_iter=self.power_iter, branch=self.branch
+        )
+
+
+class AssetPowerEvent(EngineEvent):
     """Asset power event aggregates 2 event types:
     Voltage & Load
     """
@@ -228,7 +394,7 @@ class AssetPowerEvent(PowerEvent):
         )
 
 
-class InputVoltageEvent(PowerEvent):
+class InputVoltageEvent(EngineEvent):
     """Input Voltage drop/spike event dispatched against
     a particular hardware device
     """
@@ -267,7 +433,7 @@ class InputVoltageEvent(PowerEvent):
         else:
             old_out_volt = self._in_volt.old
 
-        volt_event = AssetPowerEvent(
+        asset_event = AssetPowerEvent(
             asset=target_asset,
             old_out_volt=old_out_volt,
             new_out_volt=self._in_volt.new,
@@ -275,9 +441,9 @@ class InputVoltageEvent(PowerEvent):
             branch=self.branch,
         )
 
-        volt_event.state.old = target_asset.state.status
+        asset_event.state.old = target_asset.state.status
 
-        return volt_event
+        return asset_event
 
 
 class InputVoltageUpEvent(InputVoltageEvent):
@@ -290,7 +456,7 @@ class InputVoltageDownEvent(InputVoltageEvent):
     (when input voltage to the asset drops)"""
 
 
-class LoadEvent(PowerEvent):
+class LoadEvent(EngineEvent):
     """Load event is emitted whenever there is load 
     change somewhere in the system (due to voltage changes or power updates)"""
 

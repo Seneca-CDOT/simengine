@@ -34,20 +34,24 @@ class RedisStateHandler(Component):
     def on_wallpower_state_change(self, data):
         """On blackout/power restorations"""
         # self._notify_client(ServerToClientRequests.mains_upd, {"mains": data["status"]})
-        # self.fire(PowerEventMap.map_mains_event(data["status"]), self._sys_environ)
 
     @handler(RedisChannels.oid_update_channel)
     def on_snmp_device_oid_change(self, data):
         """React to OID getting updated through SNMP interface"""
         value = (self._redis_store.get(data)).decode()
         asset_key, oid = data.split("-")
-        self._engine.handle_oid_update(int(asset_key), oid, value)
+
+        # snmpsimd format has crazy number of whitespaces in object id
+        oid = oid.replace(" ", "")
+        # value is stored as "datatype | oid-value"
+        _, oid_value = value.split("|")
+
+        self._engine.handle_oid_update(int(asset_key), oid, oid_value)
 
     @handler(RedisChannels.model_update_channel)
     def on_model_reload_reqeust(self, _):
         """Detect topology changes to the system architecture"""
-        pass
-        # self._reload_model()
+        self._engine.reload_model()
 
     # -- Battery Updates --
     @handler(RedisChannels.battery_update_channel)

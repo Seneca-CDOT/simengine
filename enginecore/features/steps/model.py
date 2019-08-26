@@ -1,6 +1,6 @@
 # pylint: disable=no-name-in-module,function-redefined,missing-docstring,unused-import
-from behave import given, when, then, step
 import json
+from behave import given, when, then, step
 
 # plyint: enable=no-name-in-module
 

@@ -270,7 +270,7 @@ class UPS(Asset, SNMPSim):
         self._battery_charge_t.daemon = True
         self._battery_charge_t.start()
 
-    @handler("SignalDown")
+    @handler("SignalDownEvent")
     def on_signal_down_received(self, event, *args, **kwargs):
         """UPS can be powered down by snmp command"""
         self.state.update_ups_output_status(in_state.UPSStateManager.OutputStatus.off)
@@ -293,7 +293,7 @@ class UPS(Asset, SNMPSim):
         else:
             self._launch_battery_charge(power_up_on_charge=True)
 
-    @handler("AmbientDecreased", "AmbientIncreased")
+    @handler("AmbientUpEvent", "AmbientDownEvent")
     def on_ambient_updated(self, event, *args, **kwargs):
         self._state.update_temperature(7)
 
@@ -438,3 +438,7 @@ class UPS(Asset, SNMPSim):
     def on_power_off_request_received(self, event, *args, **kwargs):
         """Called on voltage drop"""
         raise NotImplementedError
+
+    def stop(self, code=None):
+        self._snmp_agent.stop_agent()
+        super().stop(code)

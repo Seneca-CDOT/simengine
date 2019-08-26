@@ -82,12 +82,6 @@ class SignalReboot(Event):
     success = True
 
 
-class PowerOutage(Event):
-    """On Power Outage"""
-
-    pass
-
-
 class PowerRestored(Event):
     """On power (mains source) restored"""
 
