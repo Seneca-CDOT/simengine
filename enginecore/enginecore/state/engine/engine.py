@@ -11,13 +11,9 @@ from enginecore.state.state_initializer import initialize, clear_temp
 from enginecore.state.engine.iteration import PowerIteration, ThermalIteration
 from enginecore.state.engine.iteration_consumer import EngineIterationConsumer
 from enginecore.state.engine.data_source import HardwareGraphDataSource
-from enginecore.state.engine.events import (
-    AssetPowerEvent,
-    SNMPEvent,
-    AmbientEvent,
-    MainsPowerEvent,
-    BatteryEvent,
-)
+from enginecore.state.engine import events
+
+logger = logging.getLogger(__name__)
 
 
 class AllThermalBranchesDone(Event):
@@ -56,7 +52,7 @@ class Engine(Component):
         super(Engine, self).__init__()
 
         ### Set-up WebSocket & Redis listener ###
-        logging.info("Starting simengine daemon...")
+        logger.info("Starting simengine daemon...")
 
         # assets will store all the devices/items including PDUs, switches etc.
         self._assets = {}
@@ -78,13 +74,13 @@ class Engine(Component):
 
         # Register assets and reset power state
         self.reload_model(force_snmp_init)
-        logging.info("Physical Environment:\n%s", self._sys_environ)
+        logger.info("Physical Environment:\n%s", self._sys_environ)
 
     def reload_model(self, force_snmp_init=True):
         """Re-create system topology (instantiate assets based on graph ref)"""
 
         RECORDER.enabled = False
-        logging.info("Initializing system topology...")
+        logger.info("Initializing system topology...")
 
         self._assets = {}
 
@@ -114,7 +110,7 @@ class Engine(Component):
         return self._assets
 
     def _notify_trackers(self, event):
-        """Dispatch power completion events to clients"""
+        """Dispatch completion events to clients"""
 
         for comp_tracker in self._completion_trackers:
             self.fire(event, comp_tracker)
@@ -135,7 +131,7 @@ class Engine(Component):
         events)
         """
         self._notify_trackers(AllLoadBranchesDone())
-        self._power_iter_handler.mark_iteration_done()
+        self._power_iter_handler.unfreeze_task_queue()
 
     def _chain_power_events(self, volt_events, load_events=None):
         """Chain power events by dispatching input power events
@@ -176,7 +172,7 @@ class Engine(Component):
 
         if self._thermal_iter_handler.current_iteration.iteration_done:
             self._notify_trackers(AllThermalBranchesDone())
-            self._thermal_iter_handler.mark_iteration_done()
+            self._thermal_iter_handler.unfreeze_task_queue()
 
         if not thermal_events:
             return
@@ -190,7 +186,7 @@ class Engine(Component):
             old_temp(float): old room temperature
             new_temp(float): new room temperature
         """
-        amb_event = AmbientEvent(old_temp=old_temp, new_temp=new_temp)
+        amb_event = events.AmbientEvent(old_temp=old_temp, new_temp=new_temp)
         self._notify_trackers(amb_event)
 
         self._thermal_iter_handler.queue_iteration(ThermalIteration(amb_event))
@@ -206,13 +202,13 @@ class Engine(Component):
         if math.isclose(old_voltage, new_voltage):
             return
 
-        volt_event = AssetPowerEvent(
+        volt_event = events.AssetPowerEvent(
             asset=None, old_out_volt=old_voltage, new_out_volt=new_voltage
         )
         self._notify_trackers(volt_event)
         if math.isclose(old_voltage, 0.0) or math.isclose(new_voltage, 0.0):
             self._notify_trackers(
-                MainsPowerEvent(mains=int(math.isclose(old_voltage, 0.0)))
+                events.MainsPowerEvent(mains=int(math.isclose(old_voltage, 0.0)))
             )
 
         self._power_iter_handler.queue_iteration(PowerIteration(volt_event))
@@ -229,9 +225,20 @@ class Engine(Component):
             return
 
         updated_asset = self._assets[asset_key]
-        out_volt = updated_asset.state.input_voltage
+        out_volt = (
+            updated_asset.state.input_voltage
+            if new_state
+            else updated_asset.state.output_voltage
+        )
 
-        volt_event = AssetPowerEvent(
+        # notify updated hardware device of button event
+        btn_event = (
+            events.PowerButtonOnEvent if new_state else events.PowerButtonOffEvent
+        )
+        self.fire(btn_event(old_state=old_state, new_state=new_state), updated_asset)
+
+        # initiate power events down the power stream
+        volt_event = events.AssetPowerEvent(
             asset=updated_asset,
             old_out_volt=old_state * out_volt,
             new_out_volt=new_state * out_volt,
@@ -250,7 +257,7 @@ class Engine(Component):
             value(str): OID value
         """
         if asset_key not in self._assets:
-            logging.warning("Asset [%s] does not exist!", asset_key)
+            logger.warning("Asset [%s] does not exist!", asset_key)
             return
 
         # get asset key associated with the oid & oid details
@@ -259,12 +266,12 @@ class Engine(Component):
         )
 
         if not oid_details:
-            logging.warning(
+            logger.warning(
                 "OID:[%s] for asset:[%s] cannot be processed by engine!", oid, asset_key
             )
             return
 
-        snmp_event = SNMPEvent(
+        snmp_event = events.SNMPEvent(
             asset=self._assets[affected_asset_key],
             oid=oid,
             oid_value_name=oid_details["specs"][value],
@@ -285,7 +292,7 @@ class Engine(Component):
             return
 
         self._notify_trackers(
-            BatteryEvent(
+            events.BatteryEvent(
                 asset=self._assets[key],
                 old_battery=old_battery,
                 new_battery=new_battery,

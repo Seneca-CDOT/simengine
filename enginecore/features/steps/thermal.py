@@ -1,4 +1,4 @@
-# pylint: disable=no-name-in-module,function-redefined,missing-docstring,unused-import
+# pylint: disable=no-name-in-module,function-redefined,missing-docstring,unused-import,unused-wildcard-import, wildcard-import
 
 import time
 
@@ -28,7 +28,7 @@ def step_impl(context, temp):
 
 
 @then('ambient is set to "{temp:d}" after "{delay:d}" seconds')
-def step_impl(context, temp, delay):
+def step_impl(_, temp, delay):
     time.sleep(delay)
     ambient = ISystemEnvironment.get_ambient()
     assert_that(ambient, equal_to(temp))

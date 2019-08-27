@@ -38,6 +38,10 @@ class IStateManager:
         self._asset_key = asset_info["key"]
         self._asset_info = asset_info
 
+    def close_connection(self):
+        """Close bolt driver connections"""
+        self._graph_ref.close()
+
     @property
     def key(self) -> int:
         """Asset Key """
@@ -139,9 +143,10 @@ class IStateManager:
         Returns:
             int: Asset's status after power-off operation
         """
-        self._sleep_shutdown()
         if self.status:
+            self._sleep_shutdown()
             self._set_state_off()
+            return 0
         return self.status
 
     @record
@@ -154,6 +159,7 @@ class IStateManager:
         """
         if self.status:
             self._set_state_off()
+            return 0
         return self.status
 
     @record
@@ -170,6 +176,7 @@ class IStateManager:
             # udpate machine start time & turn on
             self._reset_boot_time()
             self._set_state_on()
+            return 1
         return self.status
 
     def _update_input_voltage(self, voltage: float):
@@ -179,7 +186,7 @@ class IStateManager:
 
     def _update_load(self, load: float):
         """Update power load for the asset"""
-        load = load if load >= 0.0 else 0.0
+        load = max(load, 0.0)
         IStateManager.get_store().set(self.redis_key + ":load", load)
 
     def _sleep_delay(self, delay_type):
@@ -195,25 +202,25 @@ class IStateManager:
         """Hardware-specific powerup delay"""
         self._sleep_delay("onDelay")
 
-    def _set_redis_asset_state(self, state, publish=True):
+    def _set_redis_asset_state(self, state):
         """Update redis value of the asset power status"""
         IStateManager.get_store().set(self.redis_key + ":state", state)
-        if publish:
-            self._publish_power()
 
     def _set_state_on(self):
         """Set state to online"""
-        self._set_redis_asset_state(1)
+        self._publish_power(self.status, 1)
 
     def _set_state_off(self):
         """Set state to offline"""
-        self._set_redis_asset_state(0)
+        self._publish_power(self.status, 0)
 
-    def _publish_power(self):
+    def _publish_power(self, old_state, new_state):
         """Notify daemon of power updates"""
         IStateManager.get_store().publish(
             RedisChannels.state_update_channel,
-            json.dumps({"key": self.key, "status": self.status}),
+            json.dumps(
+                {"key": self.key, "old_state": old_state, "new_state": new_state}
+            ),
         )
 
     def _reset_boot_time(self):
@@ -406,29 +413,23 @@ class IStateManager:
 
         graph_ref = GraphReference()
         with graph_ref.get_session() as session:
-
             play_path = GraphReference.get_play_path(session)
-            if not play_path:
-                return ([], [])
 
-            play_files = [
-                f
-                for f in os.listdir(play_path)
-                if os.path.isfile(os.path.join(play_path, f))
-            ]
+        if not play_path:
+            return ([], [])
 
-            return (
-                [
-                    os.path.splitext(f)[0]
-                    for f in play_files
-                    if os.path.splitext(f)[1] != ".py"
-                ],
-                [
-                    os.path.splitext(f)[0]
-                    for f in play_files
-                    if os.path.splitext(f)[1] == ".py"
-                ],
-            )
+        play_files = [
+            f
+            for f in os.listdir(play_path)
+            if os.path.isfile(os.path.join(play_path, f))
+        ]
+
+        is_py_file = lambda f: os.path.splitext(f)[1] == ".py"
+
+        return (
+            [os.path.splitext(f)[0] for f in play_files if not is_py_file(f)],
+            [os.path.splitext(f)[0] for f in play_files if is_py_file(f)],
+        )
 
     @classmethod
     def execute_play(cls, play_name):

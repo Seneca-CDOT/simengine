@@ -1,4 +1,8 @@
-# pylint: disable=no-name-in-module,function-redefined,missing-docstring,unused-import
+"""Implementation of feature steps for managing system power
+(power outages/hardware power states etc.)
+"""
+
+# pylint: disable=no-name-in-module,function-redefined,missing-docstring,unused-import,unused-wildcard-import, wildcard-import
 import logging
 import os
 import sys
@@ -32,6 +36,7 @@ class TestCompletionTracker(Component):
         self.load_done_queue = Queue()
         self.th_done_queue = Queue()
 
+    # pylint: disable=unused-argument
     @handler("AllVoltageBranchesDone")
     def on_volt_branch_done(self, event, *args, **kwargs):
         self.volt_done_queue.put(event)
@@ -44,6 +49,8 @@ class TestCompletionTracker(Component):
     @handler("AllThermalBranchesDone")
     def on_th_branch_done(self, event, *args, **kwargs):
         self.th_done_queue.put(event)
+
+    # pylint: enable=unused-argument
 
     def wait_load_queue(self):
         return self.load_done_queue.get(timeout=self._timeout)
@@ -109,7 +116,11 @@ def step_impl(context, key, state):
     state_m = context.hardware[key]
 
     old_state = state_m.status
-    new_state = state_m.power_up() if state == "online" else state_m.shut_down()
+
+    if state == "online":
+        new_state = state_m.power_up()
+    else:
+        new_state = state_m.shut_down()
 
     context.engine.handle_state_update(key, old_state, new_state)
 
@@ -124,6 +135,13 @@ def step_impl(context, key, load):
 
 @then('asset "{key:d}" is "{state}"')
 def step_impl(context, key, state):
+    state_num = 1 if state == "online" else 0
+    assert_that(context.hardware[key].status, equal_to(state_num))
+
+
+@then('after "{seconds:d}" seconds, asset "{key:d}" is "{state}"')
+def step_impl(context, seconds, key, state):
+    time.sleep(seconds)
     state_num = 1 if state == "online" else 0
     assert_that(context.hardware[key].status, equal_to(state_num))
 

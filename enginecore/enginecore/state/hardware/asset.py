@@ -5,21 +5,23 @@
 # pylint: disable=W0613
 
 import logging
-import time
-
+import os
 from circuits import Component, handler
-from enginecore.state.hardware import event_results
 from enginecore.state.hardware.asset_definition import SUPPORTED_ASSETS
-from enginecore.state.hardware import asset_events
+from enginecore.state.state_initializer import get_temp_workplace_dir
+
+logger = logging.getLogger(__name__)
 
 
 class Asset(Component):
-    """Abstract Asset Class """
+    """Top asset component that aggregates behaviour shared
+    among all hardware devices; (all hardware assets must derive
+    from here)"""
 
     def __init__(self, state):
         super(Asset, self).__init__()
         self._state = state
-        self._state_reason = asset_events.ButtonPowerUpPressed
+        self._state_reason = None
         self.state.update_input_voltage(0)
 
         self.state.reset_boot_time()
@@ -49,14 +51,6 @@ class Asset(Component):
     def state_reason(self, value):
         self._state_reason = value
 
-    @property
-    def power_state_caused_by_user(self):
-        """Returns true if user powered down/up the asset (and not AC power event)"""
-        return (
-            self.state_reason == asset_events.ButtonPowerDownPressed
-            or self.state_reason == asset_events.ButtonPowerUpPressed
-        )
-
     def _update_load(self, new_load):
         """Update load for this asset"""
         return self.state.update_load(new_load)
@@ -64,67 +58,35 @@ class Asset(Component):
     def power_up(self):
         """Power up this asset 
         Returns: 
-            PowerEventResult: tuple indicating asset key, type, old & new states
+            int: new state after power_up operation
         """
-        old_state = self.state.status
-        return event_results.PowerEventResult(
-            asset_key=self.state.key,
-            asset_type=self.state.asset_type,
-            old_state=old_state,
-            load_change=0,
-            new_state=self.state.power_up(),
-        )
+        return self.state.power_up()
 
     def shut_down(self):
         """Shut down this asset 
         Returns: 
-            PowerEventResult: tuple indicating asset key, type, old & new states
+            int: new state after power_up operation
         """
-        old_state = self.state.status
-        return event_results.PowerEventResult(
-            asset_key=self.state.key,
-            asset_type=self.state.asset_type,
-            old_state=old_state,
-            load_change=0,
-            new_state=self.state.shut_down(),
-        )
+        return self.state.shut_down()
 
     def power_off(self):
         """Power down this asset 
         Returns: 
-            PowerEventResult: tuple indicating asset key, type, old & new states
+            int: new state after power_up operation
         """
-        old_state = self.state.status
-        return event_results.PowerEventResult(
-            asset_key=self.state.key,
-            asset_type=self.state.asset_type,
-            old_state=old_state,
-            new_state=self.state.power_off(),
-        )
+        return self.state.power_off()
 
-    @handler("ChildLoadUpEvent", "ChildLoadDownEvent")
-    def on_child_load_update(self, event, *args, **kwargs):
-        """Process child load changes by updating load of the device"""
-        asset_load_event = event.get_next_load_event(self)
-        new_load = asset_load_event.load.old + event.load.difference
+    def _create_asset_workplace_dir(self):
+        """Create temp workplace directory for the asset 
+        (under /tmp/$SIMENGINE_WORKPLACE_TEMP/<asset_key>)
+        Returns:
+            str: path to newly created asset directory
+        """
+        asset_dir = os.path.join(get_temp_workplace_dir(), str(self.key))
+        if not os.path.exists(asset_dir):
+            os.makedirs(asset_dir)
 
-        self._update_load(new_load)
-        asset_load_event.load.new = new_load
-        return asset_load_event
-
-    @handler("ButtonPowerDownPressed")
-    def on_btn_power_down(self, event):
-        """When user presses power button to turn asset off"""
-        self.state_reason = asset_events.ButtonPowerDownPressed
-
-    @handler("ButtonPowerUpPressed")
-    def on_btn_power_up(self, event):
-        """When user preses power button to turn asset on"""
-        self.state_reason = asset_events.ButtonPowerUpPressed
-
-    @handler("AmbientUpEvent", "AmbientDownEvent")
-    def on_ambient_updated(self, event, *args, **kwargs):
-        return event
+        return asset_dir
 
     def _process_parent_volt_e(self, event):
         """Process parent voltage event by analyzing if voltage is 
@@ -141,15 +103,13 @@ class Asset(Component):
         # check new input voltage
         # Asset is underpowered (volt is too low)
         if new_out_volt <= min_voltage and asset_event.state.old:
-            power_action = self.state.power_off
+            power_action = self.power_off
         # Asset was offline and underpowered, power back up
         elif new_out_volt > min_voltage and not asset_event.state.old:
-            power_action = self.state.power_up
+            power_action = self.power_up
 
         # re-set output voltage values in case of power condition
         if power_action:
-            # TODO: should call asset implementations
-            # (on_power_up_request_received/on_power_off_request_received)
             asset_event.state.new = power_action()
             asset_event.out_volt.old = old_out_volt * asset_event.state.old
             asset_event.out_volt.new = new_out_volt * asset_event.state.new
@@ -162,20 +122,52 @@ class Asset(Component):
 
         return asset_event
 
+    @handler("ChildLoadUpEvent", "ChildLoadDownEvent")
+    def on_child_load_update(self, event, *args, **kwargs):
+        """Process child asset load changes by updating load of this device
+        Args:
+            event(ChildLoadEvent): load event associated with a child node
+                                   powered by this asset
+        Returns:
+            AssetLoadEvent: contains load update details for this asset
+        """
+        asset_load_event = event.get_next_load_event(self)
+        new_load = asset_load_event.load.old + event.load.difference
+
+        self._update_load(new_load)
+        asset_load_event.load.new = new_load
+        return asset_load_event
+
+    @handler("AmbientUpEvent", "AmbientDownEvent")
+    def on_ambient_updated(self, event, *args, **kwargs):
+        """Process Ambient temperature changes"""
+        return event
+
+    @handler("PowerButtonOnEvent", "PowerButtonOffEvent", priority=10)
+    def on_power_button_pressed(self, event, *args, **kwargs):
+        """Update redis state once request goes through"""
+        self.state.set_redis_asset_state(event.state.new)
+
     @handler("InputVoltageUpEvent", "InputVoltageDownEvent", priority=-1)
     def detect_input_voltage(self, event, *args, **kwargs):
-        """Update input voltage"""
+        """Update input voltage
+        (called before every other handler due to priority set to -1)
+        """
         self.state.update_input_voltage(kwargs["new_in_volt"])
-        print(
-            "VOLTAGE {} {}, in[{}]".format(
-                event.name, self.key, self.state.input_voltage
-            )
+        logger.debug(
+            "VOLTAGE %s %s, in[%s]", event.name, self.key, self.state.input_voltage
         )
 
     @handler("InputVoltageUpEvent")
     def on_input_voltage_up(self, event, *args, **kwargs):
         """React to input voltage spike;
-        Asset can power up on volt increase if it was down;
+        Asset can power up on volt increase if it was offline;
+        Args:
+            event(InputVoltageUpEvent): input voltage event indicating
+                                        that source voltage has increased
+        Returns:
+            AssetPowerEvent: event indicating possible power changes due to 
+                             voltage change (e.g. load, power state changes etc.)
         """
         return self._process_parent_volt_e(event)
 
@@ -183,16 +175,22 @@ class Asset(Component):
     def on_input_voltage_down(self, event, *args, **kwargs):
         """React to input voltage drop;
         Asset can power off if input voltage drops below the acceptable
-        threshold"""
+        threshold.
+        Args:
+            event(InputVoltageDownEvent): input voltage event indicating
+                                          that source voltage has dropped
+        Returns:
+            AssetPowerEvent: event indicating possible power changes due to 
+                             voltage change (e.g. load, power state changes etc.)
+        """
         return self._process_parent_volt_e(event)
 
-    def on_power_up_request_received(self, event, *args, **kwargs):
-        """Called on voltage spike"""
-        raise NotImplementedError
+    def __str__(self):
+        return self.state.__str__()
 
-    def on_power_off_request_received(self, event, *args, **kwargs):
-        """Called on voltage drop"""
-        raise NotImplementedError
+    def stop(self, code=None):
+        self.state.close_connection()
+        super().stop(code)
 
     @classmethod
     def get_supported_assets(cls):

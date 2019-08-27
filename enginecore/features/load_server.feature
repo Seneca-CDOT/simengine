@@ -95,6 +95,65 @@ Feature: Server Load Handling
             | 120      | 60       | 4.0 | 4.0 | 4.0  | 4.0  | 8.0 |
 
 
+    Scenario Outline: Load is distributed with ServerBMC with PSUs drawing power
+        Given Outlet asset with key "2" is created
+        And Outlet asset with key "22" is created
+        # And Server asset with key "9", "2" PSU(s) and "480" Wattage is created
+
+        And ServerBMC asset with key "9" and "480" Wattage is created
+
+        And asset "1" powers target "91"
+        And asset "2" powers target "22"
+        And asset "22" powers target "92"
+
+        And Engine is up and running
+        # Set up initial state
+        And asset "<key-1>" is "<1-ini>"
+        And asset "<key-2>" is "<2-ini>"
+
+        # Test conditions:
+        When asset "<key-1>" goes "<1-new>"
+        And asset "<key-2>" goes "<2-new>"
+
+        # check load for assets
+        Then asset "1" load is set to "<1>"
+        Then asset "2" load is set to "<2>"
+        Then asset "22" load is set to "<22>"
+
+        And asset "91" load is set to "<91>"
+        And asset "92" load is set to "<92>"
+
+        And asset "9" load is set to "<9>"
+
+        Examples: All Power Sources present
+            | key-1 | key-2 | 1-ini  | 2-ini  | 1-new  | 2-new  | 1    | 2    | 22   | 91   | 92   | 9   |
+            | 1     | 2     | online | online | online | online | 2.25 | 2.25 | 2.25 | 2.25 | 2.25 | 4.0 |
+
+
+        Examples: Having both power sources offline should result in zero load
+            | key-1 | key-2 | 1-ini  | 2-ini  | 1-new   | 2-new   | 1    | 2    | 22   | 91   | 92   | 9    |
+            | 1     | 2     | online | online | offline | offline | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+            | 1     | 22    | online | online | offline | offline | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+            | 91    | 92    | online | online | offline | offline | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+            | 91    | 92    | online | online | offline | offline | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+
+
+        # manipulate 2 input power streams for the server
+        # (each powering a PSU)
+        Examples: Switching states from online to offline for outlets powering 2 PSUs should affect load
+            | key-1 | key-2 | 1-ini  | 2-ini  | 1-new   | 2-new   | 1    | 2    | 22   | 91   | 92   | 9   |
+            | 1     | 2     | online | online | online  | online  | 2.25 | 2.25 | 2.25 | 2.25 | 2.25 | 4.0 |
+            | 1     | 2     | online | online | offline | online  | 0.00 | 4.25 | 4.25 | 0.0  | 4.25 | 4.0 |
+            | 1     | 2     | online | online | online  | offline | 4.25 | 0.00 | 0.00 | 4.25 | 0.00 | 4.0 |
+            | 1     | 22    | online | online | online  | offline | 4.25 | 0.00 | 0.00 | 4.25 | 0.00 | 4.0 |
+
+        Examples: Switching states from online to offline for PSUs should affect load
+            | key-1 | key-2 | 1-ini  | 2-ini  | 1-new   | 2-new   | 1    | 2    | 22   | 91   | 92   | 9   |
+            | 91    | 92    | online | online | offline | online  | 0.00 | 4.25 | 4.25 | 0.0  | 4.25 | 4.0 |
+            | 91    | 92    | online | online | online  | offline | 4.25 | 0.00 | 0.00 | 4.25 | 0.00 | 4.0 |
+            | 91    | 92    | online | online | online  | offline | 4.25 | 0.00 | 0.00 | 4.25 | 0.00 | 4.0 |
+
+
 
     Scenario Outline: Single PSU server acts just like a regular asset
         # initialize model & engine

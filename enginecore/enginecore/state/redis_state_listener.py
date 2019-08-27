@@ -12,6 +12,8 @@ from enginecore.state.redis_channels import RedisChannels
 from enginecore.state.redis_state_handler import RedisStateHandler
 from enginecore.state.state_initializer import configure_env
 
+logger = logging.getLogger(__name__)
+
 
 class StateListener(Component):
     """Translates published redis messages into simengine Events & passes
@@ -31,7 +33,7 @@ class StateListener(Component):
         configure_env(relative=debug)
 
         # Use redis pub/sub communication
-        logging.info("Initializing redis connection...")
+        logger.info("Initializing redis connection...")
 
         redis_conf = {
             "host": os.environ.get("SIMENGINE_REDIS_HOST"),
@@ -51,7 +53,7 @@ class StateListener(Component):
     def _subscribe_to_channels(self):
         """Subscribe to redis channels"""
 
-        logging.info("Initializing redis subscriptions...")
+        logger.info("Initializing redis subscriptions...")
 
         # State Channels
         self._pubsub_streams["power"].psubscribe(
@@ -103,8 +105,8 @@ class StateListener(Component):
         data = message["data"].decode("utf-8")
         channel = message["channel"].decode()
 
-        logging.info("Received new message in channel [%s]:", channel)
-        logging.info(" > %s", data)
+        logger.debug("Received new message in channel [%s]:", channel)
+        logger.debug(" > %s", data)
 
         self.fire(
             Event.create(channel, json.loads(data) if json_format else data),
@@ -116,7 +118,7 @@ class StateListener(Component):
             Called on start: initialize redis subscriptions
         """
 
-        logging.info("Initializing pub/sub event handlers...")
+        logger.info("Initializing pub/sub event handlers...")
 
         # timers will be monitoring new published messages every .5 seconds
         for stream_name in ["power", "thermal", "battery"]:

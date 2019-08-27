@@ -11,28 +11,35 @@ from logging import handlers
 
 from enginecore.state.redis_state_listener import StateListener
 from enginecore.state.engine.engine import Engine
-
+import enginecore
 
 FORMAT = "[%(threadName)s, %(asctime)s, %(module)s:%(lineno)s] %(message)s"
 DEV_FORMAT = "[%(threadName)s, %(asctime)s, %(module)s:%(lineno)s] %(message)s"
 
 
-def configure_logger(develop=False):
+def configure_logger(develop=False, debug=False):
     """Configure logger instance for the simengine app
     Args:
-        develop(bool): indicates logger variant
+        develop(bool): indicates logger variant 
+                       (logger will use relative paths if set to true)
+        debug(bool): set logger level to debugging
     """
 
-    root = logging.getLogger()
-    root.setLevel(logging.INFO)
+    logger = logging.getLogger(enginecore.__name__)
+    logger.setLevel(logging.DEBUG if debug else logging.INFO)
     formatter = logging.Formatter(DEV_FORMAT, "%H:%M:%S" if develop else FORMAT)
+
+    # neo4j logs to much info, disable DEBUG-level logging
+    if debug:
+        neo4j_log = logging.getLogger("neo4j.bolt")
+        neo4j_log.setLevel(logging.WARNING)
 
     if develop:
         log_path = "info.log"
         stdout_h = logging.StreamHandler(sys.stdout)
         stdout_h.setFormatter(formatter)
 
-        root.addHandler(stdout_h)
+        logger.addHandler(stdout_h)
     else:
         log_path = os.path.join(os.sep, "var", "log", "simengine", "info.log")
 
@@ -41,7 +48,7 @@ def configure_logger(develop=False):
     )
 
     logfile_h.setFormatter(formatter)
-    root.addHandler(logfile_h)
+    logger.addHandler(logfile_h)
 
 
 def run_app():
@@ -71,7 +78,7 @@ def run_app():
     args = vars(argparser.parse_args())
 
     # logging config
-    configure_logger(develop=args["develop"])
+    configure_logger(develop=args["develop"], debug=args["verbose"])
 
     # run daemon
     StateListener(

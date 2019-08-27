@@ -8,6 +8,8 @@ import pwd
 import grp
 from enginecore.state.agent.agent import Agent
 
+logger = logging.getLogger(__name__)
+
 
 class SNMPAgent(Agent):
     """SNMP simulator/wrapper for snmpsimd.py process;
@@ -92,7 +94,7 @@ class SNMPAgent(Agent):
         else:
             cmd.extend(["--cache-dir", self._snmp_rec_dir])
 
-        logging.info("Starting agent: %s", " ".join(cmd))
+        logger.info("Starting agent: %s", " ".join(cmd))
         self.register_process(
             subprocess.Popen(cmd, stderr=subprocess.DEVNULL, close_fds=True)
         )

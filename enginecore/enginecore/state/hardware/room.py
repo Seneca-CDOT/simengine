@@ -20,6 +20,8 @@ from enginecore.state.hardware.outlet_asset import Outlet
 
 # pylint: enable=unused-import
 
+logger = logging.getLogger(__name__)
+
 
 class ServerRoom(Component):
     """Represents hardware environment (Room/ServerRack);
@@ -131,7 +133,7 @@ class ServerRoom(Component):
 
             # update ambient
             if needs_update:
-                logging.info(msg_format, current_temp, new_temp)
+                logger.info(msg_format, current_temp, new_temp)
                 in_state.StateManager.set_ambient(new_temp)
 
             amb_props = get_amb_props()
@@ -175,7 +177,7 @@ class ServerRoom(Component):
         """Initialize voltage fluctuations threading"""
 
         if self._voltage_fluct_t and self._voltage_fluct_t.isAlive():
-            logging.warning("Voltage thread is already running!")
+            logger.warning("Voltage thread is already running!")
             return
 
         self._voltage_fluct_t = Thread(

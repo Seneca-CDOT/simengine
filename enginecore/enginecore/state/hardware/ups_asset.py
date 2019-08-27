@@ -18,6 +18,8 @@ from enginecore.state.hardware.snmp_asset import SNMPSim
 
 from enginecore.state.hardware.asset_definition import register_asset
 
+logger = logging.getLogger(__name__)
+
 
 @register_asset
 class UPS(Asset, SNMPSim):
@@ -72,8 +74,9 @@ class UPS(Asset, SNMPSim):
     def _calc_full_power_time_left(self, wattage):
         """Approximate runtime estimation for the fully-charged battery"""
 
-        if math.isclose(wattage, 0.0):
-            wattage = 0.01
+        # Prevent from TimeTick value failing bounding constraints
+        if wattage < 0.1:
+            wattage = 0.1
 
         close_wattage = min(self._runtime_details, key=lambda x: abs(int(x) - wattage))
         close_timeleft = self._runtime_details[close_wattage]
@@ -114,7 +117,7 @@ class UPS(Asset, SNMPSim):
         elif last_reason == self.state.InputLineFailCause.deepMomentarySag:
             new_reason = self.state.InputLineFailCause.blackout
         else:
-            logging.warning(
+            logger.warning(
                 "The UPS is not in momentary line fail state: %s", last_reason.name
             )
             return
@@ -146,7 +149,7 @@ class UPS(Asset, SNMPSim):
             )
 
             if to_adv_percentage(battery_level) != to_adv_percentage(old_battery_lvl):
-                logging.info("on battery: %s %%", to_adv_percentage(battery_level))
+                logger.info("on battery: %s %%", to_adv_percentage(battery_level))
 
             seconds_on_battery = (dt.now() - self._start_time_battery).seconds
 
@@ -167,8 +170,7 @@ class UPS(Asset, SNMPSim):
         # kill the thing if still breathing
         if self.state.status and self.state.on_battery:
             self._snmp_agent.stop_agent()
-            self.state.power_off()
-            self.state.publish_power()
+            self.state.publish_power(old_state=1, new_state=0)
 
     def _charge_battery(self, power_up_on_charge=False):
         """Charge battery when there's upstream power source & battery is not full
@@ -197,9 +199,7 @@ class UPS(Asset, SNMPSim):
             )
 
             if to_adv_percentage(battery_level) != to_adv_percentage(old_battery_lvl):
-                logging.info(
-                    "charging battery: %s %%", to_adv_percentage(battery_level)
-                )
+                logger.info("charging battery: %s %%", to_adv_percentage(battery_level))
 
             # update state details
             self.state.update_battery(battery_level)
@@ -211,9 +211,9 @@ class UPS(Asset, SNMPSim):
             if (not powered and power_up_on_charge) and (
                 battery_level > self.state.min_restore_charge_level
             ):
-                e_result = self.power_up()
-                powered = e_result.new_state
-                self.state.publish_power()
+                old_state = self.state.status
+                powered = self.power_up()
+                self.state.publish_power(old_state, self.state.status)
 
             old_battery_lvl = battery_level
             self._stop_event.wait(1)
@@ -224,7 +224,7 @@ class UPS(Asset, SNMPSim):
         """Start a thread that will decrease battery level """
 
         if self._battery_drain_t and self._battery_drain_t.isAlive():
-            logging.warning("Battery drain is already running!")
+            logger.warning("Battery drain is already running!")
             self.state.update_transfer_reason(t_reason)
             self._increase_transfer_severity()
             return
@@ -252,7 +252,7 @@ class UPS(Asset, SNMPSim):
         """Start a thread that will charge battery level """
 
         if self._battery_charge_t and self._battery_charge_t.isAlive():
-            logging.warning("Battery is already charging!")
+            logger.warning("Battery is already charging!")
             return
 
         self.state.update_time_on_battery(0)
@@ -292,18 +292,14 @@ class UPS(Asset, SNMPSim):
 
         return e_result
 
-    @handler("ButtonPowerUpPressed")
-    def on_ups_signal_up(self):
+    @handler("PowerButtonOnEvent")
+    def on_ups_signal_up(self, event, *args, **kwargs):
         """When user powers up UPS device"""
 
         if self.state.on_battery:
             self._launch_battery_drain(t_reason=self.state.transfer_reason)
         else:
             self._launch_battery_charge(power_up_on_charge=True)
-
-    @handler("AmbientUpEvent", "AmbientDownEvent")
-    def on_ambient_updated(self, event, *args, **kwargs):
-        self._state.update_temperature(7)
 
     def _get_ups_load_update(self, should_transfer):
         """Get formatted load event result 
@@ -369,7 +365,9 @@ class UPS(Asset, SNMPSim):
             self._launch_battery_drain(reason)
             asset_event.out_volt.new = 120.0
 
-        if not math.isclose(asset_event.load.new, 0):
+        if not math.isclose(asset_event.load.new, 0) and not math.isclose(
+            asset_event.load.new, self.state.load
+        ):
             self._update_load(self.state.load + asset_event.load.difference)
 
         return asset_event
@@ -412,6 +410,16 @@ class UPS(Asset, SNMPSim):
         return asset_event
 
     @property
+    def draining_battery(self):
+        """Returns true if UPS battery is being drained"""
+        return self._battery_drain_t is not None and self._battery_drain_t.isAlive()
+
+    @property
+    def charging_battery(self):
+        """Returns true if UPS battery is getting re-charged"""
+        return self._battery_charge_t is not None and self._battery_charge_t.isAlive()
+
+    @property
     def charge_speed_factor(self):
         """Estimated charge/sec will be multiplied by this value"""
         return self._charge_speed_factor
@@ -439,15 +447,22 @@ class UPS(Asset, SNMPSim):
             )
         return upd_result
 
-    def on_power_up_request_received(self, event, *args, **kwargs):
-        """Called on voltage spike"""
-        raise NotImplementedError
-
-    def on_power_off_request_received(self, event, *args, **kwargs):
-        """Called on voltage drop"""
-        raise NotImplementedError
+    def __str__(self):
+        return super().__str__() + (
+            " [charge-state]\n"
+            "   - thread active: {0.charging_battery}\n"
+            "   - speed factor: {0.charge_speed_factor}\n"
+            " [drain-state]\n"
+            "   - thread active: {0.draining_battery}\n"
+            "   - speed factor: {0.drain_speed_factor}\n"
+        ).format(self)
 
     def stop(self, code=None):
         self._snmp_agent.stop_agent()
         self._stop_event.set()
+
+        for thread in [self._battery_charge_t, self._battery_drain_t]:
+            if thread is not None and thread.isAlive():
+                thread.join()
+
         super().stop(code)

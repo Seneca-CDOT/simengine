@@ -1,6 +1,6 @@
 @pdu-asset
-@sequential
 @power-behaviour
+@state-behaviour
 Feature: Power Chaining for PDU (with Multiple Children)
     Testing a multi-children power scenarios where one device can power more than one device.
     Powering down a particular asset can cause a chain reaction of power events
@@ -106,3 +106,19 @@ Feature: Power Chaining for PDU (with Multiple Children)
             | oid-ini-value | oid-new-value | 73-ini-state | 73-new-state | 73      | 3       |
             | 1             | 2             | online       | online       | offline | offline |
             | 2             | 1             | online       | offline      | offline | offline |
+
+    @snmp-behaviour
+    Scenario Outline: SNMP interface is unavailable when PDU is offline
+
+        Given asset "<asset-key>" is "<asset-ini-state>"
+
+        # create a certain power condition
+        When asset "<asset-key>" goes "<asset-new-state>"
+        Then SNMP interface for asset "7" is "<snmp-state>"
+
+        Examples: SNMP agent is off when power is off
+            | asset-key | asset-ini-state | asset-new-state | snmp-state  |
+            | 1         | online          | offline         | unreachable |
+            | 7         | online          | offline         | unreachable |
+            | 1         | offline         | online          | reachable   |
+            | 7         | offline         | online          | reachable   |

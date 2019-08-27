@@ -1,12 +1,16 @@
-# pylint: disable=no-name-in-module,function-redefined,missing-docstring,unused-import
+"""Implementation of feature steps for modelling topology
+(creating/connecting hardware assets)
+"""
+
+# pylint: disable=no-name-in-module,function-redefined,missing-docstring,unused-import,unused-wildcard-import, wildcard-import
 import json
 from behave import given, when, then, step
 
 # plyint: enable=no-name-in-module
+from hamcrest import *
 
 import enginecore.model.system_modeler as sm
 from enginecore.state.api.state import IStateManager
-from hamcrest import *
 
 
 @given("the system model is empty")
@@ -84,6 +88,27 @@ def step_impl(context, key, psu_num, wattage):
         context.hardware[psu_key] = IStateManager.get_state_manager_by_key(psu_key)
 
 
+@given('ServerBMC asset with key "{key:d}" and "{wattage:d}" Wattage is created')
+def step_impl(context, key, wattage):
+
+    sm.create_server(
+        key,
+        {
+            "domain_name": context.config.userdata["test_vm"],
+            "power_consumption": wattage,
+            "psu_power_consumption": 0,
+            "psu_power_source": 120,
+            "storcli_enabled": False,
+        },
+        server_variation=sm.ServerVariations.ServerWithBMC,
+    )
+
+    context.hardware[key] = IStateManager.get_state_manager_by_key(key)
+
+    for psu_key in context.hardware[key].asset_info["children"]:
+        context.hardware[psu_key] = IStateManager.get_state_manager_by_key(psu_key)
+
+
 @given(
     'Lamp asset with key "{key:d}", minimum "{min_volt:d}" Voltage and "{wattage:d}" Wattage is created'
 )
@@ -95,7 +120,6 @@ def step_impl(context, key, min_volt, wattage):
 @given('asset "{source_key:d}" powers target "{dest_key:d}"')
 def step_impl(context, source_key, dest_key):
 
-    # print(context.hardware)
     assert_that(source_key, is_in(context.hardware))
     assert_that(dest_key, is_in(context.hardware))
 

@@ -1,5 +1,6 @@
 @load-behaviour
 @power-behaviour
+@quick-test
 Feature: Load handling and distribution across entire system tolology
 
     Load travels uptream and it may change due to either voltage spikes/drops or power update

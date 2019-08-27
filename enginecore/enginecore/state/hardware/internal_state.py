@@ -28,13 +28,21 @@ class StateManager(state_api.IStateManager, state_api.ISystemEnvironment):
         """Reset the boot time to now"""
         super()._reset_boot_time()
 
-    def publish_power(self):
+    def publish_power(self, old_state, new_state):
         """Publish state changes (expose method to the assets) """
-        super()._publish_power()
+        super()._publish_power(old_state, new_state)
 
-    def _set_redis_asset_state(self, state, publish=False):
+    def _set_state_on(self):
+        """Set redis state to 1 without publishing power to the engine"""
+        self.set_redis_asset_state(1)
+
+    def _set_state_off(self):
+        """Set redis state to 0 without publishing power to the engine"""
+        self.set_redis_asset_state(0)
+
+    def set_redis_asset_state(self, state):
         """Update redis value of the asset power status"""
-        super()._set_redis_asset_state(state, publish=False)
+        super()._set_redis_asset_state(state)
 
     def update_load(self, load):
         """Update load """
@@ -59,6 +67,9 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         Args:
             charge_level(int): new battery level (between 0 & 1000)
         """
+        charge_level = max(charge_level, 0)
+        charge_level = min(charge_level, self._max_battery_level)
+
         old_charge_level = self.battery_level
         self._update_battery(charge_level)
         self._update_battery_oids(charge_level, self.battery_level)

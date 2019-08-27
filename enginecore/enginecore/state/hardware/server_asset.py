@@ -22,8 +22,9 @@ import enginecore.state.hardware.internal_state as in_state
 
 from enginecore.state.agent import IPMIAgent, StorCLIEmulator
 from enginecore.state.sensor.repository import SensorRepository
-from enginecore.state.state_initializer import get_temp_workplace_dir
 from enginecore.state.engine.events import EventDataPair
+
+logger = logging.getLogger(__name__)
 
 
 @register_asset
@@ -36,12 +37,37 @@ class Server(StaticAsset):
     def __init__(self, asset_info):
         super(Server, self).__init__(asset_info)
         self._psu_sm = {}
+        self._storcli_emu = None
 
         for i in range(1, asset_info["num_components"] + 1):
             psu_key = self.key * 10 + i
             self._psu_sm[psu_key] = IStateManager.get_state_manager_by_key(psu_key)
 
+        if "storcli_enabled" in asset_info and asset_info["storcli_enabled"]:
+            server_dir = self._create_asset_workplace_dir()
+
+            self._storcli_emu = StorCLIEmulator(
+                asset_info["key"], server_dir, socket_port=asset_info["storcliPort"]
+            )
+
         self.state.power_up()
+
+    def _psu_drawing_extra(self, psu_sm):
+        """Check if a particular psu is drawing extra power
+        Returns:
+            boolean: True if psu is drawing above the expected value 
+                     (meaning it is taking over someone else's load)
+        """
+
+        calc_load = lambda consumption, voltage: consumption / voltage if voltage else 0
+
+        psu_draw = (
+            calc_load(self.state.power_consumption, psu_sm.input_voltage)
+            * psu_sm.draw_percentage
+        )
+        psu_draw += calc_load(psu_sm.power_consumption, psu_sm.input_voltage)
+
+        return psu_draw < psu_sm.load
 
     @handler("InputVoltageUpEvent")
     def on_input_voltage_up(self, event, *args, **kwargs):
@@ -54,12 +80,6 @@ class Server(StaticAsset):
         load_upd = {}
         extra_draw = 0.0
         load_should_change = True
-
-        drawing_extra = (
-            lambda x: asset_event.calculate_load(self.state, x.input_voltage)
-            * x.draw_percentage
-            < x.load
-        )
 
         new_asset_load = asset_event.calculate_load(self.state, event.in_volt.new)
         old_asset_load = asset_event.calculate_load(self.state, event.in_volt.old)
@@ -78,7 +98,7 @@ class Server(StaticAsset):
             elif (
                 psu_sm.key != event.source_key
                 and math.isclose(event.in_volt.old, 0.0)
-                and drawing_extra(psu_sm)
+                and self._psu_drawing_extra(psu_sm)
             ):
                 # asset load should not change (we are just redistributing same load)
                 load_upd[key].new = (
@@ -152,6 +172,11 @@ class Server(StaticAsset):
 
         return asset_event
 
+    def stop(self, code=None):
+        if self._storcli_emu is not None:
+            self._storcli_emu.stop_server()
+        super().stop(code)
+
 
 @register_asset
 class ServerWithBMC(Server):
@@ -163,9 +188,7 @@ class ServerWithBMC(Server):
     def __init__(self, asset_info):
         super(ServerWithBMC, self).__init__(asset_info)
 
-        # create state directory
-        ipmi_dir = os.path.join(get_temp_workplace_dir(), str(asset_info["key"]))
-        os.makedirs(ipmi_dir)
+        server_dir = self._create_asset_workplace_dir()
 
         self._sensor_repo = SensorRepository(asset_info["key"], enable_thermal=True)
 
@@ -173,13 +196,10 @@ class ServerWithBMC(Server):
         ipmi_conf = {
             k: asset_info[k] for k in asset_info if k in IPMIAgent.lan_conf_attributes
         }
-        self._ipmi_agent = IPMIAgent(ipmi_dir, ipmi_conf, self._sensor_repo)
-        self._storcli_emu = StorCLIEmulator(
-            asset_info["key"], ipmi_dir, socket_port=asset_info["storcliPort"]
-        )
 
+        self._ipmi_agent = IPMIAgent(server_dir, ipmi_conf, self._sensor_repo)
         self.state.update_agent(self._ipmi_agent.pid)
-        logging.info(self._ipmi_agent)
+        logger.info(self._ipmi_agent)
 
         self.state.update_cpu_load(0)
         self._cpu_load_t = None
@@ -221,7 +241,7 @@ class ServerWithBMC(Server):
                 if cpu_time_1:
                     self.state.update_cpu_load(calc_cpu_load(cpu_time_1, cpu_time_2))
                     cpu_i = "server[{0.key}] CPU load:{0.cpu_load}%".format(self.state)
-                    logging.info(cpu_i)
+                    logger.debug(cpu_i)
 
                 cpu_time_1 = cpu_time_2
             else:
@@ -291,6 +311,11 @@ class ServerWithBMC(Server):
     def on_asset_did_power_on(self):
         """Update senosrs on power online"""
         self._sensor_repo.power_up_sensors()
+
+    def stop(self, code=None):
+        self._ipmi_agent.stop_agent()
+        self._sensor_repo.stop()
+        super().stop(code)
 
 
 @register_asset

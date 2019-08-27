@@ -19,9 +19,19 @@ from enginecore.state.net.ws_requests import (
     ClientToServerRequests,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class WebSocket(Component):
-    """Simple Web-Socket server that handles interactions between frontend & enginecore """
+    """a Web-Socket server that handles interactions between:
+    - frontend & enginecore
+    - cli client & enginecore (see state_client.py)
+
+    WebSocket also manages action recorder, handles replay requests
+    
+    WebSocket is added as event tracker to the engine so any completion
+    events dispatched by engine are passed to websocket client
+    """
 
     channel = "wsserver"
 
@@ -38,7 +48,7 @@ class WebSocket(Component):
         """Called upon new client connecting to the ws """
 
         self._clients.append(sock)
-        logging.info("WebSocket Client Connected %s:%s", host, port)
+        logger.info("WebSocket Client Connected %s:%s", host, port)
 
     def _write_data(self, sock, request, data):
         """Send data to the web-server socket client
@@ -274,7 +284,7 @@ class WebSocket(Component):
             )
 
         if not assets and not 0 in rand_session_specs["asset_keys"]:
-            logging.error("No assets selected for random actions")
+            logger.warning("No assets selected for random actions")
             return
 
         state_managers = list(map(IStateManager.get_state_manager_by_key, assets))
@@ -322,7 +332,7 @@ class WebSocket(Component):
         """
 
         client_data = json.loads(data)
-        logging.info(client_data)
+        logger.debug(data)
         self.fire(
             Event.create(
                 client_data["request"],
@@ -336,6 +346,9 @@ class WebSocket(Component):
         if sock in self._data_subscribers:
             self._data_subscribers.remove(sock)
 
+    # == Engine state handlers (passes engine events to websocket client) ==
+
+    # pylint: disable=unused-argument
     @handler("AssetPowerEvent")
     def on_asset_power_change(self, event, *args, **kwargs):
         """Handle engine events by passing updates to 
@@ -392,6 +405,8 @@ class WebSocket(Component):
         self._notify_clients(
             {"request": ServerToClientRequests.asset_upd.name, "payload": payload}
         )
+
+    # pylint: enable=unused-argument
 
     def _notify_clients(self, data):
         """This handler is called upon state changes 

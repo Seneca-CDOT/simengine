@@ -13,6 +13,8 @@ from string import Template
 from enginecore.model.supported_sensors import SUPPORTED_SENSORS
 from enginecore.state.agent.agent import Agent
 
+logger = logging.getLogger(__name__)
+
 
 class IPMIAgent(Agent):
     """Python wrapper managing ipmi_sim program that takes 
@@ -203,7 +205,7 @@ class IPMIAgent(Agent):
             + ["-s", self.emu_state_dir_path, "-n"]
         )
 
-        logging.info("Starting agent: %s", " ".join(cmd))
+        logger.info("Starting agent: %s", " ".join(cmd))
 
         self.register_process(
             subprocess.Popen(cmd, stderr=subprocess.DEVNULL, close_fds=True)

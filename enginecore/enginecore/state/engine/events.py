@@ -35,7 +35,7 @@ class EventDataPair:
     def old(self, value):
         if self._is_valid_value and not self._is_valid_value(value):
             raise ValueError("Provided event data value is invalid")
-        self._old_value = value
+        self._old_value = max(0, value)
 
     @property
     def new(self):
@@ -51,7 +51,7 @@ class EventDataPair:
     def new(self, value):
         if self._is_valid_value and not self._is_valid_value(value):
             raise ValueError("Provided event data value is invalid")
-        self._new_value = value
+        self._new_value = max(0, value)
 
     def unchanged(self):
         """Returns true if event did not affect state"""
@@ -125,6 +125,32 @@ class MainsPowerEvent(EngineEvent):
     def mains(self):
         """Indicates wallpower state change"""
         return self._mains
+
+
+class PowerButtonEvent(EngineEvent):
+    """Asset's power state changed due to user turning asset off/on"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        required_args = ["old_state", "new_state"]
+
+        if not all(r_arg in kwargs for r_arg in required_args):
+            raise KeyError("Needs arguments: " + ",".join(required_args))
+
+        self._state = EventDataPair(kwargs["old_state"], kwargs["new_state"])
+
+    @property
+    def state(self):
+        """Retrieve temperature change"""
+        return self._state
+
+
+class PowerButtonOnEvent(PowerButtonEvent):
+    """Asset was powered on by a user"""
+
+
+class PowerButtonOffEvent(PowerButtonEvent):
+    """Asset was powered off by a user"""
 
 
 class SignalEvent(EngineEvent):

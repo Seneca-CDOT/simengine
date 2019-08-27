@@ -137,14 +137,14 @@ def range_args():
         "-s",
         "--start",
         help="Starting at this action number, or at this time today \
-            (format %H:%M:%S) or date (%Y-%m-%d %H:%M:%S)",
+            (format %%H:%%M:%%S) or date (%%Y-%%m-%%d %%H:%%M:%%S)",
     )
 
     common_args.add_argument(
         "-e",
         "--end",
         help="Ending at this action number, or at this time today \
-            (format %H:%M:%S) or date (%Y-%m-%d %H:%M:%S)",
+            (format %%H:%%M:%%S) or date (%%Y-%%m-%%d %%H:%%M:%%S)",
     )
 
     return common_args

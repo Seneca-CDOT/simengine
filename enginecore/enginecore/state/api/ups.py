@@ -85,7 +85,8 @@ class IUPSStateManager(ISnmpDeviceStateManager):
     @property
     def battery_level(self):
         """Get current level (high-precision)"""
-        return int(IStateManager.get_store().get(self.redis_key + ":battery").decode())
+        battery_lvl = IStateManager.get_store().get(self.redis_key + ":battery")
+        return int(battery_lvl.decode()) if battery_lvl else 0
 
     def _update_battery(self, charge_level):
         """Battery level setter
@@ -119,7 +120,7 @@ class IUPSStateManager(ISnmpDeviceStateManager):
 
     @property
     def output_voltage(self):
-        return self.input_voltage if not self.on_battery else self.status * 120.0
+        return self.status * 120.0 if self.on_battery else self.input_voltage
 
     @property
     def wattage(self):
@@ -192,6 +193,8 @@ class IUPSStateManager(ISnmpDeviceStateManager):
     @Randomizer.randomize_method()
     def power_up(self):
 
+        powered = self.status
+
         if self.battery_level and not self.status:
             self._sleep_powerup()
             time.sleep(self.get_config_on_delay())
@@ -199,10 +202,9 @@ class IUPSStateManager(ISnmpDeviceStateManager):
             self._reset_boot_time()
             self._set_state_on()
 
-        powered = self.status
-        if powered:
             self._reset_power_off_oid()
             self._update_load(self.power_usage)
+            powered = 1
 
         return powered
 
