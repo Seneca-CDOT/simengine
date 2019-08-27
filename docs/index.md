@@ -26,9 +26,9 @@ SimEngine features include:
 
 Make sure you read our [contributing guidelines](https://github.com/Seneca-CDOT/simengine/blob/master/CONTRIBUTING.md) before proposing some exciting changes!
 
-## Project Overview
+## Project Overview (in-depth)
 
-SimEngine was designed to reconstruct Alteeve's digital infrastructure [Anvil!](https://www.alteeve.com/w/What_is_an_Anvil!_and_why_do_I_care%3F) and simulate common hardware scenarios such as hard drive failures, power outages and overheating.
+SimEngine was designed to reconstruct Alteeve's digital infrastructure [Anvil!](https://www.alteeve.com/w/What_is_an_Anvil!_and_why_do_I_care%3F) and simulate common hardware scenarios such as hard drive failures, power outages and overheating. The overall goal of this project is to 'deceive' Anvil! into thinking it is dealing with some real hardware thus eliminating bulky & expensive devices from the development and testing processes.
 
 The Anvil! Platform developed by [Alteeve's Niche!](https://www.alteeve.com/) improves upon traditional approaches to high-availability by making autonomous intelligent decisions and offering complete redundancy with a unique and specific arrangement of hardware devices.
 
@@ -51,9 +51,17 @@ This information is exposed by hardware itself through either SNMP interface for
 
 Hardware data produced by the simulation engine is exposed through IPMI & SNMP interfaces the same way real physical components present their states. SimEngine is using 3rd party packages for its network simulations including [OpenIPMI's](https://sourceforge.net/projects/openipmi/) lanserv and [snmpsim](http://snmplabs.com/snmpsim/simulating-agents.html) tool for SNMP interface.
 
-Anvil's hardware, for which we use term 'Assets', is stored internally as a graph where each node can be powered by another node (or multiple nodes in some cases). This allows engine to accept complex and diverse arrangements of hardware not limited to Alteeve's system layout. The power connections between nodes are used to infer power & load behaviour within the system.
+Anvil's hardware, for which we use term 'Assets', is stored internally as a graph where each node can be powered by another node (or multiple nodes in some cases). This allows engine to accept complex and diverse arrangements of assets not limited to Alteeve's system layout. The power connections between nodes are used to infer power/load behaviour within the system and determine 'flow' of power events (such as voltage spikes/drops, power outages etc.).
+
 
 ![SimEngine's representation of Anvil!](./simHardware.png)
 
-In addition to that, SimEngine supports both web-based management dashboard as well as a set of command line tools aimed to automate continuous testing.
+In addition to that, this project supports both web-based management dashboard as well as a set of command line tools aimed to automate continuous testing.
 
+### App's Architecture
+
+This section presents an overview of core software components of SimEngine with some diagrams loosely following [C4 approach](https://c4model.com).
+
+At a high level, there are 2 major systems involved – SimEngine (simulation system) and Alteeve's Anvil. A system tester can use SimEngine interfaces (cli or the dashboard) to trigger certain events, such as power outages, drive failures etc. A new system state will be calculated and made available to Anvil. Anvil's decision-making component will process it, determine health of the nodes and initiate server migrations if needed. The end result can be used by a system tester to facilitate quality assurance of both their digital infrastructure and Anvil software.
+
+![High-Level system overview](./highLvlComponents.png)
