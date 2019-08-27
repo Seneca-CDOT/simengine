@@ -30,7 +30,7 @@ Make sure you read our [contributing guidelines](https://github.com/Seneca-CDOT/
 
 SimEngine was designed to reconstruct Alteeve's digital infrastructure [Anvil!](https://www.alteeve.com/w/What_is_an_Anvil!_and_why_do_I_care%3F) and simulate common hardware scenarios such as hard drive failures, power outages and overheating.
 
-The Anvil! Platform developed by Alteeve's Niche! improves upon traditional approaches to high-availability by making autonomous intelligent decisions and offering complete redundancy with a unique and specific arrangement of hardware devices.
+The Anvil! Platform developed by [Alteeve's Niche!](https://www.alteeve.com/) improves upon traditional approaches to high-availability by making autonomous intelligent decisions and offering complete redundancy with a unique and specific arrangement of hardware devices.
 
 Alteeve’s infrastructure is comprised of two management servers called Striker, two UPSes, two PDU’s, two Switches, and two sets
 of Nodes running client's VMs (whatever servers/services you might want to protect). One of the objectives of SimEngine project is to accurately recreate behaviour of core hardware assets and simulate their power connections.
