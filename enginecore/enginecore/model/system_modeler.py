@@ -622,6 +622,7 @@ def create_ups(
             "power_source",
             "power_consumption",
             "work_dir",
+            "interface",
         ] + CREATE_SHARED_ATTR
 
         props_stm = qh.get_props_stm(
@@ -714,7 +715,7 @@ def create_pdu(
         attr["name"] = (
             attr["name"] if "name" in attr and attr["name"] else data["assetName"]
         )
-        s_attr = ["staticOidFile", "port", "host"] + CREATE_SHARED_ATTR
+        s_attr = ["staticOidFile", "port", "host", "interface"] + CREATE_SHARED_ATTR
 
         props_stm = qh.get_props_stm(
             {**attr, **data, **{"key": key, "type": "pdu"}}, supported_attr=s_attr
