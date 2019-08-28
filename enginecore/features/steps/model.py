@@ -124,3 +124,9 @@ def step_impl(context, source_key, dest_key):
     assert_that(dest_key, is_in(context.hardware))
 
     sm.link_assets(source_key, dest_key)
+
+
+@given('asset "{key:d}" "{ac_config}" when AC is restored')
+def step_impl(_, key, ac_config):
+    should_power_on = ac_config == "powers on"
+    sm.configure_asset(key, {"power_on_ac": should_power_on})

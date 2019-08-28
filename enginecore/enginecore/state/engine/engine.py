@@ -116,11 +116,11 @@ class Engine(Component):
             self.fire(event, comp_tracker)
 
     def subscribe_tracker(self, tracker):
-        """Subcribe external engine client to completion events"""
+        """Subscribe external engine client to completion events"""
         self._completion_trackers.append(tracker.register(self))
 
     def unsubscribe_tracker(self, tracker):
-        """Unsubcribe external engine client to completion events"""
+        """Unsubscribe external engine client to completion events"""
         self._completion_trackers.remove(tracker)
         tracker.unregister(self)
 
@@ -225,29 +225,17 @@ class Engine(Component):
             return
 
         updated_asset = self._assets[asset_key]
-        out_volt = (
-            updated_asset.state.input_voltage
-            if new_state
-            else updated_asset.state.output_voltage
-        )
 
         # notify updated hardware device of button event
         btn_event = (
             events.PowerButtonOnEvent if new_state else events.PowerButtonOffEvent
         )
-        self.fire(btn_event(old_state=old_state, new_state=new_state), updated_asset)
 
-        # initiate power events down the power stream
-        volt_event = events.AssetPowerEvent(
-            asset=updated_asset,
-            old_out_volt=old_state * out_volt,
-            new_out_volt=new_state * out_volt,
-            old_state=old_state,
-            new_state=new_state,
+        self._power_iter_handler.queue_iteration(
+            PowerIteration(
+                btn_event(old_state=old_state, new_state=new_state, asset=updated_asset)
+            )
         )
-
-        self._notify_trackers(volt_event)
-        self._power_iter_handler.queue_iteration(PowerIteration(volt_event))
 
     def handle_oid_update(self, asset_key, oid, value):
         """React to OID update
@@ -300,7 +288,10 @@ class Engine(Component):
         )
 
     def stop(self, code=None):
-        """Cleanup threads/hardware assets"""
+        """Cleanup threads/hardware assets
+        (is can be used to gracefully stop engine and
+        all the hardware assets it is managing)
+        """
         self._power_iter_handler.stop()
         self._thermal_iter_handler.stop()
         self._sys_environ.stop()
@@ -315,7 +306,7 @@ class Engine(Component):
 
     # Chain events processed by the hardware assets (e.g. by dispatching next events)
     # (these callbacks are called by circuit when an
-    # asset finishes processing incoming eent)
+    # asset finishes processing incoming event)
 
     def _on_asset_power_event_success(self, asset_event):
         """Notify current power iteration that hardware asset
@@ -344,6 +335,18 @@ class Engine(Component):
 
     # **Events are camel-case
     # pylint: disable=C0103,W0613
+
+    def PowerButtonOffEvent_success(self, btn_event, asset_event):
+        """React to asset being powered down by a user (called when asset is done
+        processing PowerButtonOffEvent)"""
+        # initiate power events down the power stream
+        self._on_asset_power_event_success(asset_event)
+
+    def PowerButtonOnEvent_success(self, btn_event, asset_event):
+        """React to asset being powered up by a user (called when asset is done
+        processing PowerButtonOnEvent)"""
+        self._on_asset_power_event_success(asset_event)
+
     def InputVoltageUpEvent_success(self, input_volt_event, asset_event):
         """Callback called when InputVoltageUpEvent was handled by the asset
         affected by the input change

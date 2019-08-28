@@ -5,7 +5,7 @@
 # not-ci-friendly because this test case relies on hardcoded delay
 # (e.g. in 'Then after "n" seconds, ...') to wait for battery to
 # deplete completely; (would be better to implement circuits hook like
-# AllLoadBranchesDone but fo battery depletion, so that step implementation
+# AllLoadBranchesDone but for battery depletion, so that step implementation
 # can wait for it to finish instead of relying on n-second delay)
 @not-ci-friendly
 Feature: UPS goes offline when it runs out of battery

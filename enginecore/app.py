@@ -53,7 +53,7 @@ def configure_logger(develop=False, debug=False):
 
 def run_app():
     """
-    Initilize compnents' states in redis based on a reference model
+    Initialize components' states in redis based on a reference model
     & launch event listener daemon
     """
 

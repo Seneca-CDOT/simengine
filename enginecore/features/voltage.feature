@@ -19,9 +19,9 @@ Feature: System handles voltage updates
 
     Scenario Outline: Voltage affecting assets' states
 
-        Given wallpower voltage "120" is set to "<ini-volt>"
+        Given wallpower voltage is set to "<ini-volt>"
         # create a certain power condition
-        When wallpower voltage "<ini-volt>" is updated to "<new-volt>"
+        When wallpower voltage is updated to "<new-volt>"
 
         # check states
         Then asset "1" is "<1-state>"
@@ -42,9 +42,9 @@ Feature: System handles voltage updates
 
     Scenario Outline: Input/Output voltage for assets
 
-        Given wallpower voltage "120" is set to "<ini-volt>"
+        Given wallpower voltage is set to "<ini-volt>"
         # create a certain power condition
-        When wallpower voltage "<ini-volt>" is updated to "<new-volt>"
+        When wallpower voltage is updated to "<new-volt>"
 
         # check states
         Then asset "1" input voltage is "<1-in-volt>"
@@ -62,3 +62,15 @@ Feature: System handles voltage updates
             | 120      | 0        | 0         | 0          | 0         | 0          | 0         | 0          |
             | 120      | 110      | 110       | 110        | 110       | 110        | 110       | 110        |
             | 120      | 108      | 108       | 108        | 108       | 108        | 108       | 0          |
+
+    @corner-case
+    Scenario: Voltage changes are ignored when an outlet is turned off by a user
+        Given asset "1" is "offline"
+        And wallpower voltage is set to "80"
+
+        When wallpower voltage is updated to "120"
+
+        # asset state should not change despite voltage update
+        Then asset "1" is "offline"
+        And asset "2" is "offline"
+        And asset "3" is "offline"

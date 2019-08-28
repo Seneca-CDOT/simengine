@@ -49,7 +49,7 @@ class ISystemEnvironment:
     def get_voltage(cls):
         """Get Wall-power voltage"""
         voltage = cls.get_store().get("voltage")
-        return float(voltage.decode()) if voltage else 120.0
+        return float(voltage.decode()) if voltage else cls.wallpower_volt_standard()
 
     @classmethod
     def power_source_available(cls):
@@ -112,7 +112,7 @@ class ISystemEnvironment:
     @Randomizer.randomize_method()
     def power_restore(cls):
         """Simulate complete power restoration"""
-        cls.set_voltage(120.0)
+        cls.set_voltage(cls.wallpower_volt_standard())
 
     @classmethod
     def mains_status(cls):
@@ -166,3 +166,10 @@ class ISystemEnvironment:
     def voltage_random_methods():
         """Supported voltage fluctuation random methods"""
         return ["uniform", "gauss"]
+
+    @staticmethod
+    def wallpower_volt_standard():
+        """Nominal wallpower voltage
+        (120 volt system in North America)
+        """
+        return 120.0

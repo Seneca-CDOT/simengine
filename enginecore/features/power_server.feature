@@ -24,6 +24,7 @@ Feature: Server Voltage Handling
 
         Then asset "1801" is "<1801>"
         And asset "180" is "<180>"
+        And asset "180" vm is "<180>"
 
         Examples: Single-psu server state tests
             | key  | status  | 1801    | 180     |
@@ -56,6 +57,7 @@ Feature: Server Voltage Handling
         Then asset "1801" is "<1801>"
         And asset "1802" is "<1802>"
         And asset "180" is "<180>"
+        And asset "180" vm is "<180>"
 
         Examples: Switching states from online to offline for dual power supply
             | key-1 | key-2 | 1-ini  | 2-ini  | 1-new   | 2-new   | 1801    | 1802    | 180     |
@@ -68,3 +70,58 @@ Feature: Server Voltage Handling
             | 1     | 2     | offline | online  | online  | online  | online  | online  | online |
             | 1     | 2     | offline | offline | offline | online  | offline | online  | online |
             | 1     | 2     | offline | offline | online  | offline | online  | offline | online |
+
+
+    @dual-psu-asset
+    @server-bmc-asset
+    @server-power-toggle
+    @corner-case
+    Scenario: More complicated case with server and psu power update
+
+        Given Outlet asset with key "2" is created
+        And ServerBMC asset with key "7" and "480" Wattage is created
+
+        And asset "1" powers target "71"
+        And asset "2" powers target "72"
+
+        And Engine is up and running
+
+        And asset "71" is "offline"
+        And asset "7" is "offline"
+        And asset "72" is "offline"
+
+        When asset "71" goes "online"
+
+        Then asset "7" is "online"
+        And asset "7" vm is "online"
+        And asset "71" is "online"
+
+    @corner-case
+    @dual-psu-asset
+    @server-bmc-asset
+    Scenario Outline: State of an offline server remains unchanged when it is set not to power when AC restored
+
+        Given Outlet asset with key "2" is created
+        And ServerBMC asset with key "7" and "480" Wattage is created
+        And asset "7" "does not power on" when AC is restored
+
+        And asset "1" powers target "71"
+        And asset "2" powers target "72"
+
+        And Engine is up and running
+        And asset "7" is "offline"
+
+        # Test conditions, when this happens:
+        When asset "<key-1>" goes "<1-new>"
+        And asset "<key-2>" goes "<2-new>"
+
+        # Then the result is:
+        Then asset "7" is "offline"
+        And asset "7" vm is "offline"
+
+        Examples: Check that AC state update does not affect power state of the server asset
+            | key-1 | key-2 | 1-ini   | 2-ini   | 1-new   | 2-new   |
+            | 1     | 2     | offline | offline | online  | online  |
+            | 1     | 2     | offline | offline | offline | online  |
+            | 1     | 2     | offline | offline | online  | offline |
+

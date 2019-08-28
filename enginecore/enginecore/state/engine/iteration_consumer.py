@@ -8,7 +8,7 @@ import threading
 class EngineIterationConsumer:
     """This wrapper watches an event queue in a separate thread
     and launches a processing iteration (e.g. a chain of power events
-    that occured due to power outage)"""
+    that occurred due to power outage)"""
 
     def __init__(self, iteration_worker_name="unspecified"):
 

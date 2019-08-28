@@ -3,7 +3,7 @@ from enginecore.tools.randomizer import Randomizer
 
 
 @Randomizer.register
-class IStaticDeviceManager(IStateManager):
+class IStaticDeviceStateManager(IStateManager):
     """Exposes state logic for static(dummy) asset """
 
     @Randomizer.randomize_method()

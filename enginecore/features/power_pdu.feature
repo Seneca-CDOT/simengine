@@ -42,7 +42,7 @@ Feature: Power Chaining for PDU (with Multiple Children)
         Then asset "74" is "<74>"
         Then asset "75" is "<75>"
 
-        # everythin powered by the PDU
+        # everything powered by the PDU
         Then asset "3" is "<3>"
         Then asset "4" is "<4>"
         Then asset "5" is "<5>"
@@ -73,7 +73,7 @@ Feature: Power Chaining for PDU (with Multiple Children)
         Then asset "73" is "<73>"
         Then asset "74" is "<74>"
 
-        # everythin powered by the PDU
+        # everything powered by the PDU
         Then asset "3" is "<3>"
         Then asset "4" is "<4>"
 
@@ -98,7 +98,7 @@ Feature: Power Chaining for PDU (with Multiple Children)
 
         Then asset "73" is "<73>"
 
-        # everythin powered by the PDU
+        # everything powered by the PDU
         Then asset "3" is "<3>"
 
 

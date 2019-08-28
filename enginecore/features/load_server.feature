@@ -12,7 +12,192 @@ Feature: Server Load Handling
         And Outlet asset with key "1" is created
 
     @dual-psu-asset
-    Scenario Outline: Dual-PSU load re-destribution
+    @server-power-toggle
+    Scenario Outline: Toggling server power should affect PSU load
+        Given Outlet asset with key "2" is created
+        And Server asset with key "7", "2" PSU(s) and "480" Wattage is created
+
+        And asset "1" powers target "71"
+        And asset "2" powers target "72"
+        And Engine is up and running
+        And asset "7" is "<server-ini>"
+
+        When asset "7" goes "<server-new>"
+
+        # check load for assets
+        Then asset "1" load is set to "<1>"
+        Then asset "2" load is set to "<2>"
+
+        And asset "71" load is set to "<71>"
+        And asset "72" load is set to "<72>"
+
+        And asset "7" load is set to "<7>"
+        Examples: Toggling server status results in load update
+            | server-ini | server-new | 1   | 2   | 71  | 72  | 7   |
+            | online     | online     | 2.0 | 2.0 | 2.0 | 2.0 | 4.0 |
+            | online     | offline    | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
+            | offline    | online     | 2.0 | 2.0 | 2.0 | 2.0 | 4.0 |
+
+    @dual-psu-asset
+    @server-bmc-asset
+    @server-power-toggle
+    Scenario Outline: Toggling server bmc power should affect PSU load
+        Given Outlet asset with key "2" is created
+        And ServerBMC asset with key "7" and "480" Wattage is created
+
+        And asset "1" powers target "71"
+        And asset "2" powers target "72"
+        And Engine is up and running
+        And asset "7" is "<server-ini>"
+
+        When asset "7" goes "<server-new>"
+
+        # check load for assets
+        Then asset "1" load is set to "<1>"
+        Then asset "2" load is set to "<2>"
+
+        And asset "71" load is set to "<71>"
+        And asset "72" load is set to "<72>"
+
+        And asset "7" load is set to "<7>"
+        Examples: Toggling server status results in load update
+            | server-ini | server-new | 1    | 2    | 71   | 72   | 7   |
+            | online     | online     | 2.25 | 2.25 | 2.25 | 2.25 | 4.0 |
+            | online     | offline    | 0.25 | 0.25 | 0.25 | 0.25 | 0.0 |
+            | offline    | online     | 2.25 | 2.25 | 2.25 | 2.25 | 4.0 |
+
+    @dual-psu-asset
+    @server-bmc-asset
+    @server-power-toggle
+    @corner-case
+    Scenario Outline: Special Server case with PSU power change and then server state toggling
+
+        Given Outlet asset with key "2" is created
+        And ServerBMC asset with key "7" and "480" Wattage is created
+
+        And asset "1" powers target "71"
+        And asset "2" powers target "72"
+        And Engine is up and running
+        And asset "7" is "<server-ini>"
+
+        When asset "<psu-key>" goes "<psu-ini>"
+        And asset "7" goes "<server-new>"
+
+        # check load for assets
+        Then asset "1" load is set to "<1>"
+        And asset "2" load is set to "<2>"
+
+        And asset "71" load is set to "<71>"
+        And asset "72" load is set to "<72>"
+
+        And asset "7" load is set to "<7>"
+        Examples: Toggling server and psu status results in load update
+            | psu-key | psu-ini | server-ini | server-new | 1    | 2    | 71   | 72   | 7   |
+            | 71      | offline | online     | offline    | 0.00 | 0.25 | 0.0  | 0.25 | 0.0 |
+            | 72      | offline | online     | offline    | 0.25 | 0.00 | 0.25 | 0.0  | 0.0 |
+            | 72      | offline | offline    | online     | 4.25 | 0.00 | 4.25 | 0.0  | 4.0 |
+
+
+    @dual-psu-asset
+    @server-bmc-asset
+    @server-power-toggle
+    @corner-case
+    Scenario Outline: Special Server case with server going offline and then PSU power change
+
+        Given Outlet asset with key "2" is created
+        And ServerBMC asset with key "7" and "480" Wattage is created
+
+        And asset "1" powers target "71"
+        And asset "2" powers target "72"
+        And Engine is up and running
+        And asset "7" is "<server-ini>"
+
+        When asset "7" goes "<server-new>"
+        And asset "<psu-key>" goes "<psu-ini>"
+        And asset "<psu-key>" goes "<psu-new>"
+
+        # check load for assets
+        Then asset "1" load is set to "<1>"
+        And asset "2" load is set to "<2>"
+
+        And asset "71" load is set to "<71>"
+        And asset "72" load is set to "<72>"
+
+        And asset "7" load is set to "<7>"
+        Examples: Toggling server and psu status results in load update
+            | server-ini | server-new | psu-key | psu-ini | psu-new | 1    | 2    | 71   | 72   | 7   |
+            | online     | offline    | 71      | offline | online  | 2.25 | 2.25 | 2.25 | 2.25 | 4.0 |
+            | online     | offline    | 72      | offline | online  | 2.25 | 2.25 | 2.25 | 2.25 | 4.0 |
+
+
+    @corner-case
+    @dual-psu-asset
+    @server-bmc-asset
+    Scenario Outline: Load of an offline server remains unchanged when it is set not to power when AC restored
+
+        Given Outlet asset with key "2" is created
+        And ServerBMC asset with key "7" and "480" Wattage is created
+        And asset "7" "does not power on" when AC is restored
+
+        And asset "1" powers target "71"
+        And asset "2" powers target "72"
+
+        And Engine is up and running
+        And asset "7" is "offline"
+        And asset "<key-1>" is "<1-ini>"
+        And asset "<key-2>" is "<2-ini>"
+
+        # Test conditions, when this happens:
+        When asset "<key-1>" goes "<1-new>"
+        And asset "<key-2>" goes "<2-new>"
+
+        # Then the load outcome/result is:
+        Then asset "1" load is set to "<1>"
+        And asset "2" load is set to "<2>"
+
+        And asset "71" load is set to "<71>"
+        And asset "72" load is set to "<72>"
+        And asset "7" load is set to "<7>"
+
+
+        Examples: Check that AC state update does not affect load of the server asset (toggling outlets)
+            | key-1 | key-2 | 1-ini   | 2-ini   | 1-new   | 2-new   | 1    | 2    | 71   | 72   | 7   |
+            | 1     | 2     | offline | offline | online  | online  | 0.25 | 0.25 | 0.25 | 0.25 | 0.0 |
+            | 1     | 2     | offline | offline | offline | online  | 0.00 | 0.25 | 0.00 | 0.25 | 0.0 |
+            | 1     | 2     | offline | offline | online  | offline | 0.25 | 0.00 | 0.25 | 0.00 | 0.0 |
+
+        Examples: Check that AC state update does not affect load of the server asset (toggling PSUs)
+            | key-1 | key-2 | 1-ini   | 2-ini   | 1-new   | 2-new   | 1    | 2    | 71   | 72   | 7   |
+            | 71    | 72    | offline | offline | online  | online  | 0.25 | 0.25 | 0.25 | 0.25 | 0.0 |
+            | 71    | 72    | offline | offline | offline | online  | 0.00 | 0.25 | 0.00 | 0.25 | 0.0 |
+            | 71    | 72    | offline | offline | online  | offline | 0.25 | 0.00 | 0.25 | 0.00 | 0.0 |
+
+    @corner-case
+    @dual-psu-asset
+    @server-bmc-asset
+    Scenario: Load re-distribution works with option power-on-AC-restored set to off
+        Given Outlet asset with key "2" is created
+        And ServerBMC asset with key "7" and "480" Wattage is created
+        And asset "7" "does not power on" when AC is restored
+
+        And asset "1" powers target "71"
+        And asset "2" powers target "72"
+
+        And Engine is up and running
+
+        When asset "71" goes "offline"
+        And asset "71" goes "online"
+
+        Then asset "1" load is set to "2.25"
+        And asset "2" load is set to "2.25"
+
+        And asset "71" load is set to "2.25"
+        And asset "72" load is set to "2.25"
+
+        And asset "7" load is set to "4.0"
+
+    @dual-psu-asset
+    Scenario Outline: Dual-PSU load re-distribution
         # initialize model & engine
         # (1)-[powers]->[1801:   server ]
         # (2)-[powers]->[1802     180   ]
@@ -77,7 +262,7 @@ Feature: Server Load Handling
         And asset "2" powers target "1802"
         And Engine is up and running
 
-        When wallpower voltage "<ini-volt>" is updated to "<new-volt>"
+        When wallpower voltage is updated to "<new-volt>"
 
         # check load for assets
         Then asset "1" load is set to "<1>"
@@ -89,12 +274,14 @@ Feature: Server Load Handling
         And asset "180" load is set to "<180>"
 
         Examples: Downstream voltage drop chaining
-            | ini-volt | new-volt | 1   | 2   | 1801 | 1802 | 180 |
-            | 120      | 0        | 0.0 | 0.0 | 0.0  | 0.0  | 0.0 |
-            | 120      | 240      | 1.0 | 1.0 | 1.0  | 1.0  | 2.0 |
-            | 120      | 60       | 4.0 | 4.0 | 4.0  | 4.0  | 8.0 |
+            | new-volt | 1   | 2   | 1801 | 1802 | 180 |
+            | 0        | 0.0 | 0.0 | 0.0  | 0.0  | 0.0 |
+            | 240      | 1.0 | 1.0 | 1.0  | 1.0  | 2.0 |
+            | 60       | 4.0 | 4.0 | 4.0  | 4.0  | 8.0 |
 
 
+    @dual-psu-asset
+    @server-bmc-asset
     Scenario Outline: Load is distributed with ServerBMC with PSUs drawing power
         Given Outlet asset with key "2" is created
         And Outlet asset with key "22" is created
@@ -153,7 +340,17 @@ Feature: Server Load Handling
             | 91    | 92    | online | online | online  | offline | 4.25 | 0.00 | 0.00 | 4.25 | 0.00 | 4.0 |
             | 91    | 92    | online | online | online  | offline | 4.25 | 0.00 | 0.00 | 4.25 | 0.00 | 4.0 |
 
+        Examples: Switching states from offline to online for outlets powering 2 PSUs should affect load
+            | key-1 | key-2 | 1-ini   | 2-ini   | 1-new   | 2-new   | 1    | 2    | 22   | 91   | 92   | 9   |
+            | 1     | 2     | offline | offline | online  | online  | 2.25 | 2.25 | 2.25 | 2.25 | 2.25 | 4.0 |
+            | 1     | 2     | offline | offline | offline | online  | 0.00 | 4.25 | 4.25 | 0.0  | 4.25 | 4.0 |
+            | 1     | 2     | offline | offline | online  | offline | 4.25 | 0.00 | 0.00 | 4.25 | 0.00 | 4.0 |
 
+        Examples: Switching states from offline to online for PSUs should affect load
+            | key-1 | key-2 | 1-ini   | 2-ini   | 1-new   | 2-new   | 1    | 2    | 22   | 91   | 92   | 9   |
+            | 91    | 92    | offline | offline | online  | online  | 2.25 | 2.25 | 2.25 | 2.25 | 2.25 | 4.0 |
+            | 91    | 92    | offline | offline | offline | online  | 0.00 | 4.25 | 4.25 | 0.0  | 4.25 | 4.0 |
+            | 91    | 92    | offline | offline | online  | offline | 4.25 | 0.00 | 0.00 | 4.25 | 0.00 | 4.0 |
 
     Scenario Outline: Single PSU server acts just like a regular asset
         # initialize model & engine
