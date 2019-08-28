@@ -437,13 +437,13 @@ class ServerWithBMC(Server):
             self._sensor_repo.power_up_sensors()
         return new_state
 
-    @handler("ButtonPowerDownPressed")
-    def on_asset_did_power_off(self):
+    @handler("PowerButtonOffEvent")
+    def on_asset_did_power_off(self, event, *args, **kwargs):
         """Set sensors to off values on power down (no power source)"""
         self._sensor_repo.shut_down_sensors()
 
-    @handler("ButtonPowerUpPressed")
-    def on_asset_did_power_on(self):
+    @handler("PowerButtonOnEvent")
+    def on_asset_did_power_on(self, event, *args, **kwargs):
         """Update sensors on power online"""
         self._sensor_repo.power_up_sensors()
 
