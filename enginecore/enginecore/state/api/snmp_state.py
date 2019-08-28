@@ -25,30 +25,41 @@ class ISnmpDeviceStateManager(IStateManager):
 
         return {"host": a_info["host"], "port": a_info["port"], "work_dir": snmp_dir}
 
-    def _set_interface_status(self, status):
-        """Update interface status to either 'up' or 'down' """
-        if not "interface" in self._asset_info or not self._asset_info["interface"]:
-            return
-
-        if status not in ["up", "down"]:
-            raise ValueError("Invalid status for net-interface")
+    def _execute_ifconfig_cmd(self, command):
+        """Execute ifconfig command with ifconfig
+        Args:
+            command(str): command to be executed """
 
         subprocess.Popen(
-            "ifconfig {} {}".format(self._asset_info["interface"], status),
+            "ifconfig {}".format(command),
             stderr=subprocess.DEVNULL,
             shell=True,
             close_fds=True,
         )
 
+    def _has_interface(self):
+        return "interface" in self._asset_info and self._asset_info["interface"]
+
     def disable_net_interface(self):
         """Deactivate a network interface attached to this SNMP
         device (if provided with model options)"""
-        self._set_interface_status("down")
+        if not self._has_interface():
+            return
+
+        self._execute_ifconfig_cmd("{interface} down".format(**self._asset_info))
 
     def enable_net_interface(self):
         """Activate a network interface attached to this SNMP
         device (if provided with model options)"""
-        self._set_interface_status("up")
+        if not self._has_interface():
+            return
+
+        self._execute_ifconfig_cmd("{interface} {host}".format(**self._asset_info))
+
+        if "mask" in self._asset_info:
+            self._execute_ifconfig_cmd(
+                "{interface} netmask {mask}".format(**self._asset_info)
+            )
 
     @Randomizer.randomize_method()
     def power_off(self):
