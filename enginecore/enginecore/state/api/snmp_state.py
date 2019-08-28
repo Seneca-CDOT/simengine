@@ -1,10 +1,13 @@
-"""SNMP device provides access snmp state"""
+"""SNMP device provides access to snmp state including
+OIDs & network configurations for snmp"""
 from collections import namedtuple
+import subprocess
 
 from enginecore.state.api.state import IStateManager
 from enginecore.model.graph_reference import GraphReference
 from enginecore.tools.utils import format_as_redis_key
 from enginecore.state.state_initializer import get_temp_workplace_dir
+from enginecore.tools.randomizer import Randomizer
 
 
 class ISnmpDeviceStateManager(IStateManager):
@@ -21,6 +24,52 @@ class ISnmpDeviceStateManager(IStateManager):
         )
 
         return {"host": a_info["host"], "port": a_info["port"], "work_dir": snmp_dir}
+
+    def _set_interface_status(self, status):
+        """Update interface status to either 'up' or 'down' """
+        if not "interface" in self._asset_info or not self._asset_info["interface"]:
+            return
+
+        if status not in ["up", "down"]:
+            raise ValueError("Invalid status for net-interface")
+
+        subprocess.Popen(
+            "ifconfig {} {}".format(self._asset_info["interface"], status),
+            stderr=subprocess.DEVNULL,
+            shell=True,
+            close_fds=True,
+        )
+
+    def disable_net_interface(self):
+        """Deactivate a network interface attached to this SNMP
+        device (if provided with model options)"""
+        self._set_interface_status("down")
+
+    def enable_net_interface(self):
+        """Activate a network interface attached to this SNMP
+        device (if provided with model options)"""
+        self._set_interface_status("up")
+
+    @Randomizer.randomize_method()
+    def power_off(self):
+        powered = super().power_off()
+        if not powered:
+            self.disable_net_interface()
+        return powered
+
+    @Randomizer.randomize_method()
+    def shut_down(self):
+        powered = super().shut_down()
+        if not powered:
+            self.disable_net_interface()
+        return powered
+
+    @Randomizer.randomize_method()
+    def power_up(self):
+        powered = super().power_up()
+        if powered:
+            self.enable_net_interface()
+        return powered
 
     def _update_oid_by_name(self, oid_name, value, use_spec=False):
         """Update a specific oid
