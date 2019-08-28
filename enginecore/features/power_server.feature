@@ -184,6 +184,35 @@ Feature: Power logic for Server asset type
             | offline       | offline        |
 
     @slow
+    @wip
+    @server-bmc-asset
+    @ipmi-interface
+    @unreliable
+    Scenario Outline: BMC Sensors are set to their offline states when server is offline
+            """
+            For example, case fans would stop spinning
+            """
+        Given Outlet asset with key "2" is created
+        And ServerBMC asset with key "7" and "480" Wattage is created
+
+        And asset "1" powers target "71"
+        And asset "2" powers target "72"
+        And Engine is up and running
+
+        And asset "7" is "<1-ini>"
+        When asset "7" goes "<1-new>"
+
+        # ipmi_sim reads from a file with a delay
+        And pause for "2" seconds
+
+        Then asset "7" BMC sensor "PSU1 Fan" value is "<sensor-value>"
+
+        Examples: AC changes to a PSU affect PSU fan status
+            | 1-ini   | 1-new   | sensor-value |
+            | online  | offline | 0 RPM        |
+            | offline | online  | 1000 RPM     |
+
+    @slow
     @server-bmc-asset
     @ipmi-interface
     @unreliable
