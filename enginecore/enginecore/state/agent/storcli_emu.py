@@ -282,6 +282,7 @@ class StorCLIEmulator:
 
             entry_options = {
                 "controller_num": controller_num,
+                "drive_groups_num": ctrl_info["numDriveGroups"],
                 "controller_date": "",
                 "system_date": "",
                 "status": "Optimal",
@@ -303,6 +304,9 @@ class StorCLIEmulator:
             drives = GraphReference.get_all_drives(
                 session, self._server_key, controller_num
             )
+
+            # Add physical drive output (do some formatting plus check pd states)
+            drives["pd"].sort(key=lambda k: k["slotNum"])
             topology = []
 
             # analyze and format virtual drive output
@@ -313,7 +317,7 @@ class StorCLIEmulator:
                 )
 
                 # Add Virtual Drive output
-                v_drive["DG/VD"] = "0/" + str(i)
+                v_drive["DG/VD"] = str(v_drive["DG"]) + "/" + str(i)
                 v_drive["Size"] = str(v_drive["Size"]) + " GB"
 
                 # check pd states & determine virtual drive health status
@@ -325,39 +329,50 @@ class StorCLIEmulator:
                 if v_drive["State"] != "Optl":
                     ctrl_state["vdDgd"] += 1
 
-                topology.append(
-                    {
-                        **topology_defaults,
-                        **{
-                            "Type": v_drive["TYPE"],
-                            "State": v_drive["State"],
-                            "Size": v_drive["Size"],
+                topology.extend(
+                    [
+                        {
+                            **topology_defaults,
+                            **{
+                                "DG": v_drive["DG"],
+                                "Type": v_drive["TYPE"],
+                                "State": v_drive["State"],
+                                "Size": v_drive["Size"],
+                            },
                         },
-                    }
+                        {
+                            **topology_defaults,
+                            **{
+                                "Arr": 0,
+                                "DG": v_drive["DG"],
+                                "Type": v_drive["TYPE"],
+                                "State": v_drive["State"],
+                                "Size": v_drive["Size"],
+                            },
+                        },
+                    ]
                 )
 
-            # Add physical drive output (do some formatting plus check pd states)
-            drives["pd"].sort(key=lambda k: k["slotNum"])
+                self._format_pd_for_output(v_drive["pd"])
+                for pdid, pd in enumerate(v_drive["pd"]):
+                    topology.append(
+                        {
+                            **topology_defaults,
+                            **{
+                                "Arr": 0,
+                                "DG": v_drive["DG"],
+                                "Row": pdid,
+                                "EID:Slot": pd["EID:Slt"],
+                                "DID": pd["DID"],
+                                "Type": "DRIVE",
+                                "State": pd["State"],
+                                "Size": pd["Size"],
+                                "FSpace": "-",
+                            },
+                        }
+                    )
+
             self._format_pd_for_output(drives["pd"])
-
-            topology.extend(
-                map(
-                    lambda pd: {
-                        **topology_defaults,
-                        **{
-                            "Arr": 0,
-                            "Row": pd["slotNum"],
-                            "EID:Slot": pd["EID:Slt"],
-                            "DID": pd["DID"],
-                            "Type": "DRIVE",
-                            "State": pd["State"],
-                            "Size": pd["Size"],
-                            "FSpace": "-",
-                        },
-                    },
-                    drives["pd"],
-                )
-            )
 
             # determine overall controller status
             entry_options["status"] = self._get_state_from_config(
@@ -476,21 +491,38 @@ class StorCLIEmulator:
 
         # store row with the max char count in a column
         header_lengths = {key: len(str(key)) for key in headers}
+        left_align_cols = []
 
+        # calculate paddings for every column
         for table_row in table_options:
-
-            row_str = ""
             for col_key in headers:
                 val_len = len(str(table_row[col_key]))
-                # whitespace padding
+                # whitespace padding, set to len of header if smaller than header
                 val_len = val_len if val_len >= len(col_key) else len(col_key)
 
                 if val_len > header_lengths[col_key]:
                     header_lengths[col_key] = val_len
 
-                row_str += "{val:<{width}}".format(
-                    val=table_row[col_key], width=val_len + 1
+                if (
+                    not isinstance(table_row[col_key], (int, float, complex))
+                    and not col_key == "Size"
+                ):
+                    left_align_cols.append(col_key)
+
+        for table_row in table_options:
+            row_str = ""
+            for col_key in headers:
+                cell_value = table_row[col_key]
+
+                if col_key in left_align_cols:
+                    cell_format = "{val:<{width}}"
+                else:
+                    cell_format = "{val:>{width}}"
+
+                table_cell = cell_format.format(
+                    val=cell_value, width=header_lengths[col_key]
                 )
+                row_str += table_cell + " "
 
             value_rows.append(row_str)
 

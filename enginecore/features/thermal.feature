@@ -1,4 +1,3 @@
-# @simengine-cli
 @thermal-behaviour
 Feature: Ambient temperature changes
     Ambient starts rising on power outages and may affect states of hardware
@@ -11,6 +10,10 @@ Feature: Ambient temperature changes
         And UPS asset with key "190" and "1024" port is created
         And asset "1" powers target "2"
         And asset "2" powers target "190"
+
+    Scenario: Ambient is set to 21 degrees on engine start
+        Given Engine is up and running
+        Then ambient is set to "21" degrees
 
     @power-behaviour
     Scenario: Ambient goes up on power outage

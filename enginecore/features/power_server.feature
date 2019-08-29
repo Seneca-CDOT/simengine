@@ -4,7 +4,7 @@
 @server-asset
 @voltage-behaviour
 @power-behaviour
-Feature: Server Voltage Handling
+Feature: Power logic for Server asset type
     Server may handle voltage differently depending on how many power sources it has;
     Servers with dual psu have 2 power sources meaning that if
     one source fails, another one takes over.
@@ -128,6 +128,7 @@ Feature: Server Voltage Handling
     @ipmi-interface
     @server-bmc-asset
     @slow
+    @unreliable
     Scenario Outline: IPMI agent is not available when all power supplies are off
 
         Given Outlet asset with key "2" is created
@@ -158,3 +159,26 @@ Feature: Server Voltage Handling
             | key-1 | key-2 | 1-ini   | 2-ini   | 1-new   | 2-new   | ipmi-status |
             | 71    | 72    | offline | offline | online  | offline | reachable   |
             | 71    | 72    | offline | offline | offline | offline | unreachable |
+
+    @ipmi-interface
+    @server-bmc-asset
+    @slow
+    @unreliable
+    Scenario Outline: IPMI board chassis status changes with server status
+
+        Given Outlet asset with key "2" is created
+        And ServerBMC asset with key "7" and "480" Wattage is created
+
+        And asset "1" powers target "71"
+        And asset "2" powers target "72"
+        And Engine is up and running
+
+        When asset "7" goes "<server-status>"
+        And pause for "2" seconds
+
+        Then asset "7" ipmi chassis status is "<chassis-status>"
+
+        Examples: Toggling server status results in chassis power change
+            | server-status | chassis-status |
+            | online        | online         |
+            | offline       | offline        |

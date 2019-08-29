@@ -363,4 +363,4 @@ Battery learn Reoccurrence = 672 hrs
 Next Battery Learn = 12/31/2018, 19:00:00
 OEMID = FSC
 
-Drive Groups = 1
+Drive Groups = ${drive_groups_num}

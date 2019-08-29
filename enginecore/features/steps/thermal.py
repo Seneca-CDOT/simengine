@@ -1,7 +1,7 @@
 # pylint: disable=no-name-in-module,function-redefined,missing-docstring,unused-import,unused-wildcard-import, wildcard-import
 
 import time
-
+import math
 from behave import given, when, then, step
 from hamcrest import *
 from enginecore.state.api.environment import ISystemEnvironment
@@ -23,13 +23,21 @@ def step_impl(context):
 def step_impl(context, temp):
 
     old_ambient = ISystemEnvironment.get_ambient()
-    ISystemEnvironment.set_ambient(temp)
-    context.engine.handle_ambient_update(old_ambient, temp)
-    context.tracker.wait_thermal_queue()
+
+    if not math.isclose(temp, old_ambient):
+        ISystemEnvironment.set_ambient(temp)
+        context.engine.handle_ambient_update(old_ambient, temp)
+        context.tracker.wait_thermal_queue()
 
 
 @then('ambient is set to "{temp:d}" after "{delay:d}" seconds')
 def step_impl(_, temp, delay):
     time.sleep(delay)
+    ambient = ISystemEnvironment.get_ambient()
+    assert_that(ambient, equal_to(temp))
+
+
+@then('ambient is set to "{temp:d}" degrees')
+def step_impl(_, temp):
     ambient = ISystemEnvironment.get_ambient()
     assert_that(ambient, equal_to(temp))

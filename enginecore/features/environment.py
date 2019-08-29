@@ -4,6 +4,7 @@ see: https://behave.readthedocs.io/en/latest/tutorial.html#environmental-control
 """
 import logging
 import sys
+import os
 
 from behave import fixture, use_fixture
 
@@ -23,11 +24,14 @@ def configure_logger(_):
 
 
 @fixture
-def shut_down_threads(context):
+def shut_down_threads(context, scenario):
     """Fixture for stopping threads"""
 
     if hasattr(context, "engine"):
         context.engine.stop()
+
+    if "server-bmc-asset" in scenario.effective_tags:
+        os.system("killall ipmi_sim")
 
 
 def before_all(context):
@@ -37,6 +41,6 @@ def before_all(context):
 #     use_fixture(configure_logger, context)
 
 
-def after_scenario(context, _):
+def after_scenario(context, scenario):
     """Stop threads after each scenario"""
-    use_fixture(shut_down_threads, context)
+    use_fixture(shut_down_threads, context, scenario)

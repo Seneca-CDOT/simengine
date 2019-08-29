@@ -359,7 +359,7 @@ def create_command(create_asset_group):
     )
 
     create_asset_parent.add_argument("-n", "--name", help="Name displayed on the UI")
-    create_asset_parent.set_defaults(new_asset=True, power_on_ac=False)
+    create_asset_parent.set_defaults(new_asset=True, power_on_ac=True)
 
     create_volt_parent = argparse.ArgumentParser(add_help=False)
     create_volt_parent.add_argument(
@@ -379,6 +379,14 @@ def create_command(create_asset_group):
     )
     create_snmp_parent.add_argument(
         "--snmp-preset", type=str, help="Vendor-specific asset configurations"
+    )
+
+    create_snmp_parent.add_argument(
+        "--serial-number", type=str, help="Serial number of a simulated SNMP device"
+    )
+
+    create_snmp_parent.add_argument(
+        "--mac-address", type=str, help="MAC address of a simulated SNMP device"
     )
 
     # server group
