@@ -62,6 +62,18 @@ In addition to that, this project supports both web-based management dashboard a
 
 This section presents an overview of core software components of SimEngine with some diagrams loosely following [C4 approach](https://c4model.com).
 
+**Software Context**
+
 At a high level, there are 2 major systems involved – SimEngine (simulation system) and Alteeve's Anvil. A system tester can use SimEngine interfaces (cli or the dashboard) to trigger certain events, such as power outages, drive failures etc. A new system state will be calculated and made available to Anvil. Anvil's decision-making component will process it, determine health of the nodes and initiate server migrations if needed. The end result can be used by a system tester to facilitate quality assurance of both their digital infrastructure and Anvil software.
 
 ![High-Level system overview](./highLvlComponents.png)
+
+
+**Containers**
+
+SimEngine system can be subdivided into 2 parts – previously mentioned 3rd party tools used for network simulations and the engine itself. SimEngine instantiates and manages `ipmi_sim`/`snmpsimd.py` processes, supplies simulation data and accepts certain commands executed through the network interfaces (bidirectional communication). For instance, when Anvil switches off an outlet through PDU's SNMP interface, the outlet OID update is published to the engine through Redis pub/sub channels. This SNMP event gets processed just like any other power update. The same applies to `ipmitool power` commands – a [custom plugin library](../enginecore/ipmi_sim) for `ipmi_sim` utilizes `simengine-cli` to notify of any power changes that ought to take place.
+
+This middle layer servers as a point of communication between Anvil! and the simulation system.
+
+
+![High-Level system overview](./components.png)
