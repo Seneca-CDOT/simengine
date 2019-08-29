@@ -81,6 +81,11 @@ def step_impl(context):
     logging.info(context.tracker.wait_load_queue())
 
 
+@when('pause for "{delay:d}" seconds')
+def step_impl(_, delay):
+    time.sleep(delay)
+
+
 @when("power outage happens")
 def step_impl(context):
 

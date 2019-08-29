@@ -6,6 +6,7 @@ import logging
 import os
 import sys
 import time
+import subprocess
 
 import libvirt
 from behave import given, when, then, step
@@ -19,3 +20,55 @@ def step_impl(context, key, vm_state):
     assert_that(vm.isActive(), is_(vm_state == "online"))
 
     conn.close()
+
+
+def _check_ipmi_sensor_value(ipmi_config, sensor_name):
+    """Query ipmi interface given ipmi host, port, user, password
+    and retrieve sensor value for a specific sensor
+    """
+    query = "/usr/bin/ipmitool "
+    query += "-H {host} -p {port} -U {user} -P {password} sdr list".format(
+        **ipmi_config
+    )
+    query += ' | grep "' + sensor_name + '"'
+
+    ipmi_out = subprocess.check_output(query, shell=True).decode("utf-8")
+    if not ipmi_out:
+        return ""
+
+    s_value = ipmi_out.split("|")[1]
+    return s_value.strip()
+
+
+def _check_ipmi_status(ipmi_config):
+    """Check status of chassis and IPMI interface
+    returns on, off or unreachable
+    """
+
+    query = "/usr/bin/ipmitool "
+    query += "-H {host} -p {port} -U {user} -P {password} power status".format(
+        **ipmi_config
+    )
+
+    try:
+        ipmi_out = subprocess.check_output(query, shell=True).decode("utf-8").strip()
+        return ipmi_out.split()[-1]
+    except subprocess.CalledProcessError:
+        return "unreachable"
+
+
+@then('asset "{key:d}" BMC sensor "{sensor_name}" value is "{e_value}"')
+def step_impl(context, key, sensor_name, e_value):
+    asset_info = context.hardware[key].asset_info
+    s_value = _check_ipmi_sensor_value(asset_info, sensor_name)
+    assert_that(s_value, equal_to(e_value))
+
+
+@then('asset "{key:d}" ipmi interface is "{ipmi_status}"')
+def step_impl(context, key, ipmi_status):
+    asset_info = context.hardware[key].asset_info
+    status = _check_ipmi_status(asset_info)
+
+    assert_that(
+        status, (is_ if ipmi_status == "unreachable" else is_not)("unreachable")
+    )
