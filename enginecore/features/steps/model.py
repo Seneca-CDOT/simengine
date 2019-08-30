@@ -64,6 +64,12 @@ def step_impl(context, key):
     sm.configure_asset(key, {"runtime": json.dumps(wattage_runtime_map)})
 
 
+def _add_server_to_context(context, key):
+    context.hardware[key] = IStateManager.get_state_manager_by_key(key)
+    for psu_key in context.hardware[key].asset_info["children"]:
+        context.hardware[psu_key] = IStateManager.get_state_manager_by_key(psu_key)
+
+
 @given(
     'Server asset with key "{key:d}", "{psu_num:d}" PSU(s) and "{wattage:d}" Wattage is created'
 )
@@ -79,13 +85,10 @@ def step_impl(context, key, psu_num, wattage):
             "psu_power_consumption": 0,
             "psu_power_source": 120,
         },
+        server_variation=sm.ServerVariations.Server,
     )
 
-    context.hardware[key] = IStateManager.get_state_manager_by_key(key)
-
-    for psu_idx in range(1, psu_num + 1):
-        psu_key = key * 10 + psu_idx
-        context.hardware[psu_key] = IStateManager.get_state_manager_by_key(psu_key)
+    _add_server_to_context(context, key)
 
 
 @given('ServerBMC asset with key "{key:d}" and "{wattage:d}" Wattage is created')
@@ -103,10 +106,28 @@ def step_impl(context, key, wattage):
         server_variation=sm.ServerVariations.ServerWithBMC,
     )
 
-    context.hardware[key] = IStateManager.get_state_manager_by_key(key)
+    _add_server_to_context(context, key)
 
-    for psu_key in context.hardware[key].asset_info["children"]:
-        context.hardware[psu_key] = IStateManager.get_state_manager_by_key(psu_key)
+
+@given(
+    'ServerBMC asset with key "{key:d}" and "{wattage:d}" Wattage and storcli64 support is created'
+)
+def step_impl(context, key, wattage):
+
+    sm.create_server(
+        key,
+        {
+            "domain_name": context.config.userdata["test_vm"],
+            "power_consumption": wattage,
+            "psu_power_consumption": 0,
+            "psu_power_source": 120,
+            "storcli_enabled": True,
+            "storcli_port": 50000,
+        },
+        server_variation=sm.ServerVariations.ServerWithBMC,
+    )
+
+    _add_server_to_context(context, key)
 
 
 @given(

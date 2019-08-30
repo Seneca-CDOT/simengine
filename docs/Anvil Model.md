@@ -130,7 +130,7 @@ You will need to define 4 virtual networks (`sn1_bridge1`, `sn2_bridge1` and `bc
 
 ***Using Virsh .XML***
 
-One way to connect guests to the newly-defined interfaces is to copy `<interface>...</interface>` tags in `an-*.xml` vm config dump files located in [data folder](https://github.com/Seneca-CDOT/simengine/blob/master/data/) and paste in xml configuration by running `virsh edit` for all 4 vms;
+One way to connect guests to the newly-defined interfaces is to copy `<interface>...</interface>` tags in `an-*.xml` vm config dump files located in [data folder](https://github.com/Seneca-CDOT/simengine/blob/master/data/virsh) and paste in xml configuration by running `virsh edit` for all 4 vms;
 
 ***Virt-Manager Tool (Alternative to Using Virsh .XML)***
 
@@ -210,6 +210,11 @@ ifconfig bcn1_bridge1:6 netmask 255.255.0.0
 
 !!! note
     You may need to re-configure your firewall and expose port 161 (SNMP) as well as port 623 (IPMI) to the striker systems.
+    e.g.
+    ```bash
+    $ iptables -I INPUT -p udp -m udp --dport 161 -j ACCEPT
+    $ iptables -I INPUT -p udp -m udp --dport 623 -j ACCEPT
+    ```
 
 !!! note
     Network assignment will be lost on system reboot, make sure to run the script on system start
