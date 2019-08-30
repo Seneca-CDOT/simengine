@@ -71,9 +71,12 @@ At a high level, there are 2 major systems involved – SimEngine (simulation sy
 
 **Containers**
 
-SimEngine system can be subdivided into 2 parts – previously mentioned 3rd party tools used for network simulations and the engine itself. SimEngine instantiates and manages `ipmi_sim`/`snmpsimd.py` processes, supplies simulation data and accepts certain commands executed through the network interfaces (bidirectional communication). For instance, when Anvil switches off an outlet through PDU's SNMP interface, the outlet OID update is published to the engine through Redis pub/sub channels. This SNMP event gets processed just like any other power update. The same applies to `ipmitool power` commands – a [custom plugin library](../enginecore/ipmi_sim) for `ipmi_sim` utilizes `simengine-cli` to notify of any power changes that ought to take place.
+SimEngine system can be subdivided into 2 parts – previously mentioned 3rd party tools used for network simulations and the engine itself. SimEngine instantiates and manages `ipmi_sim`/`snmpsimd.py` processes, supplies simulation data and accepts certain commands executed through the network interfaces (thus the communication between 2 systems is bidirectional). For instance, when Anvil switches off an outlet through PDU's SNMP interface, the outlet OID update is published to the engine through Redis pub/sub channels. This SNMP event gets processed just like any other power update. The same applies to `ipmitool power` commands – a [custom plugin library](https://github.com/Seneca-CDOT/simengine/tree/master/enginecore/ipmi_sim) for `ipmi_sim` utilizes `simengine-cli` to notify of any power changes that ought to take place.
 
-This middle layer servers as a point of communication between Anvil! and the simulation system.
+This middle layer serves as a point of communication between Anvil! and the simulation system.
 
+All the hardware devices, along with the power connections between them, are stored in a graph database called [neo4j](https://neo4j.com/). SimEngine initializes system assets at the start and stores them in memory (meaning any changes to the power topology will require daemon restart). The graph storage also contains thermal interrelationships, sensor and storage data as well as server room properties (e.g. descriptions of ambient behaviour).
+
+Two interfaces are available to the user – `simengine-cli` for advance scripting and a UI dashboard supporting basic power management. Engine's CLI can be used to simulate power, thermal or storage-related scenarios, model unique infrastructures or replay and randomize actions.
 
 ![High-Level system overview](./components.png)
