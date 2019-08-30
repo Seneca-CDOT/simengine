@@ -77,6 +77,8 @@ This middle layer serves as a point of communication between Anvil! and the simu
 
 All the hardware devices, along with the power connections between them, are stored in a graph database called [neo4j](https://neo4j.com/). SimEngine initializes system assets at the start and stores them in memory (meaning any changes to the power topology will require daemon restart). The graph storage also contains thermal interrelationships, sensor and storage data as well as server room properties (e.g. descriptions of ambient behaviour).
 
-Two interfaces are available to the user – `simengine-cli` for advance scripting and a UI dashboard supporting basic power management. Engine's CLI can be used to simulate power, thermal or storage-related scenarios, model unique infrastructures or replay and randomize actions.
+Two interfaces are available – `simengine-cli` for advance scripting and a UI dashboard supporting basic power management. Engine's CLI can be used to simulate power, thermal or storage-related scenarios, model unique infrastructures or replay and randomize actions.
+
+[enginecore](https://github.com/Seneca-CDOT/simengine/blob/master/enginecore/README.md) ties everything together and handles all the system events in an event loop. It instantiates hardware assets based on graph representation, initializes web-socket server and monitors any incoming events. All the events to-be-handled by `enginecore` are queued for processing and get an iteration assigned to them. An iteration of a specific type blocks any new events until fully completed.
 
 ![High-Level system overview](./components.png)
