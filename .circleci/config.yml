@@ -62,7 +62,7 @@ jobs:
                   name: Running python BDD behave scenarios
                   command: |
                       . venv/bin/activate
-                      behave
+                      behave --tags=~@not-ci-friendly
 
             - store_artifacts:
                   path: test-reports
@@ -83,14 +83,14 @@ jobs:
             #     name: Setup Dependencies
             #     command: npm install
             - run:
-                name: Install Prettier
-                command: sudo npm install prettier --global
+                  name: Install Prettier
+                  command: sudo npm install prettier --global
             - run:
-                name: Run Prettier Check
-                command: prettier --check 'config/**/*.js' 'src/**/*.js'
+                  name: Run Prettier Check
+                  command: prettier --check 'config/**/*.js' 'src/**/*.js'
 workflows:
-  version: 2
-  build-deploy:
-    jobs:
-        - build-enginecore
-        - build-dashboard
+    version: 2
+    build-deploy:
+        jobs:
+            - build-enginecore
+            - build-dashboard
