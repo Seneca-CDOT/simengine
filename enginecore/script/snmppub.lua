@@ -13,5 +13,5 @@ else
         return "67".."|"..tostring(100*(now[1] - start_time))
     else
         return redis.call('get', KEYS[1])
-    end    
+    end
 end

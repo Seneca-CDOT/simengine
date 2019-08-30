@@ -3,7 +3,8 @@
 import json
 import time
 import curses
-from enginecore.state.assets import Asset
+
+# from enginecore.state.assets import Asset
 from enginecore.state.api import IStateManager, ISystemEnvironment
 
 
@@ -53,11 +54,12 @@ def status_table_format(assets, stdscr=False):
     """ Display status in a table format 
     Args:
         assets (dict): list of assets supported by the system
-        stdscr (optional): default window return by initscr(), status_table_format uses print if omitted
+        stdscr (optional): default window return by initscr(),
+                           status_table_format uses print if omitted
     """
 
     # format headers
-    headers = ["Asset Key", "Type", "Status", "Children", "Load"]
+    headers = ["Key", "Type", "Status", "Children", "Load"]
     row_format = "{:>10}" * (len(headers) + 1)
 
     headers = row_format.format("", *headers, end="")
@@ -74,9 +76,10 @@ def status_table_format(assets, stdscr=False):
             else "none"
         )
         row = row_format.format(
-            str(i),
+            str(i),  # index
             *[
                 str(asset_key),
+                # asset["name"],
                 asset["type"],
                 str(asset["status"]),
                 children,
@@ -110,7 +113,7 @@ def get_status(**kwargs):
     #### one asset ####
     if kwargs["asset_key"] and kwargs["load"]:
 
-        state_manager = Asset.get_state_manager_by_key(kwargs["asset_key"])
+        state_manager = IStateManager.get_state_manager_by_key(kwargs["asset_key"])
 
         if kwargs["value_only"]:
             print(state_manager.load)
@@ -122,7 +125,7 @@ def get_status(**kwargs):
             )
         return
     elif kwargs["asset_key"] and kwargs["agent"]:
-        state_manager = Asset.get_state_manager_by_key(kwargs["asset_key"])
+        state_manager = IStateManager.get_state_manager_by_key(kwargs["asset_key"])
         agent_info = state_manager.agent
         if agent_info:
             msg = "running" if agent_info[1] else "not running"
@@ -143,7 +146,7 @@ def get_status(**kwargs):
 
         return
     elif kwargs["asset_key"]:
-        state_manager = Asset.get_state_manager_by_key(kwargs["asset_key"])
+        state_manager = IStateManager.get_state_manager_by_key(kwargs["asset_key"])
         if kwargs["value_only"]:
             print(state_manager.status)
         else:

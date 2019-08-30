@@ -1,4 +1,5 @@
 """SimEngine web socket server client interface
+This client can be used to communicate recordable commands to the simengine websocket;
 """
 
 import json
@@ -34,7 +35,8 @@ class StateClient:
         Args:
             request(ClientToServerRequests): request name
             data(dict): request payload
-            ws_client(WebSocket): web socket / client, this method initializes one if not provided
+            ws_client(WebSocket): web socket / client,
+                                  this method initializes one if not provided
         """
         if not ws_client:
             ws_client = StateClient._get_ws_client()
@@ -106,10 +108,12 @@ class StateClient:
         return json.loads(self._ws_client.recv())["payload"]["executed"]
 
     def set_controller_prop(self, controller, ctrl_props):
-        """Request simengine socket server to update controller properties such as memory counts, alarms
+        """Request simengine socket server to update controller properties
+        such as memory counts, alarms
         Args:
             controller(int): controller number to be updated
-            ctrl_props(dict): including "alarm", correctable & uncorrectable errors as "mem_c_errors", "mem_uc_errors"
+            ctrl_props(dict): including "alarm", correctable
+                              & uncorrectable errors as "mem_c_errors", "mem_uc_errors"
         Returns:
             bool: status indicating if request was succesfully executed
         """
@@ -126,7 +130,8 @@ class StateClient:
         Args:
             controller(int): controller physical drive belongs to
             drive_id(int): unique drive id (DID) of drive to be updated
-            pd_props(dict): including 'media_error_count', 'other_error_count', 'predictive_error_count' or 'state'
+            pd_props(dict): including 'media_error_count', 'other_error_count',
+                            'predictive_error_count' or 'state'
         Returns:
             bool: status indicating if request was succesfully executed
         """
@@ -153,6 +158,13 @@ class StateClient:
         """Send power outage request to ws-simengine (init blackout)"""
         StateClient._send_request(
             ClientToServerRequests.set_ambient, {"degrees": degrees}
+        )
+
+    @classmethod
+    def set_voltage(cls, voltage):
+        """Send voltage update request to ws-simengine"""
+        StateClient._send_request(
+            ClientToServerRequests.set_voltage, {"voltage": voltage}
         )
 
     @classmethod
@@ -252,8 +264,9 @@ class StateClient:
     def rand_actions(cls, rand_options: dict):
         """Request Sim-Engine to perform random action
         Args:
-            rand_options: options for the randomizer such as num of iteration 'count' or time period 
-                          'seconds', asset filter 'asset_keys' and parameters for pauses in-between
+            rand_options: options for the randomizer such as num of iteration,
+                           count or time period, 'seconds', asset filter 'asset_keys'
+                           and parameters for pauses in-between
                            actions ('min_nap' and 'nap_time')
 
         """

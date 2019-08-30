@@ -16,7 +16,17 @@ import enginecore.tools.query_helpers as qh
 GRAPH_REF = GraphReference()
 
 # attributes shared by all the assets
-CREATE_SHARED_ATTR = ["x", "y", "name", "type", "key", "off_delay", "on_delay"]
+CREATE_SHARED_ATTR = [
+    "x",
+    "y",
+    "name",
+    "type",
+    "key",
+    "off_delay",
+    "on_delay",
+    "min_voltage",
+    "power_on_ac",
+]
 # Labels used by the app
 SIMENGINE_NODE_LABELS = []
 SIMENGINE_NODE_LABELS.extend(["Asset", "StageLayout", "SystemEnvironment", "EnvProp"])
@@ -200,6 +210,7 @@ IPMI_LAN_DEFAULTS = {
     "port": 9001,
     "vmport": 9002,
     "storcli_port": 50000,
+    "storcli_enabled": True,
 }
 
 
@@ -239,7 +250,7 @@ def _add_sensors(asset_key, preset_file):
                     addr = {"index": idx}
                 else:
                     raise KeyError(
-                        "Missing address for a seonsor {}".format(sensor_type)
+                        "Missing address for a sensor {}".format(sensor_type)
                     )
 
                 s_attr = [
@@ -328,6 +339,7 @@ def _add_storage(asset_key, preset_file, storage_state_file):
                 "memoryCorrectable_errors",
                 "memoryUncorrectable_errors",
                 "alarmState",
+                "numDriveGroups",
                 "bgiRate",
                 "prRate",
                 "rebuildRate",
@@ -419,6 +431,8 @@ def _add_storage(asset_key, preset_file, storage_state_file):
                     "predictiveErrorCount",
                     "rebuildTime",
                     "timeStamp",
+                    "manufacturerId",
+                    "serialNumber",
                 ]
 
                 props_stm = qh.get_props_stm(
@@ -447,6 +461,7 @@ def _add_storage(asset_key, preset_file, storage_state_file):
 
                 s_attr = [
                     "TYPE",
+                    "DG",
                     "State",
                     "Access",
                     "Cac",
@@ -525,6 +540,7 @@ def create_server(key, attr, server_variation=ServerVariations.Server):
 
         # set BMC-server specific attributes if type is bmc
         if server_variation == ServerVariations.ServerWithBMC:
+
             bmc_attr = {**IPMI_LAN_DEFAULTS, **attr}  # merge
 
             set_stm = qh.get_set_stm(
@@ -605,6 +621,9 @@ def create_ups(
             "runtime",
             "power_source",
             "power_consumption",
+            "work_dir",
+            "interface",
+            "mask",
         ] + CREATE_SHARED_ATTR
 
         props_stm = qh.get_props_stm(
@@ -624,10 +643,16 @@ def create_ups(
         # Add UPS OIDs
         for oid_key, oid_props in data["OIDs"].items():
             if oid_key == "SerialNumber":
-                oid_props["defaultValue"] = qh.generate_id()
+                if "serial_number" in attr and attr["serial_number"]:
+                    oid_props["defaultValue"] = attr["serial_number"]
+                else:
+                    oid_props["defaultValue"] = qh.generate_id()
 
             if oid_key == "MAC":
-                oid_props["defaultValue"] = qh.generate_mac()
+                if "mac_address" in attr and attr["mac_address"]:
+                    oid_props["defaultValue"] = attr["mac_address"]
+                else:
+                    oid_props["defaultValue"] = qh.generate_mac()
 
             props = {**oid_props, **{"OIDName": oid_key}}
             props_stm = qh.get_props_stm(
@@ -691,7 +716,13 @@ def create_pdu(
         attr["name"] = (
             attr["name"] if "name" in attr and attr["name"] else data["assetName"]
         )
-        s_attr = ["staticOidFile", "port", "host"] + CREATE_SHARED_ATTR
+        s_attr = [
+            "staticOidFile",
+            "port",
+            "host",
+            "interface",
+            "mask",
+        ] + CREATE_SHARED_ATTR
 
         props_stm = qh.get_props_stm(
             {**attr, **data, **{"key": key, "type": "pdu"}}, supported_attr=s_attr
@@ -702,10 +733,16 @@ def create_pdu(
 
         # Add PDU OIDS to the model
         for oid_key, oid_props in data["OIDs"].items():
-            if oid_key == "SerialNumber":
+            if "serial_number" in attr and attr["serial_number"]:
+                oid_props["defaultValue"] = attr["serial_number"]
+            else:
                 oid_props["defaultValue"] = qh.generate_id()
+
             if oid_key == "MAC":
-                oid_props["defaultValue"] = qh.generate_mac()
+                if "mac_address" in attr and attr["mac_address"]:
+                    oid_props["defaultValue"] = attr["mac_address"]
+                else:
+                    oid_props["defaultValue"] = qh.generate_mac()
 
             s_attr = ["OID", "OIDName", "defaultValue", "dataType"]
             props_stm = qh.get_props_stm(

@@ -1,1 +1,5 @@
 pre-commit
+behave
+black
+pylint
+PyHamcrest

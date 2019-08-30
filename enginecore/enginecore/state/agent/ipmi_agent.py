@@ -13,10 +13,12 @@ from string import Template
 from enginecore.model.supported_sensors import SUPPORTED_SENSORS
 from enginecore.state.agent.agent import Agent
 
+logger = logging.getLogger(__name__)
+
 
 class IPMIAgent(Agent):
-    """Python wrapper managing ipmi_sim program that takes SensorRepository & translates it into ipmi_sim 
-    sensor definitions.
+    """Python wrapper managing ipmi_sim program that takes 
+    SensorRepository & translates it into ipmi_sim sensor definitions.
     """
 
     supported_sensors = dict.fromkeys(SUPPORTED_SENSORS, "")
@@ -31,11 +33,12 @@ class IPMIAgent(Agent):
     ]
 
     def __init__(self, ipmi_dir, ipmi_config, sensor_repo, bmc_address="0x20"):
-        """Initialize ipmi_sim working environment, define sensors based on sensor repository
-        and start ipmi_sim program.
+        """Initialize ipmi_sim working environment, define sensors
+        based on sensor repository and start ipmi_sim program.
         Args:
             ipmi_dir(str): path to simulator's work environment
-            ipmi_config(dict): connection & network device configuration (see IPMIAgent.lan_conf_attributes)
+            ipmi_config(dict): connection & network device configuration
+                               (see IPMIAgent.lan_conf_attributes)
             sensor_repo(SensorRepository): BMC sensors belonging to a particular server
             bmc_address(str): baseboard address to be used
         """
@@ -54,8 +57,6 @@ class IPMIAgent(Agent):
 
         # start process
         self.start_agent()
-
-        IPMIAgent.agent_num += 1
 
     def _substitute_template_file(self, filename, options):
         """Update file using templating
@@ -204,7 +205,7 @@ class IPMIAgent(Agent):
             + ["-s", self.emu_state_dir_path, "-n"]
         )
 
-        logging.info("Starting agent: %s", " ".join(cmd))
+        logger.info("Starting agent: %s", " ".join(cmd))
 
         self.register_process(
             subprocess.Popen(cmd, stderr=subprocess.DEVNULL, close_fds=True)
@@ -212,3 +213,28 @@ class IPMIAgent(Agent):
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.stop_agent()
+
+    def __str__(self):
+
+        agent_info = (
+            "\nipmi_sim lan: \n"
+            "   Accessible at: {host}:{port} \n"
+            "   User/Password:  {user}/{password}\n"
+            "   Connected to guest VM at port: {vmport} \n"
+        ).format(**self._ipmi_config)
+
+        file_struct_info = (
+            "\nipmi_sim files: \n"
+            "   Sensor definitions file: {0.sensor_def_path}\n"
+            "   Compiled sensors located in: {0.emu_state_dir_path}\n"
+            "   Lan configurations: {0.lan_conf_path}\n"
+            "   .emu commands file: {0.ipmisim_emu_path}\n"
+        ).format(self)
+
+        return ("\n" + "-" * 20 + "\n").join(
+            (
+                "IPMI simulator:",
+                super(IPMIAgent, self).__str__(),
+                file_struct_info + agent_info,
+            )
+        )

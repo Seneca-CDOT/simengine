@@ -44,15 +44,13 @@ For hardware resources, it is recommended to allocate:
 
 Memory:
 
-- `8192 MiB` per each `an-a01n0x` node
-
-- `1024 MiB` per each `an-striker0x` control server
+*  `8192 MiB` per each `an-a01n0x` node
+*  `1024 MiB` per each `an-striker0x` control server
 
 Storage:
 
-- `100 Gib` per each `an-a01n0x` node
-
-- `50 Gib` per each `an-striker0x` control server
+*  `100 Gib` per each `an-a01n0x` node
+*  `50 Gib` per each `an-striker0x` control server
 
 
 ### BMC and storcli64
@@ -130,7 +128,7 @@ You will need to define 4 virtual networks (`sn1_bridge1`, `sn2_bridge1` and `bc
 
 ***Using Virsh .XML***
 
-One way to connect guests to the newly-defined interfaces is to copy `<interface>...</interface>` tags in `an-*.xml` vm config dump files located in [data folder](https://github.com/Seneca-CDOT/simengine/blob/master/data/) and paste in xml configuration by running `virsh edit` for all 4 vms;
+One way to connect guests to the newly-defined interfaces is to copy `<interface>...</interface>` tags in `an-*.xml` vm config dump files located in [data folder](https://github.com/Seneca-CDOT/simengine/blob/master/data/virsh) and paste in xml configuration by running `virsh edit` for all 4 vms;
 
 ***Virt-Manager Tool (Alternative to Using Virsh .XML)***
 
@@ -210,6 +208,11 @@ ifconfig bcn1_bridge1:6 netmask 255.255.0.0
 
 !!! note
     You may need to re-configure your firewall and expose port 161 (SNMP) as well as port 623 (IPMI) to the striker systems.
+    e.g.
+    ```bash
+    $ iptables -I INPUT -p udp -m udp --dport 161 -j ACCEPT
+    $ iptables -I INPUT -p udp -m udp --dport 623 -j ACCEPT
+    ```
 
 !!! note
     Network assignment will be lost on system reboot, make sure to run the script on system start
@@ -233,12 +236,45 @@ simengine-cli model create outlet --asset-key=1 -x=-861 -y=-171
 simengine-cli model create outlet -k2 -x=-861 -y=351
 
 # Add 2 UPSs
-simengine-cli model create ups -k=3 --name=an-ups01 --host=10.20.3.1 --port=161 -x=-895 -y=-182
-simengine-cli model create ups -k=4 --name=an-ups02 --host=10.20.3.2 --port=161 -x=-895 -y=347
+simengine-cli model create ups -k=3 \
+    --name=an-ups01 \
+    --host=10.20.3.1 \
+    --mask=255.255.0.0 \
+    --port=161 \
+    --interface="bcn1_bridge1:1" \
+    --serial-number="SVPD4D5QTQ3V" \
+    --mac-address="f2325a5b0824" \
+    -x=-895 -y=-182
+simengine-cli model create ups -k=4 \
+    --name=an-ups02 \
+    --host=10.20.3.2 \
+    --mask=255.255.0.0 \
+    --port=161 \
+    --interface="bcn1_bridge1:2" \
+    --serial-number="8IAIMD9RX6KZ" \
+    --mac-address="8117f9db70d4" \
+    -x=-895 -y=347
 
 # Create 2 PDUs
-simengine-cli model create pdu -k=5 -n=an-pdu01 --host=10.20.2.1 --port=161 -x=-36 -y=-161
-simengine-cli model create pdu -k=6 -n=an-pdu02 --host=10.20.2.2 --port=161 -x=-36 -y=567
+simengine-cli model create pdu -k=5 \
+    -n=an-pdu01 \
+    --host=10.20.2.1 \
+    --mask=255.255.0.0 \
+    --port=161 \
+    --interface="bcn1_bridge1:3" \
+    --serial-number="AQ5AKU1OORAX" \
+    --mac-address="37436ab3c583" \
+    -x=-36 -y=-161
+
+simengine-cli model create pdu -k=6 \
+    -n=an-pdu02 \
+    --host=10.20.2.2 \
+    --mask=255.255.0.0 \
+    --port=161 \
+    --interface="bcn1_bridge1:4" \
+    --serial-number="95SQW45SVIFX" \
+    --mac-address="b7bc37aa4d83" \
+    -x=-36 -y=567
 
 # Add 2 Servers
 simengine-cli model create server-bmc -k=7 \

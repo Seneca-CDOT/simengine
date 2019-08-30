@@ -5,6 +5,7 @@ import os
 import logging
 import time
 from distutils import dir_util
+import select
 
 import json
 import socket
@@ -14,6 +15,8 @@ from string import Template
 
 from enginecore.model.graph_reference import GraphReference
 from enginecore.tools.query_helpers import to_camelcase
+
+logger = logging.getLogger(__name__)
 
 
 class StorCLIEmulator:
@@ -72,6 +75,7 @@ class StorCLIEmulator:
 
         self._graph_ref = GraphReference()
         self._server_key = asset_key
+        self._serversocket = None
 
         with self._graph_ref.get_session() as session:
             self._storcli_details = GraphReference.get_storcli_details(
@@ -83,6 +87,13 @@ class StorCLIEmulator:
         os.makedirs(self._storcli_dir)
         dir_util.copy_tree(os.environ.get("SIMENGINE_STORCLI_TEMPL"), self._storcli_dir)
 
+        self.start_server(asset_key, socket_port)
+
+    def start_server(self, asset_key, socket_port):
+        """Launch storcli thread"""
+
+        self._stop_event = threading.Event()
+
         self._socket_t = threading.Thread(
             target=self._listen_cmds,
             args=(socket_port,),
@@ -92,8 +103,15 @@ class StorCLIEmulator:
         self._socket_t.daemon = True
         self._socket_t.start()
 
+    def stop_server(self):
+        """Stop """
+        self._stop_event.set()
+        self._serversocket.close()
+
+    # *** Responses to cli commands ***
     def _strcli_header(self, ctrl_num=0, status="Success"):
-        """Reusable header for storcli output"""
+        """Reusable header for storcli output
+        (this appears at the top of most CLI outputs)"""
 
         with open(os.path.join(self._storcli_dir, "header")) as templ_h:
             options = {
@@ -176,7 +194,8 @@ class StorCLIEmulator:
             return template.substitute(options)
 
     def _get_rate_prop(self, controller_num, rate_type):
-        """Get controller rate property (rate type matches rate template file and the rate template value)"""
+        """Get controller rate property
+        (rate type matches rate template file and the rate template value)"""
 
         rate_file = os.path.join(self._storcli_dir, rate_type)
         with open(rate_file) as templ_h, self._graph_ref.get_session() as session:
@@ -195,7 +214,8 @@ class StorCLIEmulator:
     def _check_vd_state(self, vd_state, physical_drives):
         """Determine status of the virtual drive based on the physical drives' states
         Args:
-            vd_state(dict): virtual drive state properties such as error counts & physical drive status
+            vd_state(dict): virtual drive state properties such as error counts
+                            & physical drive status
             physical_drives(dict): physical drive details
         """
 
@@ -205,11 +225,11 @@ class StorCLIEmulator:
             vd_state["otherErrorCount"] += p_drive["otherErrorCount"]
             vd_state["predictiveErrorCount"] += p_drive["predictiveErrorCount"]
 
-            p_drive_rebuilding = (time.time() - p_drive["timeStamp"]) < p_drive[
+            pd_rebuilding = (time.time() - p_drive["timeStamp"]) < p_drive[
                 "rebuildTime"
             ]
 
-            if p_drive["State"] == "Offln" or p_drive_rebuilding:
+            if p_drive["State"] == "Offln" or pd_rebuilding:
                 vd_state["numPdOffline"] += 1
 
     def _format_pd_for_output(self, physical_drives):
@@ -267,6 +287,7 @@ class StorCLIEmulator:
 
             entry_options = {
                 "controller_num": controller_num,
+                "drive_groups_num": ctrl_info["numDriveGroups"],
                 "controller_date": "",
                 "system_date": "",
                 "status": "Optimal",
@@ -288,6 +309,9 @@ class StorCLIEmulator:
             drives = GraphReference.get_all_drives(
                 session, self._server_key, controller_num
             )
+
+            # Add physical drive output (do some formatting plus check pd states)
+            drives["pd"].sort(key=lambda k: k["slotNum"])
             topology = []
 
             # analyze and format virtual drive output
@@ -298,7 +322,7 @@ class StorCLIEmulator:
                 )
 
                 # Add Virtual Drive output
-                v_drive["DG/VD"] = "0/" + str(i)
+                v_drive["DG/VD"] = str(v_drive["DG"]) + "/" + str(i)
                 v_drive["Size"] = str(v_drive["Size"]) + " GB"
 
                 # check pd states & determine virtual drive health status
@@ -310,39 +334,50 @@ class StorCLIEmulator:
                 if v_drive["State"] != "Optl":
                     ctrl_state["vdDgd"] += 1
 
-                topology.append(
-                    {
-                        **topology_defaults,
-                        **{
-                            "Type": v_drive["TYPE"],
-                            "State": v_drive["State"],
-                            "Size": v_drive["Size"],
+                topology.extend(
+                    [
+                        {
+                            **topology_defaults,
+                            **{
+                                "DG": v_drive["DG"],
+                                "Type": v_drive["TYPE"],
+                                "State": v_drive["State"],
+                                "Size": v_drive["Size"],
+                            },
                         },
-                    }
+                        {
+                            **topology_defaults,
+                            **{
+                                "Arr": 0,
+                                "DG": v_drive["DG"],
+                                "Type": v_drive["TYPE"],
+                                "State": v_drive["State"],
+                                "Size": v_drive["Size"],
+                            },
+                        },
+                    ]
                 )
 
-            # Add physical drive output (do some formatting plus check pd states)
-            drives["pd"].sort(key=lambda k: k["slotNum"])
+                self._format_pd_for_output(v_drive["pd"])
+                for pdid, pd in enumerate(v_drive["pd"]):
+                    topology.append(
+                        {
+                            **topology_defaults,
+                            **{
+                                "Arr": 0,
+                                "DG": v_drive["DG"],
+                                "Row": pdid,
+                                "EID:Slot": pd["EID:Slt"],
+                                "DID": pd["DID"],
+                                "Type": "DRIVE",
+                                "State": pd["State"],
+                                "Size": pd["Size"],
+                                "FSpace": "-",
+                            },
+                        }
+                    )
+
             self._format_pd_for_output(drives["pd"])
-
-            topology.extend(
-                map(
-                    lambda pd: {
-                        **topology_defaults,
-                        **{
-                            "Arr": 0,
-                            "Row": pd["slotNum"],
-                            "EID:Slot": pd["EID:Slt"],
-                            "DID": pd["DID"],
-                            "Type": "DRIVE",
-                            "State": pd["State"],
-                            "Size": pd["Size"],
-                            "FSpace": "-",
-                        },
-                    },
-                    drives["pd"],
-                )
-            )
 
             # determine overall controller status
             entry_options["status"] = self._get_state_from_config(
@@ -439,6 +474,9 @@ class StorCLIEmulator:
                     "drive_temp_f": (pd["temperature"] * 9 / 5) + 32,
                     "drive_model": pd["Model"],
                     "drive_size": pd["Size"],
+                    "drive_group": pd["DG"],
+                    "serial_number": pd["serialNumber"],
+                    "manufacturer_id": pd["manufacturerId"],
                 },
                 pd_drives,
             )
@@ -461,21 +499,38 @@ class StorCLIEmulator:
 
         # store row with the max char count in a column
         header_lengths = {key: len(str(key)) for key in headers}
+        left_align_cols = []
 
+        # calculate paddings for every column
         for table_row in table_options:
-
-            row_str = ""
             for col_key in headers:
                 val_len = len(str(table_row[col_key]))
-                # whitespace padding
+                # whitespace padding, set to len of header if smaller than header
                 val_len = val_len if val_len >= len(col_key) else len(col_key)
 
                 if val_len > header_lengths[col_key]:
                     header_lengths[col_key] = val_len
 
-                row_str += "{val:<{width}}".format(
-                    val=table_row[col_key], width=val_len + 1
+                if (
+                    not isinstance(table_row[col_key], (int, float, complex))
+                    and not col_key == "Size"
+                ):
+                    left_align_cols.append(col_key)
+
+        for table_row in table_options:
+            row_str = ""
+            for col_key in headers:
+                cell_value = table_row[col_key]
+
+                if col_key in left_align_cols:
+                    cell_format = "{val:<{width}}"
+                else:
+                    cell_format = "{val:>{width}}"
+
+                table_cell = cell_format.format(
+                    val=cell_value, width=header_lengths[col_key]
                 )
+                row_str += table_cell + " "
 
             value_rows.append(row_str)
 
@@ -577,17 +632,28 @@ class StorCLIEmulator:
             return self._strcli_header(controller_num) + "\n" + "\n".join(vd_output)
 
     def _listen_cmds(self, socket_port):
-        """Start storcli websocket server """
+        """Start storcli websocket server
+        for a list of supported storcli64 commands, see
+        https://simengine.readthedocs.io/en/latest/Asset%20Management/#storage-simulation
+        """
 
-        serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        serversocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        serversocket.bind(("", socket_port))
-        serversocket.listen(5)
+        self._serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._serversocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self._serversocket.bind(("", socket_port))
+        self._serversocket.listen(5)
 
-        conn, _ = serversocket.accept()
+        try:
+            conn, _ = self._serversocket.accept()
+        except OSError:
+            logger.warning("Could not initialize socket server!")
+            return
 
         with conn:
-            while True:
+            while not self._stop_event.is_set():
+
+                scout_r, _, _ = select.select([conn], [], [])
+                if not scout_r:
+                    continue
 
                 data = conn.recv(1024)
                 if not data:
@@ -596,17 +662,18 @@ class StorCLIEmulator:
                 try:
                     received = json.loads(data)
                 except json.decoder.JSONDecodeError as parse_err:
-                    logging.info(data)
-                    logging.info("Invalid JSON: ")
-                    logging.info(parse_err)
+                    logger.warning(data)
+                    logger.warning("Invalid JSON: ")
+                    logger.warning(parse_err)
 
                 argv = received["argv"]
 
-                logging.info("Data received: %s", str(received))
+                logger.debug("Data received: %s", str(received))
 
                 reply = {"stdout": "", "stderr": "", "status": 0}
 
                 # Process non-default return cases
+                # (parse command request and return command output)
                 if len(argv) == 2:
                     if argv[1] == "--version":
                         reply["stdout"] = "Version 0.01"
@@ -658,3 +725,6 @@ class StorCLIEmulator:
 
                 # Send the message
                 conn.sendall(bytes(json.dumps(reply) + "\n", "UTF-8"))
+
+        self._serversocket.close()
+        conn.close()

@@ -1,15 +1,17 @@
 """Interface for asset state management"""
 
 import time
+from enum import Enum
+from functools import lru_cache
 import os
 import subprocess
+import json
+
 import redis
 
 from enginecore.model.graph_reference import GraphReference
-from enginecore.tools.utils import format_as_redis_key
 from enginecore.state.redis_channels import RedisChannels
 
-from enginecore.state.asset_definition import SUPPORTED_ASSETS
 from enginecore.tools.recorder import RECORDER as record
 from enginecore.tools.randomizer import Randomizer
 from enginecore.state.api.environment import ISystemEnvironment
@@ -21,10 +23,24 @@ class IStateManager:
 
     redis_store = None
 
+    class PowerStateReason(Enum):
+        """Describes reason behind asset power state"""
+
+        ac_restored = 1
+        ac_lost = 2
+        turned_on = 3
+        turned_off = 4
+        signal_on = 5
+        signal_off = 6
+
     def __init__(self, asset_info):
         self._graph_ref = GraphReference()
         self._asset_key = asset_info["key"]
         self._asset_info = asset_info
+
+    def close_connection(self):
+        """Close bolt driver connections"""
+        self._graph_ref.close()
 
     @property
     def key(self) -> int:
@@ -42,14 +58,34 @@ class IStateManager:
         return self._asset_info["type"]
 
     @property
-    def power_usage(self) -> float:
+    def power_on_ac_restored(self) -> bool:
+        """Returns true if asset is configured to power up when AC
+        is restored (voltage is above lower threshold)"""
+        return (
+            self._asset_info["powerOnAc"] if "powerOnAc" in self._asset_info else True
+        )
+
+    @property
+    def power_usage(self):
         """Normal power usage in AMPS when powered up"""
-        return 0
+        if self.input_voltage and "powerConsumption" in self._asset_info:
+            return self._asset_info["powerConsumption"] / self.input_voltage
+
+        return 0.0
 
     @property
     def draw_percentage(self) -> float:
         """How much power the asset draws"""
         return self._asset_info["draw"] if "draw" in self._asset_info else 1
+
+    @property
+    def power_consumption(self):
+        """How much power this device consumes (wattage)"""
+        return (
+            self._asset_info["powerConsumption"]
+            if "powerConsumption" in self._asset_info
+            else 0
+        )
 
     @property
     def asset_info(self) -> dict:
@@ -64,7 +100,15 @@ class IStateManager:
     @property
     def wattage(self):
         """Asset wattage (assumes power-source to be 120v)"""
-        return self.load * 120
+        return self.load * self.input_voltage
+
+    def min_voltage_prop(self):
+        """Get minimum voltage required and the poweroff timeout associated with it"""
+
+        if not "minVoltage" in self._asset_info:
+            return 0
+
+        return self._asset_info["minVoltage"]
 
     @property
     def status(self):
@@ -73,7 +117,18 @@ class IStateManager:
         Returns:
             int: 1 if on, 0 if off
         """
-        return int(IStateManager.get_store().get(self.redis_key))
+        return int(IStateManager.get_store().get(self.redis_key + ":state"))
+
+    @property
+    def input_voltage(self):
+        """Asset input voltage in Volts"""
+        in_volt = IStateManager.get_store().get(self.redis_key + ":in-voltage")
+        return float(in_volt) if in_volt else 0.0
+
+    @property
+    def output_voltage(self):
+        """Output voltage for the device"""
+        return self.input_voltage * self.status
 
     @property
     def agent(self):
@@ -90,14 +145,16 @@ class IStateManager:
     @record
     @Randomizer.randomize_method()
     def shut_down(self):
-        """Implements state logic for graceful power-off event, sleeps for the pre-configured time
+        """Implements state logic for graceful power-off event,
+        sleeps for the pre-configured time
             
         Returns:
             int: Asset's status after power-off operation
         """
-        self._sleep_shutdown()
         if self.status:
+            self._sleep_shutdown()
             self._set_state_off()
+            return 0
         return self.status
 
     @record
@@ -110,34 +167,35 @@ class IStateManager:
         """
         if self.status:
             self._set_state_off()
+            return 0
         return self.status
 
     @record
     @Randomizer.randomize_method()
     def power_up(self):
-        """Implements state logic for power up, sleeps for the pre-configured time & resets boot time
+        """Implements state logic for power up;
+        sleeps for the pre-configured time & resets boot time
         
         Returns:
             int: Asset's status after power-on operation
         """
         if self._parents_available() and not self.status:
             self._sleep_powerup()
-            # udpate machine start time & turn on
+            # update machine start time & turn on
             self._reset_boot_time()
             self._set_state_on()
+            return 1
         return self.status
 
-    def _update_load(self, load):
-        """Update amps"""
-        load = load if load >= 0 else 0
-        IStateManager.get_store().set(self.redis_key + ":load", load)
-        self._publish_load()
+    def _update_input_voltage(self, voltage: float):
+        """Set input voltage"""
+        voltage = max(voltage, 0)
+        IStateManager.get_store().set(self.redis_key + ":in-voltage", voltage)
 
-    def _publish_load(self):
-        """Publish load changes """
-        IStateManager.get_store().publish(
-            RedisChannels.load_update_channel, self.redis_key
-        )
+    def _update_load(self, load: float):
+        """Update power load for the asset"""
+        load = max(load, 0.0)
+        IStateManager.get_store().set(self.redis_key + ":load", load)
 
     def _sleep_delay(self, delay_type):
         """Sleep for n number of ms determined by the delay_type"""
@@ -152,76 +210,34 @@ class IStateManager:
         """Hardware-specific powerup delay"""
         self._sleep_delay("onDelay")
 
-    def _set_redis_asset_state(self, state, publish=True):
+    def _set_redis_asset_state(self, state):
         """Update redis value of the asset power status"""
-        IStateManager.get_store().set(self.redis_key, state)
-        if publish:
-            self._publish_power()
+        IStateManager.get_store().set(self.redis_key + ":state", state)
 
     def _set_state_on(self):
         """Set state to online"""
-        self._set_redis_asset_state("1")
+        self._publish_power(self.status, 1)
 
     def _set_state_off(self):
         """Set state to offline"""
-        self._set_redis_asset_state("0")
+        self._publish_power(self.status, 0)
 
-    def _publish_power(self):
+    def _publish_power(self, old_state, new_state):
         """Notify daemon of power updates"""
         IStateManager.get_store().publish(
             RedisChannels.state_update_channel,
-            "{}-{}".format(self.redis_key, self.status),
+            json.dumps(
+                {"key": self.key, "old_state": old_state, "new_state": new_state}
+            ),
         )
 
-    def _get_oid_value(self, oid, key):
-        """Retrieve value for a specific OID """
-        redis_store = IStateManager.get_store()
-        rkey = format_as_redis_key(str(key), oid, key_formatted=False)
-        return redis_store.get(rkey).decode().split("|")[1]
-
     def _reset_boot_time(self):
-        """Reset device start time (used to calculate uptime)"""
+        """Reset device start time (this redis key/value is used to calculate uptime)
+        (see snmppub.lua)
+        """
         IStateManager.get_store().set(
             str(self._asset_key) + ":start_time", int(time.time())
         )
-
-    def _update_oid_by_name(self, oid_name, oid_type, value, use_spec=False):
-        """Update a specific oid
-        Args:
-            oid_name(str): oid name defined in device preset file
-            oid_type(rfc1902): oid type (rfc1902 specs)
-            value(str): oid value or spec parameter if use_spec is set to True
-            use_spec:
-        Returns:
-            bool: true if oid was successfully updated
-        """
-
-        with self._graph_ref.get_session() as db_s:
-            oid, data_type, oid_spec = GraphReference.get_asset_oid_by_name(
-                db_s, int(self._asset_key), oid_name
-            )
-
-            if oid:
-                new_oid_value = oid_spec[value] if use_spec and oid_spec else value
-                self._update_oid_value(oid, data_type, oid_type(new_oid_value))
-                return True
-
-            return False
-
-    def _update_oid_value(self, oid, data_type, oid_value):
-        """Update oid with a new value
-        
-        Args:
-            oid(str): SNMP object id
-            data_type(int): Data type in redis format
-            oid_value(object): OID value in rfc1902 format 
-        """
-        redis_store = IStateManager.get_store()
-
-        rvalue = "{}|{}".format(data_type, oid_value)
-        rkey = format_as_redis_key(str(self._asset_key), oid, key_formatted=False)
-
-        redis_store.set(rkey, rvalue)
 
     def _check_parents(
         self, keys, parent_down, msg="Cannot perform the action: [{}] parent is off"
@@ -234,21 +250,21 @@ class IStateManager:
             msg (str, optional): Error message to be printed
         
         Returns: 
-            bool: True if parent keys are missing or all parents were verified with parent_down clause 
+            bool: True if parent keys are missing or all parents 
+                  were verified with parent_down clause 
         """
         if not keys:
             return True
 
         parent_values = IStateManager.get_store().mget(keys)
-        pdown = 0
-        pdown_msg = ""
+        pdown_msg = []
+
         for rkey, rvalue in zip(keys, parent_values):
             if parent_down(rvalue, rkey):
-                pdown_msg += msg.format(rkey) + "\n"
-                pdown += 1
+                pdown_msg.append(msg.format(rkey))
 
-        if pdown == len(keys):
-            print(pdown_msg)
+        if len(pdown_msg) == len(keys):
+            print("\n".join(pdown_msg))
             return False
 
         return True
@@ -261,22 +277,40 @@ class IStateManager:
             bool: True if parents are available
         """
 
-        not_affected_by_mains = True
         asset_keys, oid_keys = GraphReference.get_parent_keys(
             self._graph_ref.get_session(), self._asset_key
         )
 
-        if not asset_keys and not ISystemEnvironment.mains_status():
-            not_affected_by_mains = False
+        # if wall-powered, check the mains
+        if not asset_keys and not ISystemEnvironment.power_source_available():
+            return False
 
-        assets_up = self._check_parents(asset_keys, lambda rvalue, _: rvalue == b"0")
+        state_managers = list(map(self.get_state_manager_by_key, asset_keys))
+        min_volt_value = self.min_voltage_prop()
+
+        # check if power is present
+        enough_voltage = len(
+            list(filter(lambda sm: sm.output_voltage > min_volt_value, state_managers))
+        )
+        parent_assets_up = len(list(filter(lambda sm: sm.status, state_managers)))
+
         oid_clause = (
             lambda rvalue, rkey: rvalue.split(b"|")[1].decode()
             == oid_keys[rkey]["switchOff"]
         )
         oids_on = self._check_parents(oid_keys.keys(), oid_clause)
 
-        return assets_up and oids_on and not_affected_by_mains
+        return (parent_assets_up and enough_voltage and oids_on) or (not asset_keys)
+
+    def __str__(self):
+        return (
+            "Asset[{0.asset_type}][{0.key}] \n"
+            " - Status: {0.status} \n"
+            " - Load: {0.load}A\n"
+            " - Power Consumption: {0.power_consumption}W \n"
+            " - Input Voltage: {0.input_voltage}V\n"
+            " - Output Voltage: {0.output_voltage}V\n"
+        ).format(self)
 
     @classmethod
     def get_store(cls):
@@ -289,9 +323,10 @@ class IStateManager:
     @classmethod
     def _get_assets_states(cls, assets, flatten=True):
         """Query redis store and find states for each asset
-        
+
         Args:
-            flatten(bool): If false, the returned assets in the dict will have their child-components nested
+            flatten(bool): If false, the returned assets in the dict
+                           will have their child-components nested
         Returns:
             dict: Current information on assets including their states, load etc.
         """
@@ -301,12 +336,11 @@ class IStateManager:
             return None
 
         asset_values = cls.get_store().mget(
-            list(map(lambda k: "{}-{}".format(k, assets[k]["type"]), asset_keys))
+            list(map(lambda k: "{}-{}:state".format(k, assets[k]["type"]), asset_keys))
         )
 
         for rkey, rvalue in zip(assets, asset_values):
-
-            asset_state = cls.get_state_manager_by_key(rkey, SUPPORTED_ASSETS)
+            asset_state = cls.get_state_manager_by_key(rkey)
 
             assets[rkey]["status"] = int(rvalue)
             assets[rkey]["load"] = asset_state.load
@@ -327,7 +361,8 @@ class IStateManager:
         """Get states of all system components 
         
         Args:
-            flatten(bool): If false, the returned assets in the dict will have their child-components nested
+            flatten(bool): If false, the returned assets in the dict 
+                           will have their child-components nested
         
         Returns:
             dict: Current information on assets including their states, load etc.
@@ -337,26 +372,28 @@ class IStateManager:
 
             # cache assets
             assets = GraphReference.get_assets_and_connections(session, flatten)
-            assets = cls._get_assets_states(assets, flatten)
-            return assets
+            return cls._get_assets_states(assets, flatten)
 
     @classmethod
+    @lru_cache(maxsize=32)
     def get_state_manager_by_key(cls, key, supported_assets=None):
         """Infer asset manager from key"""
+        from enginecore.state.hardware.room import Asset
+
         if not supported_assets:
-            supported_assets = SUPPORTED_ASSETS
+            supported_assets = Asset.get_supported_assets()
 
         graph_ref = GraphReference()
 
         with graph_ref.get_session() as session:
-
             asset_info = GraphReference.get_asset_and_components(session, key)
-            sm_mro = supported_assets[asset_info["type"]].StateManagerCls.mro()
 
-            module = ".".join(__name__.split(".")[:-1])  # api module
-            return next(filter(lambda x: x.__module__.startswith(module), sm_mro))(
-                asset_info
-            )
+        sm_mro = supported_assets[asset_info["type"]].StateManagerCls.mro()
+
+        module = ".".join(__name__.split(".")[:-1])  # api module
+        return next(filter(lambda x: x.__module__.startswith(module), sm_mro))(
+            asset_info
+        )
 
     @classmethod
     def asset_exists(cls, key):
@@ -384,29 +421,23 @@ class IStateManager:
 
         graph_ref = GraphReference()
         with graph_ref.get_session() as session:
-
             play_path = GraphReference.get_play_path(session)
-            if not play_path:
-                return ([], [])
 
-            play_files = [
-                f
-                for f in os.listdir(play_path)
-                if os.path.isfile(os.path.join(play_path, f))
-            ]
+        if not play_path:
+            return ([], [])
 
-            return (
-                [
-                    os.path.splitext(f)[0]
-                    for f in play_files
-                    if os.path.splitext(f)[1] != ".py"
-                ],
-                [
-                    os.path.splitext(f)[0]
-                    for f in play_files
-                    if os.path.splitext(f)[1] == ".py"
-                ],
-            )
+        play_files = [
+            f
+            for f in os.listdir(play_path)
+            if os.path.isfile(os.path.join(play_path, f))
+        ]
+
+        is_py_file = lambda f: os.path.splitext(f)[1] == ".py"
+
+        return (
+            [os.path.splitext(f)[0] for f in play_files if not is_py_file(f)],
+            [os.path.splitext(f)[0] for f in play_files if is_py_file(f)],
+        )
 
     @classmethod
     def execute_play(cls, play_name):
@@ -419,18 +450,18 @@ class IStateManager:
         with graph_ref.get_session() as session:
 
             play_path = GraphReference.get_play_path(session)
-            if not play_path:
-                return
+        if not play_path:
+            return
 
-            file_filter = (
-                lambda f: os.path.isfile(os.path.join(play_path, f))
-                and os.path.splitext(f)[0] == play_name
-            )
+        file_filter = (
+            lambda f: os.path.isfile(os.path.join(play_path, f))
+            and os.path.splitext(f)[0] == play_name
+        )
 
-            play_file = [f for f in os.listdir(play_path) if file_filter(f)][0]
+        play_file = [f for f in os.listdir(play_path) if file_filter(f)][0]
 
-            subprocess.Popen(
-                os.path.join(play_path, play_file),
-                stderr=subprocess.DEVNULL,
-                close_fds=True,
-            )
+        subprocess.Popen(
+            os.path.join(play_path, play_file),
+            stderr=subprocess.DEVNULL,
+            close_fds=True,
+        )

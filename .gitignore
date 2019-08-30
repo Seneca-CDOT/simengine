@@ -22,3 +22,5 @@ nohup.out
 prebuild
 public
 
+# misc
+.todos.json

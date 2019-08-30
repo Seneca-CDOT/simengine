@@ -1,126 +1,156 @@
 {
-  "staticOidFile": "ups/apc-ups.snmprec",
-  "assetType": "ups",
-  "SNMPSim": true,
-  "assetName": "APC UPS",
-  "numOutlets": 8,
-  "numBatteries": 1,
-  "fullRechargeTime": 2,
-  "minPowerOnBatteryLevel": 1,
-  "outputPowerCapacity": 980,
-  "modelRuntime": {
-    "50": 320,
-    "100": 185,
-    "200": 91,
-    "300": 55,
-    "400": 37,
-    "500": 26,
-    "600": 19,
-    "700": 14,
-    "800": 11,
-    "900": 9
-  },
-  "OIDs": {
-    "SerialNumber": {
-      "OID": "1.3.6.1.4.1.318.1.1.1.1.2.3.0",
-      "dataType": 4
+    "staticOidFile": "ups/apc-ups.snmprec",
+    "assetType": "ups",
+    "SNMPSim": true,
+    "assetName": "APC UPS",
+    "numOutlets": 8,
+    "numBatteries": 1,
+    "fullRechargeTime": 2,
+    "minPowerOnBatteryLevel": 1,
+    "outputPowerCapacity": 980,
+    "modelRuntime": {
+        "50": 320,
+        "100": 185,
+        "200": 91,
+        "300": 55,
+        "400": 37,
+        "500": 26,
+        "600": 19,
+        "700": 14,
+        "800": 11,
+        "900": 9
     },
-    "MAC": {
-      "OID": "1.3.6.1.2.1.4.30.1.4.2",
-      "dataType": "4x"
-    },
-    "HighPrecBatteryCapacity": {
-      "OID": "1.3.6.1.4.1.318.1.1.1.2.3.1.0",
-      "dataType": 66,
-      "defaultValue": 1000
-    },
-    "AdvBatteryCapacity": {
-      "OID": "1.3.6.1.4.1.318.1.1.1.2.2.1.0",
-      "dataType": 66,
-      "defaultValue": 100
-    },
-    "BasicBatteryStatus": {
-      "OID": "1.3.6.1.4.1.318.1.1.1.2.1.1.0",
-      "dataType": 2,
-      "defaultValue": 2,
-      "oidDesc": {
-        "2": "batteryNormal",
-        "3": "batteryLow"
-      }
-    },
-    "HighPrecBatteryTemperature": {
-      "OID": "1.3.6.1.4.1.318.1.1.1.2.3.2.0",
-      "dataType": 66,
-      "defaultValue": 31
-    },
-    "HighPrecOutputLoad": {
-      "OID": "1.3.6.1.4.1.318.1.1.1.4.3.3.0",
-      "dataType": 66,
-      "defaultValue": 0
-    },
-    "AdvOutputLoad": {
-      "OID": "1.3.6.1.4.1.318.1.1.1.4.2.3.0",
-      "dataType": 66,
-      "defaultValue": 0
-    },
-    "HighPrecOutputCurrent": {
-      "OID": "1.3.6.1.4.1.318.1.1.1.4.3.4.0",
-      "dataType": 66,
-      "defaultValue": 0
-    },
-    "AdvOutputCurrent": {
-      "OID": "1.3.6.1.4.1.318.1.1.1.4.2.4.0",
-      "dataType": 66,
-      "defaultValue": 0
-    },
-    "BatteryRunTimeRemaining": {
-      "OID": "1.3.6.1.4.1.318.1.1.1.2.2.3.0",
-      "dataType": 67,
-      "defaultValue": 0
-    },
-    "TimeOnBattery": {
-      "OID": "1.3.6.1.4.1.318.1.1.1.2.1.2.0",
-      "dataType": 67,
-      "defaultValue": 0
-    },
-    "PowerOff": {
-      "OID": "1.3.6.1.4.1.318.1.1.1.6.2.1.0",
-      "dataType": 2,
-      "defaultValue": 1,
-      "oidDesc": {
-        "2": "switchOff",
-        "3": "switchOffGraceful"
-      }
-    },
-    "BasicOutputStatus": {
-      "OID": "1.3.6.1.4.1.318.1.1.1.4.1.1.0",
-      "dataType": 2,
-      "defaultValue": 2,
-      "oidDesc": {
-        "2": "onLine",
-        "3": "onBattery",
-        "7": "off"
-      }
-    },
-    "InputLineFailCause": {
-      "OID": "1.3.6.1.4.1.318.1.1.1.3.2.5.0",
-      "dataType": 2,
-      "defaultValue": 1,
-      "oidDesc": {
-        "1": "noTransfer",
-        "4": "blackout",
-        "6": "deepMomentarySag"
-      }
-    },
-    "AdvConfigReturnDelay": {
-      "OID": "1.3.6.1.4.1.318.1.1.1.5.2.9.0",
-      "dataType": 67,
-      "defaultValue": 0
-    },
-    "AdvConfigShutoffDelay": {
-      "OID": "1.3.6.1.4.1.318.1.1.1.5.2.10.0",
-      "dataType": 67,
-      "defaultValue": 0
+    "OIDs": {
+        "SerialNumber": {
+            "OID": "1.3.6.1.4.1.318.1.1.1.1.2.3.0",
+            "dataType": 4
+        },
+        "MAC": {
+            "OID": "1.3.6.1.2.1.4.30.1.4.2",
+            "dataType": "4x"
+        },
+        "HighPrecBatteryCapacity": {
+            "OID": "1.3.6.1.4.1.318.1.1.1.2.3.1.0",
+            "dataType": 66,
+            "defaultValue": 1000
+        },
+        "AdvBatteryCapacity": {
+            "OID": "1.3.6.1.4.1.318.1.1.1.2.2.1.0",
+            "dataType": 66,
+            "defaultValue": 100
+        },
+        "BasicBatteryStatus": {
+            "OID": "1.3.6.1.4.1.318.1.1.1.2.1.1.0",
+            "dataType": 2,
+            "defaultValue": 2,
+            "oidDesc": {
+                "2": "batteryNormal",
+                "3": "batteryLow"
+            }
+        },
+        "HighPrecBatteryTemperature": {
+            "OID": "1.3.6.1.4.1.318.1.1.1.2.3.2.0",
+            "dataType": 66,
+            "defaultValue": 31
+        },
+        "HighPrecOutputLoad": {
+            "OID": "1.3.6.1.4.1.318.1.1.1.4.3.3.0",
+            "dataType": 66,
+            "defaultValue": 0
+        },
+        "AdvOutputLoad": {
+            "OID": "1.3.6.1.4.1.318.1.1.1.4.2.3.0",
+            "dataType": 66,
+            "defaultValue": 0
+        },
+        "HighPrecOutputCurrent": {
+            "OID": "1.3.6.1.4.1.318.1.1.1.4.3.4.0",
+            "dataType": 66,
+            "defaultValue": 0
+        },
+        "AdvOutputCurrent": {
+            "OID": "1.3.6.1.4.1.318.1.1.1.4.2.4.0",
+            "dataType": 66,
+            "defaultValue": 0
+        },
+        "BatteryRunTimeRemaining": {
+            "OID": "1.3.6.1.4.1.318.1.1.1.2.2.3.0",
+            "dataType": 67,
+            "defaultValue": 0
+        },
+        "TimeOnBattery": {
+            "OID": "1.3.6.1.4.1.318.1.1.1.2.1.2.0",
+            "dataType": 67,
+            "defaultValue": 0
+        },
+        "PowerOff": {
+            "OID": "1.3.6.1.4.1.318.1.1.1.6.2.1.0",
+            "dataType": 2,
+            "defaultValue": 1,
+            "oidDesc": {
+                "2": "switchOff",
+                "3": "switchOffGraceful"
+            }
+        },
+        "BasicOutputStatus": {
+            "OID": "1.3.6.1.4.1.318.1.1.1.4.1.1.0",
+            "dataType": 2,
+            "defaultValue": 2,
+            "oidDesc": {
+                "2": "onLine",
+                "3": "onBattery",
+                "7": "off"
+            }
+        },
+        "AdvConfigLowTransferVolt": {
+            "OID": "1.3.6.1.4.1.318.1.1.1.5.2.3.0",
+            "dataType": 2,
+            "defaultValue": 106
+        },
+        "AdvConfigHighTransferVolt": {
+            "OID": "1.3.6.1.4.1.318.1.1.1.5.2.2.0",
+            "dataType": 2,
+            "defaultValue": 127
+        },
+        "AdvConfigRatedOutputVoltage": {
+            "OID": "1.3.6.1.4.1.318.1.1.1.5.2.1.0",
+            "dataType": 2,
+            "defaultValue": 120
+        },
+        "AdvOutputVoltage": {
+            "OID": "1.3.6.1.4.1.318.1.1.1.4.2.1.0",
+            "dataType": 66,
+            "defaultValue": 0
+        },
+        "AdvInputLineVoltage": {
+            "OID": "1.3.6.1.4.1.318.1.1.1.3.2.1.0",
+            "dataType": 66,
+            "defaultValue": 0
+        },
+        "InputLineFailCause": {
+            "OID": "1.3.6.1.4.1.318.1.1.1.3.2.5.0",
+            "dataType": 2,
+            "defaultValue": 1,
+            "oidDesc": {
+                "1": "noTransfer",
+                "2": "highLineVoltage",
+                "3": "brownout",
+                "4": "blackout",
+                "5": "smallMomentarySag",
+                "6": "deepMomentarySag",
+                "7": "smallMomentarySpike",
+                "8": "largeMomentarySpike"
+            }
+        },
+        "AdvConfigReturnDelay": {
+            "OID": "1.3.6.1.4.1.318.1.1.1.5.2.9.0",
+            "dataType": 67,
+            "defaultValue": 0
+        },
+        "AdvConfigShutoffDelay": {
+            "OID": "1.3.6.1.4.1.318.1.1.1.5.2.10.0",
+            "dataType": 67,
+            "defaultValue": 0
+        }
     }
-  }
 }

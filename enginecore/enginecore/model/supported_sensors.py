@@ -3,6 +3,7 @@
 SUPPORTED_SENSORS = [
     "caseFan",
     "psuStatus",
+    "psuFan",
     "psuVoltage",
     "psuPower",
     "psuCurrent",

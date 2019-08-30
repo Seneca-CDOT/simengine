@@ -10,6 +10,8 @@ from enginecore.model.graph_reference import GraphReference
 from enginecore.state.sensor.file_locks import SensorFileLocks
 from enginecore.state.sensor.sensor import Sensor, SensorGroups
 
+logger = logging.getLogger(__name__)
+
 
 class SensorRepository:
     """A sensor repository for a particular IPMI device"""
@@ -30,7 +32,11 @@ class SensorRepository:
             sensors = GraphReference.get_asset_sensors(session, server_key)
             for sensor_info in sensors:
                 sensor = Sensor(
-                    self._sensor_dir, server_key, sensor_info, self._sensor_file_locks
+                    self._sensor_dir,
+                    server_key,
+                    sensor_info,
+                    self._sensor_file_locks,
+                    graph_ref=self._graph_ref,
                 )
                 self._sensors[sensor.name] = sensor
 
@@ -107,8 +113,8 @@ class SensorRepository:
                         else new_ambient
                     )
 
-                    logging.info(
-                        "Sensor:[%s] - value will be updated from %s° to %s° due to ambient changes (%s° -> %s°)",
+                    logger.debug(
+                        "Sensor:[%s] updated from %s° to %s° due to ambient changes (%s°)->(%s°)",
                         sensor.name,
                         old_sensor_value,
                         new_sensor_value,
@@ -138,3 +144,7 @@ class SensorRepository:
     def server_key(self):
         """Get key of the server repo belongs to"""
         return self._server_key
+
+    def stop(self):
+        """Closes all the open connections"""
+        self._graph_ref.close()

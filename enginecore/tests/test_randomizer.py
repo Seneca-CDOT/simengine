@@ -269,15 +269,6 @@ class RandomizerTests(unittest.TestCase):
         Randomizer.randact(test_entity_2, num_iter=5, nap=lambda: None)
         self.assertEqual(1, test_entity_2.status)
 
-    def _test_static_call(self):
-        """Test if @staticmethod class functions can be recorded"""
-        Randomizer.classes[RandomizedEntity][6](4)
-        # print(
-        #     "new RandomizedEntity.cls_lvl_number :{}".format(
-        #         RandomizedEntity.cls_lvl_number
-        #     )
-        # )
-
 
 if __name__ == "__main__":
     unittest.main()
