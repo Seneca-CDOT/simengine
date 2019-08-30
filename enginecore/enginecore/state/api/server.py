@@ -403,3 +403,8 @@ class IPSUStateManager(IStateManager):
                 psu_load = self.power_consumption / self.input_voltage
             self._update_load(self.load + psu_load)
         return powered
+
+    @property
+    def supports_bmc(self):
+        """Returns true if PSU is powering a server with BMC support"""
+        return "ServerWithBMC" in self.asset_info["children"][0].labels

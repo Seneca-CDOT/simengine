@@ -457,10 +457,11 @@ class PSU(StaticAsset):
         super(PSU, self).__init__(asset_info)
 
         # only ServerWithBmc needs to handle events (in order to update sensors)
-        if "Server" in asset_info["children"][0].labels:
+        if not self._state.supports_bmc:
             self.removeHandler(self.on_asset_did_power_off)
             self.removeHandler(self.on_asset_did_power_on)
             self.removeHandler(self.update_load_sensors)
+
         else:
             self._sensor_repo = SensorRepository(
                 str(asset_info["key"])[:-1], enable_thermal=True
@@ -505,8 +506,36 @@ class PSU(StaticAsset):
 
             psu_current.sensor_value = int(load) * 10
 
+    def _get_fan_sensor(self):
+        """Get psu fan sensor, returns None if not supported"""
+        if not self._state.supports_bmc:
+            return None
+
+        psu_fan = self._sensor_repo.get_sensor_by_name(self._psu_sensor_names["psuFan"])
+        return psu_fan
+
     @handler("ChildLoadUpEvent", "ChildLoadDownEvent", priority=1)
     def update_load_sensors(self, event, *args, **kwargs):
         """Change values of BMC sensors associated with load
         """
         self._update_load_sensors(event.load.new)
+
+    @handler("InputVoltageUpEvent")
+    def on_input_voltage_up(self, event, *args, **kwargs):
+        asset_event = super().on_input_voltage_up(event, args, kwargs)
+        if not asset_event.state.unchanged() and asset_event.state.new:
+            psu_fan = self._get_fan_sensor()
+            if psu_fan:
+                psu_fan.set_to_defaults()
+
+        return asset_event
+
+    @handler("InputVoltageDownEvent")
+    def on_input_voltage_down(self, event, *args, **kwargs):
+        asset_event = super().on_input_voltage_down(event, args, kwargs)
+        if not asset_event.state.unchanged() and not asset_event.state.new:
+            psu_fan = self._get_fan_sensor()
+            if psu_fan:
+                psu_fan.set_to_off()
+
+        return asset_event
