@@ -38,6 +38,10 @@ class IStateManager:
         self._asset_key = asset_info["key"]
         self._asset_info = asset_info
 
+    def close_connection(self):
+        """Close bolt driver connections"""
+        self._graph_ref.close()
+
     @property
     def key(self) -> int:
         """Asset Key """
@@ -54,14 +58,34 @@ class IStateManager:
         return self._asset_info["type"]
 
     @property
-    def power_usage(self) -> float:
+    def power_on_ac_restored(self) -> bool:
+        """Returns true if asset is configured to power up when AC
+        is restored (voltage is above lower threshold)"""
+        return (
+            self._asset_info["powerOnAc"] if "powerOnAc" in self._asset_info else True
+        )
+
+    @property
+    def power_usage(self):
         """Normal power usage in AMPS when powered up"""
-        return 0
+        if self.input_voltage and "powerConsumption" in self._asset_info:
+            return self._asset_info["powerConsumption"] / self.input_voltage
+
+        return 0.0
 
     @property
     def draw_percentage(self) -> float:
         """How much power the asset draws"""
         return self._asset_info["draw"] if "draw" in self._asset_info else 1
+
+    @property
+    def power_consumption(self):
+        """How much power this device consumes (wattage)"""
+        return (
+            self._asset_info["powerConsumption"]
+            if "powerConsumption" in self._asset_info
+            else 0
+        )
 
     @property
     def asset_info(self) -> dict:
@@ -76,7 +100,7 @@ class IStateManager:
     @property
     def wattage(self):
         """Asset wattage (assumes power-source to be 120v)"""
-        return self.load * ISystemEnvironment.get_voltage()
+        return self.load * self.input_voltage
 
     def min_voltage_prop(self):
         """Get minimum voltage required and the poweroff timeout associated with it"""
@@ -98,12 +122,13 @@ class IStateManager:
     @property
     def input_voltage(self):
         """Asset input voltage in Volts"""
-        return float(IStateManager.get_store().get(self.redis_key + ":in-voltage"))
+        in_volt = IStateManager.get_store().get(self.redis_key + ":in-voltage")
+        return float(in_volt) if in_volt else 0.0
 
     @property
     def output_voltage(self):
         """Output voltage for the device"""
-        return self.input_voltage
+        return self.input_voltage * self.status
 
     @property
     def agent(self):
@@ -126,9 +151,10 @@ class IStateManager:
         Returns:
             int: Asset's status after power-off operation
         """
-        self._sleep_shutdown()
         if self.status:
+            self._sleep_shutdown()
             self._set_state_off()
+            return 0
         return self.status
 
     @record
@@ -141,6 +167,7 @@ class IStateManager:
         """
         if self.status:
             self._set_state_off()
+            return 0
         return self.status
 
     @record
@@ -154,28 +181,21 @@ class IStateManager:
         """
         if self._parents_available() and not self.status:
             self._sleep_powerup()
-            # udpate machine start time & turn on
+            # update machine start time & turn on
             self._reset_boot_time()
             self._set_state_on()
+            return 1
         return self.status
 
-    def _update_input_voltage(self, voltage):
-        """"""
-        voltage = voltage if voltage >= 0 else 0
+    def _update_input_voltage(self, voltage: float):
+        """Set input voltage"""
+        voltage = max(voltage, 0)
         IStateManager.get_store().set(self.redis_key + ":in-voltage", voltage)
 
-    def _update_load(self, load):
-        """Update amps"""
-        load = load if load >= 0 else 0
+    def _update_load(self, load: float):
+        """Update power load for the asset"""
+        load = max(load, 0.0)
         IStateManager.get_store().set(self.redis_key + ":load", load)
-        self._publish_load()
-
-    def _publish_load(self):
-        """Publish load changes """
-        IStateManager.get_store().publish(
-            RedisChannels.load_update_channel,
-            json.dumps({"key": self.key, "load": self.load}),
-        )
 
     def _sleep_delay(self, delay_type):
         """Sleep for n number of ms determined by the delay_type"""
@@ -190,25 +210,25 @@ class IStateManager:
         """Hardware-specific powerup delay"""
         self._sleep_delay("onDelay")
 
-    def _set_redis_asset_state(self, state, publish=True):
+    def _set_redis_asset_state(self, state):
         """Update redis value of the asset power status"""
         IStateManager.get_store().set(self.redis_key + ":state", state)
-        if publish:
-            self._publish_power()
 
     def _set_state_on(self):
         """Set state to online"""
-        self._set_redis_asset_state(1)
+        self._publish_power(self.status, 1)
 
     def _set_state_off(self):
         """Set state to offline"""
-        self._set_redis_asset_state(0)
+        self._publish_power(self.status, 0)
 
-    def _publish_power(self):
+    def _publish_power(self, old_state, new_state):
         """Notify daemon of power updates"""
         IStateManager.get_store().publish(
             RedisChannels.state_update_channel,
-            json.dumps({"key": self.key, "status": self.status}),
+            json.dumps(
+                {"key": self.key, "old_state": old_state, "new_state": new_state}
+            ),
         )
 
     def _reset_boot_time(self):
@@ -281,6 +301,16 @@ class IStateManager:
         oids_on = self._check_parents(oid_keys.keys(), oid_clause)
 
         return (parent_assets_up and enough_voltage and oids_on) or (not asset_keys)
+
+    def __str__(self):
+        return (
+            "Asset[{0.asset_type}][{0.key}] \n"
+            " - Status: {0.status} \n"
+            " - Load: {0.load}A\n"
+            " - Power Consumption: {0.power_consumption}W \n"
+            " - Input Voltage: {0.input_voltage}V\n"
+            " - Output Voltage: {0.output_voltage}V\n"
+        ).format(self)
 
     @classmethod
     def get_store(cls):
@@ -391,29 +421,23 @@ class IStateManager:
 
         graph_ref = GraphReference()
         with graph_ref.get_session() as session:
-
             play_path = GraphReference.get_play_path(session)
-            if not play_path:
-                return ([], [])
 
-            play_files = [
-                f
-                for f in os.listdir(play_path)
-                if os.path.isfile(os.path.join(play_path, f))
-            ]
+        if not play_path:
+            return ([], [])
 
-            return (
-                [
-                    os.path.splitext(f)[0]
-                    for f in play_files
-                    if os.path.splitext(f)[1] != ".py"
-                ],
-                [
-                    os.path.splitext(f)[0]
-                    for f in play_files
-                    if os.path.splitext(f)[1] == ".py"
-                ],
-            )
+        play_files = [
+            f
+            for f in os.listdir(play_path)
+            if os.path.isfile(os.path.join(play_path, f))
+        ]
+
+        is_py_file = lambda f: os.path.splitext(f)[1] == ".py"
+
+        return (
+            [os.path.splitext(f)[0] for f in play_files if not is_py_file(f)],
+            [os.path.splitext(f)[0] for f in play_files if is_py_file(f)],
+        )
 
     @classmethod
     def execute_play(cls, play_name):
@@ -426,18 +450,18 @@ class IStateManager:
         with graph_ref.get_session() as session:
 
             play_path = GraphReference.get_play_path(session)
-            if not play_path:
-                return
+        if not play_path:
+            return
 
-            file_filter = (
-                lambda f: os.path.isfile(os.path.join(play_path, f))
-                and os.path.splitext(f)[0] == play_name
-            )
+        file_filter = (
+            lambda f: os.path.isfile(os.path.join(play_path, f))
+            and os.path.splitext(f)[0] == play_name
+        )
 
-            play_file = [f for f in os.listdir(play_path) if file_filter(f)][0]
+        play_file = [f for f in os.listdir(play_path) if file_filter(f)][0]
 
-            subprocess.Popen(
-                os.path.join(play_path, play_file),
-                stderr=subprocess.DEVNULL,
-                close_fds=True,
-            )
+        subprocess.Popen(
+            os.path.join(play_path, play_file),
+            stderr=subprocess.DEVNULL,
+            close_fds=True,
+        )

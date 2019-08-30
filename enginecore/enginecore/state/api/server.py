@@ -1,8 +1,9 @@
 """Server interfaces for managing servers' states """
 import json
+from enum import Enum
+import math
 import random
 import libvirt
-from enum import Enum
 
 from enginecore.model.graph_reference import GraphReference
 import enginecore.model.system_modeler as sys_modeler
@@ -29,26 +30,44 @@ class IServerStateManager(IStateManager):
         """Check if vm is powered up"""
         return self._vm.isActive()
 
-    @Randomizer.randomize_method()
-    def shut_down(self):
+    def _power_off_vm(self):
+        """Power of vm controlled by the server asset
+        (note that both shut down & power off actions are using
+        destroy vm method since graceful shutdown sometimes results in a 
+        vm stuck)
+        """
         if self._vm.isActive():
             self._vm.destroy()
-            self._update_load(0)
+
+    @Randomizer.randomize_method()
+    def shut_down(self):
+        self._power_off_vm()
+        self._update_load(0.0)
+
         return super().shut_down()
 
     @Randomizer.randomize_method()
     def power_off(self):
-        if self._vm.isActive():
-            self._vm.destroy()
-            self._update_load(0)
+        self._power_off_vm()
+        self._update_load(0.0)
+
         return super().power_off()
 
     @Randomizer.randomize_method()
     def power_up(self):
+
+        powered = self.status
+
+        if powered and not self._vm.isActive():
+            self._vm.create()
+
+        if powered or math.isclose(self.input_voltage, 0.0):
+            return powered
+
         powered = super().power_up()
         if not self._vm.isActive() and powered:
             self._vm.create()
-            self._update_load(self.power_usage)
+            self._update_load(self.power_consumption / self.input_voltage)
         return powered
 
 
@@ -75,16 +94,17 @@ class IBMCServerStateManager(IServerStateManager):
         Args:
             sensor_name: name of a fan sensor
         Raises:
-            ValueError: when the sensor name provided does not belong to a sensor of type fan
+            ValueError: when the sensor name provided does not
+                       belong to a sensor of type fan
         Returns:
             Random RPM value divided by 10 (unit accepted by IPMI_sim) 
-            if at leat one lower & one upper thresholds are present,
+            if at least one lower & one upper thresholds are present,
             returns the old sensor value otherwise
         """
 
         sensor = SensorRepository(self.key).get_sensor_by_name(sensor_name)
         if sensor.group != SensorGroups.fan:
-            raise ValueError('Only sensors of type "fan" are acceped')
+            raise ValueError('Only sensors of type "fan" are accepted')
 
         thresholds = sensor.thresholds
         get_th_by_group = lambda g: filter(lambda x: x.startswith(g), thresholds)
@@ -101,12 +121,13 @@ class IBMCServerStateManager(IServerStateManager):
         )
 
     def _get_rand_pd_properties(self) -> list:
-        """Get random settable physical drive attributes such as error counts occured while
+        """Get random settable physical drive attributes
+        such as error counts occurred while
         reading/writing & pd state
         """
 
         rand_err = lambda prop: random.randrange(
-            *self.get_storage_radnomizer_prop(prop)
+            *self.get_storage_randomizer_prop(prop)
         )
 
         return [
@@ -121,10 +142,11 @@ class IBMCServerStateManager(IServerStateManager):
         ]
 
     def _get_rand_ctrl_props(self) -> list:
-        """Get random settable controller attributes such as alarm state & memory errors"""
+        """Get random settable controller attributes such 
+        as alarm state & memory errors"""
 
         rand_err = lambda prop: random.randrange(
-            *self.get_storage_radnomizer_prop(prop)
+            *self.get_storage_randomizer_prop(prop)
         )
 
         return [
@@ -165,7 +187,7 @@ class IBMCServerStateManager(IServerStateManager):
                 session, self.key, proptype.name, slc
             )
 
-    def get_storage_radnomizer_prop(self, proptype: StorageRandProps) -> slice:
+    def get_storage_randomizer_prop(self, proptype: StorageRandProps) -> slice:
         """Get a randrange associated with a particular storage device"""
         with self._graph_ref.get_session() as session:
             return GraphReference.get_storage_randomizer_prop(
@@ -336,7 +358,8 @@ class IBMCServerStateManager(IServerStateManager):
 
     @classmethod
     def update_thermal_cpu_target(cls, attr):
-        """Create new or update existing thermal relationship between CPU usage and sensor"""
+        """Create new or update existing thermal
+        relationship between CPU usage and sensor"""
         new_rel = sys_modeler.set_thermal_cpu_target(attr)
         if not new_rel:
             return
@@ -357,3 +380,31 @@ class IBMCServerStateManager(IServerStateManager):
         graph_ref = GraphReference()
         with graph_ref.get_session() as session:
             return GraphReference.get_thermal_cpu_details(session, asset_key)
+
+
+@Randomizer.register
+class IPSUStateManager(IStateManager):
+    """Exposes state logic for a server PSU asset """
+
+    @Randomizer.randomize_method()
+    def power_up(self):
+        """Power up PSU"""
+
+        powered = self.status
+
+        if powered:
+            return powered
+
+        powered = super().power_up()
+        if powered:
+            if math.isclose(self.input_voltage, 0.0):
+                psu_load = 0.0
+            else:
+                psu_load = self.power_consumption / self.input_voltage
+            self._update_load(self.load + psu_load)
+        return powered
+
+    @property
+    def supports_bmc(self):
+        """Returns true if PSU is powering a server with BMC support"""
+        return "ServerWithBMC" in self.asset_info["children"][0].labels

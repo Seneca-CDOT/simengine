@@ -18,36 +18,47 @@ You can create a new asset with `model create` and power it by another asset wit
     simengine-cli model create pdu --asset-key=2 --port=1024
     simengine-cli model power-link --source-key=1 --dest-key=2
 
-The code snippet below will create more complicated system that includes 3 PDUs and some static assets drawing power from the power distribution devices.
+The code snippet below will create more complicated system that includes a UPS, a PDU, one server managing a VM and 3 lamps powered by the PDU.
 
-![](./pdu_rack.png)
+!!! note
+    You need to have a libvirt vm with a domain name 'an-a01n01'
+
+![](./sample-model.png)
 
 Source Code:
 
-    # Create an Outlet
-    simengine-cli model create outlet --asset-key=1111
+```bash
+# 2 outlets
+simengine-cli model create outlet -k1 -x=-200 -y=-237
+simengine-cli model create outlet -k2 -x=632 -y=115
 
-    # Create 3 PDUs
-    simengine-cli model create pdu --asset-key=1112 --port=1024
-    simengine-cli model create pdu --asset-key=1113 --port=1025
-    simengine-cli model create pdu --asset-key=1114 --port=1026
+# 1 UPS, 1 PDU
+simengine-cli model create ups -k3 --port=1024 -x=-165 -y=-113
+simengine-cli model create pdu -k4 --port=1025 -x=31 -y=700
 
-    # Add bunch of microwaves (4 items)
-    simengine-cli model create static --asset-key=2011 --name='Panasonic' --img-url=http://z3central.cdot.systems/docs/microwave-159076_640.png --power-source=120 --power-consumption=600
-    simengine-cli model create static --asset-key=2012 --name='EvilCorp' --img-url=http://z3central.cdot.systems/docs/microwave-159076_640.png --power-source=120 --power-consumption=600
-    simengine-cli model create static --asset-key=2013 --name='EvilCorp 10' --img-url=http://z3central.cdot.systems/docs/microwave-159076_640.png --power-source=120 --power-consumption=600
-    simengine-cli model create static --asset-key=2014 --name='EvilCorp 10' --img-url=http://z3central.cdot.systems/docs/microwave-159076_640.png --power-source=120 --power-consumption=600
+# 1 server (VM named 'an-a01n01')
+simengine-cli model create server-bmc -k5 --domain-name=an-a01n01 --power-consumption=480 -x=175 -y=416 --no-power-on-ac
 
-    # Linking Assets Together
-    simengine-cli model power-link --source-key=1111 --dest-key=1112
-    simengine-cli model power-link --source-key=11124 --dest-key=1113
-    simengine-cli model power-link --source-key=11138 --dest-key=1114
-    simengine-cli model power-link --source-key=11141 --dest-key=2011
-    simengine-cli model power-link --source-key=11143 --dest-key=2012
-    simengine-cli model power-link --source-key=11133 --dest-key=2013
-    simengine-cli model power-link --source-key=11127 --dest-key=2014
+# Add 3 lamps
+simengine-cli model create lamp -k62 --power-consumption=120 -x=223 -y=595
+simengine-cli model create lamp -k65 --power-consumption=120 -x=493 -y=595
+simengine-cli model create lamp -k68 --power-consumption=120 -x=764 -y=594
 
-## Link
+
+# Plug-in devices (create power connections)
+simengine-cli model power-link -s1 -d3    # out to ups
+
+simengine-cli model power-link -s35 -d4   # ups to pdu
+simengine-cli model power-link -s38 -d51  # ups to server
+
+simengine-cli model power-link -s2 -d52   # out to server
+
+simengine-cli model power-link -s42 -d62  # pdu to lamp
+simengine-cli model power-link -s45 -d65  # pdu to lamp
+simengine-cli model power-link -s48 -d68  # pdu to lamp
+```
+
+## Connecting Devices
 
 Code snippet below will create a power link between asset under key 1 & asset under key 2 (meaning source '1' will power destination '2')
 

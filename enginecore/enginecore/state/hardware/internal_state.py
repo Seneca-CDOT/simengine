@@ -20,10 +20,6 @@ class StateManager(state_api.IStateManager, state_api.ISystemEnvironment):
         """Set agent PID"""
         StateManager.get_store().set(self.redis_key + ":agent", pid)
 
-    def update_load(self, load):
-        """Update load """
-        super()._update_load(load)
-
     def update_input_voltage(self, voltage):
         """Update asset input voltage"""
         super()._update_input_voltage(voltage)
@@ -32,13 +28,25 @@ class StateManager(state_api.IStateManager, state_api.ISystemEnvironment):
         """Reset the boot time to now"""
         super()._reset_boot_time()
 
-    def publish_power(self):
+    def publish_power(self, old_state, new_state):
         """Publish state changes (expose method to the assets) """
-        super()._publish_power()
+        super()._publish_power(old_state, new_state)
 
-    def _set_redis_asset_state(self, state, publish=False):
+    def _set_state_on(self):
+        """Set redis state to 1 without publishing power to the engine"""
+        self.set_redis_asset_state(1)
+
+    def _set_state_off(self):
+        """Set redis state to 0 without publishing power to the engine"""
+        self.set_redis_asset_state(0)
+
+    def set_redis_asset_state(self, state):
         """Update redis value of the asset power status"""
-        super()._set_redis_asset_state(state, publish=False)
+        super()._set_redis_asset_state(state)
+
+    def update_load(self, load):
+        """Update load """
+        super()._update_load(load)
 
 
 class UPSStateManager(state_api.IUPSStateManager, StateManager):
@@ -59,13 +67,15 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         Args:
             charge_level(int): new battery level (between 0 & 1000)
         """
-        # make sure new charge level is within acceptable range
         charge_level = max(charge_level, 0)
         charge_level = min(charge_level, self._max_battery_level)
 
-        StateManager.get_store().set(self.redis_key + ":battery", int(charge_level))
+        old_charge_level = self.battery_level
+        self._update_battery(charge_level)
         self._update_battery_oids(charge_level, self.battery_level)
-        self._publish_battery()
+
+        # notify state listener that battery has changed
+        self._publish_battery(old_charge_level, charge_level)
 
     def update_load(self, load):
         """Update any load state associated with the device in the redis db 
@@ -228,10 +238,21 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
 
         return True, transfer_reason
 
-    def _publish_battery(self):
-        """Publish battery update"""
+    def _publish_battery(self, old_battery_lvl, new_battery_lvl):
+        """Publish battery update
+        Args:
+            old_battery_lvl(int): range 0-1000 (what battery level used to be)
+            new_battery_lvl(int): range 0-1000 (new battery charge level)
+        """
         StateManager.get_store().publish(
-            RedisChannels.battery_update_channel, json.dumps({"key": self.key})
+            RedisChannels.battery_update_channel,
+            json.dumps(
+                {
+                    "key": self.key,
+                    "old_battery": old_battery_lvl,
+                    "new_battery": new_battery_lvl,
+                }
+            ),
         )
 
 
@@ -317,7 +338,7 @@ class OutletStateManager(state_api.IOutletStateManager, StateManager):
         return self.get_oid_value_by_name("OutletConfigPowerOnTime")
 
 
-class StaticDeviceStateManager(state_api.IStaticDeviceManager, StateManager):
+class StaticDeviceStateManager(state_api.IStaticDeviceStateManager, StateManager):
     """Dummy Device that doesn't do much except drawing power """
 
     pass
@@ -365,13 +386,12 @@ class BMCServerStateManager(state_api.IBMCServerStateManager, ServerStateManager
                 )
 
 
-class PSUStateManager(StateManager):
+class PSUStateManager(state_api.IPSUStateManager, StateManager):
     """Power Supply"""
 
     def __init__(self, asset_info):
         StateManager.__init__(self, asset_info)
         self._psu_number = int(repr(asset_info["key"])[-1])
-        # self._sensor = SensorRepository(int(repr(asset_info['key'])[:-1])).get
 
     def get_psu_sensor_names(self):
         """Find out BMC-specific psu keys (voltage, status etc.)

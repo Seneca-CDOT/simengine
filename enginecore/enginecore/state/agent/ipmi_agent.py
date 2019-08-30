@@ -13,6 +13,8 @@ from string import Template
 from enginecore.model.supported_sensors import SUPPORTED_SENSORS
 from enginecore.state.agent.agent import Agent
 
+logger = logging.getLogger(__name__)
+
 
 class IPMIAgent(Agent):
     """Python wrapper managing ipmi_sim program that takes 
@@ -25,6 +27,7 @@ class IPMIAgent(Agent):
         "port",
         "user",
         "password",
+        "interface",
         "vmport",
         "num_components",
     ]
@@ -73,6 +76,9 @@ class IPMIAgent(Agent):
         lan_conf_opt = {
             "asset_key": self._sensor_repo.server_key,
             "extend_lib": self.extend_plugin_path,
+            "lan_path": os.path.join(
+                os.environ["SIMENGINE_IPMI_TEMPL"], "ipmi_sim_lancontrol"
+            ),
             **self._ipmi_config,
         }
 
@@ -199,7 +205,7 @@ class IPMIAgent(Agent):
             + ["-s", self.emu_state_dir_path, "-n"]
         )
 
-        logging.info("Starting agent: %s", " ".join(cmd))
+        logger.info("Starting agent: %s", " ".join(cmd))
 
         self.register_process(
             subprocess.Popen(cmd, stderr=subprocess.DEVNULL, close_fds=True)

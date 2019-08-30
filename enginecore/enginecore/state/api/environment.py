@@ -49,7 +49,7 @@ class ISystemEnvironment:
     def get_voltage(cls):
         """Get Wall-power voltage"""
         voltage = cls.get_store().get("voltage")
-        return float(voltage.decode()) if voltage else 120.0
+        return float(voltage.decode()) if voltage else cls.wallpower_volt_standard()
 
     @classmethod
     def power_source_available(cls):
@@ -59,10 +59,15 @@ class ISystemEnvironment:
         """
         return not math.isclose(cls.get_voltage(), 0.0)
 
+    @staticmethod
+    def sys_env_rand(sys_env_props):
+        """Get random value based on sys environment property (voltage, ambient)"""
+        return random.randrange(sys_env_props["start"], sys_env_props["end"])
+
     @classmethod
     @record
     @Randomizer.randomize_method(
-        (lambda self: random.randrange(*self.get_ambient_props()[1].values()),)
+        (lambda self: self.sys_env_rand(self.get_ambient_props()),)
     )
     def set_ambient(cls, value):
         """Update ambient value"""
@@ -75,16 +80,19 @@ class ISystemEnvironment:
 
     @classmethod
     @record
+    @Randomizer.randomize_method(
+        (lambda self: self.sys_env_rand(self.get_voltage_props()),)
+    )
     def set_voltage(cls, value):
         """Update voltage"""
         old_voltage = cls.get_voltage()
         cls.get_store().set("voltage", str(float(value)))
 
-        if old_voltage == 0.0 and old_voltage < value:
+        if math.isclose(old_voltage, 0.0) and value > old_voltage:
             cls.get_store().publish(
                 RedisChannels.mains_update_channel, json.dumps({"status": 1})
             )
-        elif value == 0.0:
+        elif math.isclose(value, 0.0):
             cls.get_store().publish(
                 RedisChannels.mains_update_channel, json.dumps({"status": 0})
             )
@@ -95,18 +103,16 @@ class ISystemEnvironment:
         )
 
     @classmethod
-    @record
     @Randomizer.randomize_method()
     def power_outage(cls):
         """Simulate complete power outage/restoration"""
         cls.set_voltage(0.0)
 
     @classmethod
-    @record
     @Randomizer.randomize_method()
     def power_restore(cls):
         """Simulate complete power restoration"""
-        cls.set_voltage(120.0)
+        cls.set_voltage(cls.wallpower_volt_standard())
 
     @classmethod
     def mains_status(cls):
@@ -126,7 +132,12 @@ class ISystemEnvironment:
 
     @classmethod
     def set_ambient_props(cls, props):
-        """Update runtime thermal properties of the room temperature"""
+        """Update runtime thermal properties of the room temperature
+        Args:
+            props: ambient behaviour specs such as "event" (upon what event: up/down),
+                   "degrees" (how much rises/dropw), "rate" (seconds),
+                   "pause_at" (should stop at this temperature)
+        """
 
         graph_ref = GraphReference()
         with graph_ref.get_session() as session:
@@ -155,3 +166,10 @@ class ISystemEnvironment:
     def voltage_random_methods():
         """Supported voltage fluctuation random methods"""
         return ["uniform", "gauss"]
+
+    @staticmethod
+    def wallpower_volt_standard():
+        """Nominal wallpower voltage
+        (120 volt system in North America)
+        """
+        return 120.0

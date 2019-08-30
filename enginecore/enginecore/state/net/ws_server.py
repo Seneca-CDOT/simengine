@@ -19,9 +19,19 @@ from enginecore.state.net.ws_requests import (
     ClientToServerRequests,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class WebSocket(Component):
-    """Simple Web-Socket server that handles interactions between frontend & enginecore """
+    """a Web-Socket server that handles interactions between:
+    - frontend & enginecore
+    - cli client & enginecore (see state_client.py)
+
+    WebSocket also manages action recorder, handles replay requests
+    
+    WebSocket is added as event tracker to the engine so any completion
+    events dispatched by engine are passed to websocket client
+    """
 
     channel = "wsserver"
 
@@ -38,7 +48,7 @@ class WebSocket(Component):
         """Called upon new client connecting to the ws """
 
         self._clients.append(sock)
-        logging.info("WebSocket Client Connected %s:%s", host, port)
+        logger.info("WebSocket Client Connected %s:%s", host, port)
 
     def _write_data(self, sock, request, data):
         """Send data to the web-server socket client
@@ -56,7 +66,8 @@ class WebSocket(Component):
         )
 
     def _cmd_executed_response(self, sock, executed):
-        """Update client on command execution status (if the request went through or not)"""
+        """Update client on command execution status
+        (if the request went through or not)"""
         self._write_data(
             sock, ServerToClientRequests.cmd_executed_status, {"executed": executed}
         )
@@ -273,7 +284,7 @@ class WebSocket(Component):
             )
 
         if not assets and not 0 in rand_session_specs["asset_keys"]:
-            logging.error("No assets selected for random actions")
+            logger.warning("No assets selected for random actions")
             return
 
         state_managers = list(map(IStateManager.get_state_manager_by_key, assets))
@@ -321,7 +332,7 @@ class WebSocket(Component):
         """
 
         client_data = json.loads(data)
-        logging.info(client_data)
+        logger.debug(data)
         self.fire(
             Event.create(
                 client_data["request"],
@@ -335,13 +346,79 @@ class WebSocket(Component):
         if sock in self._data_subscribers:
             self._data_subscribers.remove(sock)
 
-    @handler("NotifyClient")
-    def notify_client(self, data):
+    # == Engine state handlers (passes engine events to websocket client) ==
+
+    # pylint: disable=unused-argument
+    @handler("AssetPowerEvent")
+    def on_asset_power_change(self, event, *args, **kwargs):
+        """Handle engine events by passing updates to 
+        server clients"""
+        if not event or event.asset is None:
+            return
+
+        client_request = ServerToClientRequests.asset_upd
+        payload = {"key": event.asset.key}
+
+        if not event.load.unchanged():
+            payload["load"] = event.load.new
+        if not event.state.unchanged():
+            payload["status"] = event.state.new
+
+        self._notify_clients({"request": client_request.name, "payload": payload})
+
+    @handler("MainsPowerEvent")
+    def on_mains_change(self, event, *args, **kwargs):
+        """Notify frontend of wallpower changes"""
+        client_request = ServerToClientRequests.mains_upd
+        payload = {"mains": event.mains.new}
+        self._notify_clients({"request": client_request.name, "payload": payload})
+
+    @handler("AmbientEvent")
+    def on_ambient_change(self, event, *args, **kwargs):
+        """Handle ambient event dispatched by engine so that the server
+        client(s) are updated"""
+        payload = {
+            "ambient": event.temperature.new,
+            "rising": event.temperature.difference > 0,
+        }
+        self._notify_clients(
+            {"request": ServerToClientRequests.ambient_upd.name, "payload": payload}
+        )
+
+    @handler("AssetLoadEvent")
+    def on_asset_load_change(self, event, *args, **kwargs):
+        """Handle load changes event propagated by the engine by sending update
+        to the frontend"""
+        if not event:
+            return
+
+        if not event.load.unchanged():
+            client_request = ServerToClientRequests.asset_upd
+            payload = {"key": event.asset.key, "load": event.load.new}
+
+            self._notify_clients({"request": client_request.name, "payload": payload})
+
+    @handler("BatteryEvent")
+    def on_battery_change(self, event, *args, **kwargs):
+        """Notify frontend of battery udpate"""
+        payload = {"key": event.asset.key, "battery": event.battery.new}
+        self._notify_clients(
+            {"request": ServerToClientRequests.asset_upd.name, "payload": payload}
+        )
+
+    # pylint: enable=unused-argument
+
+    def _notify_clients(self, data):
         """This handler is called upon state changes 
         and is meant to notify web-client of any events 
         
         Args:
-            data: data to be sent to ws clients
+            data: data to be sent to ws clients 
+                  must be in a format: 
+                {
+                    "request": <ServerToClientRequests.request.name>,
+                    "payload": <data>
+                }
         """
 
         for client in self._data_subscribers:

@@ -8,6 +8,8 @@ import pwd
 import grp
 from enginecore.state.agent.agent import Agent
 
+logger = logging.getLogger(__name__)
+
 
 class SNMPAgent(Agent):
     """SNMP simulator/wrapper for snmpsimd.py process;
@@ -63,8 +65,10 @@ class SNMPAgent(Agent):
             lookup_oid, self._asset_key, redis_script_sha
         )
 
-        with open(rec_public_path, "a") as pub, open(rec_private_path, "a") as priv:
+        with open(rec_public_path, "a") as pub:
             pub.write(snmpsim_config)
+
+        with open(rec_private_path, "a") as priv:
             priv.write(snmpsim_config)
 
     def start_agent(self):
@@ -80,6 +84,7 @@ class SNMPAgent(Agent):
             "--agent-udpv4-endpoint={host}:{port}".format(**self._snmp_conf),
             "--variation-module-options=" + var_opt,
             "--data-dir=" + self._snmp_rec_dir,
+            "--cache-dir=" + self._snmp_rec_dir,
             "--transport-id-offset=" + str(SNMPAgent.agent_num),
             # "--daemonize",
             "--logging-method=file:" + self.log_path,
@@ -90,7 +95,7 @@ class SNMPAgent(Agent):
         if os.getuid() == 0:
             cmd.extend(["--process-user=nobody", "--process-group=nobody"])
 
-        logging.info("Starting agent: %s", " ".join(cmd))
+        logger.info("Starting agent: %s", " ".join(cmd))
         self.register_process(
             subprocess.Popen(cmd, stderr=subprocess.DEVNULL, close_fds=True)
         )

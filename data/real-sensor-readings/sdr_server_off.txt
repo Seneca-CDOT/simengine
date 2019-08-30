@@ -1,0 +1,118 @@
+Ambient          | 25.000     | degrees C  | ok    | na        | 1.000     | 6.000     | 37.000    | 42.000    | na        
+Systemboard      | 51.000     | degrees C  | ok    | na        | na        | na        | 75.000    | 80.000    | na        
+VR CPU1          | na         | degrees C  | na    | na        | na        | na        | 120.000   | 125.000   | na        
+VR MEM AB        | na         | degrees C  | na    | na        | na        | na        | 120.000   | 125.000   | na        
+VR MEM CD        | na         | degrees C  | na    | na        | na        | na        | 120.000   | 125.000   | na        
+VR CPU2          | na         | degrees C  | na    | na        | na        | na        | 120.000   | 125.000   | na        
+VR MEM EF        | na         | degrees C  | na    | na        | na        | na        | 120.000   | 125.000   | na        
+VR MEM GH        | na         | degrees C  | na    | na        | na        | na        | 120.000   | 125.000   | na        
+CPU1             | na         | degrees C  | na    | na        | na        | na        | 86.000    | 87.000    | na        
+CPU2             | na         | degrees C  | na    | na        | na        | na        | 89.000    | 93.000    | na        
+MEM A            | na         | degrees C  | na    | na        | na        | na        | 78.000    | 82.000    | na        
+MEM B            | na         | degrees C  | na    | na        | na        | na        | 78.000    | 82.000    | na        
+MEM C            | na         | degrees C  | na    | na        | na        | na        | 78.000    | 82.000    | na        
+MEM D            | na         | degrees C  | na    | na        | na        | na        | 78.000    | 82.000    | na        
+MEM E            | na         | degrees C  | na    | na        | na        | na        | 78.000    | 82.000    | na        
+MEM F            | na         | degrees C  | na    | na        | na        | na        | 78.000    | 82.000    | na        
+MEM G            | na         | degrees C  | na    | na        | na        | na        | 78.000    | 82.000    | na        
+MEM H            | na         | degrees C  | na    | na        | na        | na        | 78.000    | 82.000    | na        
+PSU1 Inlet       | 38.000     | degrees C  | ok    | na        | na        | na        | 57.000    | 61.000    | na        
+PSU2 Inlet       | 39.000     | degrees C  | ok    | na        | na        | na        | 57.000    | 61.000    | na        
+PSU1             | 62.000     | degrees C  | ok    | na        | na        | na        | 102.000   | 107.000   | na        
+PSU2             | 65.000     | degrees C  | ok    | na        | na        | na        | 102.000   | 107.000   | na        
+BBU              | na         | degrees C  | na    | na        | na        | na        | 50.000    | 55.000    | na        
+RAID Controller  | na         | degrees C  | na    | na        | na        | na        | 110.000   | 115.000   | na        
+BATT 3.0V        | 3.029      | Volts      | ok    | na        | 2.000     | 2.691     | na        | 3.500     | na        
+STBY 12V         | 11.940     | Volts      | ok    | na        | 11.100    | na        | na        | 13.020    | na        
+STBY 5V          | 5.174      | Volts      | ok    | na        | 4.678     | na        | na        | 5.347     | na        
+STBY 3.3V        | 3.332      | Volts      | ok    | na        | 3.041     | na        | na        | 3.592     | na        
+LAN 1.8V STBY    | 1.780      | Volts      | ok    | na        | 1.690     | na        | na        | 1.910     | na        
+iRMC 1.0V STBY   | 0.980      | Volts      | ok    | na        | 0.950     | na        | na        | 1.050     | na        
+LAN 1.0V STBY    | 0.990      | Volts      | ok    | na        | 0.950     | na        | na        | 1.050     | na        
+MAIN 12V         | na         | Volts      | na    | na        | 11.100    | na        | na        | 13.020    | na        
+MAIN 5V          | na         | Volts      | na    | na        | 4.603     | na        | na        | 5.422     | na        
+MAIN 3.3V        | na         | Volts      | na    | na        | 3.041     | na        | na        | 3.592     | na        
+PCH 1.5V         | na         | Volts      | na    | na        | 1.390     | na        | na        | 1.600     | na        
+PCH 1.1V         | na         | Volts      | na    | na        | 1.060     | na        | na        | 1.140     | na        
+FAN1 SYS         | na         | RPM        | na    | na        | 1920.000  | na        | na        | na        | na        
+FAN2 SYS         | na         | RPM        | na    | na        | 1920.000  | na        | na        | na        | na        
+FAN3 SYS         | na         | RPM        | na    | na        | 1920.000  | na        | na        | na        | na        
+FAN4 SYS         | na         | RPM        | na    | na        | 1920.000  | na        | na        | na        | na        
+FAN5 SYS         | na         | RPM        | na    | na        | 1920.000  | na        | na        | na        | na        
+FAN6 SYS         | na         | RPM        | na    | na        | 1920.000  | na        | na        | na        | na        
+FAN7 SYS         | na         | RPM        | na    | na        | 1920.000  | na        | na        | na        | na        
+FAN8 SYS         | na         | RPM        | na    | na        | 1920.000  | na        | na        | na        | na        
+FAN9 SYS         | na         | RPM        | na    | na        | 1920.000  | na        | na        | na        | na        
+FAN10 SYS        | na         | RPM        | na    | na        | 1920.000  | na        | na        | na        | na        
+FAN11 SYS        | na         | RPM        | na    | na        | 1920.000  | na        | na        | na        | na        
+FAN12 SYS        | na         | RPM        | na    | na        | 1920.000  | na        | na        | na        | na        
+FAN PSU1         | na         | RPM        | na    | na        | 400.000   | na        | na        | na        | na        
+FAN PSU2         | na         | RPM        | na    | na        | 400.000   | na        | na        | na        | na        
+PSU1 Power       | 4.000      | Watts      | ok    | na        | na        | na        | na        | na        | na        
+PSU2 Power       | 8.000      | Watts      | ok    | na        | na        | na        | na        | na        | na        
+Total Power      | 24.000     | Watts      | ok    | na        | na        | na        | 848.000   | 880.000   | na        
+Total Power Out  | 0.000      | Watts      | ok    | na        | na        | na        | na        | na        | na        
+I2C1 error ratio | 0.000      | percent    | ok    | na        | na        | na        | 10.000    | 20.000    | na        
+I2C2 error ratio | 0.000      | percent    | ok    | na        | na        | na        | 10.000    | 20.000    | na        
+I2C3 error ratio | 0.000      | percent    | ok    | na        | na        | na        | 10.000    | 20.000    | na        
+I2C4 error ratio | 0.000      | percent    | ok    | na        | na        | na        | 10.000    | 20.000    | na        
+I2C5 error ratio | 0.000      | percent    | ok    | na        | na        | na        | 10.000    | 20.000    | na        
+I2C6 error ratio | 0.000      | percent    | ok    | na        | na        | na        | 10.000    | 20.000    | na        
+I2C7 error ratio | 0.000      | percent    | ok    | na        | na        | na        | 10.000    | 20.000    | na        
+I2C8 error ratio | 0.000      | percent    | ok    | na        | na        | na        | 10.000    | 20.000    | na        
+SEL Level        | 0.000      | percent    | ok    | na        | na        | na        | 90.000    | na        | na        
+Ambient          | 0x0        | discrete   | 0x0280| na        | na        | na        | na        | na        | na        
+Ambient          | 0x0        | discrete   | 0x0180| na        | na        | na        | na        | na        | na        
+CPU1             | 0x0        | discrete   | 0x8080| na        | na        | na        | na        | na        | na        
+CPU2             | 0x0        | discrete   | 0x0080| na        | na        | na        | na        | na        | na        
+Power Limit      | na         | discrete   | na    | na        | na        | na        | na        | na        | na        
+Power Unit       | na         | discrete   | na    | na        | na        | na        | na        | na        | na        
+PSU Config       | 0x0        | discrete   | 0x0180| na        | na        | na        | na        | na        | na        
+PSU              | na         | discrete   | na    | na        | na        | na        | na        | na        | na        
+PSU1             | 0x0        | discrete   | 0x0280| na        | na        | na        | na        | na        | na        
+PSU2             | 0x0        | discrete   | 0x0280| na        | na        | na        | na        | na        | na        
+Power Level      | 0x0        | discrete   | 0x0880| na        | na        | na        | na        | na        | na        
+P-STATE Throttle | 0x0        | discrete   | 0x0180| na        | na        | na        | na        | na        | na        
+System State     | 0x0        | discrete   | 0x0080| na        | na        | na        | na        | na        | na        
+FAN1 SYS         | na         | discrete   | na    | na        | na        | na        | na        | na        | na        
+FAN2 SYS         | na         | discrete   | na    | na        | na        | na        | na        | na        | na        
+FAN3 SYS         | na         | discrete   | na    | na        | na        | na        | na        | na        | na        
+FAN4 SYS         | na         | discrete   | na    | na        | na        | na        | na        | na        | na        
+FAN5 SYS         | na         | discrete   | na    | na        | na        | na        | na        | na        | na        
+FAN6 SYS         | na         | discrete   | na    | na        | na        | na        | na        | na        | na        
+FAN7 SYS         | na         | discrete   | na    | na        | na        | na        | na        | na        | na        
+FAN8 SYS         | na         | discrete   | na    | na        | na        | na        | na        | na        | na        
+FAN9 SYS         | na         | discrete   | na    | na        | na        | na        | na        | na        | na        
+FAN10 SYS        | na         | discrete   | na    | na        | na        | na        | na        | na        | na        
+FAN11 SYS        | na         | discrete   | na    | na        | na        | na        | na        | na        | na        
+FAN12 SYS        | na         | discrete   | na    | na        | na        | na        | na        | na        | na        
+FAN PSU1         | na         | discrete   | na    | na        | na        | na        | na        | na        | na        
+FAN PSU2         | na         | discrete   | na    | na        | na        | na        | na        | na        | na        
+Watchdog         | 0x0        | discrete   | 0x0080| na        | na        | na        | na        | na        | na        
+CPU detection    | 0x0        | discrete   | 0x0080| na        | na        | na        | na        | na        | na        
+ME               | 0x0        | discrete   | 0x0080| na        | na        | na        | na        | na        | na        
+iRMC request     | 0x0        | discrete   | 0x0080| na        | na        | na        | na        | na        | na        
+I2C1             | 0x0        | discrete   | 0x0280| na        | na        | na        | na        | na        | na        
+I2C2             | 0x0        | discrete   | 0x0280| na        | na        | na        | na        | na        | na        
+I2C3             | 0x0        | discrete   | 0x0280| na        | na        | na        | na        | na        | na        
+I2C4             | 0x0        | discrete   | 0x0280| na        | na        | na        | na        | na        | na        
+I2C5             | 0x0        | discrete   | 0x0280| na        | na        | na        | na        | na        | na        
+I2C6             | 0x0        | discrete   | 0x0280| na        | na        | na        | na        | na        | na        
+I2C7             | 0x0        | discrete   | 0x0280| na        | na        | na        | na        | na        | na        
+I2C8             | 0x0        | discrete   | 0x0280| na        | na        | na        | na        | na        | na        
+Config backup    | 0x0        | discrete   | 0x0080| na        | na        | na        | na        | na        | na        
+FAN7 SYS         | 0x0        | discrete   | 0x0280| na        | na        | na        | na        | na        | na        
+FAN8 SYS         | 0x0        | discrete   | 0x0280| na        | na        | na        | na        | na        | na        
+FAN9 SYS         | 0x0        | discrete   | 0x0280| na        | na        | na        | na        | na        | na        
+FAN10 SYS        | 0x0        | discrete   | 0x0280| na        | na        | na        | na        | na        | na        
+PSU1 Power       | 0x0        | discrete   | 0x0180| na        | na        | na        | na        | na        | na        
+PSU2 Power       | 0x0        | discrete   | 0x0180| na        | na        | na        | na        | na        | na        
+Total Power      | 0x0        | discrete   | 0x0180| na        | na        | na        | na        | na        | na        
+Total Power Out  | 0x0        | discrete   | 0x0180| na        | na        | na        | na        | na        | na        
+Power Level      | 0x0        | discrete   | 0x0180| na        | na        | na        | na        | na        | na        
+System Mgmt SW   | na         | discrete   | na    | na        | na        | na        | na        | na        | na        
+Local Monitor    | 0x0        | discrete   | 0x0280| na        | na        | na        | na        | na        | na        
+Pwr Btn override | 0x0        | discrete   | 0x0080| na        | na        | na        | na        | na        | na        
+NMI              | 0x0        | discrete   | 0x0080| na        | na        | na        | na        | na        | na        
+System BIOS      | na         | discrete   | na    | na        | na        | na        | na        | na        | na        
+iRMC             | 0x0        | discrete   | 0x0080| na        | na        | na        | na        | na        | na    

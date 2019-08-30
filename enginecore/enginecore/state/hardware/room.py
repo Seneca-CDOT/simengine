@@ -1,7 +1,7 @@
 """Components controlling physical space of server racks"""
 import time
 import operator
-from threading import Thread
+from threading import Thread, Event
 import logging
 import random
 
@@ -20,12 +20,34 @@ from enginecore.state.hardware.outlet_asset import Outlet
 
 # pylint: enable=unused-import
 
+logger = logging.getLogger(__name__)
+
 
 class ServerRoom(Component):
     """Represents hardware environment (Room/ServerRack);
     Room manages ambient temperature by monitoring power outages (AC going down)
     and power restorations after blackouts.
     """
+
+    # On clean system start, some room properties need to be set to defaults
+    ambient_defaults = {
+        "up": {"event": "up", "pause_at": 21},
+        "down": {"event": "down", "pause_at": 28},
+        "shared": {"degrees": 1, "rate": 20, "start": 19, "end": 28},
+    }
+
+    voltage_defaults = {
+        "mu": 120,
+        "sigma": 1,
+        "min": 117,
+        "max": 124,
+        "method": "uniform",
+        "rate": 6,
+        "enabled": False,
+        # randomizer properties
+        "start": 110,
+        "end": 128,
+    }
 
     def __init__(self):
         super(ServerRoom, self).__init__()
@@ -34,38 +56,44 @@ class ServerRoom(Component):
         self._temp_warming_t = None
         self._temp_cooling_t = None
         self._voltage_fluct_t = None
+        self._stop_event = Event()
 
         # set up default values on the first run (if not set by the user)
         if not in_state.StateManager.get_ambient_props():
-            shared_attr = {"degrees": 1, "rate": 20, "start": 19, "end": 28}
             in_state.StateManager.set_ambient_props(
-                {**shared_attr, **{"event": "down", "pause_at": 28}}
-            )
-            in_state.StateManager.set_ambient_props(
-                {**shared_attr, **{"event": "up", "pause_at": 21}}
-            )
-
-        if not in_state.StateManager.get_voltage_props():
-            in_state.StateManager.set_voltage_props(
                 {
-                    "mu": 120,
-                    "sigma": 1,
-                    "min": 117,
-                    "max": 124,
-                    "method": "uniform",
-                    "rate": 6,
-                    "enabled": True,
+                    **ServerRoom.ambient_defaults["shared"],
+                    **ServerRoom.ambient_defaults["down"],
+                }
+            )
+            in_state.StateManager.set_ambient_props(
+                {
+                    **ServerRoom.ambient_defaults["shared"],
+                    **ServerRoom.ambient_defaults["up"],
                 }
             )
 
+        if not in_state.StateManager.get_voltage_props():
+            in_state.StateManager.set_voltage_props(ServerRoom.voltage_defaults)
+
+        in_state.StateManager.get_store().set("voltage", str(float(0)))
         # initialize server room environment
         in_state.StateManager.power_restore()
 
         self._init_thermal_threads()
         self._init_voltage_thread()
 
-    @staticmethod
-    def _keep_changing_temp(event, env, bound_op, temp_op):
+    def stop(self, code=None):
+        """Clean-up on stop (join threads)"""
+
+        self._stop_event.set()
+
+        self._temp_warming_t.join()
+        self._temp_cooling_t.join()
+        self._voltage_fluct_t.join()
+        super().stop(code)
+
+    def _keep_changing_temp(self, event, env, bound_op, temp_op):
         """Change room temperature until limit is reached or AC state changes
         
         Args:
@@ -77,12 +105,12 @@ class ServerRoom(Component):
 
         # ambient props contains details like min/max temperature value;
         # increase/decrease steps etc.
-        get_amb_props = lambda: in_state.StateManager.get_ambient_props()[0][event]
+        get_amb_props = lambda: in_state.StateManager.get_ambient_props()[event]
         amb_props = get_amb_props()
 
-        while True:
+        while not self._stop_event.is_set():
 
-            time.sleep(amb_props["rate"])
+            self._stop_event.wait(amb_props["rate"])
 
             # check if room environment matches the conditions
             # required for ambient update
@@ -105,23 +133,22 @@ class ServerRoom(Component):
 
             # update ambient
             if needs_update:
-                logging.info(msg_format, current_temp, new_temp)
+                logger.info(msg_format, current_temp, new_temp)
                 in_state.StateManager.set_ambient(new_temp)
 
             amb_props = get_amb_props()
 
-    @staticmethod
-    def _keep_fluctuating_voltage():
+    def _keep_fluctuating_voltage(self):
         """Update input voltage every n seconds"""
 
-        get_volt_props = lambda: in_state.StateManager.get_voltage_props()[0]
-        volt_props = get_volt_props()
+        volt_props = in_state.StateManager.get_voltage_props()
 
-        while True:
-            time.sleep(volt_props["rate"])
+        while not self._stop_event.is_set():
+
+            self._stop_event.wait(volt_props["rate"])
 
             if not volt_props["enabled"] or not in_state.StateManager.mains_status():
-                volt_props = get_volt_props()
+                volt_props = in_state.StateManager.get_voltage_props()
                 continue
 
             if volt_props["method"] == "gauss":
@@ -130,7 +157,7 @@ class ServerRoom(Component):
                 rand_v = random.uniform(volt_props["min"], volt_props["max"])
 
             in_state.StateManager.set_voltage(rand_v)
-            volt_props = get_volt_props()
+            volt_props = in_state.StateManager.get_voltage_props()
 
     def _launch_thermal_thread(self, name, th_kwargs):
         """Start up a thread that will be changing ambient depending on environment
@@ -150,7 +177,7 @@ class ServerRoom(Component):
         """Initialize voltage fluctuations threading"""
 
         if self._voltage_fluct_t and self._voltage_fluct_t.isAlive():
-            logging.warning("Voltage thread is already running!")
+            logger.warning("Voltage thread is already running!")
             return
 
         self._voltage_fluct_t = Thread(
@@ -185,7 +212,7 @@ class ServerRoom(Component):
     def __str__(self):
 
         wall_power_status = in_state.StateManager.mains_status()
-        volt_props = in_state.StateManager.get_voltage_props()[0]
+        volt_props = in_state.StateManager.get_voltage_props()
 
         horizontal_line = "-" * 20
 

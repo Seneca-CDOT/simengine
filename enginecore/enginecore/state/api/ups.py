@@ -4,7 +4,7 @@ import json
 from enum import Enum
 
 from enginecore.state.redis_channels import RedisChannels
-from enginecore.state.api.state import IStateManager
+from enginecore.state.api.state import IStateManager, ISystemEnvironment
 from enginecore.state.api.snmp_state import ISnmpDeviceStateManager
 from enginecore.tools.randomizer import Randomizer
 
@@ -85,7 +85,19 @@ class IUPSStateManager(ISnmpDeviceStateManager):
     @property
     def battery_level(self):
         """Get current level (high-precision)"""
-        return int(IStateManager.get_store().get(self.redis_key + ":battery").decode())
+        battery_lvl = IStateManager.get_store().get(self.redis_key + ":battery")
+        return int(battery_lvl.decode()) if battery_lvl else 0
+
+    def _update_battery(self, charge_level):
+        """Battery level setter
+        Args:
+            charge_level(int): new charge level in high-precision format (0-1000)
+        """
+        # make sure new charge level is within acceptable range
+        charge_level = max(charge_level, 0)
+        charge_level = min(charge_level, self._max_battery_level)
+
+        IStateManager.get_store().set(self.redis_key + ":battery", int(charge_level))
 
     @property
     def battery_max_level(self):
@@ -95,15 +107,27 @@ class IUPSStateManager(ISnmpDeviceStateManager):
     @property
     def on_battery(self):
         """Indicates if UPS is powered by battery at the moment"""
-        return self.get_transfer_reason() != self.InputLineFailCause.noTransfer
+        return self.transfer_reason != self.InputLineFailCause.noTransfer
+
+    @property
+    def transfer_reason(self):
+        """Retrieve last transfer reason (why switched from input power to battery)
+        Returns:
+            InputLineFailCause: last transfer cause
+        """
+        oid_t_reason = self.get_oid_by_name("InputLineFailCause")
+        return self.InputLineFailCause(int(self.get_oid_value(oid_t_reason)))
 
     @property
     def output_voltage(self):
-        return self.input_voltage if not self.on_battery else self.status * 120
+        if self.on_battery:
+            return self.status * ISystemEnvironment.wallpower_volt_standard()
+
+        return self.input_voltage
 
     @property
     def wattage(self):
-        return (self.load + self.idle_ups_amp) * self._asset_info["powerSource"]
+        return self.load * self._asset_info["powerSource"]
 
     @property
     def idle_ups_amp(self):
@@ -155,34 +179,39 @@ class IUPSStateManager(ISnmpDeviceStateManager):
         return t_period
 
     @Randomizer.randomize_method()
+    def power_off(self):
+        powered = super().power_off()
+        if not powered:
+            self._update_load(self.load - self.power_usage)
+
+    @Randomizer.randomize_method()
     def shut_down(self):
         time.sleep(self.get_config_off_delay())
         powered = super().shut_down()
+        if not powered:
+            self._update_load(self.load - self.power_usage)
+
         return powered
 
     @Randomizer.randomize_method()
     def power_up(self):
 
+        powered = self.status
+
         if self.battery_level and not self.status:
             self._sleep_powerup()
             time.sleep(self.get_config_on_delay())
-            # udpate machine start time & turn on
+            # update machine start time & turn on
             self._reset_boot_time()
             self._set_state_on()
 
-        powered = self.status
-        if powered:
             self._reset_power_off_oid()
+            self.enable_net_interface()
+            self._update_load(self.power_usage)
+
+            powered = 1
 
         return powered
-
-    def get_transfer_reason(self):
-        """Retrieve last transfer reason (why switched from input power to battery)
-        Returns:
-            InputLineFailCause: last transfer cause
-        """
-        oid_t_reason = self.get_oid_by_name("InputLineFailCause")
-        return self.InputLineFailCause(int(self.get_oid_value(oid_t_reason)))
 
     def get_config_off_delay(self):
         """Delay for power-off operation 
@@ -213,3 +242,10 @@ class IUPSStateManager(ISnmpDeviceStateManager):
         self._update_battery_process_speed(
             RedisChannels.battery_conf_charge_channel, factor
         )
+
+    def __str__(self):
+        return super(IUPSStateManager, self).__str__() + (
+            " - On Battery: {0.on_battery}\n"
+            " - Last Transfer Reason: {0.transfer_reason}\n"
+            " - Battery Level: {0.battery_level}\n"
+        ).format(self)

@@ -1,5 +1,6 @@
 """Initialize redis state based on reference model """
 import os
+import subprocess
 import tempfile
 import shutil
 
@@ -12,7 +13,10 @@ from enginecore.tools.utils import format_as_redis_key
 def get_temp_workplace_dir():
     """Get location of the temp directory"""
     sys_temp = tempfile.gettempdir()
-    simengine_temp = os.path.join(sys_temp, "simengine")
+    sim_temp = os.environ["SIMENGINE_WORKPLACE_TEMP"] = os.environ.get(
+        "SIMENGINE_WORKPLACE_TEMP", "simengine"
+    )
+    simengine_temp = os.path.join(sys_temp, sim_temp)
     return simengine_temp
 
 
@@ -63,9 +67,9 @@ def configure_env(relative=False):
         "SIMENGINE_SNMP_SHA",
         # str(os.popen('/usr/local/bin/redis-cli script load "$(cat {})"'
         # .format(lua_script_path)).read())
-        str(
-            os.popen('redis-cli script load "$(cat {})"'.format(lua_script_path)).read()
-        ),
+        subprocess.check_output(
+            'redis-cli script load "$(cat {})"'.format(lua_script_path), shell=True
+        ).decode("utf-8"),
     )
 
 
@@ -78,7 +82,7 @@ def clear_temp():
             if os.path.isfile(file_path):
                 os.unlink(file_path)
             elif os.path.isdir(file_path):
-                shutil.rmtree(file_path)
+                shutil.rmtree(file_path, ignore_errors=True)
     else:
         os.makedirs(simengine_temp)
 

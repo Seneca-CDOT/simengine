@@ -57,6 +57,7 @@ sensor_set_event_support 0x30 0 1 enable scanning per-state \
 # PSU SENSORS
 # ===========
 ${psuStatus}
+${psuFan}
 ${psuCurrent}
 ${psuPower}
 ${psuVoltage}

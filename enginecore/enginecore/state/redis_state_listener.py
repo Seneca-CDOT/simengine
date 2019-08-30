@@ -1,5 +1,5 @@
 """StateListener subscribes to redis channels and passes published data
-to the Engine for further processing;
+to the Redis state handler for further processing;
 """
 import json
 import logging
@@ -9,23 +9,32 @@ from circuits import Component, Event, Timer
 import redis
 
 from enginecore.state.redis_channels import RedisChannels
-from enginecore.state.engine import Engine
+from enginecore.state.redis_state_handler import RedisStateHandler
 from enginecore.state.state_initializer import configure_env
+
+logger = logging.getLogger(__name__)
+REDIS_LISTENER_SLEEP_TIME = 0.5
 
 
 class StateListener(Component):
-    """Top-level component that instantiates assets 
-    & maps redis events to circuit events
+    """Translates published redis messages into simengine Events & passes
+    through to the handler;
+
+    Dispatched events can be handled with circuits handlers as:
+    
+    @RedisChannels.some_redis_update
+    def handle_some_redis_update_here(...):
+        ...
     """
 
-    def __init__(self, debug=False, force_snmp_init=False):
+    def __init__(self, engine_cls, debug=False, force_snmp_init=False):
         super(StateListener, self).__init__()
 
         # env space configuration
         configure_env(relative=debug)
 
         # Use redis pub/sub communication
-        logging.info("Initializing redis connection...")
+        logger.info("Initializing redis connection...")
 
         redis_conf = {
             "host": os.environ.get("SIMENGINE_REDIS_HOST"),
@@ -38,12 +47,14 @@ class StateListener(Component):
             self._pubsub_streams[stream_name] = self._redis_store.pubsub()
 
         self._subscribe_to_channels()
-        self._engine = Engine(debug, force_snmp_init).register(self)
+        self._redis_state_handler = RedisStateHandler(
+            engine_cls, debug, force_snmp_init
+        ).register(self)
 
     def _subscribe_to_channels(self):
         """Subscribe to redis channels"""
 
-        logging.info("Initializing redis subscriptions...")
+        logger.info("Initializing redis subscriptions...")
 
         # State Channels
         self._pubsub_streams["power"].psubscribe(
@@ -95,12 +106,12 @@ class StateListener(Component):
         data = message["data"].decode("utf-8")
         channel = message["channel"].decode()
 
-        logging.info("Received new message in channel [%s]:", channel)
-        logging.info(" > %s", data)
+        logger.debug("Received new message in channel [%s]:", channel)
+        logger.debug(" > %s", data)
 
         self.fire(
             Event.create(channel, json.loads(data) if json_format else data),
-            self._engine,
+            self._redis_state_handler,
         )
 
     def started(self, _):
@@ -108,20 +119,22 @@ class StateListener(Component):
             Called on start: initialize redis subscriptions
         """
 
-        logging.info("Initializing pub/sub event handlers...")
+        logger.info("Initializing pub/sub event handlers...")
 
         # timers will be monitoring new published messages every .5 seconds
         for stream_name in ["power", "thermal", "battery"]:
             stream = self._pubsub_streams[stream_name]
             Timer(
-                0.5, Event.create("monitor_redis", pubsub_group=stream), persist=True
+                REDIS_LISTENER_SLEEP_TIME,
+                Event.create("monitor_redis", pubsub_group=stream),
+                persist=True,
             ).register(self)
 
         # configure snmp channel:
         snmp_event = Event.create(
             "monitor_redis", self._pubsub_streams["snmp"], json_format=False
         )
-        Timer(0.5, snmp_event, persist=True).register(self)
+        Timer(REDIS_LISTENER_SLEEP_TIME, snmp_event, persist=True).register(self)
 
 
 if __name__ == "__main__":

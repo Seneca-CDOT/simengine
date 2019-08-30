@@ -1,9 +1,8 @@
 {
-    
     "CLIVersion": " 007.0606.0000.0000 Mar 20, 2018",
     "operatingSystem": "Linux 2.6.32-754.6.3.el6.x86_64",
     "controllers": [
-        {   
+        {
             "model": "RAID Ctrl SAS 6G 1GB (D3116C)",
             "serialNumber": "0000000043113622",
             "SASAddress": "50030057013c6550",
@@ -14,6 +13,7 @@
             "prRate": 20,
             "rebuildRate": 30,
             "ccRate": 30,
+            "numDriveGroups": 2,
 
             "CacheVault": {
                 "model": "CVPM02",
@@ -24,22 +24,36 @@
             "BBU": {},
             "VD": [
                 {
-                    "TYPE": "RAID6",
+                    "TYPE": "RAID5",
                     "State": "Optl",
                     "Access": "RW",
                     "Consist": "Yes",
                     "sCC": "OFF",
-                    "Size": 817.312,
+                    "Size": 681.093,
                     "Name": "",
                     "Cac": "-",
                     "Cache": "RWBD",
-                    "DID": [9, 10, 8, 7, 11, 14, 12, 13]
+                    "DG": 0,
+                    "DID": [20, 18, 17, 16, 21, 19]
+                },
+                {
+                    "TYPE": "RAID1",
+                    "State": "Optl",
+                    "Access": "RW",
+                    "Consist": "Yes",
+                    "sCC": "OFF",
+                    "Size": 931.0,
+                    "Name": "",
+                    "Cac": "-",
+                    "Cache": "RWBD",
+                    "DG": 1,
+                    "DID": [1, 0]
                 }
             ],
             "PD": [
                 {
                     "EID": 252,
-                    "DID": 9,
+                    "DID": 20,
                     "State": "Onln",
                     "DG": 0,
                     "Size": "136.218",
@@ -48,15 +62,17 @@
                     "SED": "N",
                     "PI": "N",
                     "SeSz": "512B",
-                    "Model": "MK1401GRRB",
+                    "Model": "ST9146853SS",
                     "Sp": "U",
                     "Type": "-",
                     "PDC": "dsbl",
-                    "rebuildTime": 120
+                    "rebuildTime": 120,
+                    "manufacturerId": "TOSHIBA",
+                    "serialNumber": "Y3D0A0FDFSR2"
                 },
                 {
                     "EID": 252,
-                    "DID": 10,
+                    "DID": 18,
                     "State": "Onln",
                     "DG": 0,
                     "Size": "136.218",
@@ -69,11 +85,13 @@
                     "Sp": "U",
                     "Type": "-",
                     "PDC": "dsbl",
-                    "rebuildTime": 120
+                    "rebuildTime": 120,
+                    "manufacturerId": "TOSHIBA",
+                    "serialNumber": "Y3D0A0FDFSR3"
                 },
                 {
                     "EID": 252,
-                    "DID": 8,
+                    "DID": 17,
                     "State": "Onln",
                     "DG": 0,
                     "Size": "136.218",
@@ -86,11 +104,13 @@
                     "Sp": "U",
                     "Type": "-",
                     "PDC": "dsbl",
-                    "rebuildTime": 120
+                    "rebuildTime": 120,
+                    "manufacturerId": "TOSHIBA",
+                    "serialNumber": "Y3D0A0FDFSR4"
                 },
                 {
                     "EID": 252,
-                    "DID": 7,
+                    "DID": 16,
                     "State": "Onln",
                     "DG": 0,
                     "Size": "136.218",
@@ -103,11 +123,13 @@
                     "Sp": "U",
                     "Type": "-",
                     "PDC": "dsbl",
-                    "rebuildTime": 120
+                    "rebuildTime": 120,
+                    "manufacturerId": "TOSHIBA",
+                    "serialNumber": "Y3D0A0FDFSR5"
                 },
                 {
                     "EID": 252,
-                    "DID": 11,
+                    "DID": 21,
                     "State": "Onln",
                     "DG": 0,
                     "Size": "136.218",
@@ -116,15 +138,17 @@
                     "SED": "N",
                     "PI": "N",
                     "SeSz": "512B",
-                    "Model": "MK1401GRRB",
+                    "Model": "ST9146853SS",
                     "Sp": "U",
                     "Type": "-",
                     "PDC": "dsbl",
-                    "rebuildTime": 120
+                    "rebuildTime": 120,
+                    "manufacturerId": "TOSHIBA",
+                    "serialNumber": "Y3D0A0FDFSR6"
                 },
                 {
                     "EID": 252,
-                    "DID": 14,
+                    "DID": 19,
                     "State": "Onln",
                     "DG": 0,
                     "Size": "136.218",
@@ -137,41 +161,47 @@
                     "Sp": "U",
                     "Type": "-",
                     "PDC": "dsbl",
-                    "rebuildTime": 120
+                    "rebuildTime": 120,
+                    "manufacturerId": "TOSHIBA",
+                    "serialNumber": "Y3D0A0FDFSR7"
                 },
                 {
                     "EID": 252,
-                    "DID": 12,
+                    "DID": 1,
                     "State": "Onln",
-                    "DG": 0,
-                    "Size": "136.218",
-                    "Intf": "SAS",
-                    "Med": "HDD",
+                    "DG": 1,
+                    "Size": "931.0",
+                    "Intf": "SATA",
+                    "Med": "SSD",
                     "SED": "N",
                     "PI": "N",
                     "SeSz": "512B",
-                    "Model": "MK1401GRRB",
+                    "Model": "WDC  WDS100T2B0A-00SM50",
                     "Sp": "U",
                     "Type": "-",
                     "PDC": "dsbl",
-                    "rebuildTime": 120
+                    "rebuildTime": 120,
+                    "manufacturerId": "TOSHIBA",
+                    "serialNumber": "Y3D0A0FDFSR8"
                 },
                 {
                     "EID": 252,
-                    "DID": 13,
+                    "DID": 0,
                     "State": "Onln",
-                    "DG": 0,
-                    "Size": "136.218",
-                    "Intf": "SAS",
-                    "Med": "HDD",
+                    "DG": 1,
+                    "Size": "931.0",
+                    "Intf": "SATA",
+                    "Med": "SSD",
                     "SED": "N",
                     "PI": "N",
                     "SeSz": "512B",
-                    "Model": "MK1401GRRB",
+                    "Model": "WDC  WDS100T2B0A-00SM50",
                     "Sp": "U",
                     "Type": "-",
                     "PDC": "dsbl",
-                    "rebuildTime": 120
+                    "rebuildTime": 120,
+                    "manufacturerId": "TOSHIBA",
+                    "serialNumber": "Y3D0A0FDFSR9"
                 }
             ]
         }

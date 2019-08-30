@@ -179,7 +179,18 @@ def update_command(update_asset_group):
         "-y", type=int, help="y - asset position on the dashboard"
     )
     update_asset_parent.add_argument("-n", "--name", help="Name displayed on the UI")
-
+    update_asset_parent.add_argument(
+        "--power-on-ac",
+        dest="power_on_ac",
+        action="store_true",
+        help="Power up on AC restored",
+    )
+    update_asset_parent.add_argument(
+        "--no-power-on-ac",
+        dest="power_on_ac",
+        action="store_false",
+        help="Don't power up when AC is restored",
+    )
     update_volt_parent = argparse.ArgumentParser(add_help=False)
     update_volt_parent.add_argument(
         "--min-voltage",
@@ -267,7 +278,7 @@ def update_command(update_asset_group):
     update_server_bmc_action.add_argument(
         "--vmport",
         type=int,
-        help="IPMI serial VM inteface for channel 15 (the system interface)",
+        help="IPMI serial VM interface for channel 15 (the system interface)",
     )
 
     ## Static
@@ -310,6 +321,7 @@ def create_command(create_asset_group):
     """Model creation (cli endpoints to initialize system topology) """
 
     # parent will contain args shared by all the asset types
+    # (such as key, [x,y] positions, name etc.)
     create_asset_parent = argparse.ArgumentParser(add_help=False)
     create_asset_parent.add_argument(
         "-k",
@@ -333,8 +345,21 @@ def create_command(create_asset_group):
         "-y", type=int, help="y - asset position on the dashboard", default=0
     )
 
+    create_asset_parent.add_argument(
+        "--power-on-ac",
+        dest="power_on_ac",
+        action="store_true",
+        help="Power up on AC restored",
+    )
+    create_asset_parent.add_argument(
+        "--no-power-on-ac",
+        dest="power_on_ac",
+        action="store_false",
+        help="Don't power up when AC is restored",
+    )
+
     create_asset_parent.add_argument("-n", "--name", help="Name displayed on the UI")
-    create_asset_parent.set_defaults(new_asset=True)
+    create_asset_parent.set_defaults(new_asset=True, power_on_ac=True)
 
     create_volt_parent = argparse.ArgumentParser(add_help=False)
     create_volt_parent.add_argument(
@@ -356,13 +381,29 @@ def create_command(create_asset_group):
         "--snmp-preset", type=str, help="Vendor-specific asset configurations"
     )
 
+    create_snmp_parent.add_argument(
+        "--serial-number", type=str, help="Serial number of a simulated SNMP device"
+    )
+
+    create_snmp_parent.add_argument(
+        "--mac-address", type=str, help="MAC address of a simulated SNMP device"
+    )
+
+    create_snmp_parent.add_argument(
+        "--interface", type=str, help="Network interface attached to SNMP device"
+    )
+
+    create_snmp_parent.add_argument("--mask", type=str, help="Net mask of interface")
+
     # server group
     create_server_parent = argparse.ArgumentParser(add_help=False)
     create_server_parent.add_argument("--domain-name", help="VM domain name")
 
     # power consuming assets group
     create_power_parent = argparse.ArgumentParser(add_help=False)
-    create_power_parent.add_argument("--power-source", type=int, default=120)
+    create_power_parent.add_argument(
+        "--power-source", type=int, default=ISystemEnvironment.wallpower_volt_standard()
+    )
     create_power_parent.add_argument(
         "--power-consumption",
         required=True,
@@ -394,7 +435,10 @@ def create_command(create_asset_group):
     )
 
     create_ups_action.add_argument(
-        "--power-source", help="Asset Voltage", type=int, default=120
+        "--power-source",
+        help="Asset Voltage",
+        type=int,
+        default=ISystemEnvironment.wallpower_volt_standard(),
     )
     create_ups_action.add_argument(
         "--power-consumption",
@@ -425,7 +469,7 @@ def create_command(create_asset_group):
         type=float,
         help="""PSU(s) load distribution (the downstream power is multiplied
         by the value, e.g.  for 2 PSUs if '--psu-load 0.5 0.5',
-        load is divivided equally) \n""",
+        load is divided equally) \n""",
     )
 
     create_server_action.add_argument(
@@ -440,7 +484,7 @@ def create_command(create_asset_group):
         "--psu-power-source",
         nargs="+",
         type=int,
-        default=120,
+        default=ISystemEnvironment.wallpower_volt_standard(),
         help="""PSU Voltage \n""",
     )
 
@@ -469,13 +513,23 @@ def create_command(create_asset_group):
         help="BMC-enabled server: IPMI user password",
     )
     create_server_bmc_action.add_argument(
+        "--host", type=str, default="localhost", help="IPMI interface host"
+    )
+    create_server_bmc_action.add_argument(
         "--port", type=int, default=9001, help="IPMI interface port"
+    )
+
+    create_server_bmc_action.add_argument(
+        "--interface",
+        type=str,
+        default="",
+        help="Network interface attached to the server",
     )
     create_server_bmc_action.add_argument(
         "--vmport",
         type=int,
         default=9002,
-        help="IPMI serial VM inteface for channel 15 (the system interface)",
+        help="IPMI serial VM interface for channel 15 (the system interface)",
     )
 
     create_server_bmc_action.add_argument(

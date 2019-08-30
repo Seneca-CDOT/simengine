@@ -96,6 +96,7 @@ endsdr
 # PSU SENSORS
 # ===========
 ${psuStatus}
+${psuFan}
 ${psuCurrent}
 ${psuPower}
 ${psuVoltage}

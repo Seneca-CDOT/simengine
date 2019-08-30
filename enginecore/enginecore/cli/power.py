@@ -115,8 +115,8 @@ def power_command(power_group):
 
 def handle_voltage_set(args):
     """Action callback for handling voltage set command"""
-    if args["value"]:
-        ISystemEnvironment.set_voltage(args["value"])
+    if args["value"] is not None:
+        StateClient.set_voltage(args["value"])
 
     del args["value"]
 
@@ -134,7 +134,7 @@ def handle_voltage_get(args):
 
     print("Voltage: {:.3f}V".format(ISystemEnvironment.get_voltage()))
 
-    voltage_props, _ = ISystemEnvironment.get_voltage_props()
+    voltage_props = ISystemEnvironment.get_voltage_props()
     if not voltage_props:
         print("Voltage properties are not configured yet!")
         return
