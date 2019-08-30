@@ -44,15 +44,13 @@ For hardware resources, it is recommended to allocate:
 
 Memory:
 
-- `8192 MiB` per each `an-a01n0x` node
-
-- `1024 MiB` per each `an-striker0x` control server
+*  `8192 MiB` per each `an-a01n0x` node
+*  `1024 MiB` per each `an-striker0x` control server
 
 Storage:
 
-- `100 Gib` per each `an-a01n0x` node
-
-- `50 Gib` per each `an-striker0x` control server
+*  `100 Gib` per each `an-a01n0x` node
+*  `50 Gib` per each `an-striker0x` control server
 
 
 ### BMC and storcli64
