@@ -62,7 +62,7 @@ jobs:
                   name: Running python BDD behave scenarios
                   command: |
                       . venv/bin/activate
-                      behave --tags=~@not-ci-friendly
+                      behave -k --stop --tags=~@not-ci-friendly
 
             - store_artifacts:
                   path: test-reports
