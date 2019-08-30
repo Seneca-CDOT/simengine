@@ -1,13 +1,13 @@
-import React from "react";
-import { Image, Group, Circle } from "react-konva";
+import React from 'react';
+import { Image, Group, Circle } from 'react-konva';
 
 // ** components
-import Asset from "../common/Asset";
+import Asset from '../common/Asset';
 
 // ** misc
-import lampSource from "../../../images/lamp.svg";
-import lampOffSource from "../../../images/lamp_off.svg";
-import colors from "../../../styles/colors";
+import lampSource from '../../../images/lamp.svg';
+import lampOffSource from '../../../images/lamp_off.svg';
+import colors from '../../../styles/colors';
 
 /**
  * Outlet Graphics
@@ -22,18 +22,18 @@ class Lamp extends Asset {
       // graphics
       lampImg: null,
       lampOffImg: null,
-      backgroundImg: null
+      backgroundImg: null,
     };
   }
 
   /** Load Lamp Image */
   componentDidMount() {
     Promise.all(
-      this.loadImages({ lampImg: lampSource, lampOffImg: lampOffSource })
+      this.loadImages({ lampImg: lampSource, lampOffImg: lampOffSource }),
     ).then(() => {
       this.props.onPosChange(
         this.props.asset.key,
-        this.formatAssetCoordinates(this.props)
+        this.formatAssetCoordinates(this.props),
       );
     });
   }
@@ -42,9 +42,9 @@ class Lamp extends Asset {
     center && this.state.lampImg
       ? {
           x: this.state.lampImg.width * 0.5 * SCALE,
-          y: this.state.lampImg.height * SCALE
+          y: this.state.lampImg.height * SCALE,
         }
-      : { x: 0, y: 0 }
+      : { x: 0, y: 0 },
   ];
 
   render() {

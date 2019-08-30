@@ -1,8 +1,8 @@
-import React from "react";
-import PropTypes from "prop-types";
+import React from 'react';
+import PropTypes from 'prop-types';
 
-import Asset from "./Asset";
-import Socket from "./Socket";
+import Asset from './Asset';
+import Socket from './Socket';
 
 /** Output asset provides output outlet(s) */
 class OutputAsset extends Asset {
@@ -10,7 +10,7 @@ class OutputAsset extends Asset {
     super(props);
     this.state = {
       // selected child
-      selectedSocketKey: -1
+      selectedSocketKey: -1,
     };
 
     this.outputSpacing = { x: 0, y: 0 };
@@ -50,7 +50,7 @@ class OutputAsset extends Asset {
           }
           powered={this.props.asset.status !== 0}
           parentSelected={this.props.selected}
-        />
+        />,
       );
     }
 
@@ -59,11 +59,11 @@ class OutputAsset extends Asset {
 }
 
 OutputAsset.defaultProps = {
-  nestedComponentSelected: false
+  nestedComponentSelected: false,
 };
 
 OutputAsset.propTypes = {
-  nestedComponentSelected: PropTypes.bool.isRequired // Display outlet name
+  nestedComponentSelected: PropTypes.bool.isRequired, // Display outlet name
 };
 
 export default OutputAsset;

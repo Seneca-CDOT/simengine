@@ -1,15 +1,15 @@
-import React from "react";
-import PropTypes from "prop-types";
-import { Text, Image, Group } from "react-konva";
+import React from 'react';
+import PropTypes from 'prop-types';
+import { Text, Image, Group } from 'react-konva';
 
 // ** components
-import Asset from "../common/Asset";
-import Led from "../common/Led";
-import PointerElement from "../common/PointerElement";
+import Asset from '../common/Asset';
+import Led from '../common/Led';
+import PointerElement from '../common/PointerElement';
 
 // ** misc
-import psuSource from "../../../images/power-supply.svg";
-import colors from "../../../styles/colors";
+import psuSource from '../../../images/power-supply.svg';
+import colors from '../../../styles/colors';
 
 /**
  * Power Supply Graphics
@@ -65,5 +65,5 @@ PowerSupply.psuSize = () => {
 };
 
 PowerSupply.propTypes = {
-  parentSelected: PropTypes.bool // Is parent asset selected?
+  parentSelected: PropTypes.bool, // Is parent asset selected?
 };

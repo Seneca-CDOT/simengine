@@ -1,15 +1,15 @@
-import React from "react";
-import { Text, Group, Image } from "react-konva";
+import React from 'react';
+import { Text, Group, Image } from 'react-konva';
 
-import upsMonitorSource from "../../../images/ups_monitor_2.png";
-import c14Source from "../../../images/c14.svg";
-import Socket from "../common/Socket";
+import upsMonitorSource from '../../../images/ups_monitor_2.png';
+import c14Source from '../../../images/c14.svg';
+import Socket from '../common/Socket';
 
-import OutputAsset from "../common/OutputAsset";
-import AssetOutline from "../common/AssetOutline";
-import LEDDisplay from "./LEDDisplay";
+import OutputAsset from '../common/OutputAsset';
+import AssetOutline from '../common/AssetOutline';
+import LEDDisplay from './LEDDisplay';
 
-import paths from "../../../styles/paths";
+import paths from '../../../styles/paths';
 
 /**
  * Draw Ups graphics
@@ -20,7 +20,7 @@ export default class Ups extends OutputAsset {
     this.state = {
       socketSize: { width: 0, height: 0 },
       upsMonitorImg: null,
-      c14Img: null
+      c14Img: null,
     };
 
     this.inputSocketPos = { x: 254, y: 5 };
@@ -32,7 +32,7 @@ export default class Ups extends OutputAsset {
 
   componentDidMount() {
     Promise.all(
-      this.loadImages({ upsMonitorImg: upsMonitorSource, c14Img: c14Source })
+      this.loadImages({ upsMonitorImg: upsMonitorSource, c14Img: c14Source }),
     )
       .then(Socket.socketSize)
       .then(size => {
@@ -41,8 +41,8 @@ export default class Ups extends OutputAsset {
       .then(() =>
         this.props.onPosChange(
           this.props.asset.key,
-          this.formatAssetCoordinates(this.props)
-        )
+          this.formatAssetCoordinates(this.props),
+        ),
       );
   }
 
@@ -79,8 +79,8 @@ export default class Ups extends OutputAsset {
           (this.state.c14Img ? this.state.c14Img.width * 0.5 : 0),
         y:
           this.inputSocketPos.y +
-          (this.state.c14Img ? this.state.c14Img.height * 0.5 : 0)
-      }
+          (this.state.c14Img ? this.state.c14Img.height * 0.5 : 0),
+      },
     ];
   };
 
@@ -109,7 +109,7 @@ export default class Ups extends OutputAsset {
           y={-125}
           text={this.props.asset.name}
           fontSize={this.props.fontSize}
-          fontFamily={"Helvetica"}
+          fontFamily={'Helvetica'}
         />
 
         <AssetOutline
