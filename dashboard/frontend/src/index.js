@@ -12,4 +12,9 @@ import 'normalize.css';
 import './styles/app.scss';
 import theme from './styles/theme';
 
-ReactDOM.render(<MuiThemeProvider theme={theme}><App /></MuiThemeProvider>, document.getElementById('app'));
+ReactDOM.render(
+  <MuiThemeProvider theme={theme}>
+    <App />
+  </MuiThemeProvider>,
+  document.getElementById('app'),
+);

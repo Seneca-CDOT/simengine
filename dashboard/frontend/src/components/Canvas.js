@@ -10,16 +10,15 @@ import colors from '../styles/colors';
  * Displays hardware components (assets) as well as their connections
  */
 class Canvas extends Component {
-
   // map asset types to react components
   assetMap = {
-    'outlet': Socket,
-    'staticasset': Socket,
-    'server': Server,
-    'serverwithbmc': Server,
-    'pdu': Pdu,
-    'ups': Ups,
-    'lamp': Lamp,
+    outlet: Socket,
+    staticasset: Socket,
+    server: Server,
+    serverwithbmc: Server,
+    pdu: Pdu,
+    ups: Ups,
+    lamp: Lamp,
   };
 
   getAssetComponent(ReactElement, asset) {
@@ -38,17 +37,19 @@ class Canvas extends Component {
     };
 
     // check if upstream power source is present
-    const upstreamPowered = (x) => this.props.getAssetByKey(x.key).status != 0;
-    elementProps['powered'] = asset.parent?(asset.parent.find(upstreamPowered) !== undefined):(true);
+    const upstreamPowered = x => this.props.getAssetByKey(x.key).status != 0;
+    elementProps['powered'] = asset.parent
+      ? asset.parent.find(upstreamPowered) !== undefined
+      : true;
 
     // select child elements
     if ('children' in asset) {
-      elementProps['nestedComponentSelected'] = this.props.selectedAssetKey in asset.children;
+      elementProps['nestedComponentSelected'] =
+        this.props.selectedAssetKey in asset.children;
     }
 
     return React.createElement(ReactElement, elementProps);
   }
-
 
   render() {
     const { assets, connections, wireWidth, wireZIndex } = this.props;
@@ -60,23 +61,27 @@ class Canvas extends Component {
     if (assets) {
       // Initialize HA system layout
       for (const key of Object.keys(assets)) {
-        systemLayout.push(this.getAssetComponent(this.assetMap[assets[key].type], assets[key]));
+        systemLayout.push(
+          this.getAssetComponent(this.assetMap[assets[key].type], assets[key]),
+        );
       }
 
       // draw wires
       for (const key of Object.keys(connections)) {
         const asset = this.props.getAssetByKey(key);
-        const linePoints = Object.values(connections[key]).filter(n => typeof n === 'number');
+        const linePoints = Object.values(connections[key]).filter(
+          n => typeof n === 'number',
+        );
 
         wireDrawing.push(
           <Line
             points={linePoints}
-            stroke={asset.status===1?colors.green:colors.grey}
+            stroke={asset.status === 1 ? colors.green : colors.grey}
             strokeWidth={wireWidth}
             zIndex={wireZIndex}
             key={`${key}${connections[key].destKey}`}
             shadowBlur={3}
-          />
+          />,
         );
       }
     }
@@ -114,7 +119,7 @@ Canvas.propTypes = {
 Canvas.defaultProps = {
   labelFontSize: 18,
   wireWidth: 5,
-  wireZIndex: 300
+  wireZIndex: 300,
 };
 
 export default Canvas;

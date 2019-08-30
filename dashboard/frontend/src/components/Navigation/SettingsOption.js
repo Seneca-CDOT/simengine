@@ -1,16 +1,16 @@
-import React, { Fragment } from "react";
-import PropTypes from "prop-types";
+import React, { Fragment } from 'react';
+import PropTypes from 'prop-types';
 
-import { Settings } from "@material-ui/icons";
+import { Settings } from '@material-ui/icons';
 import {
   IconButton,
   Divider,
   Drawer,
   List,
   ListItem,
-  ListItemText
-} from "@material-ui/core";
-import { withStyles } from "@material-ui/core/styles";
+  ListItemText,
+} from '@material-ui/core';
+import { withStyles } from '@material-ui/core/styles';
 
 /**
  * Drawer option/settings
@@ -35,7 +35,7 @@ class SettingsOption extends React.Component {
       playList.push(
         <ListItem button key={playName} onClick={() => executePlay(playName)}>
           <ListItemText primary={playName} />
-        </ListItem>
+        </ListItem>,
       );
     }
 
@@ -43,7 +43,7 @@ class SettingsOption extends React.Component {
       <Fragment>
         {/* Button to open up a menu */}
         <IconButton
-          aria-owns={drawerOpen ? "menu-appbar" : null}
+          aria-owns={drawerOpen ? 'menu-appbar' : null}
           aria-haspopup="true"
           color="inherit"
           onClick={this.openDrawer}
@@ -56,7 +56,7 @@ class SettingsOption extends React.Component {
           open={drawerOpen}
           onClose={this.handleDrawerClose}
           classes={{ paper: classes.drawerPaper }}
-          anchor={"left"}
+          anchor={'left'}
         >
           <div className={classes.toolbar} />
           <Divider />
@@ -75,13 +75,13 @@ class SettingsOption extends React.Component {
               <ListItem
                 button
                 onClick={() =>
-                  window.open("https://simengine.readthedocs.io/en/latest/")
+                  window.open('https://simengine.readthedocs.io/en/latest/')
                 }
               >
                 <ListItemText primary="View Documentation" />
               </ListItem>
               {!!plays.length && (
-                <ListItem key={"title"}>
+                <ListItem key={'title'}>
                   <h3>Scenarios</h3>
                 </ListItem>
               )}
@@ -97,15 +97,15 @@ class SettingsOption extends React.Component {
 const styles = theme => ({
   toolbar: theme.mixins.toolbar,
   drawerPaper: {
-    width: 240
-  }
+    width: 240,
+  },
 });
 
 SettingsOption.propTypes = {
   classes: PropTypes.object, // styling
   saveLayout: PropTypes.func.isRequired, // drawer Save Layout callback
   plays: PropTypes.array,
-  executePlay: PropTypes.func.isRequired
+  executePlay: PropTypes.func.isRequired,
 };
 
 export default withStyles(styles)(SettingsOption);

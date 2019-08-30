@@ -1,15 +1,15 @@
-import React from "react";
-import { Text, Group, Image } from "react-konva";
+import React from 'react';
+import { Text, Group, Image } from 'react-konva';
 
 // ** components
-import Led from "../common/Led";
-import PowerSupply from "./PowerSupply";
-import Asset from "../common/Asset";
-import AssetOutline from "../common/AssetOutline";
+import Led from '../common/Led';
+import PowerSupply from './PowerSupply';
+import Asset from '../common/Asset';
+import AssetOutline from '../common/AssetOutline';
 
 // ** misc
-import serverPlaceholderSource from "../../../images/server-front.svg";
-import paths from "../../../styles/paths";
+import serverPlaceholderSource from '../../../images/server-front.svg';
+import paths from '../../../styles/paths';
 
 /**
  * Draw Server graphics
@@ -21,7 +21,7 @@ export default class Server extends Asset {
       selectedPsuKey: -1,
       psuSize: { width: 0, height: 0 },
 
-      serverPlaceholderImg: null
+      serverPlaceholderImg: null,
     };
 
     this.selectPSU = this.selectPSU.bind(this);
@@ -29,7 +29,7 @@ export default class Server extends Asset {
 
   componentDidMount() {
     Promise.all(
-      this.loadImages({ serverPlaceholderImg: serverPlaceholderSource })
+      this.loadImages({ serverPlaceholderImg: serverPlaceholderSource }),
     )
       .then(PowerSupply.psuSize)
       .then(size => {
@@ -38,8 +38,8 @@ export default class Server extends Asset {
       .then(() =>
         this.props.onPosChange(
           this.props.asset.key,
-          this.formatAssetCoordinates(this.props)
-        )
+          this.formatAssetCoordinates(this.props),
+        ),
       );
   }
 
@@ -68,8 +68,8 @@ export default class Server extends Asset {
       (e, i) =>
         (childCoord[childKeys[i]] = {
           x: (center ? xPadding : 50) + xPadding * i + i * 20,
-          y: yPadding
-        })
+          y: yPadding,
+        }),
     );
     return center ? Object.values(childCoord) : childCoord;
   };
@@ -98,7 +98,7 @@ export default class Server extends Asset {
           }
           powered={this.props.powered}
           parentSelected={this.props.selected}
-        />
+        />,
       );
     }
 
@@ -121,7 +121,7 @@ export default class Server extends Asset {
           y={-100}
           text={this.props.asset.name}
           fontSize={this.props.fontSize}
-          fontFamily={"Helvetica"}
+          fontFamily={'Helvetica'}
         />
 
         {/* svg path, server placeholder image & led */}

@@ -9,11 +9,9 @@ const config = {
     compress: true,
     hot: false,
     port: 9000,
-    disableHostCheck: true
+    disableHostCheck: true,
   },
-  plugins: [
-    new webpack.HotModuleReplacementPlugin()
-  ]
+  plugins: [new webpack.HotModuleReplacementPlugin()],
 };
 
 module.exports = config;

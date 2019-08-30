@@ -1,6 +1,3 @@
-
 import Socket from './Socket';
 
-export {
-  Socket,
-};
+export { Socket };
