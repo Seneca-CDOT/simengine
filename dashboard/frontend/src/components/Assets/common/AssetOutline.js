@@ -1,9 +1,9 @@
-import React from "react";
-import { Path } from "react-konva";
-import PropTypes from "prop-types";
+import React from 'react';
+import { Path } from 'react-konva';
+import PropTypes from 'prop-types';
 
-import colors from "../../../styles/colors";
-import PointerElement from "./PointerElement";
+import colors from '../../../styles/colors';
+import PointerElement from './PointerElement';
 /**
  * AssetOutline (.svg outline of the asset)
  */
@@ -29,7 +29,7 @@ const AssetOutline = ({ path, selected, onClick, scale, children }) => (
 );
 
 AssetOutline.defaultProps = {
-  scale: { x: 4, y: 4 }
+  scale: { x: 4, y: 4 },
 };
 
 AssetOutline.propTypes = {
@@ -42,7 +42,7 @@ AssetOutline.propTypes = {
   /** scale of the path */
   scale: PropTypes.object.isRequired,
   /** components to be encosed in the asset outline (non-selectable items) */
-  children: PropTypes.array
+  children: PropTypes.array,
 };
 
 export default AssetOutline;

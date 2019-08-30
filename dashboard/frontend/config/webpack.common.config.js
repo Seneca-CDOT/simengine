@@ -1,92 +1,92 @@
-const webpack = require("webpack");
-const CleanPlugin = require("clean-webpack-plugin");
-const HtmlPlugin = require("html-webpack-plugin");
-const ExtractTextPlugin = require("extract-text-webpack-plugin");
-const commonPaths = require("./common-paths");
+const webpack = require('webpack');
+const CleanPlugin = require('clean-webpack-plugin');
+const HtmlPlugin = require('html-webpack-plugin');
+const ExtractTextPlugin = require('extract-text-webpack-plugin');
+const commonPaths = require('./common-paths');
 
 const config = {
   entry: {
-    main: ["./src/index.js"]
+    main: ['./src/index.js'],
   },
   output: {
-    filename: "[name].js",
-    path: commonPaths.outputPath
+    filename: '[name].js',
+    path: commonPaths.outputPath,
   },
   module: {
     rules: [
       {
-        enforce: "pre",
+        enforce: 'pre',
         test: /\.js$/,
-        loader: "eslint-loader",
+        loader: 'eslint-loader',
         options: {
           failOnWarning: false,
-          failOnerror: true
+          failOnerror: true,
         },
-        exclude: /node_modules/
+        exclude: /node_modules/,
       },
       {
         test: /\.js$/,
         exclude: /(node_modules|bower_compontents)/,
         use: [
           {
-            loader: "babel-loader",
+            loader: 'babel-loader',
             options: {
-              presets: ["@babel/preset-env"]
-            }
-          }
-        ]
+              presets: ['@babel/preset-env'],
+            },
+          },
+        ],
       },
-      { test: /\.(woff|woff2|eot|ttf)$/, loader: "url-loader?limit=100000" },
+      { test: /\.(woff|woff2|eot|ttf)$/, loader: 'url-loader?limit=100000' },
       {
         test: /\.s?css$/,
         use: ExtractTextPlugin.extract({
-          fallback: "style-loader",
+          fallback: 'style-loader',
           use: [
             {
-              loader: "css-loader"
+              loader: 'css-loader',
             },
             {
-              loader: "sass-loader"
-            }
-          ]
-        })
+              loader: 'sass-loader',
+            },
+          ],
+        }),
       },
       {
         test: /\.(png|svg|jpg|gif)$/,
         use: [
           {
-            loader: "file-loader",
+            loader: 'file-loader',
             options: {
-              name: "images/[name].[ext]"
-            }
-          }
+              name: 'images/[name].[ext]',
+            },
+          },
         ],
-        exclude: /node_modules/
-      }
-    ]
+        exclude: /node_modules/,
+      },
+    ],
   },
   optimization: {
     splitChunks: {
       cacheGroups: {
         commons: {
           test: /[\\/]node_modules[\\/]/,
-          name: "vendors",
-          chunks: "all"
-        }
-      }
-    }
+          name: 'vendors',
+          chunks: 'all',
+        },
+      },
+    },
   },
   plugins: [
     new webpack.ProgressPlugin(),
-    new ExtractTextPlugin("[name].css"),
-    new CleanPlugin(["../public"], { allowExternal: true }),
+    new ExtractTextPlugin('[name].css'),
+    new CleanPlugin(['../public'], { allowExternal: true }),
     new HtmlPlugin({
-      filename: "index.html",
+      filename: 'index.html',
       template: commonPaths.template,
       favicon: commonPaths.favicon,
-      inject: true
-    })
-  ]
+      inject: true,
+    }),
+  ],
 };
 
 module.exports = config;

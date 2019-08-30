@@ -1,15 +1,15 @@
-import React from "react";
-import { Text, Group, Image } from "react-konva";
+import React from 'react';
+import { Text, Group, Image } from 'react-konva';
 
 // ** components
-import Socket from "../common/Socket";
-import OutputAsset from "../common/OutputAsset";
-import AssetOutline from "../common/AssetOutline";
-import LEDDisplay from "./LEDDisplay";
+import Socket from '../common/Socket';
+import OutputAsset from '../common/OutputAsset';
+import AssetOutline from '../common/AssetOutline';
+import LEDDisplay from './LEDDisplay';
 
 // ** misc
-import c14Source from "../../../images/c14.svg";
-import paths from "../../../styles/paths";
+import c14Source from '../../../images/c14.svg';
+import paths from '../../../styles/paths';
 
 /**
  * Draw PDU graphics
@@ -20,7 +20,7 @@ export default class Pdu extends OutputAsset {
     this.state = {
       socketSize: { width: 0, height: 0 },
       // graphics
-      c14Img: null
+      c14Img: null,
     };
 
     // set outlet properties
@@ -35,8 +35,8 @@ export default class Pdu extends OutputAsset {
       .then(() =>
         this.props.onPosChange(
           this.props.asset.key,
-          this.formatAssetCoordinates(this.props)
-        )
+          this.formatAssetCoordinates(this.props),
+        ),
       );
   }
 
@@ -61,8 +61,8 @@ export default class Pdu extends OutputAsset {
           x:
             startPosX +
             i * (this.state.socketSize.width + this.outputSpacing.x),
-          y: startPosY
-        })
+          y: startPosY,
+        }),
     );
     return childCoord;
   };
@@ -70,7 +70,7 @@ export default class Pdu extends OutputAsset {
   getInputCoordinates = (center = true) => [
     center && this.state.c14Img
       ? { x: this.state.c14Img.width * 0.5, y: this.state.c14Img.height * 0.5 }
-      : { x: 0, y: 0 }
+      : { x: 0, y: 0 },
   ];
 
   render() {
@@ -92,7 +92,7 @@ export default class Pdu extends OutputAsset {
           y={-85}
           text={this.props.asset.name}
           fontSize={this.props.fontSize}
-          fontFamily={"Helvetica"}
+          fontFamily={'Helvetica'}
         />
 
         {/* Draw PDU - SVG Path */}

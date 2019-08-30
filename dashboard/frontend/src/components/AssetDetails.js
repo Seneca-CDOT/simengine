@@ -1,33 +1,41 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { withStyles } from '@material-ui/core/styles';
-import { Card, CardContent, CardHeader, Divider, Typography } from '@material-ui/core';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  Divider,
+  Typography,
+} from '@material-ui/core';
 
 // ** local imports
 import PowerSwitch from './common/PowerSwitch';
 import colors from '../styles/colors';
 
-
 const AssetDetails = ({ classes, asset, changeStatus }) => {
-
   let children = [];
   const assetStateSpan = {
     1: <span className={classes.statusOn}>on</span>,
-    0: <span className={classes.statusOff}>off</span>
+    0: <span className={classes.statusOff}>off</span>,
   };
 
-  if(asset.children) {
-    children.push(<div key={0}><h3> Connected Components </h3></div>);
+  if (asset.children) {
+    children.push(
+      <div key={0}>
+        <h3> Connected Components </h3>
+      </div>,
+    );
 
     const c = asset.children;
     for (const ckey of Object.keys(c)) {
-        children.push(
-          <div key={ckey}>
-            <Typography variant="subheading" component="h5">
-              {ckey}-{c[ckey].type} is {assetStateSpan[c[ckey].status]}
-            </Typography>
-          </div>
-        );
+      children.push(
+        <div key={ckey}>
+          <Typography variant="subheading" component="h5">
+            {ckey}-{c[ckey].type} is {assetStateSpan[c[ckey].status]}
+          </Typography>
+        </div>,
+      );
     }
   }
 
@@ -50,20 +58,22 @@ const AssetDetails = ({ classes, asset, changeStatus }) => {
           </Typography>
 
           <Typography variant="subheading" component="h5">
-            Current Load: {asset.load ? asset.load.toFixed(2): 0} Amp
+            Current Load: {asset.load ? asset.load.toFixed(2) : 0} Amp
           </Typography>
           <Divider />
           {/* Turn off/on the component */}
           <PowerSwitch
             checked={asset.status === 1}
             onChange={() => changeStatus(asset)}
-            label={<Typography variant="subheading" component="h5">Toggle Status</Typography>}
+            label={
+              <Typography variant="subheading" component="h5">
+                Toggle Status
+              </Typography>
+            }
           />
-          <Divider/>
+          <Divider />
           {/* Display any nested elements */}
-          <div className={classes.nestedElements}>
-            {children}
-          </div>
+          <div className={classes.nestedElements}>{children}</div>
         </CardContent>
       </Card>
     </div>
@@ -76,7 +86,6 @@ AssetDetails.propTypes = {
   changeStatus: PropTypes.func.isRequired, // Change asset state
 };
 
-
 const styles = {
   card: {
     minWidth: 320,
@@ -85,7 +94,7 @@ const styles = {
     right: 20,
   },
   nestedElements: {
-    maxHeight: 500, 
+    maxHeight: 500,
     overflow: 'auto',
   },
   cardHeader: {

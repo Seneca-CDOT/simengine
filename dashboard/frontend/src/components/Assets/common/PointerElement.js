@@ -1,6 +1,6 @@
-import React from "react";
-import { Group } from "react-konva";
-import PropTypes from "prop-types";
+import React from 'react';
+import { Group } from 'react-konva';
+import PropTypes from 'prop-types';
 
 /**
  * PointerElement cursor to pointer
@@ -8,10 +8,10 @@ import PropTypes from "prop-types";
 const PointerElement = ({ children }) => (
   <Group
     onMouseEnter={() => {
-      document.body.style.cursor = "pointer";
+      document.body.style.cursor = 'pointer';
     }}
     onMouseLeave={() => {
-      document.body.style.cursor = "default";
+      document.body.style.cursor = 'default';
     }}
   >
     {children}
@@ -20,7 +20,7 @@ const PointerElement = ({ children }) => (
 
 PointerElement.propTypes = {
   /** children will have a mouse cursor set as a pointer*/
-  children: PropTypes.node
+  children: PropTypes.node,
 };
 
 export default PointerElement;

@@ -15,9 +15,9 @@ const styles = theme => ({
     position: 'relative',
     flexGrow: 1,
     backgroundColor: theme.palette.background.default,
-    backgroundImage: 'url('+gridBackground+')', 
-    backgroundRepeat: "repeat",
-    backgroundSize: "auto",
+    backgroundImage: 'url(' + gridBackground + ')',
+    backgroundRepeat: 'repeat',
+    backgroundSize: 'auto',
   },
   menuButton: {
     marginLeft: -12,

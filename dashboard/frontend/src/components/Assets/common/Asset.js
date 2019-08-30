@@ -1,43 +1,47 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-
-/** 
+/**
  * Asset - aggregates some shared asset behaviour (selection & translation)
  * */
 class Asset extends React.Component {
-
-
-  loadImages = (assetImages) => {
+  loadImages = assetImages => {
     /** Load images into state (returns array of promises) */
 
     let imagePromises = [];
 
     for (const [imageName, imageSource] of Object.entries(assetImages)) {
-      
-      if (!imageSource) { continue; }
+      if (!imageSource) {
+        continue;
+      }
 
       let image = new window.Image();
       image.src = imageSource;
 
-      imagePromises.push(new Promise((resolve) => { 
-        image.onload = () => { this.setState({ [imageName]: image }, () => resolve()); };
-      }));
+      imagePromises.push(
+        new Promise(resolve => {
+          image.onload = () => {
+            this.setState({ [imageName]: image }, () => resolve());
+          };
+        }),
+      );
     }
 
     return imagePromises;
-  }
+  };
 
   // Asset position & IO coordinates //
-  getOutputCoordinates = () => { return {}; }
-  getInputCoordinates = () => []
+  getOutputCoordinates = () => {
+    return {};
+  };
+  getInputCoordinates = () => [];
 
-  formatAssetCoordinates = ({x, y}) => ({
-    x: x, // asset position -> x 
+  formatAssetCoordinates = ({ x, y }) => ({
+    x: x, // asset position -> x
     y: y, // asset position -> y
 
     // i/o coordinates are relative to the asset { x, y } coordinates
-    inputConnections: this.getInputCoordinates(),   // input power position { x, y }
+    inputConnections: this.getInputCoordinates(), // input power position { x, y }
     outputConnections: this.getOutputCoordinates(), // output power position { x, y } (if supported)
   });
 
@@ -48,10 +52,10 @@ class Asset extends React.Component {
   };
 
   /** returns global asset position (x, y), relative output & input outlet coordinates */
-  updateAssetPos = (s) => {
+  updateAssetPos = s => {
     const coord = this.formatAssetCoordinates(s.target.attrs);
     this.props.onPosChange(this.props.asset.key, coord);
-  }
+  };
 }
 
 Asset.defaultProps = { x: 0, y: 0, powered: false, isComponent: false };
@@ -74,6 +78,5 @@ Asset.propTypes = {
   /** notify parent component of asset selection */
   onElementSelection: PropTypes.func.isRequired,
 };
-
 
 export default Asset;

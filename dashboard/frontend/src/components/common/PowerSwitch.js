@@ -5,26 +5,25 @@ import { withStyles } from '@material-ui/core/styles';
 
 import colors from '../../styles/colors';
 
-function PowerSwitch({ onChange, checked, label, classes}) {
+function PowerSwitch({ onChange, checked, label, classes }) {
   return (
     <FormControlLabel
-        control={
-          <Switch 
-              checked={checked} 
-              onChange={onChange}
-              classes={{
-                switchBase: classes.colorSwitchBase,
-                checked: classes.colorChecked,
-                bar: classes.colorBar,
-              }}
-              aria-label="PowerSwitch"
-          />
-        }
-        label={label}
+      control={
+        <Switch
+          checked={checked}
+          onChange={onChange}
+          classes={{
+            switchBase: classes.colorSwitchBase,
+            checked: classes.colorChecked,
+            bar: classes.colorBar,
+          }}
+          aria-label="PowerSwitch"
+        />
+      }
+      label={label}
     />
   );
 }
-
 
 const styles = {
   colorSwitchBase: {
