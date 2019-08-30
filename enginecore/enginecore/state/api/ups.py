@@ -206,7 +206,9 @@ class IUPSStateManager(ISnmpDeviceStateManager):
             self._set_state_on()
 
             self._reset_power_off_oid()
+            self.enable_net_interface()
             self._update_load(self.power_usage)
+
             powered = 1
 
         return powered
