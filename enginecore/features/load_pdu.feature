@@ -65,7 +65,6 @@ Feature: Load distribution with assets that have multiple children
             | 75        | offline         | online          | 3.0 | 3.0 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 |
 
     @snmp-interface
-    @wip
     Scenario Outline: Power-related PDU OIDs get updated with load changes
 
         Given asset "<asset-key>" is "<asset-ini-state>"

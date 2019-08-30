@@ -13,6 +13,7 @@ from enginecore.state.redis_state_handler import RedisStateHandler
 from enginecore.state.state_initializer import configure_env
 
 logger = logging.getLogger(__name__)
+REDIS_LISTENER_SLEEP_TIME = 0.5
 
 
 class StateListener(Component):
@@ -124,14 +125,16 @@ class StateListener(Component):
         for stream_name in ["power", "thermal", "battery"]:
             stream = self._pubsub_streams[stream_name]
             Timer(
-                0.5, Event.create("monitor_redis", pubsub_group=stream), persist=True
+                REDIS_LISTENER_SLEEP_TIME,
+                Event.create("monitor_redis", pubsub_group=stream),
+                persist=True,
             ).register(self)
 
         # configure snmp channel:
         snmp_event = Event.create(
             "monitor_redis", self._pubsub_streams["snmp"], json_format=False
         )
-        Timer(0.5, snmp_event, persist=True).register(self)
+        Timer(REDIS_LISTENER_SLEEP_TIME, snmp_event, persist=True).register(self)
 
 
 if __name__ == "__main__":

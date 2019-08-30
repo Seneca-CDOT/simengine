@@ -313,33 +313,43 @@ class ServerWithBMC(Server):
         logger.info(self._ipmi_agent)
 
         self.state.update_cpu_load(0)
-        self._cpu_load_t = None
-        self._launch_monitor_cpu_load()
+        self._vm_monitor_t = None
+        self._launch_monitor_vm()
 
-    def _launch_monitor_cpu_load(self):
-        """Start a thread that will decrease battery level """
+    def _launch_monitor_vm(self):
+        """Start vm monitoring in a thread"""
 
         # launch a thread
-        self._cpu_load_t = Thread(
-            target=self._monitor_load, name="cpu_load:{}".format(self.key)
+        self._vm_monitor_t = Thread(
+            target=self._monitor_vm, name="vm-tracker:{}".format(self.key)
         )
 
-        self._cpu_load_t.daemon = True
-        self._cpu_load_t.start()
+        self._vm_monitor_t.daemon = True
+        self._vm_monitor_t.start()
 
-    def _monitor_load(self):
-        """Sample cpu load every 5 seconds """
+    def _monitor_vm(self):
+        """Samples cpu load every 5 seconds, detects changes to VM state
+        that occur outside of engine's control
+        & notifies main event loop of power update.
+        Note that this only tracks down when a vm is powered off.
+        
+        This method should be run in a thread,
+        monitoring can be stopped by setting stop event;
+        """
 
         cpu_time_1 = 0
         sample_rate_sec = 5
 
         # get the delta between two samples
+        # nanoseconds to seconds
         ns_to_sec = lambda x: x / 1e9
         calc_cpu_load = lambda t1, t2: min(
             100 * (abs(ns_to_sec(t2) - ns_to_sec(t1)) / sample_rate_sec), 100
         )
 
         while not self._stop_event.is_set():
+
+            # get a sample of CPU load if vm is up & running
             if self.state.status and self.state.vm_is_active():
 
                 # more details on libvirt api:
@@ -349,13 +359,21 @@ class ServerWithBMC(Server):
                     cpu_stats["user_time"] + cpu_stats["system_time"]
                 )
 
+                # skip if first sample is not set yet
                 if cpu_time_1:
                     self.state.update_cpu_load(calc_cpu_load(cpu_time_1, cpu_time_2))
                     cpu_i = "server[{0.key}] CPU load:{0.cpu_load}%".format(self.state)
                     logger.debug(cpu_i)
 
                 cpu_time_1 = cpu_time_2
+
+            # either VM is offline or hardware asset status is off
             else:
+                # detect state changes happening outside of simengine
+                # (for example, if someone powers off vm manually)
+                if self.state.status and not self.state.vm_is_active():
+                    self.state.publish_power(old_state=1, new_state=0)
+
                 cpu_time_1 = 0
                 self.state.update_cpu_load(0)
 
@@ -419,13 +437,13 @@ class ServerWithBMC(Server):
             self._sensor_repo.power_up_sensors()
         return new_state
 
-    @handler("ButtonPowerDownPressed")
-    def on_asset_did_power_off(self):
+    @handler("PowerButtonOffEvent")
+    def on_asset_did_power_off(self, event, *args, **kwargs):
         """Set sensors to off values on power down (no power source)"""
         self._sensor_repo.shut_down_sensors()
 
-    @handler("ButtonPowerUpPressed")
-    def on_asset_did_power_on(self):
+    @handler("PowerButtonOnEvent")
+    def on_asset_did_power_on(self, event, *args, **kwargs):
         """Update sensors on power online"""
         self._sensor_repo.power_up_sensors()
 
@@ -434,8 +452,8 @@ class ServerWithBMC(Server):
         self._sensor_repo.stop()
         self._stop_event.set()
 
-        if self._cpu_load_t is not None and self._cpu_load_t.isAlive():
-            self._cpu_load_t.join()
+        if self._vm_monitor_t is not None and self._vm_monitor_t.isAlive():
+            self._vm_monitor_t.join()
 
         super().stop(code)
 
