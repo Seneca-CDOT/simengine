@@ -1,0 +1,96 @@
+version: 2
+jobs:
+    build-enginecore:
+        docker:
+            - image: obelavina/simengine-base:0.0.1
+            - image: circleci/redis
+
+        working_directory: ~/repo/enginecore
+
+        steps:
+            - checkout:
+                  path: ~/repo
+
+            # Download and cache dependencies
+            - restore_cache:
+                  keys:
+                      - v1-dependencies-{{ checksum "requirements.txt" }}
+                      # fallback to using the latest cache if no exact match is found
+                      - v1-dependencies-
+            - run:
+                  name: Installing simengine plugin library
+                  command: |
+                      mkdir /usr/lib64/simengine
+                      gcc -shared -o /usr/lib64/simengine/haos_extend.so -fPIC ./ipmi_sim/haos_extend.c
+
+            - run:
+                  name: Installing python3 dependencies
+                  command: |
+                      python3 -m venv venv
+                      . venv/bin/activate
+                      python3 -m pip install -r ./requirements.txt
+                      python3 -m pip install -r ./dev-requirements.txt
+            - run:
+                  name: Installing python2 dependencies
+                  command: |
+                      python2 -m pip install snmpsim redis
+
+            - save_cache:
+                  paths:
+                      - ./venv
+                  key: v1-dependencies-{{ checksum "requirements.txt" }}
+
+            - run:
+                  name: Start neo4j inside the container
+                  command: |
+                      neo4j start
+                      sleep 5
+
+            - run:
+                  name: Checking with black linter
+                  command: |
+                      . venv/bin/activate
+                      black --check --exclude venv .
+
+            - run:
+                  name: Running python unittests
+                  command: |
+                      . venv/bin/activate
+                      python3 -m unittest discover tests
+
+            - run:
+                  name: Running python BDD behave scenarios
+                  command: |
+                      . venv/bin/activate
+                      behave -k --stop --tags=~@not-ci-friendly
+
+            - store_artifacts:
+                  path: test-reports
+                  destination: test-reports
+    build-dashboard:
+        docker:
+            - image: circleci/node
+
+        working_directory: ~/repo/dashboard/frontend
+
+        steps:
+            - checkout:
+                  path: ~/repo
+
+            # - restore_cache: # special step to restore the dependency cache
+            #     key: dependency-cache-{{ checksum "package.json" }}
+            # - run:
+            #     name: Setup Dependencies
+            #     command: npm install
+            - run:
+                  name: Install Prettier
+                  command: sudo npm install prettier --global
+            - run:
+                  name: Run Prettier Check
+                  command: prettier --check 'config/**/*.js' 'src/**/*.js'
+workflows:
+    version: 2
+    build-deploy:
+        jobs:
+            - build-enginecore
+            - build-dashboard

@@ -88,12 +88,12 @@ class SNMPAgent(Agent):
             "--transport-id-offset=" + str(SNMPAgent.agent_num),
             # "--daemonize",
             "--logging-method=file:" + self.log_path,
+            "--cache-dir",
+            self._snmp_rec_dir,
         ]
 
         if os.getuid() == 0:
             cmd.extend(["--process-user=nobody", "--process-group=nobody"])
-        else:
-            cmd.extend(["--cache-dir", self._snmp_rec_dir])
 
         logger.info("Starting agent: %s", " ".join(cmd))
         self.register_process(
