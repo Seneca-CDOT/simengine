@@ -197,9 +197,9 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         """
 
         oid_in_adv = self.get_oid_by_name("AdvInputLineVoltage")
-        oid_in_adv_hp = self.get_oid_by_name("AdvHighPrecInputLineVoltage")
+        oid_in_high_prec = self.get_oid_by_name("HighPrecInputLineVoltage")
         oid_out_adv = self.get_oid_by_name("AdvOutputVoltage")
-        oid_out_adv_hp = self.get_oid_by_name("AdvHighPrecOutputVoltage")
+        oid_out_high_prec = self.get_oid_by_name("HighPrecOutputVoltage")
 
         if not oid_in_adv or not oid_out_adv:
             raise ValueError("UPS doesn't support voltage OIDs!")
@@ -208,7 +208,8 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
 
         # update input OID parameter
         self._update_oid_value(oid_in_adv, oid_voltage_value)
-        self._update_oid_value(oid_in_adv_hp, convert_voltage_to_high_prec(oid_voltage_value))
+        self._update_oid_value(
+            oid_in_high_prec, convert_voltage_to_high_prec(oid_voltage_value))
 
         # retrieve thresholds:
         oid_high_th = self.get_oid_by_name("AdvConfigHighTransferVolt")
@@ -217,7 +218,8 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         # update output OID value if thresholds are not supported
         if not oid_high_th or not oid_low_th:
             self._update_oid_value(oid_out_adv, oid_voltage_value)
-            self._update_oid_value(oid_out_adv_hp, convert_voltage_to_high_prec(oid_voltage_value))
+            self._update_oid_value(
+                oid_out_high_prec, convert_voltage_to_high_prec(oid_voltage_value))
             return False, None
 
         high_th = int(self.get_oid_value(oid_high_th))
@@ -226,7 +228,8 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         # new voltage value is within the threasholds
         if low_th < voltage < high_th:
             self._update_oid_value(oid_out_adv, oid_voltage_value)
-            self._update_oid_value(oid_out_adv_hp, convert_voltage_to_high_prec(oid_voltage_value))
+            self._update_oid_value(
+                oid_out_high_prec, convert_voltage_to_high_prec(oid_voltage_value))
             return False, None
 
         # new voltage should cause line transfer:
