@@ -201,7 +201,7 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         oid_out_adv = self.get_oid_by_name("AdvOutputVoltage")
         oid_out_high_prec = self.get_oid_by_name("HighPrecOutputVoltage")
 
-        if not oid_in_adv or not oid_out_adv:
+        if not oid_in_adv or not oid_in_high_prec or not oid_out_adv or not oid_out_high_prec:
             raise ValueError("UPS doesn't support voltage OIDs!")
 
         oid_voltage_value = snmp_data_types.Gauge32(int(voltage))
