@@ -22,6 +22,7 @@ def format_as_redis_key(key, oid, key_formatted=True):
 
     return key_and_oid
 
+
 def convert_voltage_to_high_prec(voltage_value):
     """Convert voltage value into high precision.
     Args:
