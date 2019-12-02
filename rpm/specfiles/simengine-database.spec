@@ -1,5 +1,5 @@
 Name:      simengine-database
-Version:   3.27
+Version:   3.28
 Release:   1%{?dist}
 Summary:   SimEngine - Databases
 URL:       https://github.com/Seneca-CDOT/simengine
@@ -37,6 +37,9 @@ sleep 10
 echo "CREATE CONSTRAINT ON (n:Asset) ASSERT (n.key) IS UNIQUE;" | cypher-shell -u simengine -p simengine
 
 %changelog
+* Mon Dec 02 2019 Yanhao Lei <ynho.li.aa.e@gmail.com> - 3.28-1
+- new version
+
 * Thu Oct 03 2019 Chris Tyler <ctyler.fedora@gmail.com> - 3.27-1
 - new version
 
