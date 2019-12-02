@@ -21,3 +21,14 @@ def format_as_redis_key(key, oid, key_formatted=True):
     key_and_oid += (oid_digits[-1]).rjust(10, " ")
 
     return key_and_oid
+
+
+def convert_voltage_to_high_prec(voltage_value):
+    """Convert voltage value into high precision.
+    Args:
+        voltage_value(int): voltage value in vAC
+    Returns:
+        int: high precision voltage
+    """
+
+    return voltage_value * 10
