@@ -77,7 +77,7 @@ bmc_get_chassis_control(lmc_data_t *mc, int op, unsigned char *val,
   FILE *fp = popen(power_cmd, "r");
   if (fp == NULL)
   {
-    sys->log(sys, DEBUG, NULL, "Failed to fetch asset status!");
+    sys->log(sys, DEBUG, NULL, "Failed to fetch asset status; CAUSE: %x", errno);
   }
 
   // get the command result
