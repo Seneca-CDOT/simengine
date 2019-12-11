@@ -78,9 +78,12 @@ bmc_get_chassis_control(lmc_data_t *mc, int op, unsigned char *val,
   if (fp == NULL)
   {
     sys->log(sys, OS_ERROR, NULL, "Failed to fetch asset status; CAUSE: %s", strerror(errno));
-
-    // using the max of an unsigned char for error
-    *val = 255;
+    // according to the popen docs, the only time it would return NULL is when
+    // 1) `fork` call fails
+    // 2) `pipe` call fails
+    // 3) unable to allocated memory
+    // therefore, this is likely a severe error; stop the simulator
+    exit(1);
   }
   else
   {
@@ -94,6 +97,8 @@ bmc_get_chassis_control(lmc_data_t *mc, int op, unsigned char *val,
     if (pclose(fp) < 0)
     {
       sys->log(sys, OS_ERROR, NULL, "Failed to close file handle; CAUSE: %s", strerror(errno));
+      // failing to clean up is most likely a severe error; stop the simulator
+      exit(1);
     }
   }
 
