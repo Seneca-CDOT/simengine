@@ -87,6 +87,11 @@ bmc_get_chassis_control(lmc_data_t *mc, int op, unsigned char *val,
     *val = atoi(result);
   }
 
+  if (pclose(fp) < 0)
+  {
+    sys->log(sys, DEBUG, NULL, "Failed to close file handle; CAUSE: %x", errno);
+  }
+
   return 0;
 }
 
