@@ -78,18 +78,23 @@ bmc_get_chassis_control(lmc_data_t *mc, int op, unsigned char *val,
   if (fp == NULL)
   {
     sys->log(sys, DEBUG, NULL, "Failed to fetch asset status; CAUSE: %x", errno);
-  }
 
-  // get the command result
-  char result[24] = {0x0};
-  while (fgets(result, sizeof(result), fp) != NULL)
-  {
-    *val = atoi(result);
+    // using the max of an unsigned char for error
+    *val = 255;
   }
-
-  if (pclose(fp) < 0)
+  else
   {
-    sys->log(sys, DEBUG, NULL, "Failed to close file handle; CAUSE: %x", errno);
+    // get the command result
+    char result[24] = {0x0};
+    while (fgets(result, sizeof(result), fp) != NULL)
+    {
+      *val = atoi(result);
+    }
+
+    if (pclose(fp) < 0)
+    {
+      sys->log(sys, DEBUG, NULL, "Failed to close file handle; CAUSE: %x", errno);
+    }
   }
 
   return 0;
