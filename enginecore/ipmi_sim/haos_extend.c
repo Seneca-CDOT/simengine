@@ -77,7 +77,7 @@ bmc_get_chassis_control(lmc_data_t *mc, int op, unsigned char *val,
   FILE *fp = popen(power_cmd, "r");
   if (fp == NULL)
   {
-    sys->log(sys, DEBUG, NULL, "Failed to fetch asset status; CAUSE: %x", errno);
+    sys->log(sys, OS_ERROR, NULL, "Failed to fetch asset status; CAUSE: %s", strerror(errno));
 
     // using the max of an unsigned char for error
     *val = 255;
@@ -93,7 +93,7 @@ bmc_get_chassis_control(lmc_data_t *mc, int op, unsigned char *val,
 
     if (pclose(fp) < 0)
     {
-      sys->log(sys, DEBUG, NULL, "Failed to close file handle; CAUSE: %x", errno);
+      sys->log(sys, OS_ERROR, NULL, "Failed to close file handle; CAUSE: %s", strerror(errno));
     }
   }
 
