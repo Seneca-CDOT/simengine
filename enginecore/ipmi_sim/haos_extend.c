@@ -77,14 +77,29 @@ bmc_get_chassis_control(lmc_data_t *mc, int op, unsigned char *val,
   FILE *fp = popen(power_cmd, "r");
   if (fp == NULL)
   {
-    sys->log(sys, DEBUG, NULL, "Failed to fetch asset status!");
+    sys->log(sys, OS_ERROR, NULL, "Failed to fetch asset status; CAUSE: %s", strerror(errno));
+    // according to the popen docs, the only time it would return NULL is when
+    // 1) `fork` call fails
+    // 2) `pipe` call fails
+    // 3) unable to allocated memory
+    // therefore, this is likely a severe error; stop the simulator
+    exit(1);
   }
-
-  // get the command result
-  char result[24] = {0x0};
-  while (fgets(result, sizeof(result), fp) != NULL)
+  else
   {
-    *val = atoi(result);
+    // get the command result
+    char result[24] = {0x0};
+    while (fgets(result, sizeof(result), fp) != NULL)
+    {
+      *val = atoi(result);
+    }
+
+    if (pclose(fp) < 0)
+    {
+      sys->log(sys, OS_ERROR, NULL, "Failed to close file handle; CAUSE: %s", strerror(errno));
+      // failing to clean up is most likely a severe error; stop the simulator
+      exit(1);
+    }
   }
 
   return 0;
