@@ -505,7 +505,7 @@ class PSU(StaticAsset):
         return_value = None
 
         try:
-            if type(psu_sensor[sensor_prop_key]).__name__ == "function":
+            if callable(psu_sensor[sensor_prop_key]):
                 # Spread args as arguments for function on the sensor
                 return_value = psu_sensor[sensor_prop_key](*args)
             else:
