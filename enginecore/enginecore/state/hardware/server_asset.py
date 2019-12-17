@@ -524,6 +524,13 @@ class PSU(StaticAsset):
 
             psu_power.sensor_value = int(load) * 10
 
+        if "psuFan" in self._psu_sensor_names:
+            psu_fan = self._sensor_repo.get_sensor_by_name(
+                self._psu_sensor_names["psuFan"]
+            )
+
+            psu_fan.sensor_value = int(load) * 1000
+
     def _get_fan_sensor(self):
         """Get psu fan sensor, returns None if not supported"""
         if not self._state.supports_bmc:
