@@ -499,18 +499,20 @@ class PSU(StaticAsset):
 
         return psu_sensor
 
-    def _exec_on_psu_sensor(self, sensor_name, sensor_prop_key, *args):
+    def _exec_on_psu_sensor(self, sensor_name, sensor_attribute_key, *args):
         """Either execute a function or set the property of the given sensor."""
         psu_sensor = self._get_psu_sensor(sensor_name)
         return_value = None
 
         try:
-            if callable(psu_sensor[sensor_prop_key]):
+            psu_sensor_attribute = getattr(psu_sensor, sensor_attribute_key, None)
+
+            if callable(psu_sensor_attribute):
                 # Spread args as arguments for function on the sensor
-                return_value = psu_sensor[sensor_prop_key](*args)
+                return_value = psu_sensor_attribute(*args)
             else:
                 # If setting the sensor's property, use the 0th argument
-                psu_sensor[sensor_prop_key] = args[0]
+                setattr(psu_sensor, sensor_attribute_key, args[0])
         except AttributeError:
             # Not a severe error because sensors not found can be ignored
             logger.debug("PSU sensor named [%s] not found.", sensor_name, exc_info=1)
