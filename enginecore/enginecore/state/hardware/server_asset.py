@@ -486,13 +486,36 @@ class PSU(StaticAsset):
             )
             self._psu_sensor_names = self._state.get_psu_sensor_names()
 
+    def _get_psu_sensor(self, sensor_name):
+        """Get the PSU's sensor based on sensor name; returns None if there is
+        no BMC or the sensor is not found.
+        """
+        psu_sensor = None
+
+        if self._state.supports_bmc and sensor_name in self._psu_sensor_names:
+            psu_sensor = self._sensor_repo.get_sensor_by_name(
+                self._psu_sensor_names[sensor_name]
+            )
+
+        return psu_sensor
+
+    def _set_psu_sensor(self, sensor_name, value):
+        """Set the PSU's sensor value based on sensor name"""
+        psu_sensor = self._get_psu_sensor(sensor_name)
+
+        try:
+            psu_sensor.sensor_value = value
+        except AttributeError:
+            # Not a severe error because sensors not found can be ignored
+            logger.debug("PSU sensor named [%s] not found.", sensor_name, exc_info=1)
+
+    def _get_fan_sensor(self):
+        """Get psu fan sensor, returns None if not supported"""
+        return self._get_psu_sensor("psuFan")
+
     def _set_psu_status(self, value):
         """Update psu status if sensor is supported"""
-        if "psuStatus" in self._psu_sensor_names:
-            psu_status = self._sensor_repo.get_sensor_by_name(
-                self._psu_sensor_names["psuStatus"]
-            )
-            psu_status.sensor_value = value
+        self._set_psu_sensor("psuStatus", value)
 
     @handler("PowerButtonOffEvent")
     def on_asset_did_power_off(self, event, *args, **kwargs):
@@ -530,14 +553,6 @@ class PSU(StaticAsset):
             )
 
             psu_fan.sensor_value = int(load) * 1000
-
-    def _get_fan_sensor(self):
-        """Get psu fan sensor, returns None if not supported"""
-        if not self._state.supports_bmc:
-            return None
-
-        psu_fan = self._sensor_repo.get_sensor_by_name(self._psu_sensor_names["psuFan"])
-        return psu_fan
 
     @handler("ChildLoadUpEvent", "ChildLoadDownEvent", priority=1)
     def update_load_sensors(self, event, *args, **kwargs):
