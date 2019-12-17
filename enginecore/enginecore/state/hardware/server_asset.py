@@ -518,11 +518,11 @@ class PSU(StaticAsset):
             psu_current.sensor_value = int(load)
 
         if "psuPower" in self._psu_sensor_names:
-            psu_current = self._sensor_repo.get_sensor_by_name(
+            psu_power = self._sensor_repo.get_sensor_by_name(
                 self._psu_sensor_names["psuPower"]
             )
 
-            psu_current.sensor_value = int(load) * 10
+            psu_power.sensor_value = int(load) * 10
 
     def _get_fan_sensor(self):
         """Get psu fan sensor, returns None if not supported"""
