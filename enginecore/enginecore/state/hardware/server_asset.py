@@ -463,7 +463,7 @@ class ServerWithBMC(Server):
 
     @handler("InputVoltageDownEvent")
     def on_input_voltage_down(self, event, *args, **kwargs):
-        if self.state.input_voltage() == 0:
+        if self.state.input_voltage == 0:
             logger.debug("Stopping IPMI agent; key=%d", self.key)
             self._ipmi_agent.stop_agent()
 
