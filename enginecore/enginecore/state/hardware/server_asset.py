@@ -492,7 +492,7 @@ class PSU(StaticAsset):
         """
         psu_sensor = None
 
-        if self._state.supports_bmc and sensor_name in self._psu_sensor_names:
+        if (self._state.supports_bmc) and (sensor_name in self._psu_sensor_names):
             psu_sensor = self._sensor_repo.get_sensor_by_name(
                 self._psu_sensor_names[sensor_name]
             )
