@@ -144,6 +144,7 @@ class Server(StaticAsset):
 
     @handler("InputVoltageUpEvent")
     def on_input_voltage_up(self, event, *args, **kwargs):
+        logger.debug("Server-key=%d; Input Voltage Up!", self.key)
         asset_event = event.get_next_power_event(self)
         assert event.source_key in self._psu_sm
 
@@ -213,6 +214,7 @@ class Server(StaticAsset):
 
     @handler("InputVoltageDownEvent")
     def on_input_voltage_down(self, event, *args, **kwargs):
+        logger.debug("Server-key=%d; Input Voltage Down!", self.key)
         asset_event = event.get_next_power_event(self)
         assert event.source_key in self._psu_sm
 
@@ -456,6 +458,14 @@ class ServerWithBMC(Server):
             self._vm_monitor_t.join()
 
         super().stop(code)
+
+    @handler("InputVoltageUpEvent")
+    def on_input_voltage_up(self, event, *args, **kwargs):
+        logger.debug("BMC-server-key=%d; Input Voltage Up!", self.key)
+
+    @handler("InputVoltageDownEvent")
+    def on_input_voltage_down(self, event, *args, **kwargs):
+        logger.debug("BMC-server-key=%d; Input Voltage Down!", self.key)
 
 
 @register_asset
