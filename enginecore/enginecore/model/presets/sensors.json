@@ -65,7 +65,7 @@
         "sensorDefinitions": [
             {
                 "thresholds": {
-                    "lnc": 1000
+                    "lnc": 600
                 },
                 "defaultValue": 1000,
                 "name": "PSU{index} Fan",
@@ -73,7 +73,7 @@
             },
             {
                 "thresholds": {
-                    "lnc": 1000
+                    "lnc": 600
                 },
                 "defaultValue": 1000,
                 "name": "PSU{index} Fan",

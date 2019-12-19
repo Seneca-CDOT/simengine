@@ -486,51 +486,71 @@ class PSU(StaticAsset):
             )
             self._psu_sensor_names = self._state.get_psu_sensor_names()
 
-    def _set_psu_status(self, value):
-        """Update psu status if sensor is supported"""
-        if "psuStatus" in self._psu_sensor_names:
-            psu_status = self._sensor_repo.get_sensor_by_name(
-                self._psu_sensor_names["psuStatus"]
+    def _get_psu_sensor(self, sensor_name):
+        """Get the PSU's sensor based on sensor name; returns None if there is
+        no BMC or the sensor is not found.
+        """
+        psu_sensor = None
+
+        if (self._state.supports_bmc) and (sensor_name in self._psu_sensor_names):
+            psu_sensor = self._sensor_repo.get_sensor_by_name(
+                self._psu_sensor_names[sensor_name]
             )
-            psu_status.sensor_value = value
+
+        return psu_sensor
+
+    def _exec_on_psu_sensor(self, sensor_name, sensor_attribute_key, *args):
+        """Either execute a function or set the property of the given sensor."""
+        psu_sensor = self._get_psu_sensor(sensor_name)
+        return_value = None
+
+        try:
+            psu_sensor_attribute = getattr(psu_sensor, sensor_attribute_key, None)
+
+            if callable(psu_sensor_attribute):
+                # Spread args as arguments for function on the sensor
+                return_value = psu_sensor_attribute(*args)
+            else:
+                # If setting the sensor's property, use the 0th argument
+                setattr(psu_sensor, sensor_attribute_key, args[0])
+        except AttributeError:
+            # Not a severe error because sensors not found can be ignored
+            logger.debug("PSU sensor named [%s] not found.", sensor_name, exc_info=1)
+
+        # This is not None only when the executed function returns a value
+        return return_value
+
+    def _set_psu_sensor(self, sensor_name, value):
+        """Set the PSU's sensor value based on sensor name"""
+        self._exec_on_psu_sensor(sensor_name, "sensor_value", value)
+
+    def _power_on_sequence(self):
+        """Execute the list of tasks when power on or when power resumes."""
+        self._set_psu_sensor("psuStatus", PSU.IPMIstatus.on)
+        self._exec_on_psu_sensor("psuFan", "set_to_defaults")
+
+    def _power_off_sequence(self):
+        """Execute the list of tasks when power off or when power disappears."""
+        self._exec_on_psu_sensor("psuFan", "set_to_off")
+        self._set_psu_sensor("psuStatus", PSU.IPMIstatus.off)
 
     @handler("PowerButtonOffEvent")
     def on_asset_did_power_off(self, event, *args, **kwargs):
         """PSU status was set to failed"""
-        self._set_psu_status(PSU.IPMIstatus.off)
+        self._power_off_sequence()
 
     @handler("PowerButtonOnEvent")
     def on_asset_did_power_on(self, event, *args, **kwargs):
         """PSU was brought back up"""
-        self._set_psu_status(PSU.IPMIstatus.on)
+        self._power_on_sequence()
 
     def _update_load_sensors(self, load):
         """Update psu sensors associated with load
         Args:
             load: amperage change
         """
-
-        if "psuCurrent" in self._psu_sensor_names:
-            psu_current = self._sensor_repo.get_sensor_by_name(
-                self._psu_sensor_names["psuCurrent"]
-            )
-
-            psu_current.sensor_value = int(load)
-
-        if "psuPower" in self._psu_sensor_names:
-            psu_current = self._sensor_repo.get_sensor_by_name(
-                self._psu_sensor_names["psuPower"]
-            )
-
-            psu_current.sensor_value = int(load) * 10
-
-    def _get_fan_sensor(self):
-        """Get psu fan sensor, returns None if not supported"""
-        if not self._state.supports_bmc:
-            return None
-
-        psu_fan = self._sensor_repo.get_sensor_by_name(self._psu_sensor_names["psuFan"])
-        return psu_fan
+        self._set_psu_sensor("psuCurrent", int(load))
+        self._set_psu_sensor("psuPower", int(load) * 10)
 
     @handler("ChildLoadUpEvent", "ChildLoadDownEvent", priority=1)
     def update_load_sensors(self, event, *args, **kwargs):
@@ -542,9 +562,7 @@ class PSU(StaticAsset):
     def on_input_voltage_up(self, event, *args, **kwargs):
         asset_event = super().on_input_voltage_up(event, args, kwargs)
         if not asset_event.state.unchanged() and asset_event.state.new:
-            psu_fan = self._get_fan_sensor()
-            if psu_fan:
-                psu_fan.set_to_defaults()
+            self._power_on_sequence()
 
         return asset_event
 
@@ -552,8 +570,6 @@ class PSU(StaticAsset):
     def on_input_voltage_down(self, event, *args, **kwargs):
         asset_event = super().on_input_voltage_down(event, args, kwargs)
         if not asset_event.state.unchanged() and not asset_event.state.new:
-            psu_fan = self._get_fan_sensor()
-            if psu_fan:
-                psu_fan.set_to_off()
+            self._power_off_sequence()
 
         return asset_event
