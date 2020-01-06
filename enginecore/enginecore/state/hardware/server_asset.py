@@ -420,7 +420,6 @@ class ServerWithBMC(Server):
         return event
 
     def power_off(self, state_reason=None):
-        self._ipmi_agent.stop_agent()
         old_state = self.state.status
         new_state = super().power_off(state_reason)
 
@@ -429,7 +428,6 @@ class ServerWithBMC(Server):
         return new_state
 
     def power_up(self, state_reason=None):
-        self._ipmi_agent.start_agent()
         old_state = self.state.status
         new_state = super().power_up(state_reason)
 
@@ -456,6 +454,18 @@ class ServerWithBMC(Server):
             self._vm_monitor_t.join()
 
         super().stop(code)
+
+    @handler("InputVoltageUpEvent")
+    def on_input_voltage_up(self, event, *args, **kwargs):
+        if not self._ipmi_agent.process_running():
+            logger.debug("Starting IPMI agent; key=%d", self.key)
+            self._ipmi_agent.start_agent()
+
+    @handler("InputVoltageDownEvent")
+    def on_input_voltage_down(self, event, *args, **kwargs):
+        if self.state.input_voltage == 0:
+            logger.debug("Stopping IPMI agent; key=%d", self.key)
+            self._ipmi_agent.stop_agent()
 
 
 @register_asset
