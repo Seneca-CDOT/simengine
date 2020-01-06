@@ -24,7 +24,9 @@ class Agent:
     def stop_agent(self):
         """Logic for agent's termination """
         if not self._process.poll():
-            self._process.kill()
+            self._process.terminate()
+            # Clean up the process table to prevent defunct
+            self._process.wait()
 
     def start_agent(self):
         """Logic for starting up the agent """
