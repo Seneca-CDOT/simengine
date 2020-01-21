@@ -515,6 +515,9 @@ class PSU(StaticAsset):
         return_value = None
 
         try:
+            # Throws AttributeError when either:
+            # 1) psu_sensor is None, or
+            # 2) sensor_attribute_key doesn't exist on the sensor
             psu_sensor_attribute = getattr(psu_sensor, sensor_attribute_key)
 
             if callable(psu_sensor_attribute):
