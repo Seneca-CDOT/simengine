@@ -515,7 +515,7 @@ class PSU(StaticAsset):
         return_value = None
 
         try:
-            psu_sensor_attribute = getattr(psu_sensor, sensor_attribute_key, None)
+            psu_sensor_attribute = getattr(psu_sensor, sensor_attribute_key)
 
             if callable(psu_sensor_attribute):
                 # Spread args as arguments for function on the sensor
