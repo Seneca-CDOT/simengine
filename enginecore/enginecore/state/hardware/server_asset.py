@@ -515,7 +515,10 @@ class PSU(StaticAsset):
         return_value = None
 
         try:
-            psu_sensor_attribute = getattr(psu_sensor, sensor_attribute_key, None)
+            # Throws AttributeError when either:
+            # 1) psu_sensor is None, or
+            # 2) sensor_attribute_key doesn't exist on the sensor
+            psu_sensor_attribute = getattr(psu_sensor, sensor_attribute_key)
 
             if callable(psu_sensor_attribute):
                 # Spread args as arguments for function on the sensor
@@ -523,9 +526,14 @@ class PSU(StaticAsset):
             else:
                 # If setting the sensor's property, use the 0th argument
                 setattr(psu_sensor, sensor_attribute_key, args[0])
-        except AttributeError:
+        except AttributeError as attribute_error:
             # Not a severe error because sensors not found can be ignored
-            logger.debug("PSU sensor named [%s] not found.", sensor_name, exc_info=1)
+            logger.debug(
+                "[%s.%s] not found; CAUSE: %s",
+                sensor_name,
+                sensor_attribute_key,
+                str(attribute_error),
+            )
 
         # This is not None only when the executed function returns a value
         return return_value
