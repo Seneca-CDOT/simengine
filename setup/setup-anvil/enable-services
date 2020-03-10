@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# Setup scripts that must run on boot as services
+
+SCRIPT_DIR=$(dirname "${BASH_SOURCE:-0}")
+TMP_DIR="/tmp"
+SERVICE_DIR="${SCRIPT_DIR}/services"
+SERVICE_EXT=".service"
+SERVICE_SCRIPT_LIST=($(ls "${SERVICE_DIR}" | grep -v "${SERVICE_EXT}"))
+
+for service_script_name in "${SERVICE_SCRIPT_LIST[@]}"; do
+    service_name="se-${service_script_name}"
+    service_script_path="/usr/bin/${service_name}"
+    service_file_path="/etc/systemd/system/${service_name}${SERVICE_EXT}"
+
+    if [[ -e "${service_script_path}" ]]; then
+        echo "${service_script_path} found; skipping..."
+    else
+        echo "${service_script_path} not found; creating..."
+        echo "sudo is required to copy the script"
+        sudo cp -v "${SERVICE_DIR}/${service_script_name}" "${service_script_path}"
+        sudo chmod 755 "${service_script_path}"
+    fi
+
+    if [[ -e "${service_file_path}" ]]; then
+        echo "${service_file_path} found; skipping..."
+    else
+        echo "${service_file_path} not found; creating..."
+        tmp_service_file_name="${service_script_name}${SERVICE_EXT}"
+        cp -v "${SERVICE_DIR}/${tmp_service_file_name}" "${TMP_DIR}"
+        service_script_path_esc=$(echo "${service_script_path}" | sed 's/\//\\\//g')
+        sed -i "s/ExecStart=/ExecStart=\/bin\/bash \"${service_script_path_esc}\"/" "${TMP_DIR}/${tmp_service_file_name}"
+        echo "sudo is required to create the service file"
+        sudo cp -v "${TMP_DIR}/${tmp_service_file_name}" "${service_file_path}"
+        sudo chmod 755 "${service_file_path}"
+        rm "${TMP_DIR}/${tmp_service_file_name}"
+    fi
+
+    echo "sudo is required to enable the service"
+    sudo systemctl enable --now $(basename "${service_file_path}")
+done

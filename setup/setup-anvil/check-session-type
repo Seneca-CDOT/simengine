@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# This is required because virt-manager won't start in wayland sessions
+# The error from trying to open virt-manager in wayland session is "cannot open display"
+
+if [[ "$XDG_SESSION_TYPE" != "x11" ]]; then
+    echo "gnome session must be x11; see https://docs.fedoraproject.org/en-US/quick-docs/configuring-xorg-as-default-gnome-session/"
+    exit 1
+fi

@@ -1,0 +1,236 @@
+#!/bin/bash
+
+# create all virtual machines for the anvil setup
+
+SCRIPT_DIR=$(dirname "${BASH_SOURCE:-0}")
+DEV_ZERO="/dev/zero"
+DEV_NULL="/dev/null"
+IMAGE_DIR="/var/lib/libvirt/images"
+TMP_DIR="/tmp"
+SE_DIR="${HOME}/simengine"
+STRIKER_INSTALL_CMD="/root/striker-installer.example"
+SERVER_NAMES=(
+    "an-a01n01"
+    "an-a01n02"
+)
+STRIKER_NAMES=(
+    "an-striker01"
+    "an-striker02"
+)
+# should make the following 4 vars as params for this script
+# TODO: change to fit context; unit in megabyte(s)
+SERVER_DISK_SIZE=102400
+# TODO: change to fit context; unit in megabyte(s)
+STRIKER_DISK_SIZE=51200
+# TODO: change to fit context; unit in megabyte(s)
+SERVER_RAM_SIZE=8192
+# TODO: change to fit context; unit in megabyte(s)
+STRIKER_RAM_SIZE=1024
+SERVER_PORT_PREFIX=20000
+SERVER_IPMI_PORT_PREFIX=100
+SERVER_TCP_PORT_PREFIX=200
+SERVER_STORAGE_PORT_PREFIX=300
+STRIKER_PORT_PREFIX=30000
+VM_DEFAULT_INTERFACE_NAME="virbr0"
+
+function create_image() {
+    disk_name=$1
+    count=$2
+    disk_path="${IMAGE_DIR}/${disk_name}.img"
+    if [[ ! -e "${disk_path}" ]]; then
+        echo "creating image for ${disk_name}; size is ${count}M"
+        sudo dd if="${DEV_ZERO}" of="${disk_path}" bs=1M count="${count}"
+    else
+        echo "${disk_path} already exists; skipping..."
+    fi
+}
+
+function install_vm() {
+    existing_vms=$1
+    vm_name=$2
+    vm_ram=$3
+    # must be in gigabyte(s)
+    vm_disk_size=$4
+    vm_network_config=$5
+    vm_vnc_port=$6
+    vm_install_iso_path=$7
+    vm_qemu_command_string=$8
+    echo "vm install params:" \
+        "vm_name=${vm_name}," \
+        "vm_ram=${vm_ram}M," \
+        "vm_disk_size=${vm_disk_size}G," \
+        "vm_network_config=${vm_network_config}," \
+        "vm_vnc_port=${vm_vnc_port}," \
+        "vm_install_iso_path=${vm_install_iso_path}," \
+        "vm_qemu_command_string=${vm_qemu_command_string}"
+    if [[ $(echo "${existing_vms}" | awk '{ print $2 }' | grep "^${vm_name}$") ]]; then
+        echo "${vm_name} already exists; skipping..."
+    else
+        echo "${vm_name} not found; creating..."
+        sudo virt-install \
+            --name "${vm_name}" \
+            --ram "${vm_ram}" \
+            --disk path="${IMAGE_DIR}/${vm_name}.img",size="${vm_disk_size}" \
+            --os-type generic \
+            ${vm_network_config} \
+            --graphics vnc,listen=localhost,port="${vm_vnc_port}" \
+            --cdrom "${vm_install_iso_path}" \
+            --qemu-commandline="${vm_qemu_command_string}" \
+            --noautoconsole \
+            --boot menu=on
+    fi
+    # connect to the vm for os installation
+    # striker vms will not boot from anvil iso on reboot after the 60 second
+    # wait on first boot because the first option
+    # (Boot next device as configured in BIOS) would be auto-selected;
+    # there is no "next device" on the empty disk...
+    # as such, the viewer should be opened immediately after virt-install
+    # to allow for selecting a different option
+    if [[ $(sudo virsh list --state-running | grep "${vm_name}") ]]; then
+        sudo virt-viewer --domain-name "${vm_name}"
+    else
+        echo "${vm_name} is not running; skipping virt-viewer..."
+    fi
+}
+
+function start_vm() {
+    vm_name=$1
+    echo "sudo is required to check vm state"
+    if [[ $(sudo virsh list --state-running | grep "${vm_name}") ]]; then
+        echo "${vm_name} is running; skipping..."
+    else
+        echo "${vm_name} is not running; starting..."
+        echo "sudo is required to start vm"
+        sudo virsh start "${vm_name}"
+    fi
+}
+
+function get_reachable_vm_ip_addr() {
+    vm_name=$1
+    reachable_addr=""
+    while [[ -z "${reachable_addr}" ]]; do
+        vm_addr_list=($(sudo virsh domifaddr "${vm_name}" --source arp | grep -E -o "([0-9]{1,3}[\.]){3}[0-9]{1,3}"))
+        for addr in "${vm_addr_list[@]}"; do
+            if ping -c 2 "${addr}" &> "${DEV_NULL}"; then
+                reachable_addr="${addr}"
+                break
+            fi
+        done
+    done
+    echo "${reachable_addr}"
+}
+
+# this block remains here for reference
+# dumps the config (xml) of a given domain (vm), makes modifications (in this
+# case add qemu commands), and redefine the resulting xml as the vm's config
+# function config_server_vm() {
+#     vm_name=$1
+#     vm_ipmi_port=$2
+#     vm_telnet_port=$3
+#     vm_storage_port=$4
+#     echo "server vm config params: vm_name=${vm_name}, vm_ipmi_port=${vm_ipmi_port}, vm_telnet_port=${vm_telnet_port}, vm_storage_port=${vm_storage_port}"
+#     vm_xml_name="${vm_name}-config"
+#     vm_xml_path="${TMP_DIR}/${vm_xml_name}"
+#     echo "sudo is required to dump vm config xml into a file"
+#     sudo virsh dumpxml "${vm_name}" > "${vm_xml_path}"
+#     if [[ $(cat "${vm_xml_path}" | grep "^[<]domain.*xmlns:qemu=") ]]; then
+#         echo "${vm_name} appears to be configured; skipping..."
+#     else
+#         sed -i "s/^<domain.*>$/<domain type='kvm' xmlns:qemu='http:\/\/libvirt.org\/schemas\/domain\/qemu\/1.0'>/" "${vm_xml_path}"
+#         sed -i "s/^\s*<\/devices>$/  <\/devices>\n  <qemu:commandline>\n    <qemu:arg value='-chardev'\/>\n    <qemu:arg value='socket,id=ipmi0,host=localhost,port=${vm_ipmi_port},reconnect=2'\/>\n    <qemu:arg value='-device'\/>\n    <qemu:arg value='ipmi-bmc-extern,id=bmc0,chardev=ipmi0'\/>\n    <qemu:arg value='-device'\/>\n    <qemu:arg value='isa-ipmi-bt,bmc=bmc0'\/>\n    <qemu:arg value='-serial'\/>\n    <qemu:arg value='mon:tcp::${vm_telnet_port},server,telnet,nowait'\/>\n    <qemu:arg value='-chardev'\/>\n    <qemu:arg value='socket,id=simengine-storage-tcp,host=localhost,port=${vm_storage_port},reconnect=2'\/>\n    <qemu:arg value='-device'\/>\n    <qemu:arg value='virtio-serial'\/>\n    <qemu:arg value='-device'\/>\n    <qemu:arg value='virtserialport,chardev=simengine-storage-tcp,name=systems.cdot.simengine.storage.net'\/>\n  <\/qemu:commandline>/" "${vm_xml_path}"
+#     fi
+#     sudo virsh define "${vm_xml_path}" --validate
+# }
+
+function copy_file_to_host() {
+    vm_name=$1
+    scp_src=$2
+    scp_dest=$3
+    start_vm "${vm_name}"
+    vm_addr=$(get_reachable_vm_ip_addr "${vm_name}")
+    echo "attempting transfer ${scp_src} (@${vm_addr}) to ${scp_dest}"
+    scp "root@${vm_addr}:${scp_src}" "${scp_dest}"
+}
+
+function copy_file_to_guest() {
+    vm_name=$1
+    scp_src=$2
+    scp_dest=$3
+    start_vm "${vm_name}"
+    vm_addr=$(get_reachable_vm_ip_addr "${vm_name}")
+    echo "attempting transfer ${scp_src} to ${scp_dest} (@${vm_addr})"
+    scp "${scp_src}" "root@${vm_addr}:${scp_dest}"
+}
+
+function update_striker_install_cmd() {
+    vm_name=$1
+    cmd_path="${TMP_DIR}/$(basename ${STRIKER_INSTALL_CMD})"
+    striker_addr=$(get_reachable_vm_ip_addr "${vm_name}")
+    private_addr_and_cidr=$(ip -o -f inet addr show | grep "${VM_DEFAULT_INTERFACE_NAME}" | awk '{print $4}')
+    default_gateway=$(echo "${private_addr_and_cidr}" | cut -d '/' -f 1)
+    net_mask_cidr=$(echo "${private_addr_and_cidr}" | cut -d '/' -f 2)
+    sed -i "s/-i .*/-i ${striker_addr}\/${net_mask_cidr},dg=${default_gateway},dns1=8.8.8.8,dns2=8.8.4.4 \\\/" "${cmd_path}"
+}
+
+echo "sudo is required to list existing vms"
+vm_list=$(sudo virsh list --all)
+
+echo "sudo is required to find the striker iso"
+# find the newest anvil iso in IMAGE_DIR
+striker_iso_name=$(sudo ls -A --sort=time "${IMAGE_DIR}" | grep -i "^anvil.*.iso$" | head -1)
+if [[ -z "${striker_iso_name}" ]]; then
+    echo "striker iso not found; aborting..."
+    exit 1
+else
+    echo "striker iso exists; continuing..."
+fi
+
+echo "sudo is required to create virtual disks for the vms"
+for idx in "${!SERVER_NAMES[@]}"; do
+    server_network_list=(
+        "--network network=default,model=e1000"
+        "--network network=default,model=e1000"
+        "--network network=sn1_bridge1,model=e1000"
+        "--network network=sn1_bridge1,model=e1000"
+        "--network network=bcn1_bridge1,model=e1000"
+        "--network network=bcn1_bridge1,model=e1000"
+    )
+    server_qemu_command_list=(
+        "-chardev socket,id=ipmi0,host=localhost,port=$(($SERVER_PORT_PREFIX+$SERVER_IPMI_PORT_PREFIX+$idx)),reconnect=2"
+        "-device ipmi-bmc-extern,id=bmc0,chardev=ipmi0"
+        "-device isa-ipmi-bt,bmc=bmc0"
+        "-serial mon:tcp::$(($SERVER_PORT_PREFIX+$SERVER_TCP_PORT_PREFIX+$idx)),server,telnet,nowait"
+        "-chardev socket,id=simengine-storage-tcp,host=localhost,port=$(($SERVER_PORT_PREFIX+$SERVER_STORAGE_PORT_PREFIX+$idx)),reconnect=2"
+        "-device virtio-serial"
+        "-device virtserialport,chardev=simengine-storage-tcp,name=systems.cdot.simengine.storage.net"
+    )
+    server_name="${SERVER_NAMES[$idx]}"
+    create_image "${server_name}" "${SERVER_DISK_SIZE}"
+    install_vm "${vm_list}" \
+        "${server_name}" \
+        "${SERVER_RAM_SIZE}" \
+        "$(($SERVER_DISK_SIZE/1000))" \
+        "${server_network_list[*]}" \
+        "$(($SERVER_PORT_PREFIX+$idx))" \
+        "" \
+        "${server_qemu_command_list[*]}"
+done
+
+for idx in "${!STRIKER_NAMES[@]}"; do
+    striker_network_list=(
+        "--network network=default,model=e1000"
+        "--network network=bcn1_bridge1,model=e1000"
+    )
+    striker_name=${STRIKER_NAMES[$idx]}
+    create_image "${striker_name}" "${STRIKER_DISK_SIZE}"
+    install_vm "${vm_list}" \
+        "${striker_name}" \
+        "${STRIKER_RAM_SIZE}" \
+        "$(($STRIKER_DISK_SIZE/1000))" \
+        "${striker_network_list[*]}" \
+        "$(($STRIKER_PORT_PREFIX+$idx))" \
+        "${IMAGE_DIR}/${striker_iso_name}"
+    copy_file_to_host "${vm_name}" "${STRIKER_INSTALL_CMD}" "${TMP_DIR}"
+    update_striker_install_cmd "${striker_name}"
+    copy_file_to_guest "${vm_name}" "${TMP_DIR}/$(basename ${STRIKER_INSTALL_CMD})" "$(dirname ${STRIKER_INSTALL_CMD})"
+done

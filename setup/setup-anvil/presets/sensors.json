@@ -1,0 +1,369 @@
+{
+    "caseFan": {
+        "group": "fan",
+        "addressSpace": "0x6f",
+        "sensorDefinitions": [
+            {
+                "thresholds": {
+                    "lnr": 0,
+                    "lcr": 200,
+                    "lnc": 300,
+                    "unc": 1000,
+                    "ucr": 1200,
+                    "unr": 1500
+                },
+                "defaultValue": 1200,
+                "offValue": 0,
+                "name": "Frnt_FAN{index}"
+            },
+            {
+                "thresholds": {
+                    "lcr": 200,
+                    "lnc": 300,
+                    "unc": 1000,
+                    "ucr": 1200
+                },
+                "defaultValue": 400,
+                "offValue": 0,
+                "name": "Frnt_FAN{index}"
+            },
+            {
+                "thresholds": {
+                    "lcr": 200,
+                    "lnc": 300,
+                    "unc": 1000,
+                    "ucr": 1200
+                },
+                "defaultValue": 1000,
+                "name": "Frnt_FAN",
+                "offValue": 0,
+                "address": "0x79"
+            }
+        ]
+    },
+    "psu": [
+        {
+            "id": 1,
+            "draw": 0.5,
+            "powerConsumption": 30,
+            "powerSource": 120,
+            "minVotage": 90.0,
+            "voltPowerTimeout": 0.2
+        },
+        {
+            "id": 2,
+            "draw": 0.5,
+            "powerConsumption": 30,
+            "powerSource": 120,
+            "minVotage": 90.0,
+            "voltPowerTimeout": 0.2
+        }
+    ],
+    "psuFan": {
+        "group": "fan",
+        "addressSpace": "0x51",
+        "sensorDefinitions": [
+            {
+                "thresholds": {
+                    "lcr": 200,
+                    "lnc": 600,
+                    "unc": 1200,
+                    "ucr": 1800
+                },
+                "defaultValue": 1000,
+                "name": "PSU{index} Fan",
+                "offValue": 0
+            },
+            {
+                "thresholds": {
+                    "lcr": 200,
+                    "lnc": 600,
+                    "unc": 1200,
+                    "ucr": 1800
+                },
+                "defaultValue": 1000,
+                "name": "PSU{index} Fan",
+                "offValue": 0
+            }
+        ]
+    },
+    "psuStatus": {
+        "group": "psu",
+        "addressSpace": "0x8",
+        "eventReadingType": "0x6f",
+        "sensorDefinitions": [
+            {
+                "thresholds": {},
+                "defaultValue": "0x01",
+                "offValue": "0x08",
+                "name": "PSU{index} status"
+            },
+            {
+                "thresholds": {},
+                "defaultValue": "0x01",
+                "offValue": "0x08",
+                "name": "PSU{index} status"
+            }
+        ]
+    },
+    "psuCurrent": {
+        "group": "current",
+        "addressSpace": "0xa",
+        "sensorDefinitions": [
+            {
+                "thresholds": {},
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "PSU{index} current"
+            },
+            {
+                "thresholds": {},
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "PSU{index} current"
+            }
+        ]
+    },
+    "psuVoltage": {
+        "group": "voltage",
+        "addressSpace": "0xc",
+        "sensorDefinitions": [
+            {
+                "thresholds": {},
+                "defaultValue": 10,
+                "offValue": 0,
+                "name": "PSU{index} voltage"
+            },
+            {
+                "thresholds": {},
+                "defaultValue": 10,
+                "offValue": 0,
+                "name": "PSU{index} voltage"
+            }
+        ]
+    },
+    "psuPower": {
+        "group": "wattage",
+        "addressSpace": "0xE",
+        "sensorDefinitions": [
+            {
+                "thresholds": {},
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "PSU{index} power"
+            },
+            {
+                "thresholds": {},
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "PSU{index} power"
+            }
+        ]
+    },
+    "psuTemperature": {
+        "group": "temperature",
+        "addressSpace": "0x10",
+        "sensorDefinitions": [
+            {
+                "thresholds": {},
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "PSU{index} temperature"
+            },
+            {
+                "thresholds": {},
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "PSU{index} temperature"
+            }
+        ]
+    },
+    "memoryTemperature": {
+        "group": "temperature",
+        "addressSpace": "0x12",
+        "sensorDefinitions": [
+            {
+                "thresholds": {
+                    "ucr": 78,
+                    "unr": 82
+                },
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "Mem A"
+            },
+            {
+                "thresholds": {
+                    "ucr": 78,
+                    "unr": 82
+                },
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "Mem B"
+            },
+            {
+                "thresholds": {
+                    "ucr": 78,
+                    "unr": 82
+                },
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "Mem C"
+            },
+            {
+                "thresholds": {
+                    "ucr": 78,
+                    "unr": 82
+                },
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "Mem D"
+            },
+            {
+                "thresholds": {
+                    "ucr": 78,
+                    "unr": 82
+                },
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "Mem E"
+            },
+            {
+                "thresholds": {
+                    "ucr": 78,
+                    "unr": 82
+                },
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "Mem F"
+            },
+            {
+                "thresholds": {
+                    "ucr": 78,
+                    "unr": 82
+                },
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "Mem G"
+            },
+            {
+                "thresholds": {
+                    "ucr": 78,
+                    "unr": 82
+                },
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "Mem H"
+            }
+        ]
+    },
+    "Ambient": {
+        "group": "temperature",
+        "addressSpace": "0x21",
+        "sensorDefinitions": [
+            {
+                "thresholds": {
+                    "lcr": 1.0,
+                    "lnc": 6.0,
+                    "unc": 37.0,
+                    "ucr": 42.0
+                },
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "Ambient"
+            }
+        ]
+    },
+    "RAIDControllerTemperature": {
+        "group": "temperature",
+        "addressSpace": "0x22",
+        "sensorDefinitions": [
+            {
+                "thresholds": {
+                    "unc": 110.0,
+                    "ucr": 115.0
+                },
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "RAID Controller"
+            }
+        ]
+    },
+    "cpuTemperature": {
+        "group": "temperature",
+        "addressSpace": "0x24",
+        "sensorDefinitions": [
+            {
+                "thresholds": {
+                    "unc": 98,
+                    "ucr": 99
+                },
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "CPU{index} temperature"
+            },
+            {
+                "thresholds": {
+                    "unc": 98,
+                    "ucr": 99
+                },
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "CPU{index} temperature"
+            }
+        ]
+    },
+    "Systemboard": {
+        "group": "temperature",
+        "sensorDefinitions": [
+            {
+                "thresholds": {
+                    "unc": 75.0,
+                    "ucr": 80.0
+                },
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "Systemboard",
+                "address": "0x26"
+            }
+        ]
+    },
+    "psuInletTemperature": {
+        "group": "temperature",
+        "addressSpace": "0x31",
+        "sensorDefinitions": [
+            {
+                "thresholds": {
+                    "unc": 57.0,
+                    "ucr": 61.0
+                },
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "PSU{index} Inlet"
+            },
+            {
+                "thresholds": {
+                    "unc": 57.0,
+                    "ucr": 61.0
+                },
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "PSU{index} Inlet"
+            }
+        ]
+    },
+    "BBU": {
+        "group": "temperature",
+        "sensorDefinitions": [
+            {
+                "thresholds": {
+                    "unc": 50.0,
+                    "ucr": 55.0
+                },
+                "defaultValue": 0,
+                "offValue": 0,
+                "name": "BBU temperature",
+                "address": "0x41"
+            }
+        ]
+    }
+}

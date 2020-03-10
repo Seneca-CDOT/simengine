@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# setup anvil
+
+SCRIPT_DIR=$(dirname "${BASH_SOURCE:-0}")
+
+echo "[phase 1] checking gnome session type"
+if ! "${SCRIPT_DIR}/check-session-type"; then
+    echo "check failed; exiting..."
+    exit 1
+fi
+
+echo "[phase 2] creating striker iso"
+bash "${SCRIPT_DIR}/create-striker-iso"
+
+echo "[phase 3] install virtualization tools"
+bash "${SCRIPT_DIR}/install-virtualization"
+
+echo "[phase 4] creating virtual networks"
+sudo bash "${SCRIPT_DIR}/create-networks"
+
+echo "[phase 5] creating virtual machines"
+bash "${SCRIPT_DIR}/create-vms"
+
+echo "[phase 6] enabling services"
+bash "${SCRIPT_DIR}/enable-services"
+
+echo "[phase 7] model anvil in simengine"
+bash "${SCRIPT_DIR}/model-anvil"

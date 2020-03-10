@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# adds neo4j repository to yum/dnf
+
+TMP_DIR="/tmp"
+REPO_DIR="/etc/yum.repos.d"
+REPO_PATH="${REPO_DIR}/neo4j.repo"
+
+if [[ ! $(rpm -qa gpg-pubkey --qf "%{summary}\n" | grep -i neo4j) ]]; then
+    wget -P "${TMP_DIR}" http://debian.neo4j.org/neotechnology.gpg.key
+    sudo rpm --import "${TMP_DIR}/neotechnology.gpg.key"
+else
+    echo "neo4j gpg-pubkey already added; skipping..."
+fi
+
+if [[ ! $(ls -l ${REPO_DIR} | grep -i neo4j) ]]; then
+    echo "sudo is required to create ${REPO_PATH}"
+    sudo touch "${REPO_PATH}"
+    sudo chmod 646 "${REPO_PATH}"
+    cat <<EOF > "${REPO_PATH}"
+[neo4j]
+name=Neo4j Yum Repo
+baseurl=http://yum.neo4j.org/stable
+enabled=1
+gpgcheck=1
+EOF
+    sudo chmod 644 "${REPO_PATH}"
+    echo "content of ${REPO_PATH} is"
+    cat "${REPO_PATH}"
+else
+    echo "${REPO_PATH} already exists; skipping..."
+fi

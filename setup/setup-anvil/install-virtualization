@@ -1,0 +1,4 @@
+#!/bin/bash
+
+echo "sudo is required to install the virtualization group of packages"
+sudo dnf install @virtualization

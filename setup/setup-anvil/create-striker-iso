@@ -1,0 +1,67 @@
+#!/bin/bash
+
+# create the anvil(!) iso
+
+CENTOS_URIS=(
+    "https://mirror.csclub.uwaterloo.ca/centos/6.10/isos/x86_64/CentOS-6.10-x86_64-bin-DVD1.iso"
+    "https://mirror.csclub.uwaterloo.ca/centos/6.10/isos/x86_64/CentOS-6.10-x86_64-bin-DVD2.iso"
+)
+SCRIPT_URI="https://raw.githubusercontent.com/ClusterLabs/striker/master/tools/anvil-generate-iso"
+SCRIPT_NAME=$(basename "${SCRIPT_URI}")
+RESOURCES_DIR="${HOME}/striker-resources"
+LIBVIRT_IMAGES_DIR="/var/lib/libvirt/images"
+
+function getRemoteResource() {
+    uri=$1
+    resource_name=$(basename "${uri}")
+
+    if [[ ! -e "${RESOURCES_DIR}/${resource_name}" ]]; then
+        echo "${resource_name} not found; fetching..."
+        wget -P "${RESOURCES_DIR}" --show-progress "${uri}"
+    else
+        echo "${resource_name} found; skipping..."
+    fi
+}
+
+if [[ ! -d "${RESOURCES_DIR}" ]]; then
+    echo "making ${RESOURCES_DIR} to hold resources"
+    mkdir "${RESOURCES_DIR}"
+else
+    echo "${RESOURCES_DIR} already exists; skipping..."
+fi
+
+for uri in "${CENTOS_URIS[@]}"; do
+    getRemoteResource $uri
+done
+
+getRemoteResource $SCRIPT_URI
+chmod 755 "${RESOURCES_DIR}/${SCRIPT_NAME}"
+
+# install dependencies for the anvil script
+echo "sudo is required to install dependencies"
+sudo dnf install createrepo genisoimage libcdio
+
+# go to RESOURCES_DIR because the script relies on PWD
+echo "cd to ${RESOURCES_DIR}"
+cd "${RESOURCES_DIR}"
+
+script_params=""
+for uri in "${CENTOS_URIS[@]}"; do
+    resource_name=$(basename "${uri}")
+    script_params+="${RESOURCES_DIR}/${resource_name},"
+done
+
+# run the script
+"${RESOURCES_DIR}/${SCRIPT_NAME}" -y --source "${script_params}"
+
+anvil_dir="${RESOURCES_DIR}/anvil"
+striker_iso_path="${anvil_dir}/$(ls -A ${anvil_dir} | grep iso)"
+
+echo "sudo is required to copy anvil iso to ${LIBVIRT_IMAGES_DIR}"
+sudo cp "${striker_iso_path}" "${LIBVIRT_IMAGES_DIR}" 
+
+orig_checksum=$(md5sum "${striker_iso_path}" | awk -F '[  ]' '{ print $1 }')
+striker_iso_copy_path="${LIBVIRT_IMAGES_DIR}/$(basename ${striker_iso_path})"
+
+echo "copy finished; verifying ${striker_iso_copy_path} [${orig_checksum}]"
+md5sum -c <<< "${orig_checksum}  ${striker_iso_copy_path}"

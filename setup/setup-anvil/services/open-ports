@@ -1,0 +1,23 @@
+#!/bin/bash
+
+snmp_rule_spec="-p udp -m udp --dport 161 -j ACCEPT"
+asf_rmcp_rule_spec="-p udp -m udp --dport 623 -j ACCEPT"
+
+function insert_rule() {
+    chain=$1
+    rule_spec=$2
+    echo "params:" \
+        "${chain}" \
+        "${rule_spec}"
+    echo "sudo is required to check iptables"
+    if $(sudo iptables -C ${chain} ${rule_spec}); then
+        echo "rule found; skipping..."
+    else
+        echo "rule not found; adding..."
+        echo "sudo is required to modify iptables"
+        sudo iptables -I ${chain} ${rule_spec}
+    fi
+}
+
+insert_rule "INPUT" "${snmp_rule_spec}"
+insert_rule "INPUT" "${asf_rmcp_rule_spec}"

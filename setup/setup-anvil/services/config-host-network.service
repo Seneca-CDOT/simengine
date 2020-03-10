@@ -1,0 +1,10 @@
+[Unit]
+Description=Configure network on host system
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=
+
+[Install]
+WantedBy=multi-user.target

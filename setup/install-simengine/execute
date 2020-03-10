@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# installs simengine
+
+SCRIPT_DIR=$(dirname "${BASH_SOURCE:-0}")
+
+echo "[phase 1] adding neo4j repository"
+bash "${SCRIPT_DIR}/add-neo4j-repo"
+
+echo "[phase 2] building and installing rpms"
+bash "${SCRIPT_DIR}/install-rpms"

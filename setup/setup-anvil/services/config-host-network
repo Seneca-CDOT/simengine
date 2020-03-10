@@ -1,0 +1,19 @@
+#!/bin/bash
+
+ifconfig bcn1_bridge1:1 10.20.3.1/16
+ifconfig bcn1_bridge1:1 netmask 255.255.0.0
+
+ifconfig bcn1_bridge1:2 10.20.3.2/16
+ifconfig bcn1_bridge1:2 netmask 255.255.0.0
+
+ifconfig bcn1_bridge1:3 10.20.2.1/16
+ifconfig bcn1_bridge1:3 netmask 255.255.0.0
+
+ifconfig bcn1_bridge1:4 10.20.2.2/16
+ifconfig bcn1_bridge1:4 netmask 255.255.0.0
+
+ifconfig bcn1_bridge1:5 10.20.11.1/16
+ifconfig bcn1_bridge1:5 netmask 255.255.0.0
+
+ifconfig bcn1_bridge1:6 10.20.11.2/16
+ifconfig bcn1_bridge1:6 netmask 255.255.0.0

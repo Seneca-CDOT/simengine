@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# clone simengine repo from github,
+# run the buildall script, and
+# install the generated RPMs
+
+REMOTE="git@github.com:Seneca-CDOT/simengine.git"
+SE_DIR="${HOME}/simengine"
+RPMS_DIR="${HOME}/rpmbuild/RPMS"
+
+if [[ ! -d "${SE_DIR}" ]]; then
+    git clone "${REMOTE}" "${SE_DIR}"
+    echo "simengine repo cloned; please do not relocate the repo until the setup is over"
+else
+    echo "simengine repo appears to exist at ${SE_DIR}"
+fi
+
+if [[ ! -d "${RPMS_DIR}" ]]; then
+    cd "${SE_DIR}/rpm/specfiles"
+    ./buildall
+else
+    echo "rpms appears to exist at ${RPMS_DIR}"
+fi
+
+echo "sudo is required to install RPMs"
+sudo dnf install "${RPMS_DIR}"/**/*.rpm

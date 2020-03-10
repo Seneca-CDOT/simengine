@@ -1,0 +1,205 @@
+#!/bin/bash
+
+# NOTE: this script should never be run with sudo!
+
+SCRIPT_DIR=$(dirname "${BASH_SOURCE:-0}")
+PRESET_DIR="${SCRIPT_DIR}/presets"
+
+DEV_SE_CLI_PATH="${HOME}/simengine/enginecore/simengine-cli"
+PROD_SE_CLI_PATH="/usr/bin/$(basename ${DEV_SE_CLI_PATH})"
+
+DEV_SE_CORE_PROCESS_NAME="app.py"
+SNMPSIM_PROCESS_NAME="snmpsimd.py"
+IPMISIM_PROCESS_NAME="ipmi_sim"
+
+# Variables set by option -d
+se_cli="${PROD_SE_CLI_PATH}"
+is_use_dev=false
+
+# Variables set by option -v
+is_verbose=false
+
+while getopts "dvh" o; do
+    case "$o" in
+        d)
+            se_cli="${DEV_SE_CLI_PATH}"
+            is_use_dev=true
+            ;;
+        v)
+            is_verbose=true
+            ;;
+        h)
+            printf "usage: $0 [-d] [-v] [-h]\n"
+            printf "\t-d\tuse the dev version of cli\n"
+            printf "\t-v\tbe verbose\n"
+            printf "\t-h\tshow this help message and exit\n"
+            exit 0
+            ;;
+        [?])
+            echo "unrecognized option; see help (-h)"
+            exit 1
+            ;;
+    esac
+done
+
+if [ "$is_verbose" = true ]; then
+    echo "attempting to stop simengine-core..."
+fi
+
+sudo systemctl stop simengine-core
+
+if [ "$is_verbose" = true ]; then
+    echo "checking whether ${DEV_SE_CORE_PROCESS_NAME} is running..."
+fi
+
+process_list=$(ps -e)
+
+# Ensure the dev version or simengine-core is not running;
+# it is considered running when
+# DEV_SE_CORE_PROCESS_NAME, SNMPSIM_PROCESS_NAME, and IPMISIM_PROCESS_NAME
+# are found in the process list
+if grep -F -q "${DEV_SE_CORE_PROCESS_NAME}" <<< "${process_list}" \
+        && grep -F -q "${SNMPSIM_PROCESS_NAME}" <<< "${process_list}" \
+        && grep -F -q "${IPMISIM_PROCESS_NAME}"  <<< "${process_list}"; then
+    echo "${DEV_SE_CORE_PROCESS_NAME} is running; terminate it before executing this script"
+    exit 1
+fi
+
+if [ "$is_verbose" = true ]; then
+    echo "dropping current model..."
+fi
+
+sudo "${se_cli}" model drop
+
+if [ "$is_verbose" = true ]; then
+    echo "creating assets..."
+fi
+
+# Create 2 outlets, one powers 'an-ups01' another one powers 'an-ups02'
+sudo "${se_cli}" model create outlet --asset-key=1 -x=-861 -y=-171
+sudo "${se_cli}" model create outlet -k2 -x=-861 -y=351
+
+# Add 2 UPSs
+sudo "${se_cli}" model create ups -k=3 \
+    --name=an-ups01 \
+    --host=10.20.3.1 \
+    --mask=255.255.0.0 \
+    --port=161 \
+    --interface="bcn1_bridge1:1" \
+    --serial-number="SVPD4D5QTQ3V" \
+    --mac-address="f2325a5b0824" \
+    -x=-895 -y=-182
+
+sudo "${se_cli}" model create ups -k=4 \
+    --name=an-ups02 \
+    --host=10.20.3.2 \
+    --mask=255.255.0.0 \
+    --port=161 \
+    --interface="bcn1_bridge1:2" \
+    --serial-number="8IAIMD9RX6KZ" \
+    --mac-address="8117f9db70d4" \
+    -x=-895 -y=347
+
+# Create 2 PDUs
+sudo "${se_cli}" model create pdu -k=5 \
+    -n=an-pdu01 \
+    --host=10.20.2.1 \
+    --mask=255.255.0.0 \
+    --port=161 \
+    --interface="bcn1_bridge1:3" \
+    --serial-number="AQ5AKU1OORAX" \
+    --mac-address="37436ab3c583" \
+    -x=-36 -y=-161
+
+sudo "${se_cli}" model create pdu -k=6 \
+    -n=an-pdu02 \
+    --host=10.20.2.2 \
+    --mask=255.255.0.0 \
+    --port=161 \
+    --interface="bcn1_bridge1:4" \
+    --serial-number="95SQW45SVIFX" \
+    --mac-address="b7bc37aa4d83" \
+    -x=-36 -y=567
+
+# Add 2 Servers
+# --vmport must be changed to match $SERVER_PORT_PREFIX+$SERVER_IPMI_PORT_PREFIX+$idx in create-vms script
+# --storcli-port must be changed to match $SERVER_PORT_PREFIX+$SERVER_STORAGE_PORT_PREFIX+$idx in create-vms script
+# --password must be updated to match password set during Anvil setup (don't push the updated password to remote!)
+sudo "${se_cli}" model create server-bmc -k=7 \
+    --domain-name=an-a01n01 \
+    --power-consumption=360 \
+    --no-power-on-ac \
+    --host=10.20.11.1 \
+    --port=623 \
+    --vmport=20100 \
+    --storcli-port=20300 \
+    -x=-162 -y=320 \
+    --interface="bcn1_bridge1:5" \
+    --user="admin" \
+    --password="Initial1" \
+    --sensor-def="${PRESET_DIR}/sensors.json"
+
+sudo "${se_cli}" model create server-bmc -k=8 \
+    --domain-name=an-a01n02 \
+    --power-consumption=360 \
+    --no-power-on-ac \
+    --host=10.20.11.2 \
+    --port=623 \
+    --vmport=20101 \
+    --storcli-port=20301 \
+    -x=-171 -y=86 \
+    --interface="bcn1_bridge1:6" \
+    --user="admin" \
+    --password="Initial1" \
+    --sensor-def="${PRESET_DIR}/sensors.json"
+
+# Add 2 Striker Servers
+sudo "${se_cli}" model create server -k=9 \
+    --domain-name=an-striker01 \
+    --power-consumption=240 \
+    --psu-num=1 \
+    -x=738 \
+    -y=101
+
+sudo "${se_cli}" model create server -k=10 \
+    --domain-name=an-striker02 \
+    --power-consumption=240 \
+    --psu-num=1 \
+    -x=734 \
+    -y=326
+
+if [ "$is_verbose" = true ]; then
+    echo "connecting assets..."
+fi
+
+### Power Components
+# connect outlets & UPSs
+sudo "${se_cli}" model power-link -s1 -d3   # {_Mains_}==>[an-ups01]
+sudo "${se_cli}" model power-link -s2 -d4   # {_Mains_}==>[an-ups02]
+
+# connect ups & pdus
+sudo "${se_cli}" model power-link -s31 -d5  # [an-ups01]==>[an-pdu01]
+sudo "${se_cli}" model power-link -s41 -d6  # [an-ups02]==>[an-pdu02]
+
+# Power up servers
+sudo "${se_cli}" model power-link -s51 -d72 # [an-pdu01]={port-1}=>{psu-2}=>[an-a01n01]
+sudo "${se_cli}" model power-link -s52 -d82 # [an-pdu01]={port-2}=>{psu-2}=>[an-a01n02]
+
+sudo "${se_cli}" model power-link -s61 -d71 # [an-pdu02]={port-1}=>{psu-1}=>[an-a01n01]
+sudo "${se_cli}" model power-link -s62 -d81 # [an-pdu02]={port-2}=>{psu-1}=>[an-a01n02]
+
+# Power Up Striker Servers
+sudo "${se_cli}" model power-link -s58 -d91  # [an-pdu01]={port-8}=>{psu-1}=>[an-striker01]
+sudo "${se_cli}" model power-link -s68 -d101 # [an-pdu02]={port-8}=>{psu-1}=>[an-striker02]
+
+if [ "$is_use_dev" = true ]; then
+    if [ "$is_verbose" = true ]; then
+        echo "using dev cli; ${DEV_SE_CORE_PROCESS_NAME} needs to be restarted manually to see the changes..."
+    fi
+else
+    if [ "$is_verbose" = true ]; then
+        echo "using prod cli; attempting to restart simengine-core..."
+    fi
+
+    sudo systemctl start simengine-core
+fi
