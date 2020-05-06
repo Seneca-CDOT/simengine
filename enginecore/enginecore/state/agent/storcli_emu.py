@@ -642,89 +642,109 @@ class StorCLIEmulator:
         self._serversocket.bind(("", socket_port))
         self._serversocket.listen(5)
 
-        try:
-            conn, _ = self._serversocket.accept()
-        except OSError:
-            logger.warning("Could not initialize socket server!")
-            return
+        # Continue to accept connections until the ws server stops
+        while not self._stop_event.is_set():
 
-        with conn:
-            while not self._stop_event.is_set():
+            try:
+                conn, _ = self._serversocket.accept()
+            except OSError:
+                logger.warning("Could not initialize socket server!")
+                return
 
-                scout_r, _, _ = select.select([conn], [], [])
-                if not scout_r:
-                    continue
+            with conn:
+                while not self._stop_event.is_set():
 
-                data = conn.recv(1024)
-                if not data:
-                    break
+                    scout_r, _, _ = select.select([conn], [], [])
+                    if not scout_r:
+                        logger.debug("Socket is not ready for reading")
+                        continue
 
-                try:
-                    received = json.loads(data)
-                except json.decoder.JSONDecodeError as parse_err:
-                    logger.warning(data)
-                    logger.warning("Invalid JSON: ")
-                    logger.warning(parse_err)
+                    data = conn.recv(1024)
+                    if not data:
+                        logger.debug("Connection closed by remote end")
+                        break
 
-                argv = received["argv"]
+                    try:
+                        received = json.loads(data)
+                    except json.decoder.JSONDecodeError as parse_err:
+                        logger.warning(data)
+                        logger.warning("Invalid JSON: ")
+                        logger.warning(parse_err)
 
-                logger.debug("Data received: %s", str(received))
+                    argv = received["argv"]
 
-                reply = {"stdout": "", "stderr": "", "status": 0}
+                    logger.debug("Data received: %s", str(received))
 
-                # Process non-default return cases
-                # (parse command request and return command output)
-                if len(argv) == 2:
-                    if argv[1] == "--version":
-                        reply["stdout"] = "Version 0.01"
+                    reply = {"stdout": "", "stderr": "", "status": 0}
 
-                elif len(argv) == 3:
-                    if argv[1] == "show" and argv[2] == "ctrlcount":
-                        reply["stdout"] = self._strcli_ctrlcount()
+                    # Process non-default return cases
+                    # (parse command request and return command output)
+                    if len(argv) == 2:
+                        if argv[1] == "--version":
+                            reply["stdout"] = "Version 0.01"
 
-                # Controller Commands
-                elif len(argv) == 4 and argv[1].startswith("/c"):
-                    if argv[2] == "show" and argv[3] == "perfmode":
-                        reply["stdout"] = self._strcli_ctrl_perf_mode(argv[1][-1])
-                    elif argv[2] == "show" and argv[3] == "bgirate":
-                        reply["stdout"] = self._get_rate_prop(argv[1][-1], "bgi_rate")
-                    elif argv[2] == "show" and argv[3] == "ccrate":
-                        reply["stdout"] = self._get_rate_prop(argv[1][-1], "cc_rate")
-                    elif argv[2] == "show" and argv[3] == "rebuildrate":
-                        reply["stdout"] = self._get_rate_prop(
-                            argv[1][-1], "rebuild_rate"
-                        )
-                    elif argv[2] == "show" and argv[3] == "prrate":
-                        reply["stdout"] = self._get_rate_prop(argv[1][-1], "pr_rate")
-                    elif argv[2] == "show" and argv[3] == "alarm":
-                        reply["stdout"] = self._strcli_ctrl_alarm_state(argv[1][-1])
-                    elif argv[2] == "show" and argv[3] == "all":
-                        reply["stdout"] = self._strcli_ctrl_info(argv[1][-1])
+                    elif len(argv) == 3:
+                        if argv[1] == "show" and argv[2] == "ctrlcount":
+                            reply["stdout"] = self._strcli_ctrlcount()
 
-                elif len(argv) == 5 and argv[1].startswith("/c"):
-                    if argv[2] == "/bbu" and argv[3] == "show" and argv[4] == "all":
-                        reply["stdout"] = self._strcli_ctrl_bbu(argv[1][-1])
-                    elif argv[2] == "/cv" and argv[3] == "show" and argv[4] == "all":
-                        reply["stdout"] = self._strcli_ctrl_cachevault(argv[1][-1])
-                    elif argv[2] == "/vall" and argv[3] == "show" and argv[4] == "all":
-                        reply["stdout"] = self._strcli_ctrl_virt_disk(argv[1][-1])
-                elif len(argv) == 6 and argv[1].startswith("/c"):
-                    if (
-                        argv[2] == "/eall"
-                        and argv[3] == "/sall"
-                        and argv[4] == "show"
-                        and argv[5] == "all"
-                    ):
-                        reply["stdout"] = self._strcli_ctrl_phys_disks(argv[1][-1])
-                else:
-                    reply = {
-                        "stdout": "",
-                        "stderr": "Usage: " + argv[0] + " --version",
-                        "status": 1,
-                    }
+                    # Controller Commands
+                    elif len(argv) == 4 and argv[1].startswith("/c"):
+                        if argv[2] == "show" and argv[3] == "perfmode":
+                            reply["stdout"] = self._strcli_ctrl_perf_mode(argv[1][-1])
+                        elif argv[2] == "show" and argv[3] == "bgirate":
+                            reply["stdout"] = self._get_rate_prop(
+                                argv[1][-1], "bgi_rate"
+                            )
+                        elif argv[2] == "show" and argv[3] == "ccrate":
+                            reply["stdout"] = self._get_rate_prop(
+                                argv[1][-1], "cc_rate"
+                            )
+                        elif argv[2] == "show" and argv[3] == "rebuildrate":
+                            reply["stdout"] = self._get_rate_prop(
+                                argv[1][-1], "rebuild_rate"
+                            )
+                        elif argv[2] == "show" and argv[3] == "prrate":
+                            reply["stdout"] = self._get_rate_prop(
+                                argv[1][-1], "pr_rate"
+                            )
+                        elif argv[2] == "show" and argv[3] == "alarm":
+                            reply["stdout"] = self._strcli_ctrl_alarm_state(argv[1][-1])
+                        elif argv[2] == "show" and argv[3] == "all":
+                            reply["stdout"] = self._strcli_ctrl_info(argv[1][-1])
 
-                # Send the message
-                conn.sendall(bytes(json.dumps(reply) + "\n", "UTF-8"))
+                    elif len(argv) == 5 and argv[1].startswith("/c"):
+                        if argv[2] == "/bbu" and argv[3] == "show" and argv[4] == "all":
+                            reply["stdout"] = self._strcli_ctrl_bbu(argv[1][-1])
+                        elif (
+                            argv[2] == "/cv" and argv[3] == "show" and argv[4] == "all"
+                        ):
+                            reply["stdout"] = self._strcli_ctrl_cachevault(argv[1][-1])
+                        elif (
+                            argv[2] == "/vall"
+                            and argv[3] == "show"
+                            and argv[4] == "all"
+                        ):
+                            reply["stdout"] = self._strcli_ctrl_virt_disk(argv[1][-1])
+                    elif len(argv) == 6 and argv[1].startswith("/c"):
+                        if (
+                            argv[2] == "/eall"
+                            and argv[3] == "/sall"
+                            and argv[4] == "show"
+                            and argv[5] == "all"
+                        ):
+                            reply["stdout"] = self._strcli_ctrl_phys_disks(argv[1][-1])
+                    else:
+                        reply = {
+                            "stdout": "",
+                            "stderr": "Usage: " + argv[0] + " --version",
+                            "status": 1,
+                        }
 
+                    # Send the message
+                    conn.sendall(bytes(json.dumps(reply) + "\n", "UTF-8"))
+
+            # Clean up connection when it gets closed by the remote end
+            conn.close()
+
+        # Final clean up when the ws server stops
         self._serversocket.close()
-        conn.close()
