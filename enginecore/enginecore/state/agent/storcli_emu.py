@@ -692,15 +692,21 @@ class StorCLIEmulator:
                         if argv[2] == "show" and argv[3] == "perfmode":
                             reply["stdout"] = self._strcli_ctrl_perf_mode(argv[1][-1])
                         elif argv[2] == "show" and argv[3] == "bgirate":
-                            reply["stdout"] = self._get_rate_prop(argv[1][-1], "bgi_rate")
+                            reply["stdout"] = self._get_rate_prop(
+                                argv[1][-1], "bgi_rate"
+                            )
                         elif argv[2] == "show" and argv[3] == "ccrate":
-                            reply["stdout"] = self._get_rate_prop(argv[1][-1], "cc_rate")
+                            reply["stdout"] = self._get_rate_prop(
+                                argv[1][-1], "cc_rate"
+                            )
                         elif argv[2] == "show" and argv[3] == "rebuildrate":
                             reply["stdout"] = self._get_rate_prop(
                                 argv[1][-1], "rebuild_rate"
                             )
                         elif argv[2] == "show" and argv[3] == "prrate":
-                            reply["stdout"] = self._get_rate_prop(argv[1][-1], "pr_rate")
+                            reply["stdout"] = self._get_rate_prop(
+                                argv[1][-1], "pr_rate"
+                            )
                         elif argv[2] == "show" and argv[3] == "alarm":
                             reply["stdout"] = self._strcli_ctrl_alarm_state(argv[1][-1])
                         elif argv[2] == "show" and argv[3] == "all":
@@ -709,9 +715,15 @@ class StorCLIEmulator:
                     elif len(argv) == 5 and argv[1].startswith("/c"):
                         if argv[2] == "/bbu" and argv[3] == "show" and argv[4] == "all":
                             reply["stdout"] = self._strcli_ctrl_bbu(argv[1][-1])
-                        elif argv[2] == "/cv" and argv[3] == "show" and argv[4] == "all":
+                        elif (
+                            argv[2] == "/cv" and argv[3] == "show" and argv[4] == "all"
+                        ):
                             reply["stdout"] = self._strcli_ctrl_cachevault(argv[1][-1])
-                        elif argv[2] == "/vall" and argv[3] == "show" and argv[4] == "all":
+                        elif (
+                            argv[2] == "/vall"
+                            and argv[3] == "show"
+                            and argv[4] == "all"
+                        ):
                             reply["stdout"] = self._strcli_ctrl_virt_disk(argv[1][-1])
                     elif len(argv) == 6 and argv[1].startswith("/c"):
                         if (
