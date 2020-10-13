@@ -30,8 +30,31 @@ fi
 
 cd "${SE_DIR}"
 
-cd "${SE_DIR}/rpm/specfiles"
-./buildall
+# ensure the simengine repo has the latest updates
+# don't prune because we don't want to remove local copies of remote branches
+# that may be used as backup
+git \
+    fetch \
+    --tags
+
+simengine_latest_version=$(git \
+    tag \
+    --sort version:refname \
+    | tail -1 \
+)
+
+echo "latest SimEngine version is [${simengine_latest_version}]"
+
+git \
+    checkout \
+    "tags/${simengine_latest_version}"
+
+if [[ ! -d "${RPMS_DIR}" ]]; then
+    cd "${SE_DIR}/rpm/specfiles"
+    ./buildall
+else
+    echo "rpms appears to exist at ${RPMS_DIR}"
+fi
 
 echo "sudo is required to install SimEngine RPMs"
 DB_VER=$(search_ver "simengine-database.spec")
