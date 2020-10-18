@@ -51,13 +51,14 @@ class BCOLORS:
 
 
 def status_table_format(assets, stdscr=False):
-    """ Display status in a table format 
+    """ Display status in a table format
     Args:
         assets (dict): list of assets supported by the system
         stdscr (optional): default window return by initscr(),
                            status_table_format uses print if omitted
     """
-
+    if assets is None:
+        raise ValueError("assets does not exist, is the system model empty?")
     # format headers
     headers = ["Key", "Type", "Status", "Children", "Load"]
     row_format = "{:>10}" * (len(headers) + 1)
@@ -105,7 +106,7 @@ def status_table_format(assets, stdscr=False):
 
 
 def get_status(**kwargs):
-    """ Retrieve power states of the assets 
+    """ Retrieve power states of the assets
     Args:
         **kwargs: Command line options
     """
