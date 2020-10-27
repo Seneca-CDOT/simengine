@@ -1,0 +1,27 @@
+From e3e7aeb02cc8515009bdbc37ce7352894e9cfca5 Mon Sep 17 00:00:00 2001
+From: Tsu-ba-me <ynho.li.aa.e@gmail.com>
+Date: Thu, 12 Nov 2020 20:09:52 -0500
+Subject: [PATCH] fix(multipart.py): use urllib.parse instead of cgi module
+
+---
+ circuits/web/parsers/multipart.py | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/circuits/web/parsers/multipart.py b/circuits/web/parsers/multipart.py
+index 618e8998..cced37ed 100644
+--- a/circuits/web/parsers/multipart.py
++++ b/circuits/web/parsers/multipart.py
+@@ -43,7 +43,9 @@ import re
+ try:
+     from urlparse import parse_qs
+ except ImportError:  # pragma: no cover (fallback for Python 2.5)
+-    from cgi import parse_qs
++    # parse_qs appears to have been moved out of the cgi module
++    # in Python 3.8+; using urllib.parse instead.
++    from urllib.parse import parse_qs
+ try:
+     from io import BytesIO
+ except ImportError:  # pragma: no cover (fallback for Python 2.5)
+-- 
+2.26.2
+

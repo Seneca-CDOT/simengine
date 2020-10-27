@@ -26,6 +26,11 @@ Full project documentation is hosted on [readthedocs](https://simengine.readthed
 
 `./services` - enginecore daemon service
 
+### Installation process
+
+If we navigate to the `simengine/setup/install-simengine` directory and we execute the `./execute` script the installation process will do all of the work.
+
+
 ### Notes
 
 Vendor specific MIB files are not to be included under GPL-3.0 of this project, check with appropriate hardware vendors for additional information.

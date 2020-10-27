@@ -14,6 +14,12 @@ echo "of required RPM tools."
 
 sudo dnf install -y "@RPM Development Tools"
 rpmdev-setuptree 2>/dev/null
+
+cp \
+	-v \
+	patches/*.patch \
+	$(rpm --eval "%{_topdir}/SOURCES/")
+
 for X in *.spec
 do
 	echo ================== $X

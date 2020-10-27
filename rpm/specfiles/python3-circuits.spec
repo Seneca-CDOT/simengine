@@ -9,6 +9,7 @@ Summary:        Asynchronous Component based Event Application Framework
 License:        MIT
 URL:            http://circuitsframework.com/
 Source0:        https://files.pythonhosted.org/packages/source/c/%{pypi_name}/%{pypi_name}-%{version}.tar.gz
+Patch0:         0001-circuits-fix-multipart.py.patch
 BuildArch:      noarch
  
 BuildRequires:  python3-devel
@@ -34,7 +35,7 @@ _Mailing List: .. _Website: .. _PyPi: .. _Documentation: .. _Downloads:
 
 
 %prep
-%autosetup -n %{pypi_name}-%{version}
+%autosetup -p1 -n %{pypi_name}-%{version}
 # Remove bundled egg-info
 rm -rf %{pypi_name}.egg-info
 
@@ -54,6 +55,9 @@ mv %{buildroot}%{_bindir}/htpasswd %{buildroot}%{_bindir}/htpasswd-circuits
 %{python3_sitelib}/*
 
 %changelog
+* Thu Nov 12 2020 Brian Sawa <noahpop77@gmail.com> - 3.2-3
+- Updated to be compatible with Python 3
+
 * Fri Mar 01 2019 Chris Tyler <chris.tyler@senecacollege.ca> - 3.2-2
 - Updated for simengine 3.7
 

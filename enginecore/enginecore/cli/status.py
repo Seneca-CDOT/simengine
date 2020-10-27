@@ -57,7 +57,7 @@ def status_table_format(assets, stdscr=False):
         stdscr (optional): default window return by initscr(),
                            status_table_format uses print if omitted
     """
-    # Catches empty model and doesnt throw error
+    # Catches empty model and does not throw an error for it
     if assets is None:
         print("Table is empty")
         return
