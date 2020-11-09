@@ -1,5 +1,6 @@
 """This module aggregates command-line interface for assets' status subparser"""
 
+import sys
 import json
 import time
 import curses
@@ -67,39 +68,44 @@ def status_table_format(assets, stdscr=False):
         stdscr.addstr(0, 0, headers)
     else:
         print(headers)
-
-    for i, asset_key in enumerate(assets):
-        asset = assets[asset_key]
-        children = str(
-            "{}...{}".format(asset["children"][0], asset["children"][-1])
-            if "children" in asset
-            else "none"
-        )
-        row = row_format.format(
-            str(i),  # index
-            *[
-                str(asset_key),
-                # asset["name"],
-                asset["type"],
-                str(asset["status"]),
-                children,
-                "{0:.2f}".format(asset["load"]),
-            ],
-            end=""
-        )
-
-        if stdscr:
-            stdscr.addstr(
-                i + 1,
-                0,
-                row,
-                curses.color_pair(
-                    BCOLORS.ERROR if int(asset["status"]) == 0 else BCOLORS.OKGREEN
-                ),
+        
+    # Catches empty model and doesnt throw error
+    try:
+        for i, asset_key in enumerate(assets):
+            asset = assets[asset_key]
+            children = str(
+                "{}...{}".format(asset["children"][0], asset["children"][-1])
+                if "children" in asset
+                else "none"
             )
-        else:
-            print(row)
+            row = row_format.format(
+                str(i),  # index
+                *[
+                    str(asset_key),
+                    # asset["name"],
+                    asset["type"],
+                    str(asset["status"]),
+                    children,
+                    "{0:.2f}".format(asset["load"]),
+                ],
+                end=""
+            )
 
+            if stdscr:
+                stdscr.addstr(
+                    i + 1,
+                    0,
+                    row,
+                    curses.color_pair(
+                        BCOLORS.ERROR if int(asset["status"]) == 0 else BCOLORS.OKGREEN
+                    ),
+                )
+            else:
+                print(row)
+    except NoneType:
+        print("model is empty")
+        sys.exit(0)
+        
     if stdscr:
         stdscr.refresh()
 
