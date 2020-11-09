@@ -102,7 +102,7 @@ def status_table_format(assets, stdscr=False):
                 )
             else:
                 print(row)
-    except NoneType:
+    except TypeError:
         print("model is empty")
         sys.exit(0)
         
