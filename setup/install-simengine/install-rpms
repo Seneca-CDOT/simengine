@@ -4,23 +4,45 @@
 # run the buildall script, and
 # install the generated RPMs
 
-REMOTE="git@github.com:Seneca-CDOT/simengine.git"
+REMOTE="https://github.com/Seneca-CDOT/simengine.git"
 SE_DIR="${HOME}/simengine"
 RPMS_DIR="${HOME}/rpmbuild/RPMS"
 
-if [[ ! -d "${SE_DIR}" ]]; then
+function search_ver() {
+    sed --regexp-extended --quiet "s/^Version:\s+([0-9.-]+)/\1/p" "${SE_DIR}/rpm/specfiles/$1" 
+}
+
+if [[ ! -d "${SE_DIR}" ]]
+then
     git clone "${REMOTE}" "${SE_DIR}"
+
+    if [[ $? -ne 0 ]]
+    then
+        echo "error: failed to clone simengine repo" >&2
+
+        exit 1
+    fi
+
     echo "simengine repo cloned; please do not relocate the repo until the setup is over"
 else
     echo "simengine repo appears to exist at ${SE_DIR}"
 fi
 
-if [[ ! -d "${RPMS_DIR}" ]]; then
-    cd "${SE_DIR}/rpm/specfiles"
-    ./buildall
-else
-    echo "rpms appears to exist at ${RPMS_DIR}"
-fi
+cd "${SE_DIR}"
 
-echo "sudo is required to install RPMs"
-sudo dnf install "${RPMS_DIR}"/**/*.rpm
+cd "${SE_DIR}/rpm/specfiles"
+./buildall
+
+echo "sudo is required to install SimEngine RPMs"
+DB_VER=$(search_ver "simengine-database.spec")
+sudo dnf install "${RPMS_DIR}"/**/simengine-database-$DB_VER*.rpm -y
+CORE_VER=$(search_ver "simengine-core.spec")
+sudo dnf install "${RPMS_DIR}"/**/simengine-core-$CORE_VER*.rpm -y
+DASH_VER=$(search_ver "simengine-dashboard.spec")
+sudo dnf install "${RPMS_DIR}"/**/simengine-dashboard-$DASH_VER*.rpm -y
+CIRC_VER=$(search_ver "python3-circuits.spec")
+sudo dnf install "${RPMS_DIR}"/**/python3-circuits-$CIRC_VER*.rpm -y
+SNMPSIM_VER=$(search_ver "python3-snmpsim.spec")
+sudo dnf install "${RPMS_DIR}"/**/python3-snmpsim-$SNMPSIM_VER*.rpm -y
+NEO_VER=$(search_ver "python3-neo4j-driver.spec")
+sudo dnf install "${RPMS_DIR}"/**/python3-neo4j-driver-$NEO_VER*.rpm -y

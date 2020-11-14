@@ -25,6 +25,6 @@ sudo cp /tmp/neo4j.repo /etc/yum.repos.d/neo4j.repo
 sudo dnf install -y redis neo4j
 sudo dnf install -y python3-libvirt
 sudo python3 -m pip install -r requirements.txt
-sudo pip install redis
-sudo pip install snmpsim
+sudo pip3 install redis
+sudo pip3 install snmpsim
 

@@ -1,0 +1,27 @@
+From b04a426378fd54b56e69d3e61d1c6e65397a4834 Mon Sep 17 00:00:00 2001
+From: Tsu-ba-me <ynho.li.aa.e@gmail.com>
+Date: Thu, 12 Nov 2020 19:34:19 -0500
+Subject: [PATCH] fix(daemon.py): allow snmpsim to run with superuser
+
+---
+ snmpsim/daemon.py | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/snmpsim/daemon.py b/snmpsim/daemon.py
+index 9b2df3d..a8c0f0a 100644
+--- a/snmpsim/daemon.py
++++ b/snmpsim/daemon.py
+@@ -115,8 +115,8 @@ else:
+                 else:
+                     return
+             else:
+-                if not self._uname or not self._gname:
+-                    raise error.SnmpsimError('Must drop privileges to a non-privileged user&group')
++                # Instead of raising an error when the user is a superuser, ignore this situation.
++                return
+ 
+             try:
+                 runningUid = pwd.getpwnam(self._uname).pw_uid
+-- 
+2.26.2
+

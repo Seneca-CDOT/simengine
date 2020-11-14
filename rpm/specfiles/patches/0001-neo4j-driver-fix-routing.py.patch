@@ -1,0 +1,43 @@
+From fbd377593ff75244ebe32d1984045f507e477b5f Mon Sep 17 00:00:00 2001
+From: Tsu-ba-me <ynho.li.aa.e@gmail.com>
+Date: Thu, 12 Nov 2020 20:07:35 -0500
+Subject: [PATCH] fix(daemon.py): allow snmpsim to run with superuser
+
+---
+ neo4j/v1/routing.py | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/neo4j/v1/routing.py b/neo4j/v1/routing.py
+index 3fab8b6..f8bf913 100644
+--- a/neo4j/v1/routing.py
++++ b/neo4j/v1/routing.py
+@@ -1,6 +1,8 @@
+ #!/usr/bin/env python
+ # -*- encoding: utf-8 -*-
+ 
++# Routing file for python 3.8 Neo4j compatability
++
+ # Copyright (c) 2002-2018 "Neo4j,"
+ # Neo4j Sweden AB [http://neo4j.com]
+ #
+@@ -22,7 +24,7 @@
+ from abc import abstractmethod
+ from sys import maxsize
+ from threading import Lock
+-from time import clock
++from time import process_time
+ 
+ from neo4j.addressing import SocketAddress
+ from neo4j.bolt import ConnectionPool, ServiceUnavailable, ProtocolError, DEFAULT_PORT, connect, ConnectionErrorHandler
+@@ -85,7 +87,7 @@ class OrderedSet(MutableSet):
+ 
+ class RoutingTable(object):
+ 
+-    timer = clock
++    timer = process_time()
+ 
+     @classmethod
+     def parse_routing_info(cls, records):
+-- 
+2.26.2
+
