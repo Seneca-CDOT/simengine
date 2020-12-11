@@ -9,7 +9,11 @@ SE_DIR="${HOME}/simengine"
 RPMS_DIR="${HOME}/rpmbuild/RPMS"
 
 function search_ver() {
-    sed --regexp-extended --quiet "s/^Version:\s+([0-9.-]+)/\1/p" "${SE_DIR}/rpm/specfiles/$1" 
+    sed \
+        --regexp-extended \
+        --quiet \
+        "s/^Version:\s+([0-9.-]+)/\1/p" \
+        "${SE_DIR}/rpm/specfiles/$1"
 }
 
 if [[ ! -d "${SE_DIR}" ]]
