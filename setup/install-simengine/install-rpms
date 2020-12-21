@@ -9,7 +9,11 @@ SE_DIR="${HOME}/simengine"
 RPMS_DIR="${HOME}/rpmbuild/RPMS"
 
 function search_ver() {
-    sed --regexp-extended --quiet "s/^Version:\s+([0-9.-]+)/\1/p" "${SE_DIR}/rpm/specfiles/$1" 
+    sed \
+        --regexp-extended \
+        --quiet \
+        "s/^Version:\s+([0-9.-]+)/\1/p" \
+        "${SE_DIR}/rpm/specfiles/$1"
 }
 
 if [[ ! -d "${SE_DIR}" ]]
@@ -30,19 +34,43 @@ fi
 
 cd "${SE_DIR}"
 
+# ensure the simengine repo has the latest updates
+# don't prune because we don't want to remove local copies of remote branches
+# that may be used as backup
+git \
+    fetch \
+    --tags
+
+simengine_latest_version=$(git \
+    tag \
+    --sort version:refname \
+    | tail -1 \
+)
+
+echo "latest SimEngine version is [${simengine_latest_version}]"
+
+git \
+    checkout \
+    "tags/${simengine_latest_version}"
+
 cd "${SE_DIR}/rpm/specfiles"
 ./buildall
 
 echo "sudo is required to install SimEngine RPMs"
+
 DB_VER=$(search_ver "simengine-database.spec")
-sudo dnf install "${RPMS_DIR}"/**/simengine-database-$DB_VER*.rpm -y
 CORE_VER=$(search_ver "simengine-core.spec")
-sudo dnf install "${RPMS_DIR}"/**/simengine-core-$CORE_VER*.rpm -y
 DASH_VER=$(search_ver "simengine-dashboard.spec")
-sudo dnf install "${RPMS_DIR}"/**/simengine-dashboard-$DASH_VER*.rpm -y
 CIRC_VER=$(search_ver "python3-circuits.spec")
-sudo dnf install "${RPMS_DIR}"/**/python3-circuits-$CIRC_VER*.rpm -y
 SNMPSIM_VER=$(search_ver "python3-snmpsim.spec")
-sudo dnf install "${RPMS_DIR}"/**/python3-snmpsim-$SNMPSIM_VER*.rpm -y
 NEO_VER=$(search_ver "python3-neo4j-driver.spec")
-sudo dnf install "${RPMS_DIR}"/**/python3-neo4j-driver-$NEO_VER*.rpm -y
+
+sudo dnf \
+    --assumeyes \
+    install \
+    "${RPMS_DIR}"/**/simengine-database-$DB_VER*.rpm \
+    "${RPMS_DIR}"/**/simengine-core-$CORE_VER*.rpm \
+    "${RPMS_DIR}"/**/simengine-dashboard-$DASH_VER*.rpm \
+    "${RPMS_DIR}"/**/python3-circuits-$CIRC_VER*.rpm \
+    "${RPMS_DIR}"/**/python3-snmpsim-$SNMPSIM_VER*.rpm \
+    "${RPMS_DIR}"/**/python3-neo4j-driver-$NEO_VER*.rpm
