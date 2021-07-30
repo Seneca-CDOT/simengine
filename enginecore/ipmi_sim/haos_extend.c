@@ -24,7 +24,7 @@
 #include <OpenIPMI/ipmi_msgbits.h>
 #include <OpenIPMI/ipmi_bits.h>
 
-#ifdef INCLUDE_MCSERV_H
+#ifdef OPENIPMI_POST_2_0_30
   #include <OpenIPMI/mcserv.h>
 #else
   #include <OpenIPMI/serv.h>
@@ -181,7 +181,11 @@ int ipmi_sim_module_init(sys_data_t *sys, const char *options)
 
   free(initstr);
 
+#ifdef OPENIPMI_POST_2_0_30
+  rv = is_mc_alloc_unconfigured(sys, 0x20, &bmc_mc);
+#else
   rv = ipmi_mc_alloc_unconfigured(sys, 0x20, &bmc_mc);
+#endif
 
   if (rv)
   {
