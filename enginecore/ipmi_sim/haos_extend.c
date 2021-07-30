@@ -23,7 +23,12 @@
 
 #include <OpenIPMI/ipmi_msgbits.h>
 #include <OpenIPMI/ipmi_bits.h>
-#include <OpenIPMI/serv.h>
+
+#ifdef INCLUDE_MCSERV_H
+  #include <OpenIPMI/mcserv.h>
+#else
+  #include <OpenIPMI/serv.h>
+#endif
 
 #define PVERSION "0.0.0"
 

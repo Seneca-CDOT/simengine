@@ -25,7 +25,14 @@ Core files for SimEngine.
 %autosetup -n simengine-%{version}
 
 %build
-gcc -shared -o %{_builddir}/simengine-%{version}/haos_extend.so -fPIC %{_builddir}/simengine-%{version}/enginecore/ipmi_sim/haos_extend.c
+openipmi_version=$(rpm -q --qf "%%{VERSION}" OpenIPMI-devel)
+define_include_mcserv_h=$([[ "$openipmi_version" > "2.0.30" ]] && printf "%s" "-D INCLUDE_MCSERV_H")
+gcc \
+    -shared \
+    -o %{_builddir}/simengine-%{version}/haos_extend.so \
+    -fPIC \
+    $define_include_mcserv_h \
+    %{_builddir}/simengine-%{version}/enginecore/ipmi_sim/haos_extend.c
 
 %install
 mkdir -p %{buildroot}%{_datadir}/simengine/
