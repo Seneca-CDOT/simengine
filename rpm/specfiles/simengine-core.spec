@@ -7,12 +7,11 @@ License:   GPLv3+
 
 %global gittag %{version}
 %global selected_libdir /usr/lib64
-%global openipmi_version 2.0.28
 
 Source0: https://github.com/Seneca-CDOT/simengine/archive/%{gittag}/simengine-%{version}.tar.gz  
 
-BuildRequires: OpenIPMI-devel = %{openipmi_version}, gcc
-Requires: simengine-database, python3-libvirt, OpenIPMI = %{openipmi_version}, OpenIPMI-lanserv = %{openipmi_version}, python3-redis, python3-pysnmp, python3-neo4j-driver, python3-websocket-client
+BuildRequires: OpenIPMI-devel, gcc
+Requires: simengine-database, python3-libvirt, OpenIPMI, OpenIPMI-lanserv, python3-redis, python3-pysnmp, python3-neo4j-driver, python3-websocket-client
 
 %description
 Core files for SimEngine.
@@ -26,7 +25,14 @@ Core files for SimEngine.
 %autosetup -n simengine-%{version}
 
 %build
-gcc -shared -o %{_builddir}/simengine-%{version}/haos_extend.so -fPIC %{_builddir}/simengine-%{version}/enginecore/ipmi_sim/haos_extend.c
+openipmi_version=$(rpm -q --qf "%%{VERSION}" OpenIPMI-devel)
+define_openipmi_post_2_0_30=$([[ "$openipmi_version" > "2.0.30" ]] && printf "%s" "-D OPENIPMI_POST_2_0_30")
+gcc \
+    -shared \
+    -o %{_builddir}/simengine-%{version}/haos_extend.so \
+    -fPIC \
+    $define_openipmi_post_2_0_30 \
+    %{_builddir}/simengine-%{version}/enginecore/ipmi_sim/haos_extend.c
 
 %install
 mkdir -p %{buildroot}%{_datadir}/simengine/
