@@ -49,7 +49,7 @@ Requires:       python3-six
 %if %{with python2}
 %package -n python2-%{srcname}
 Summary:        %{sum}
-%if 0%{?fedora} || 0%{?rhel} > 7
+%if 0%{?fedora} || 0%{?centos} > 7 || 0%{?rhel} > 7
 Requires:       python2-pytz
 Requires:       python2-six
 %else
