@@ -5,12 +5,17 @@ Summary:   SimEngine - Databases
 URL:       https://github.com/Seneca-CDOT/simengine
 License:   GPLv3+
 
-%global gittag %{version}
+%global    gittag %{version}
 
-Source0: https://github.com/Seneca-CDOT/simengine/archive/%{gittag}/simengine-%{version}.tar.gz
+Source0:   https://github.com/Seneca-CDOT/simengine/archive/%{gittag}/simengine-%{version}.tar.gz
 BuildArch: noarch
 
-Requires:  neo4j, cypher-shell, redis, python-neo4j-driver, python-redis, chkconfig
+Requires:  neo4j
+Requires:  cypher-shell
+Requires:  redis
+Requires:  python3-neo4j-driver
+Requires:  python3-redis
+Requires:  chkconfig
 
 %description
 Installs the SimEngine database configuration for Neo4j.
