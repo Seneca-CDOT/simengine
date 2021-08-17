@@ -37,7 +37,7 @@ def get_set_stm(
         node_name: name given to a graph node (node to be updated)
         supported_attr: valid node properties, used for filtering out attributes
     Returns:
-        str: set statement formatted for neo4j query 
+        str: set statement formatted for neo4j query
     """
 
     existing = dict(
@@ -56,12 +56,12 @@ def get_set_stm(
 
 
 def get_oid_desc_stm(oid_desc):
-    """Format oid descriptions (int->value mappings) for neo4j """
+    """Format oid descriptions (int->value mappings) for neo4j"""
     return ",".join(map(lambda k: '`{}`: "{}"'.format(oid_desc[k], k), oid_desc))
 
 
 def to_camelcase(snake_string):
-    """Convert snakecase to camelcase """
+    """Convert snakecase to camelcase"""
     return re.sub(r"(?!^)_([a-zA-Z])", lambda m: m.group(1).upper(), snake_string)
 
 
@@ -71,5 +71,5 @@ def generate_id(size=12, chars=string.ascii_uppercase + string.digits):
 
 
 def generate_mac():
-    """Generate a MAC address """
+    """Generate a MAC address"""
     return "".join(random.choice("0123456789abcdef") for _ in range(12))

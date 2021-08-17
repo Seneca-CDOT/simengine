@@ -95,7 +95,7 @@ class ServerRoom(Component):
 
     def _keep_changing_temp(self, event, env, bound_op, temp_op):
         """Change room temperature until limit is reached or AC state changes
-        
+
         Args:
             event(str): on up/down event
             env(callable): update while the environment is in certain condition

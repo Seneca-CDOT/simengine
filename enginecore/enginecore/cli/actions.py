@@ -56,7 +56,7 @@ def get_date_from_str(date_str):
 def get_index_from_range_opt(range_opt, actions, start_opt=True):
     """Analyze range option, find index for rand_opt if it is a date string
     Args:
-        rand_opt: either index of an action or date string in format 
+        rand_opt: either index of an action or date string in format
                   "%H:%M:%S" or "%Y-%m-%d %H:%M:%S"
         actions(list): list of action history
         start_opt: indicates if the index provided is the starting point of a slice

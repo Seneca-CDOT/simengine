@@ -318,7 +318,7 @@ def update_command(update_asset_group):
 
 
 def create_command(create_asset_group):
-    """Model creation (cli endpoints to initialize system topology) """
+    """Model creation (cli endpoints to initialize system topology)"""
 
     # parent will contain args shared by all the asset types
     # (such as key, [x,y] positions, name etc.)

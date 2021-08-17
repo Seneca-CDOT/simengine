@@ -16,7 +16,7 @@ import enginecore.tools.query_helpers as qh
 
 
 class GraphReference:
-    """Graph DB wrapper """
+    """Graph DB wrapper"""
 
     def __init__(self):
         self._driver = GraphDatabase.driver(
@@ -28,11 +28,11 @@ class GraphReference:
         )
 
     def close(self):
-        """ Close as db """
+        """Close as db"""
         self._driver.close()
 
     def get_session(self):
-        """ Get a database session """
+        """Get a database session"""
         return self._driver.session()
 
     @classmethod
@@ -62,7 +62,7 @@ class GraphReference:
             session: database session
             asset_key(int): key of the affected node
         Returns:
-            tuple: parent asset keys & parent OIDs with state specs that 
+            tuple: parent asset keys & parent OIDs with state specs that
                    directly affect the node (formatted for Redis)
         """
         results = session.run(
@@ -131,8 +131,8 @@ class GraphReference:
             asset_key(int): key of the asset OID belongs to
             oid_name(str): OID name
         Returns:
-            tuple: str as SNMP OID that belongs to the asset, 
-                   followed by optional state details; 
+            tuple: str as SNMP OID that belongs to the asset,
+                   followed by optional state details;
                    returns None if there's no such OID
         """
 
@@ -195,11 +195,11 @@ class GraphReference:
     @classmethod
     def get_assets_and_children(cls, session):
         """Get assets and children that are powered by them
-        
+
         Args:
             session: database session
         Returns:
-            list: list of assets ordered by key (ascending) & its child asset(s) 
+            list: list of assets ordered by key (ascending) & its child asset(s)
         """
 
         results = session.run(
@@ -303,7 +303,7 @@ class GraphReference:
         Args:
             session: database session
             asset_key(int): key of the updated asset
-        
+
         Returns:
             tuple: consisting of 3 (optional) items:
                     1) child assets that are powered by the updated asset
@@ -337,16 +337,16 @@ class GraphReference:
 
     @classmethod
     def get_asset_and_components(cls, session, asset_key):
-        """Get information about individual asset & its components 
+        """Get information about individual asset & its components
         Component may be a PSU that belongs to a server or PDU outlets
 
         Args:
             session: database session
             asset_key(int): query by key
-        
+
         Returns:
-            dict: asset details with it's 'labels' 
-                  and components as 'children' (sorted by key) 
+            dict: asset details with it's 'labels'
+                  and components as 'children' (sorted by key)
         """
         results = session.run(
             """
@@ -373,7 +373,7 @@ class GraphReference:
 
     @classmethod
     def save_layout(cls, session, layout, stage=None):
-        """Save system layout (X, Y coordinates of the assets & stage) 
+        """Save system layout (X, Y coordinates of the assets & stage)
 
         Args:
             session: database session
@@ -414,7 +414,7 @@ class GraphReference:
     @classmethod
     def get_asset_sensors(cls, session, asset_key):
         """Get sensors that belong to a particular asset
-        
+
         Args:
             session: database session
             asset_key: key of the asset sensors belong to
@@ -482,7 +482,7 @@ class GraphReference:
     @classmethod
     def get_affected_sensors(cls, session, server_key, source_name):
         """Get sensors affected by the source sensor
-        
+
         Args:
             session: database session
             server_key(int): key of the server sensors belong to
@@ -538,7 +538,7 @@ class GraphReference:
         Args:e
             session: database session
             server_key(int): key of the server sensor(s) belong to
-            relationship(dict): source, target and event 
+            relationship(dict): source, target and event
         """
 
         query = []
@@ -575,7 +575,7 @@ class GraphReference:
 
     @classmethod
     def get_cpu_thermal_rel(cls, session, server_key, sensor_name):
-        """Get thermal relationships between CPU and a sensor 
+        """Get thermal relationships between CPU and a sensor
         Args:
             session:  database session
             server_key(int): key of the server sensor belongs to
@@ -607,7 +607,7 @@ class GraphReference:
 
     @classmethod
     def set_ambient_props(cls, session, properties):
-        """Save ambient properties """
+        """Save ambient properties"""
         s_attr_prop = ["event", "degrees", "rate", "pause_at", "sref"]
         cls._set_sys_env_props(
             session, properties, s_attr_prop, env_prop_type=cls.SysEnvProperty.ambient
@@ -638,7 +638,7 @@ class GraphReference:
             env_prop_type: System Environment property
         Returns:
             sys environment properties and corresponding events' (if supported)
-            None if SysEnv is not initialized yet 
+            None if SysEnv is not initialized yet
         """
 
         query = []
@@ -814,12 +814,12 @@ class GraphReference:
             session:  database session
             server_key(int): key of the server physical drive belongs to
             controller(int): controller number
-            did(int): drive id 
+            did(int): drive id
             properties(dict): e.g. 'media_error_count', 'other_error_count'
                                    'predictive_error_count' or 'state'
         Returns:
-            bool: True if properties were updated, 
-                  False if controller and/or did are invalid 
+            bool: True if properties were updated,
+                  False if controller and/or did are invalid
         """
         query = []
 
@@ -922,7 +922,7 @@ class GraphReference:
             server_key(int): key of the server controller belongs to
             controller(int): controller number
         Returns:
-            dict: controller information 
+            dict: controller information
         """
 
         query = "MATCH (:Asset {{ key: {} }})-[:HAS_CONTROLLER]->(ctrl:Controller {{ controllerNum: {} }}) RETURN ctrl"

@@ -21,7 +21,7 @@ def get_temp_workplace_dir():
 
 
 def configure_env(relative=False):
-    """Set-up defaults for the env vars if not defined 
+    """Set-up defaults for the env vars if not defined
     (such as folder containing static .snmprec files, SHA of redis lua script)
 
     Args:
@@ -88,7 +88,7 @@ def clear_temp():
 
 
 def initialize(force_snmp_init=False):
-    """ Initialize redis state using topology defined in the graph db """
+    """Initialize redis state using topology defined in the graph db"""
 
     graph_ref = GraphReference()
     redis_store = redis.StrictRedis(host="localhost", port=6379)

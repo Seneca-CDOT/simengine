@@ -31,7 +31,7 @@ class StateManager(state_api.IStateManager, state_api.ISystemEnvironment):
         super()._reset_boot_time()
 
     def publish_power(self, old_state, new_state):
-        """Publish state changes (expose method to the assets) """
+        """Publish state changes (expose method to the assets)"""
         super()._publish_power(old_state, new_state)
 
     def _set_state_on(self):
@@ -47,12 +47,12 @@ class StateManager(state_api.IStateManager, state_api.ISystemEnvironment):
         super()._set_redis_asset_state(state)
 
     def update_load(self, load):
-        """Update load """
+        """Update load"""
         super()._update_load(load)
 
 
 class UPSStateManager(state_api.IUPSStateManager, StateManager):
-    """Handles UPS state logic """
+    """Handles UPS state logic"""
 
     def update_temperature(self, temp):
         """Set battery temperature of the device"""
@@ -80,8 +80,8 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         self._publish_battery(old_charge_level, charge_level)
 
     def update_load(self, load):
-        """Update any load state associated with the device in the redis db 
-        
+        """Update any load state associated with the device in the redis db
+
         Args:
             load(float): New load in amps
         """
@@ -92,7 +92,7 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
 
     def update_time_on_battery(self, timeticks):
         """Update OIDs associated with UPS time on battery
-        
+
         Args:
             timeticks(int): time-on battery (seconds*100)
         """
@@ -101,7 +101,7 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
     def update_time_left(self, timeticks):
         """Update OIDs associated with UPS runtime
         (estimation of how long UPS will be operating)
-        
+
         Args:
             timeticks(int): time left
         """
@@ -127,7 +127,7 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
 
     def _update_current_oids(self, load):
         """Update OIDs associated with UPS Output - Current in AMPs
-        
+
         Args:
             load(float): new load in AMPs
         """
@@ -141,7 +141,7 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
 
     def _update_load_perc_oids(self, load):
         """Update OIDs associated with UPS Output - % of the power capacity
-        
+
         Args:
             load(float): new load in AMPs
         """
@@ -160,7 +160,7 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
 
     def _update_battery_oids(self, charge_level, old_level):
         """Update OIDs associated with UPS Battery
-        
+
         Args:
             charge_level(int): new battery level (between 0 & 1000)
         """
@@ -189,7 +189,7 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
         """Update oids associated with UPS voltage
         Args:
             voltage: new voltage value
-        Returns: 
+        Returns:
             tuple: true if transfer to battery is needed, transfer reason
                    (see state.api.ups.UPS.InputLineFailCause)
         Raises:
@@ -274,10 +274,10 @@ class UPSStateManager(state_api.IUPSStateManager, StateManager):
 
 
 class PDUStateManager(state_api.IPDUStateManager, StateManager):
-    """Handles state logic for PDU asset """
+    """Handles state logic for PDU asset"""
 
     def _update_current(self, load):
-        """Update OID associated with the current amp value """
+        """Update OID associated with the current amp value"""
         oid = self.get_oid_by_name("AmpOnPhase")
 
         if not oid:
@@ -286,7 +286,7 @@ class PDUStateManager(state_api.IPDUStateManager, StateManager):
         self._update_oid_value(oid, snmp_data_types.Gauge32(max(load, 0) * 10))
 
     def _update_wattage(self, wattage):
-        """Update OID associated with the current wattage draw """
+        """Update OID associated with the current wattage draw"""
         oid = self.get_oid_by_name("WattageDraw")
 
         if not oid:
@@ -295,8 +295,8 @@ class PDUStateManager(state_api.IPDUStateManager, StateManager):
         self._update_oid_value(oid, snmp_data_types.Integer32(max(wattage, 0)))
 
     def update_load(self, load):
-        """Update any load state associated with the device in the redis db 
-        
+        """Update any load state associated with the device in the redis db
+
         Args:
             load(float): New load in amps
         """
@@ -306,10 +306,10 @@ class PDUStateManager(state_api.IPDUStateManager, StateManager):
 
 
 class OutletStateManager(state_api.IOutletStateManager, StateManager):
-    """Handles state logic for outlet asset """
+    """Handles state logic for outlet asset"""
 
     class OutletState(Enum):
-        """Outlet States (oid) """
+        """Outlet States (oid)"""
 
         switchOff = 1
         switchOn = 2
@@ -327,8 +327,8 @@ class OutletStateManager(state_api.IOutletStateManager, StateManager):
         return 0
 
     def set_parent_oid_states(self, state):
-        """Bulk-set parent oid values 
-        
+        """Bulk-set parent oid values
+
         Args:
             state(OutletState): new parent(s) state
         """
@@ -356,17 +356,17 @@ class OutletStateManager(state_api.IOutletStateManager, StateManager):
 
 
 class StaticDeviceStateManager(state_api.IStaticDeviceStateManager, StateManager):
-    """Dummy Device that doesn't do much except drawing power """
+    """Dummy Device that doesn't do much except drawing power"""
 
     pass
 
 
 class ServerStateManager(state_api.IServerStateManager, StaticDeviceStateManager):
-    """Server state manager offers control over VM's state """
+    """Server state manager offers control over VM's state"""
 
 
 class BMCServerStateManager(state_api.IBMCServerStateManager, ServerStateManager):
-    """Manage Server with BMC """
+    """Manage Server with BMC"""
 
     def update_cpu_load(self, value):
         """Set CPU load"""

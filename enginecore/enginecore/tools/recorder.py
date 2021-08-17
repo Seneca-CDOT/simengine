@@ -14,8 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class Recorder:
-    """Recorder can be used to record and replay methods or functions
-    """
+    """Recorder can be used to record and replay methods or functions"""
 
     def __init__(self, module: str):
         self._actions = []
@@ -37,7 +36,7 @@ class Recorder:
 
             each call to my_action() will be stored in action
             history of the recorder instance,
-        
+
             *Note* that class or instance implementing recorded action
             must have key attribute
         """
@@ -141,9 +140,9 @@ class Recorder:
     ):
         """load action history from a file;
         Note that this function clears existing actions
-        
+
         Args:
-            map_key_to_state: instances are not serialized instead their keys 
+            map_key_to_state: instances are not serialized instead their keys
                               are stored in the file; the de-serialization is key-based
                               and must be provided with this argument
                               by mapping keys to python objects
@@ -184,9 +183,9 @@ class Recorder:
 
     def get_action_details(self, slc: slice = slice(None, None)) -> list:
         """Human-readable details on action history;
-        Note that this method "serializes" actions 
+        Note that this method "serializes" actions
         so they are not callable when returned.
-        
+
         Args:
             slc(slice): range of actions to be returned
         Returns:

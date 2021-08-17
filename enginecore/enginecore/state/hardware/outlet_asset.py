@@ -31,7 +31,7 @@ class Outlet(Asset):
 
     @handler("SignalDownEvent", priority=1)
     def on_signal_down_received(self, event, *args, **kwargs):
-        """Outlet may have multiple OIDs associated with the state 
+        """Outlet may have multiple OIDs associated with the state
         (if if one is updated, other ones should be updated as well)"""
         self.state.set_parent_oid_states(
             in_state.OutletStateManager.OutletState.switchOff
@@ -46,7 +46,7 @@ class Outlet(Asset):
 
     @handler("SignalDownEvent")
     def on_power_off_request_received(self, event, *args, **kwargs):
-        """ React to events with power down """
+        """React to events with power down"""
         if "delayed" in kwargs and kwargs["delayed"]:
             time.sleep(self.state.get_config_off_delay())
 
@@ -57,7 +57,7 @@ class Outlet(Asset):
 
     @handler("SignalUpEvent")
     def on_power_up_request_received(self, event, *args, **kwargs):
-        """ React to events with power up """
+        """React to events with power up"""
 
         if "delayed" in kwargs and kwargs["delayed"]:
             time.sleep(self.state.get_config_on_delay())

@@ -40,7 +40,7 @@ SIMENGINE_NODE_LABELS.extend(["Playback"])
 
 def _add_psu(key, psu_index, attr):
     """Add a PSU to an existing server
-    
+
     Args:
         key(int): server key psu will belong to
         psu_index(int): psu number
@@ -70,7 +70,7 @@ def _add_psu(key, psu_index, attr):
 
 def configure_asset(key, attr):
     """Update existing properties
-    
+
     Args:
         key(int): key of the asset to be configured
         attr(dict): asset props' updates
@@ -91,7 +91,7 @@ def configure_asset(key, attr):
 
 def remove_link(source_key, dest_key):
     """Remove existing power connection
-    
+
     Args:
         source_key(int): key of the parent asset
         dest_key(int): key of the asset powered by source_key
@@ -109,7 +109,7 @@ def remove_link(source_key, dest_key):
 
 
 def link_assets(source_key, dest_key):
-    """Power a component by another component 
+    """Power a component by another component
 
     Args:
         source_key(int): key of the parent asset
@@ -176,11 +176,11 @@ def link_assets(source_key, dest_key):
 
 
 def create_outlet(key, attr):
-    """Add outlet to the model 
-    
-     Args:
-        key(int): unique key to be assigned
-        attr(dict): asset properties
+    """Add outlet to the model
+
+    Args:
+       key(int): unique key to be assigned
+       attr(dict): asset properties
     """
 
     with GRAPH_REF.get_session() as session:
@@ -196,7 +196,7 @@ def create_outlet(key, attr):
 
 
 class ServerVariations(Enum):
-    """Supported variations of the server asset """
+    """Supported variations of the server asset"""
 
     Server = 1
     ServerWithBMC = 2
@@ -497,7 +497,7 @@ def _add_storage(asset_key, preset_file, storage_state_file):
 
 
 def create_server(key, attr, server_variation=ServerVariations.Server):
-    """Create a simulated server """
+    """Create a simulated server"""
 
     if not attr["power_consumption"]:
         raise KeyError("Server asset requires power_consumption attribute")
@@ -593,7 +593,7 @@ def create_ups(
     attr,
     preset_file=os.path.join(os.path.dirname(__file__), "presets/apc_ups.json"),
 ):
-    """Add UPS to the system model """
+    """Add UPS to the system model"""
 
     preset_file = (
         attr["snmp_preset"]
@@ -700,7 +700,7 @@ def create_pdu(
     attr,
     preset_file=os.path.join(os.path.dirname(__file__), "presets/apc_pdu.json"),
 ):
-    """Add PDU to the model """
+    """Add PDU to the model"""
 
     preset_file = (
         attr["snmp_preset"]
@@ -861,7 +861,7 @@ def create_lamp(key, attr):
 
 
 def drop_model():
-    """ Drop system model """
+    """Drop system model"""
     with GRAPH_REF.get_session() as session:
         session.run(
             "MATCH (a) WHERE {} DETACH DELETE a".format(
@@ -871,7 +871,7 @@ def drop_model():
 
 
 def delete_asset(key):
-    """ Delete by key """
+    """Delete by key"""
     with GRAPH_REF.get_session() as session:
         session.run(
             """MATCH (a:Asset { key: $key })
@@ -994,7 +994,7 @@ def set_thermal_sensor_target(attr):
 
 
 def set_thermal_cpu_target(attr):
-    """Set-up a new thermal relationship between a sensor and CPU load 
+    """Set-up a new thermal relationship between a sensor and CPU load
     of the server sensor belongs to
 
     Returns:
@@ -1066,7 +1066,7 @@ def delete_thermal_sensor_target(attr):
 
 
 def delete_thermal_cpu_target(attr):
-    """Remove thermal relationship between CPU and """
+    """Remove thermal relationship between CPU and"""
 
     query = []
 

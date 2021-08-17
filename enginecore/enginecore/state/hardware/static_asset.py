@@ -22,6 +22,6 @@ class StaticAsset(Asset):
 
 @register_asset
 class Lamp(StaticAsset):
-    """A simple demonstration type """
+    """A simple demonstration type"""
 
     channel = "engine-lamp"

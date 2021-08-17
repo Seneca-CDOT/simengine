@@ -62,7 +62,7 @@ class SensorRepository:
         )
 
     def enable_thermal_impact(self):
-        """Set thermal event switch """
+        """Set thermal event switch"""
         list(map(lambda sn: self._sensors[sn].enable_thermal_impact(), self._sensors))
 
     def disable_thermal_impact(self):
@@ -91,7 +91,7 @@ class SensorRepository:
         return self._sensors[name]
 
     def get_sensors_by_group(self, group):
-        """Get sensors by group name (temperature, fan etc) """
+        """Get sensors by group name (temperature, fan etc)"""
 
         sensors_in_group = filter(
             lambda k: self._sensors[k].group == group, self._sensors

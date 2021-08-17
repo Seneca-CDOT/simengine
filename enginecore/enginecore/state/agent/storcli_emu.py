@@ -104,7 +104,7 @@ class StorCLIEmulator:
         self._socket_t.start()
 
     def stop_server(self):
-        """Stop """
+        """Stop"""
         self._stop_event.set()
         self._serversocket.close()
 
@@ -128,7 +128,7 @@ class StorCLIEmulator:
             return template.substitute(options)
 
     def _strcli_ctrlcount(self):
-        """Number of adapters per server """
+        """Number of adapters per server"""
 
         template_f_path = os.path.join(self._storcli_dir, "adapter_count")
         with open(template_f_path) as templ_h, self._graph_ref.get_session() as session:
@@ -233,7 +233,7 @@ class StorCLIEmulator:
                 vd_state["numPdOffline"] += 1
 
     def _format_pd_for_output(self, physical_drives):
-        """Update a table of physical drives so it is formatted as storcli output """
+        """Update a table of physical drives so it is formatted as storcli output"""
 
         for p_drive in physical_drives:
             p_drive["EID:Slt"] = "{}:{}".format(p_drive["EID"], p_drive["slotNum"])
@@ -615,7 +615,7 @@ class StorCLIEmulator:
             return drives
 
     def _strcli_ctrl_virt_disk(self, controller_num):
-        """Display virtual disk details """
+        """Display virtual disk details"""
 
         vd_file = os.path.join(self._storcli_dir, "virtual_drive_data")
         with open(vd_file) as templ_h:

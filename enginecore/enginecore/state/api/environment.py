@@ -28,7 +28,7 @@ class ISystemEnvironment:
 
     @classmethod
     def get_store(cls):
-        """Get redis db handler """
+        """Get redis db handler"""
         if not cls.redis_store:
             cls.redis_store = redis.StrictRedis(host="localhost", port=6379)
 
@@ -147,7 +147,7 @@ class ISystemEnvironment:
     def get_voltage_props(cls) -> dict:
         """Get runtime voltage properties (ambient behaviour description)
         Returns:
-            voltage fluctuation properties such as method being used (normal/gauss) 
+            voltage fluctuation properties such as method being used (normal/gauss)
             & properties associated with the random method
         """
         graph_ref = GraphReference()

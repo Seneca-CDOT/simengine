@@ -158,7 +158,7 @@ def handle_voltage_get(args):
 
 
 def manage_state(asset_key, mng_action):
-    """ Perform action for a node/asset with a certain key
+    """Perform action for a node/asset with a certain key
     Args:
         asset_key (int): supplied asset identifier
         mng_action (func): callable object (lambda/function etc) that identifies action

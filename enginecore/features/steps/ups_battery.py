@@ -58,9 +58,9 @@ def step_impl(context, key, expected_state):
 @then('UPS "{key:d}" battery is "{expected_charge_state}"')
 def step_impl(context, key, expected_charge_state):
     """expected_charge_state is either
-        'draining' -> battery lvl is dropping
-        'charging' -> battery lvl is going up
-        'inactive' -> nothing is going on
+    'draining' -> battery lvl is dropping
+    'charging' -> battery lvl is going up
+    'inactive' -> nothing is going on
     """
 
     ups_asset = context.engine.assets[key]

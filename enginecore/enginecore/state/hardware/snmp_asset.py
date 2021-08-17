@@ -22,7 +22,7 @@ class SNMPSim:
     @handler("PowerButtonOffEvent")
     def on_asset_did_power_off(self, event, *args, **kwargs):
         """Stop snmpsim program when power down button is pressed
-        (note that this doesn't handle ParentPowerDown since some 
+        (note that this doesn't handle ParentPowerDown since some
         SNMP devices don't power down on upstream power loss)
         """
         self._snmp_agent.stop_agent()

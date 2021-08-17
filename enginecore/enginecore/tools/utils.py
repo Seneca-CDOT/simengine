@@ -2,7 +2,7 @@
 
 
 def format_as_redis_key(key, oid, key_formatted=True):
-    """Convert asset key & OID into SNMPSim format as 
+    """Convert asset key & OID into SNMPSim format as
         `{asset-key}-{oid}` where each OID digit is padded with 9 zeros
     Args:
         key(str): asset key

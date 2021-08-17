@@ -72,7 +72,7 @@ class SNMPAgent(Agent):
             priv.write(snmpsim_config)
 
     def start_agent(self):
-        """Logic for starting up the agent """
+        """Logic for starting up the agent"""
 
         # TODO: get redis port/host from config
         var_opt = "redis:host:127.0.0.1,port:6379,db:0,key-spaces-id:" + str(
@@ -84,7 +84,7 @@ class SNMPAgent(Agent):
             "--agent-udpv4-endpoint={host}:{port}".format(**self._snmp_conf),
             "--variation-module-options=" + var_opt,
             # The --data-dir option breaks python 3 compatibility
-            #"--data-dir=" + self._snmp_rec_dir,
+            # "--data-dir=" + self._snmp_rec_dir,
             "--cache-dir=" + self._snmp_rec_dir,
             "--transport-id-offset=" + str(SNMPAgent.agent_num),
             # "--daemonize",

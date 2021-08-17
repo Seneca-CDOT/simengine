@@ -6,4 +6,4 @@ from enginecore.tools.randomizer import Randomizer
 
 @Randomizer.register
 class IOutletStateManager(ISnmpDeviceStateManager):
-    """Exposes state logic for Outlet asset """
+    """Exposes state logic for Outlet asset"""
