@@ -90,6 +90,9 @@ jobs:
             - run:
                   name: Run Prettier Check
                   command: prettier --check 'src/**/*.js' 'src/**/*.jsx'
+            - run:
+                  name: Run Linter Check
+                  command: npm run lint
 workflows:
     version: 2
     build-deploy:
