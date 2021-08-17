@@ -22,7 +22,13 @@ BuildRequires:  python2-devel
 BuildRequires:  python2-setuptools
 %endif
 %if %{with python3}
+
+%if 0%{?centos} > 7 || 0%{rhel} > 7
+BuildRequires:  python%{python3_version_nodots}-devel
+%else
 BuildRequires:  python%{python3_pkgversion}-devel
+%endif
+
 BuildRequires:  python%{python3_pkgversion}-setuptools
 %endif
 
