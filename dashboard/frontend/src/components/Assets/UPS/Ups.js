@@ -35,7 +35,7 @@ export default class Ups extends OutputAsset {
       this.loadImages({ upsMonitorImg: upsMonitorSource, c14Img: c14Source }),
     )
       .then(Socket.socketSize)
-      .then(size => {
+      .then((size) => {
         this.setState({ socketSize: size });
       })
       .then(() =>

@@ -21,7 +21,7 @@ class SettingsOption extends React.Component {
     this.state = { drawerAnchor: null };
   }
 
-  openDrawer = event => this.setState({ drawerAnchor: event.currentTarget });
+  openDrawer = (event) => this.setState({ drawerAnchor: event.currentTarget });
   handleDrawerClose = () => this.setState({ drawerAnchor: null });
 
   render() {
@@ -94,7 +94,7 @@ class SettingsOption extends React.Component {
   }
 }
 
-const styles = theme => ({
+const styles = (theme) => ({
   toolbar: theme.mixins.toolbar,
   drawerPaper: {
     width: 240,

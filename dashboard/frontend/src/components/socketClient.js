@@ -14,7 +14,7 @@ class simengineSocketClient {
 
     this.ws = new WebSocket(newUri);
 
-    this.ws.onmessage = evt => {
+    this.ws.onmessage = (evt) => {
       const data = JSON.parse(evt.data);
 
       console.log('Server sent data: ');
