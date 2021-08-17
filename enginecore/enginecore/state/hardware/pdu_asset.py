@@ -29,8 +29,8 @@ class PDU(Asset, SNMPSim):
         SNMPSim.__init__(self, self._state)
 
     def power_up(self, state_reason=None):
-        """Power up this asset 
-        Returns: 
+        """Power up this asset
+        Returns:
             int: new state after power_up operation
         """
 
@@ -42,8 +42,8 @@ class PDU(Asset, SNMPSim):
         return powered
 
     def power_off(self, state_reason=None):
-        """Power down this asset 
-        Returns: 
+        """Power down this asset
+        Returns:
             int: new state after power_up operation
         """
         powered = super().power_off(state_reason)

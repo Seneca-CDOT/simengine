@@ -7,7 +7,7 @@ import PropTypes from 'prop-types';
  */
 const Notifications = ({ anchorOrigin, displayedSnackbars }) => {
   const open = !!Object.keys(displayedSnackbars).find(
-    k => displayedSnackbars[k],
+    (k) => displayedSnackbars[k],
   );
   let snackbarMessage = '';
 

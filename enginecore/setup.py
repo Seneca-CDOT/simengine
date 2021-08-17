@@ -9,7 +9,7 @@ setup(
     install_requires=[
         "redis>=2.10.6",
         "circuits",
-        "neo4j-driver",
+        "neo4j-driver<4.0",
         "pysnmp",
         "libvirt-python",
         "websocket-client",

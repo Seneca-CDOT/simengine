@@ -4,7 +4,7 @@ from enginecore.tools.randomizer import Randomizer
 
 @Randomizer.register
 class IStaticDeviceStateManager(IStateManager):
-    """Exposes state logic for static(dummy) asset """
+    """Exposes state logic for static(dummy) asset"""
 
     @Randomizer.randomize_method()
     def shut_down(self):

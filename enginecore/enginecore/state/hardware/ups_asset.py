@@ -27,7 +27,7 @@ class UPS(Asset, SNMPSim):
     """Provides reactive logic for UPS & manages snmp simulator instance
 
     Example:
-        drains battery when upstream power becomes unavailable 
+        drains battery when upstream power becomes unavailable
         charges battery when upstream power is restored
     """
 
@@ -98,11 +98,11 @@ class UPS(Asset, SNMPSim):
         return fp_time_left
 
     def _calc_battery_discharge(self):
-        """Approximate battery discharge per second based on 
+        """Approximate battery discharge per second based on
         the runtime model & current wattage draw
 
         Returns:
-            float: discharge per second 
+            float: discharge per second
         """
 
         wattage = self.state.wattage
@@ -129,8 +129,7 @@ class UPS(Asset, SNMPSim):
         self.state.update_transfer_reason(new_reason)
 
     def _drain_battery(self):
-        """When parent is not available -> drain battery 
-        """
+        """When parent is not available -> drain battery"""
 
         battery_level = self.state.battery_level
         old_battery_lvl = -1
@@ -178,7 +177,7 @@ class UPS(Asset, SNMPSim):
 
     def _charge_battery(self, power_up_on_charge=False):
         """Charge battery when there's upstream power source & battery is not full
-                
+
         Args:
             power_up_on_charge(boolean): indicates if the asset should be powered up
                                          when min charge level is achieved
@@ -225,7 +224,7 @@ class UPS(Asset, SNMPSim):
     def _launch_battery_drain(
         self, t_reason=in_state.UPSStateManager.InputLineFailCause.deepMomentarySag
     ):
-        """Start a thread that will decrease battery level """
+        """Start a thread that will decrease battery level"""
 
         if self._battery_drain_t and self._battery_drain_t.isAlive():
             logger.warning("Battery drain is already running!")
@@ -253,7 +252,7 @@ class UPS(Asset, SNMPSim):
         self._battery_drain_t.start()
 
     def _launch_battery_charge(self, power_up_on_charge=False):
-        """Start a thread that will charge battery level """
+        """Start a thread that will charge battery level"""
 
         if self._battery_charge_t and self._battery_charge_t.isAlive():
             logger.warning("Battery is already charging!")
@@ -317,7 +316,7 @@ class UPS(Asset, SNMPSim):
         return asset_event
 
     def _get_ups_load_update(self, should_transfer):
-        """Get formatted load event result 
+        """Get formatted load event result
         (load update that needs to be propagated up the power stream)
         """
 

@@ -31,7 +31,7 @@ export default class Pdu extends OutputAsset {
   componentDidMount() {
     Promise.all(this.loadImages({ c14Img: c14Source }))
       .then(Socket.socketSize)
-      .then(size => this.setState({ socketSize: size }))
+      .then((size) => this.setState({ socketSize: size }))
       .then(() =>
         this.props.onPosChange(
           this.props.asset.key,

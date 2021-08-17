@@ -23,7 +23,7 @@ class AllThermalBranchesDone(Event):
 
 class AllVoltageBranchesDone(Event):
     """Dispatched when power iteration finishes downstream
-    voltage event propagation to all the leaf nodes that 
+    voltage event propagation to all the leaf nodes that
     are descendants of the iteration source event"""
 
     success = True
@@ -384,9 +384,9 @@ class Engine(Component):
         self._on_asset_load_event_success(asset_load_event)
 
     def AmbientDownEvent_success(self, ambient_event, asset_thermal_event):
-        """When asset is powered down """
+        """When asset is powered down"""
         self._on_asset_thermal_event_success(asset_thermal_event)
 
     def AmbientUpEvent_success(self, ambient_event, asset_thermal_event):
-        """When asset is powered up """
+        """When asset is powered up"""
         self._on_asset_thermal_event_success(asset_thermal_event)

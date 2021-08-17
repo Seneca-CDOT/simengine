@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
  * Asset - aggregates some shared asset behaviour (selection & translation)
  * */
 class Asset extends React.Component {
-  loadImages = assetImages => {
+  loadImages = (assetImages) => {
     /** Load images into state (returns array of promises) */
 
     let imagePromises = [];
@@ -19,7 +19,7 @@ class Asset extends React.Component {
       image.src = imageSource;
 
       imagePromises.push(
-        new Promise(resolve => {
+        new Promise((resolve) => {
           image.onload = () => {
             this.setState({ [imageName]: image }, () => resolve());
           };
@@ -52,7 +52,7 @@ class Asset extends React.Component {
   };
 
   /** returns global asset position (x, y), relative output & input outlet coordinates */
-  updateAssetPos = s => {
+  updateAssetPos = (s) => {
     const coord = this.formatAssetCoordinates(s.target.attrs);
     this.props.onPosChange(this.props.asset.key, coord);
   };

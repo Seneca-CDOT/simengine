@@ -30,8 +30,8 @@ def storage_command(storage_group):
 
 
 def get_ctrl_storage_args():
-    """Group together storage related args 
-    (most storage commands require at least server asset key and controller number) 
+    """Group together storage related args
+    (most storage commands require at least server asset key and controller number)
     """
 
     # group a few args into a common parent element
@@ -55,7 +55,7 @@ def get_ctrl_storage_args():
 
 
 def pd_command(pd_group):
-    """Endpoints for setting storage props (pd, vd, controller etc.) """
+    """Endpoints for setting storage props (pd, vd, controller etc.)"""
 
     pd_subp = pd_group.add_subparsers()
 
@@ -118,7 +118,7 @@ def pd_command(pd_group):
 
 
 def controller_command(ctrl_group):
-    """Endpoints for setting storage props (pd, vd, controller etc.) """
+    """Endpoints for setting storage props (pd, vd, controller etc.)"""
 
     ctrl_subp = ctrl_group.add_subparsers()
     server_controller_parent = get_ctrl_storage_args()

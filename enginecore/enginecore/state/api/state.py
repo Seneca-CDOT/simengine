@@ -19,7 +19,7 @@ from enginecore.state.api.environment import ISystemEnvironment
 
 @Randomizer.register
 class IStateManager:
-    """Base class for all the state managers """
+    """Base class for all the state managers"""
 
     redis_store = None
 
@@ -44,17 +44,17 @@ class IStateManager:
 
     @property
     def key(self) -> int:
-        """Asset Key """
+        """Asset Key"""
         return self._asset_key
 
     @property
     def redis_key(self) -> str:
-        """Asset key in redis format as '{key}-{type}' """
+        """Asset key in redis format as '{key}-{type}'"""
         return "{}-{}".format(str(self.key), self.asset_type)
 
     @property
     def asset_type(self) -> str:
-        """Asset Type """
+        """Asset Type"""
         return self._asset_info["type"]
 
     @property
@@ -112,8 +112,8 @@ class IStateManager:
 
     @property
     def status(self):
-        """Operational State 
-        
+        """Operational State
+
         Returns:
             int: 1 if on, 0 if off
         """
@@ -133,7 +133,7 @@ class IStateManager:
     @property
     def agent(self):
         """Agent instance details (if supported)
-        
+
         Returns:
             tuple: process id and status of the process (if it's running)
         """
@@ -147,7 +147,7 @@ class IStateManager:
     def shut_down(self):
         """Implements state logic for graceful power-off event,
         sleeps for the pre-configured time
-            
+
         Returns:
             int: Asset's status after power-off operation
         """
@@ -160,8 +160,8 @@ class IStateManager:
     @record
     @Randomizer.randomize_method()
     def power_off(self):
-        """Implements state logic for abrupt power loss 
-        
+        """Implements state logic for abrupt power loss
+
         Returns:
             int: Asset's status after power-off operation
         """
@@ -175,7 +175,7 @@ class IStateManager:
     def power_up(self):
         """Implements state logic for power up;
         sleeps for the pre-configured time & resets boot time
-        
+
         Returns:
             int: Asset's status after power-on operation
         """
@@ -243,15 +243,15 @@ class IStateManager:
         self, keys, parent_down, msg="Cannot perform the action: [{}] parent is off"
     ):
         """Check that redis values pass certain condition
-        
+
         Args:
             keys (list): Redis keys (formatted as required)
-            parent_down (callable): lambda clause 
+            parent_down (callable): lambda clause
             msg (str, optional): Error message to be printed
-        
-        Returns: 
-            bool: True if parent keys are missing or all parents 
-                  were verified with parent_down clause 
+
+        Returns:
+            bool: True if parent keys are missing or all parents
+                  were verified with parent_down clause
         """
         if not keys:
             return True
@@ -272,7 +272,7 @@ class IStateManager:
     def _parents_available(self):
         """Indicates whether a state action can be performed;
         checks if parent nodes are up & running and all OIDs indicate 'on' status
-        
+
         Returns:
             bool: True if parents are available
         """
@@ -314,7 +314,7 @@ class IStateManager:
 
     @classmethod
     def get_store(cls):
-        """Get redis db handler """
+        """Get redis db handler"""
         if not cls.redis_store:
             cls.redis_store = redis.StrictRedis(host="localhost", port=6379)
 
@@ -358,12 +358,12 @@ class IStateManager:
 
     @classmethod
     def get_system_status(cls, flatten=True):
-        """Get states of all system components 
-        
+        """Get states of all system components
+
         Args:
-            flatten(bool): If false, the returned assets in the dict 
+            flatten(bool): If false, the returned assets in the dict
                            will have their child-components nested
-        
+
         Returns:
             dict: Current information on assets including their states, load etc.
         """

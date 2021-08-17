@@ -37,7 +37,7 @@ class Canvas extends Component {
     };
 
     // check if upstream power source is present
-    const upstreamPowered = x => this.props.getAssetByKey(x.key).status != 0;
+    const upstreamPowered = (x) => this.props.getAssetByKey(x.key).status != 0;
     elementProps['powered'] = asset.parent
       ? asset.parent.find(upstreamPowered) !== undefined
       : true;
@@ -70,7 +70,7 @@ class Canvas extends Component {
       for (const key of Object.keys(connections)) {
         const asset = this.props.getAssetByKey(key);
         const linePoints = Object.values(connections[key]).filter(
-          n => typeof n === 'number',
+          (n) => typeof n === 'number',
         );
 
         wireDrawing.push(

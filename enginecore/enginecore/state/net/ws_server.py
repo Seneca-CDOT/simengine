@@ -28,7 +28,7 @@ class WebSocket(Component):
     - cli client & enginecore (see state_client.py)
 
     WebSocket also manages action recorder, handles replay requests
-    
+
     WebSocket is added as event tracker to the engine so any completion
     events dispatched by engine are passed to websocket client
     """
@@ -45,7 +45,7 @@ class WebSocket(Component):
         )
 
     def connect(self, sock, host, port):
-        """Called upon new client connecting to the ws """
+        """Called upon new client connecting to the ws"""
 
         self._clients.append(sock)
         logger.info("WebSocket Client Connected %s:%s", host, port)
@@ -108,12 +108,12 @@ class WebSocket(Component):
 
     @handler(ClientToServerRequests.set_ambient.name)
     def _handle_ambient_request(self, details):
-        """"Handle ambient changes request"""
+        """ "Handle ambient changes request"""
         ISystemEnvironment.set_ambient(details["payload"]["degrees"])
 
     @handler(ClientToServerRequests.set_voltage.name)
     def _handle_voltage_request(self, details):
-        """"Handle voltage update"""
+        """ "Handle voltage update"""
         ISystemEnvironment.set_voltage(details["payload"]["voltage"])
 
     @handler(ClientToServerRequests.exec_play.name)
@@ -341,7 +341,7 @@ class WebSocket(Component):
         )
 
     def disconnect(self, sock):
-        """A client has disconnected """
+        """A client has disconnected"""
         self._clients.remove(sock)
         if sock in self._data_subscribers:
             self._data_subscribers.remove(sock)
@@ -351,7 +351,7 @@ class WebSocket(Component):
     # pylint: disable=unused-argument
     @handler("AssetPowerEvent")
     def on_asset_power_change(self, event, *args, **kwargs):
-        """Handle engine events by passing updates to 
+        """Handle engine events by passing updates to
         server clients"""
         if not event or event.asset is None:
             return
@@ -409,12 +409,12 @@ class WebSocket(Component):
     # pylint: enable=unused-argument
 
     def _notify_clients(self, data):
-        """This handler is called upon state changes 
-        and is meant to notify web-client of any events 
-        
+        """This handler is called upon state changes
+        and is meant to notify web-client of any events
+
         Args:
-            data: data to be sent to ws clients 
-                  must be in a format: 
+            data: data to be sent to ws clients
+                  must be in a format:
                 {
                     "request": <ServerToClientRequests.request.name>,
                     "payload": <data>

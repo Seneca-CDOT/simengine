@@ -90,7 +90,7 @@ class EngineIteration:
     """Iteration keeps track of event flow caused by one source event"""
 
     def __init__(self, src_event):
-        """Initialize engine iteration 
+        """Initialize engine iteration
         Args:
             src_event(Event): cursed event that caused a domino effect and
                               started this iteration
@@ -154,7 +154,7 @@ class ThermalIteration(EngineIteration):
 
 class PowerIteration(EngineIteration):
     """Power Iteration is initialized when a new incoming voltage event is
-    detected (either due to some asset being powered down or wallpower 
+    detected (either due to some asset being powered down or wallpower
     blackout/restoration).
 
     It consists of voltage events dispatched downstream (voltage branching)
@@ -298,7 +298,7 @@ class PowerIteration(EngineIteration):
     def _process_hardware_asset_event(self, event):
         """One of the hardware assets went online/online
         Args:
-            event(PowerEvent): contains asset event results caused 
+            event(PowerEvent): contains asset event results caused
                                 by input power event (e.g. output voltage
                                 change due to input voltage drop etc.) or
                                 asset getting powered down by the user

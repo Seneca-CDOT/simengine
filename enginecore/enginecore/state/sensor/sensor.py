@@ -37,7 +37,7 @@ class SensorGroups(Enum):
 
 class Sensor:
 
-    """Aggregates sensor information """
+    """Aggregates sensor information"""
 
     thresholds_types = ["lnr", "lcr", "lnc", "unc", "ucr", "unr"]
 
@@ -127,7 +127,7 @@ class Sensor:
             return "\n".join(s_str)
 
     def _launch_thermal_sensor_thread(self, target, event):
-        """Add a new impact thread 
+        """Add a new impact thread
         Args:
             target(str): name of the target sensor current sensor is affecting
             event(str): name of the source event affecting target sensor
@@ -148,8 +148,7 @@ class Sensor:
         self._th_sensor_t[target][event].start()
 
     def _launch_thermal_cpu_thread(self):
-        """Enable CPU impact upon the sensor
-        """
+        """Enable CPU impact upon the sensor"""
         self._th_cpu_t = threading.Thread(
             target=self._cpu_impact,
             name=self._th_cpu_t_name_fmt.format(target=self.name),
@@ -487,8 +486,7 @@ class Sensor:
                 self._launch_thermal_sensor_thread(target, rel_details["rel"]["event"])
 
     def add_cpu_thermal_impact(self):
-        """Set this sensor as one affected by the CPU-load
-        """
+        """Set this sensor as one affected by the CPU-load"""
         self._launch_thermal_cpu_thread()
 
     @property

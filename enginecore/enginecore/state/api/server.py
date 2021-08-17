@@ -33,7 +33,7 @@ class IServerStateManager(IStateManager):
     def _power_off_vm(self):
         """Power of vm controlled by the server asset
         (note that both shut down & power off actions are using
-        destroy vm method since graceful shutdown sometimes results in a 
+        destroy vm method since graceful shutdown sometimes results in a
         vm stuck)
         """
         if self._vm.isActive():
@@ -97,7 +97,7 @@ class IBMCServerStateManager(IServerStateManager):
             ValueError: when the sensor name provided does not
                        belong to a sensor of type fan
         Returns:
-            Random RPM value divided by 10 (unit accepted by IPMI_sim) 
+            Random RPM value divided by 10 (unit accepted by IPMI_sim)
             if at least one lower & one upper thresholds are present,
             returns the old sensor value otherwise
         """
@@ -142,7 +142,7 @@ class IBMCServerStateManager(IServerStateManager):
         ]
 
     def _get_rand_ctrl_props(self) -> list:
-        """Get random settable controller attributes such 
+        """Get random settable controller attributes such
         as alarm state & memory errors"""
 
         rand_err = lambda prop: random.randrange(
@@ -259,7 +259,7 @@ class IBMCServerStateManager(IServerStateManager):
         """Update properties associated with a RAID controller
         Args:
             controller: id/number assigned to a controller
-            properties: controller props including "alarm", correctable & uncorrectable 
+            properties: controller props including "alarm", correctable & uncorrectable
                         errors as "mem_c_errors", "mem_uc_errors"
         """
         with self._graph_ref.get_session() as session:
@@ -298,7 +298,7 @@ class IBMCServerStateManager(IServerStateManager):
 
     @classmethod
     def get_sensor_definitions(cls, asset_key):
-        """Get sensor definitions """
+        """Get sensor definitions"""
         graph_ref = GraphReference()
         with graph_ref.get_session() as session:
             return GraphReference.get_asset_sensors(session, asset_key)
@@ -326,7 +326,7 @@ class IBMCServerStateManager(IServerStateManager):
 
     @classmethod
     def update_thermal_storage_target(cls, attr):
-        """Add new storage entity affected by a sensor 
+        """Add new storage entity affected by a sensor
         Notify sensors if the relationship is new"""
 
         new_rel = sys_modeler.set_thermal_storage_target(attr)
@@ -384,7 +384,7 @@ class IBMCServerStateManager(IServerStateManager):
 
 @Randomizer.register
 class IPSUStateManager(IStateManager):
-    """Exposes state logic for a server PSU asset """
+    """Exposes state logic for a server PSU asset"""
 
     @Randomizer.randomize_method()
     def power_up(self):

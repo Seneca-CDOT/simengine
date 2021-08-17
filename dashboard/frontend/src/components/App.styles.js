@@ -1,6 +1,6 @@
 import gridBackground from '../images/grid.png';
 
-const styles = theme => ({
+const styles = (theme) => ({
   root: {
     flexGrow: 1,
   },

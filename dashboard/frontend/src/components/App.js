@@ -58,7 +58,7 @@ class App extends Component {
     // Establish connection with the simengine web socket
     this.ws = new simengineSocketClient({
       /** 1st time connection -> initialize system topology */
-      onTopologyReceived: data => {
+      onTopologyReceived: (data) => {
         this.setState({ assets: {}, connections: {}, loadedConnections: 0 });
 
         let connections = {};
@@ -67,7 +67,7 @@ class App extends Component {
           return;
         }
 
-        Object.keys(assets).map(key => {
+        Object.keys(assets).map((key) => {
           if (assets[key]['parent']) {
             for (const parent of assets[key]['parent']) {
               connections[parent.key] = {
@@ -91,7 +91,7 @@ class App extends Component {
       },
 
       /** asset updates (power, load, battery etc... )  */
-      onAssetReceived: data => {
+      onAssetReceived: (data) => {
         let assets = this.state.assets;
         const isComponent = !this.state.assets[data.key];
 
@@ -108,17 +108,17 @@ class App extends Component {
       },
 
       /** ambient updates */
-      onAmbientReceived: data => {
+      onAmbientReceived: (data) => {
         this.setState({ ambient: data.ambient, ambientRising: data.rising });
       },
 
       /** main power update */
-      onMainsReceived: data => {
+      onMainsReceived: (data) => {
         this.setState({ mainsStatus: data.mains });
       },
 
       /** scripts that can be executed */
-      onPlaylistReceived: data => {
+      onPlaylistReceived: (data) => {
         this.setState({ plays: data.plays });
       },
     });
@@ -168,7 +168,7 @@ class App extends Component {
     return newConn;
   }
 
-  getAssetByKey = key => {
+  getAssetByKey = (key) => {
     if (key && !this.state.assets[key]) {
       const parentKey = this._getParentKey(key);
       return this.state.assets[parentKey].children[key];
@@ -190,7 +190,7 @@ class App extends Component {
       $merge: this._updateWiring(
         asset,
         coord.inputConnections.map(
-          c => (c = { x: c.x + coord.x, y: c.y + coord.y }),
+          (c) => (c = { x: c.x + coord.x, y: c.y + coord.y }),
         ),
       ),
     });
@@ -231,8 +231,8 @@ class App extends Component {
   };
 
   /** Handle Asset Selection (deselect on second click, select asset otherwise) */
-  onElementSelection = asset => {
-    this.setState(oldState => {
+  onElementSelection = (asset) => {
+    this.setState((oldState) => {
       return {
         selectedAssetKey:
           oldState.selectedAssetKey === asset.key ? 0 : asset.key,
@@ -242,16 +242,16 @@ class App extends Component {
   };
 
   /** Send a status change request */
-  changeAssetStatus = asset => {
+  changeAssetStatus = (asset) => {
     let payload = { ...asset };
     payload.status = !payload.status;
     this.ws.sendData({ request: 'set_power', payload });
   };
 
-  changeWallpowerStatus = status =>
+  changeWallpowerStatus = (status) =>
     this.ws.sendData({ request: 'set_mains', payload: { mains: status } });
 
-  executePlay = name =>
+  executePlay = (name) =>
     this.ws.sendData({ request: 'exec_play', payload: { name } });
 
   /** Save assets' coordinates in db  */
@@ -271,7 +271,7 @@ class App extends Component {
 
     // add asset layout info
     Object.keys(assets).map(
-      a => (payload['assets'][a] = { x: assets[a].x, y: assets[a].y }),
+      (a) => (payload['assets'][a] = { x: assets[a].x, y: assets[a].y }),
     );
 
     if (this.ws.socketOnline()) {

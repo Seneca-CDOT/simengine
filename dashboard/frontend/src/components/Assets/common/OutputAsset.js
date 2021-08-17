@@ -20,7 +20,7 @@ class OutputAsset extends Asset {
   }
 
   /** Notify top-lvl Component that OUT-outlet was selected*/
-  selectSocket = ckey => {
+  selectSocket = (ckey) => {
     this.setState({ selectedSocketKey: ckey });
     this.props.onElementSelection(this.props.asset.children[ckey]);
   };

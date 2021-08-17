@@ -21,7 +21,7 @@ class StateListener(Component):
     through to the handler;
 
     Dispatched events can be handled with circuits handlers as:
-    
+
     @RedisChannels.some_redis_update
     def handle_some_redis_update_here(...):
         ...
@@ -116,7 +116,7 @@ class StateListener(Component):
 
     def started(self, _):
         """
-            Called on start: initialize redis subscriptions
+        Called on start: initialize redis subscriptions
         """
 
         logger.info("Initializing pub/sub event handlers...")

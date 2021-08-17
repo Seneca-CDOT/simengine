@@ -29,7 +29,7 @@ class Asset(Component):
 
     @property
     def key(self):
-        """ Get ID assigned to the asset """
+        """Get ID assigned to the asset"""
         return self.state.key
 
     @property
@@ -56,7 +56,7 @@ class Asset(Component):
             state_reason(PowerStateReason): reason for powering
                 this asset (e.g. due to AC restored or user
                 pressing button etc.)
-        Returns: 
+        Returns:
             int: new state after power_up operation
         """
         if not state_reason:
@@ -66,11 +66,11 @@ class Asset(Component):
         return self.state.power_up()
 
     def power_off(self, state_reason=None):
-        """Power down this asset 
+        """Power down this asset
         Args:
             state_reason(PowerStateReason): reason for poweroff
                 (e.g. due to AC loss)
-        Returns: 
+        Returns:
             int: new state after power_up operation
         """
         if not state_reason:
@@ -83,7 +83,7 @@ class Asset(Component):
         """Shut down this asset (graceful shutdown)
         Args:
             state_reason(PowerStateReason): reason for shutdown
-        Returns: 
+        Returns:
             int: new state after power_up operation
         """
         if not state_reason:
@@ -93,7 +93,7 @@ class Asset(Component):
         return self.state.shut_down()
 
     def _create_asset_workplace_dir(self):
-        """Create temp workplace directory for the asset 
+        """Create temp workplace directory for the asset
         (under /tmp/$SIMENGINE_WORKPLACE_TEMP/<asset_key>)
         Returns:
             str: path to newly created asset directory
@@ -105,8 +105,8 @@ class Asset(Component):
         return asset_dir
 
     def _process_parent_volt_e(self, event):
-        """Process parent voltage event by analyzing if voltage is 
-        within the accepted threshold and if asset power state 
+        """Process parent voltage event by analyzing if voltage is
+        within the accepted threshold and if asset power state
         needs to be changed"""
 
         asset_event = event.get_next_power_event(self)
@@ -207,7 +207,7 @@ class Asset(Component):
             event(InputVoltageUpEvent): input voltage event indicating
                                         that source voltage has increased
         Returns:
-            AssetPowerEvent: event indicating possible power changes due to 
+            AssetPowerEvent: event indicating possible power changes due to
                              voltage change (e.g. load, power state changes etc.)
         """
         return self._process_parent_volt_e(event)
@@ -221,7 +221,7 @@ class Asset(Component):
             event(InputVoltageDownEvent): input voltage event indicating
                                           that source voltage has dropped
         Returns:
-            AssetPowerEvent: event indicating possible power changes due to 
+            AssetPowerEvent: event indicating possible power changes due to
                              voltage change (e.g. load, power state changes etc.)
         """
         return self._process_parent_volt_e(event)

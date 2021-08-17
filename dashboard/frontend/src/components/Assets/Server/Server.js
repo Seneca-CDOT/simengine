@@ -32,7 +32,7 @@ export default class Server extends Asset {
       this.loadImages({ serverPlaceholderImg: serverPlaceholderSource }),
     )
       .then(PowerSupply.psuSize)
-      .then(size => {
+      .then((size) => {
         this.setState({ psuSize: size });
       })
       .then(() =>
@@ -48,7 +48,7 @@ export default class Server extends Asset {
   }
 
   /** Notify top-lvl Component that on of the PSUs was selected*/
-  selectPSU = ckey => {
+  selectPSU = (ckey) => {
     this.setState({ selectedPsuKey: ckey });
     this.props.onElementSelection(this.props.asset.children[ckey]);
   };

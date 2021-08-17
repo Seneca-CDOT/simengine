@@ -59,7 +59,7 @@ class EventDataPair:
 
 
 class EngineEvent(Event):
-    """Power event within an engine that is associated with 
+    """Power event within an engine that is associated with
     a power iteration (see PowerIteration)
     and power branch (Either VoltageBranch or LoadBranch)
     """
@@ -329,7 +329,7 @@ class SNMPEvent(EngineEvent):
 
     @property
     def oid_value_name(self):
-        """Abstract name of oid value given internally by the engine 
+        """Abstract name of oid value given internally by the engine
         (to ensure cross-vendor support)"""
         return self._oid_value_name
 
@@ -417,7 +417,7 @@ class AssetPowerEvent(EngineEvent):
         return state.power_consumption / voltage if voltage else 0
 
     def get_next_voltage_event(self):
-        """Returns next event that will be dispatched against children of 
+        """Returns next event that will be dispatched against children of
         the source asset
         """
         out_volt = self.out_volt
@@ -548,7 +548,7 @@ class InputVoltageDownEvent(InputVoltageEvent):
 
 
 class LoadEvent(EngineEvent):
-    """Load event is emitted whenever there is load 
+    """Load event is emitted whenever there is load
     change somewhere in the system (due to voltage changes or power updates)"""
 
     def __init__(self, *args, **kwargs):
@@ -581,7 +581,7 @@ class AssetLoadEvent(LoadEvent):
         self._load.old = self._asset.state.load
 
     def get_next_load_event(self):
-        """Get next load event that can be dispatched against asset powering this 
+        """Get next load event that can be dispatched against asset powering this
         device"""
         return (ChildLoadDownEvent if self._load.difference < 0 else ChildLoadUpEvent)(
             power_iter=self.power_iter,
@@ -610,7 +610,7 @@ class ChildLoadEvent(LoadEvent):
 
     def get_next_load_event(self, target_asset):
         """Get next asset event resulted from
-        load changes of the child asset 
+        load changes of the child asset
         """
         return AssetLoadEvent(
             asset=target_asset,

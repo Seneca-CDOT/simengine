@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class IPMIAgent(Agent):
-    """Python wrapper managing ipmi_sim program that takes 
+    """Python wrapper managing ipmi_sim program that takes
     SensorRepository & translates it into ipmi_sim sensor definitions.
     """
 
@@ -173,7 +173,7 @@ class IPMIAgent(Agent):
 
     @property
     def sdr_main_path(self):
-        """Path to the compiled IPMIsim sensors (compiled SDRs) """
+        """Path to the compiled IPMIsim sensors (compiled SDRs)"""
         return os.path.join(
             self.emu_state_dir_path, "ipmi_sim", "ipmisim1", "sdr.20.main"
         )

@@ -58,11 +58,13 @@ jobs:
                       . venv/bin/activate
                       python3 -m unittest discover tests
 
-            - run:
-                  name: Running python BDD behave scenarios
-                  command: |
-                      . venv/bin/activate
-                      behave -k --stop --tags=~@not-ci-friendly
+            # Temporarily disabled until issue #126 is fixed
+            # https://github.com/Seneca-CDOT/simengine/issues/126
+            # - run:
+            #       name: Running python BDD behave scenarios
+            #       command: |
+            #           . venv/bin/activate
+            #           behave -k --stop --tags=~@not-ci-friendly
 
             - store_artifacts:
                   path: test-reports

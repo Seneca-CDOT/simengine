@@ -126,7 +126,7 @@ class StateClient:
         return json.loads(self._ws_client.recv())["payload"]["executed"]
 
     def set_physical_drive_prop(self, controller, drive_id, drive_props):
-        """Request simengine socket server to update status of a physical drive 
+        """Request simengine socket server to update status of a physical drive
         Args:
             controller(int): controller physical drive belongs to
             drive_id(int): unique drive id (DID) of drive to be updated
@@ -174,7 +174,7 @@ class StateClient:
 
     @classmethod
     def replay_actions(cls, slc=slice(None, None)):
-        """Send replay actions recorded by SimEngine request to ws-simening 
+        """Send replay actions recorded by SimEngine request to ws-simening
         Args:
             slc(slice): range of actions to be performed, replays all if not provided
         """
@@ -248,7 +248,7 @@ class StateClient:
 
     @classmethod
     def get_recorder_status(cls) -> dict:
-        """Retrieve recorder status 
+        """Retrieve recorder status
         Returns:
             dictionary containg "enabled" & "replaying" recorder indicators
         """

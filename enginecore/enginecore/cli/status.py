@@ -44,7 +44,7 @@ def status_command(status_group):
 
 
 class BCOLORS:
-    """ curses colours """
+    """curses colours"""
 
     OKGREEN = 2
     ERROR = 1

@@ -28,7 +28,7 @@ class ISnmpDeviceStateManager(IStateManager):
     def _execute_ifconfig_cmd(self, command):
         """Execute ifconfig command with ifconfig
         Args:
-            command(str): command to be executed """
+            command(str): command to be executed"""
 
         subprocess.Popen(
             "ifconfig {}".format(command),
@@ -108,10 +108,10 @@ class ISnmpDeviceStateManager(IStateManager):
 
     def _update_oid_value(self, object_id, oid_value):
         """Update oid with a new value
-        
+
         Args:
             object_id(ISnmpDeviceStateManager.ObjectIdentity): SNMP object id
-            oid_value(object): OID value in rfc1902 format 
+            oid_value(object): OID value in rfc1902 format
         """
         redis_store = IStateManager.get_store()
         rkey = format_as_redis_key(
@@ -124,7 +124,7 @@ class ISnmpDeviceStateManager(IStateManager):
         redis_store.set(rkey, rvalue)
 
     def get_oid_value(self, object_id, key=None):
-        """Retrieve value for a specific OID """
+        """Retrieve value for a specific OID"""
         if key is None:
             key = self.key
 

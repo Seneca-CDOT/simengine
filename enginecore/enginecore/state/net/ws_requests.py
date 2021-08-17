@@ -7,7 +7,7 @@ from enum import Enum
 
 
 class ServerToClientRequests(Enum):
-    """Requests sent to the client """
+    """Requests sent to the client"""
 
     # asset updates (power, load etc.)
     asset_upd = 1

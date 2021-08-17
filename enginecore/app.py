@@ -20,7 +20,7 @@ DEV_FORMAT = "[%(threadName)s, %(asctime)s, %(module)s:%(lineno)s] %(message)s"
 def configure_logger(develop=False, debug=False):
     """Configure logger instance for the simengine app
     Args:
-        develop(bool): indicates logger variant 
+        develop(bool): indicates logger variant
                        (logger will use relative paths if set to true)
         debug(bool): set logger level to debugging
     """

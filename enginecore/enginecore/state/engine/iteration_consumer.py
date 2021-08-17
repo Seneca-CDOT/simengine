@@ -66,7 +66,7 @@ class EngineIterationConsumer:
 
     def unfreeze_task_queue(self):
         """Signal that current iteration is done (so handler can process
-         next event in a queue if available)"""
+        next event in a queue if available)"""
 
         assert self.current_iteration.iteration_done
         self._complete_task()

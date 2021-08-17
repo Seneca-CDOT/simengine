@@ -4,7 +4,7 @@ import os
 
 
 class Agent:
-    """Abstract Agent Class """
+    """Abstract Agent Class"""
 
     agent_num = 1
 
@@ -22,14 +22,14 @@ class Agent:
         return os.path.exists("/proc/" + str(self.pid))
 
     def stop_agent(self):
-        """Logic for agent's termination """
+        """Logic for agent's termination"""
         if not self._process.poll():
             self._process.terminate()
             # Clean up the process table to prevent defunct
             self._process.wait()
 
     def start_agent(self):
-        """Logic for starting up the agent """
+        """Logic for starting up the agent"""
         raise NotImplementedError
 
     def register_process(self, process):
