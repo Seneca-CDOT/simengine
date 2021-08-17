@@ -61,9 +61,9 @@ echo "sudo is required to install SimEngine RPMs"
 DB_VER=$(search_ver "simengine-database.spec")
 CORE_VER=$(search_ver "simengine-core.spec")
 DASH_VER=$(search_ver "simengine-dashboard.spec")
-CIRC_VER=$(search_ver "python3-circuits.spec")
-SNMPSIM_VER=$(search_ver "python3-snmpsim.spec")
-NEO_VER=$(search_ver "python3-neo4j-driver.spec")
+CIRC_VER=$(search_ver "python-circuits.spec")
+SNMPSIM_VER=$(search_ver "python-snmpsim.spec")
+NEO_VER=$(search_ver "python-neo4j-driver.spec")
 
 sudo dnf \
     --assumeyes \
