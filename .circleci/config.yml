@@ -89,7 +89,7 @@ jobs:
                   command: sudo npm install prettier --global
             - run:
                   name: Run Prettier Check
-                  command: prettier --check 'config/**/*.js' 'src/**/*.js'
+                  command: prettier --check 'src/**/*.js' 'src/**/*.jsx'
 workflows:
     version: 2
     build-deploy:

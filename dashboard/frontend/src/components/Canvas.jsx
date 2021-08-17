@@ -87,12 +87,8 @@ class Canvas extends Component {
 
     return (
       <Layer>
-        <Group>
-          {systemLayout}
-        </Group>
-        <Group>
-          {wireDrawing}
-        </Group>
+        <Group>{systemLayout}</Group>
+        <Group>{wireDrawing}</Group>
       </Layer>
     );
   }
