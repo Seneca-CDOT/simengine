@@ -22,6 +22,16 @@
     "plugins": [
         "react"
     ],
+    "settings": {
+        "import/resolver": {
+          "node": {
+            "extensions": [
+              ".js",
+              ".jsx"
+            ]
+          }
+        }
+    },
     "rules": {
       "quotes": 0,
       "no-console": 1,

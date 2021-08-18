@@ -17,8 +17,8 @@ class simengineSocketClient {
     this.ws.onmessage = (evt) => {
       const data = JSON.parse(evt.data);
 
-      console.log('Server sent data: ');
-      console.log(data);
+      // eslint-disable-next-line no-console
+      console.log('Server sent data: ', data);
 
       switch (data.request) {
         case 'sys_layout':

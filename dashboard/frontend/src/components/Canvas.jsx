@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { Layer, Line } from 'react-konva';
+import { Layer, Line, Group } from 'react-konva';
 
 import { Server, Pdu, Ups, Socket, Lamp } from './Assets';
 
@@ -52,7 +52,7 @@ class Canvas extends Component {
   }
 
   render() {
-    const { assets, connections, wireWidth, wireZIndex } = this.props;
+    const { assets, connections, wireWidth } = this.props;
 
     // asset drawings & their connections
     let systemLayout = [];
@@ -78,7 +78,6 @@ class Canvas extends Component {
             points={linePoints}
             stroke={asset.status === 1 ? colors.green : colors.grey}
             strokeWidth={wireWidth}
-            zIndex={wireZIndex}
             key={`${key}${connections[key].destKey}`}
             shadowBlur={3}
           />,
@@ -88,8 +87,8 @@ class Canvas extends Component {
 
     return (
       <Layer>
-        {systemLayout}
-        {wireDrawing}
+        <Group>{systemLayout}</Group>
+        <Group>{wireDrawing}</Group>
       </Layer>
     );
   }
@@ -106,8 +105,6 @@ Canvas.propTypes = {
   labelFontSize: PropTypes.number,
   /** width of the wiring (in px) */
   wireWidth: PropTypes.number,
-  /** z-index of the wirings */
-  wireZIndex: PropTypes.number,
   /** called when any of the assets is moved/dragged */
   onPosChange: PropTypes.func.isRequired,
   /** called when any of the assets is selected */
@@ -119,7 +116,6 @@ Canvas.propTypes = {
 Canvas.defaultProps = {
   labelFontSize: 18,
   wireWidth: 5,
-  wireZIndex: 300,
 };
 
 export default Canvas;
