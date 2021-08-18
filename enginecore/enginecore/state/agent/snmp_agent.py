@@ -87,7 +87,6 @@ class SNMPAgent(Agent):
             # "--data-dir=" + self._snmp_rec_dir,
             "--cache-dir=" + self._snmp_rec_dir,
             "--transport-id-offset=" + str(SNMPAgent.agent_num),
-            # "--daemonize",
             "--logging-method=file:" + self.log_path,
         ]
 
