@@ -89,8 +89,6 @@ class SNMPAgent(Agent):
             "--transport-id-offset=" + str(SNMPAgent.agent_num),
             # "--daemonize",
             "--logging-method=file:" + self.log_path,
-            "--cache-dir",
-            self._snmp_rec_dir,
         ]
 
         if os.getuid() == 0:
