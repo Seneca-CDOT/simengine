@@ -9,7 +9,6 @@ Summary:        SNMP Agents simulator
 License:        BSD
 URL:            https://github.com/etingof/snmpsim
 Source0:        https://files.pythonhosted.org/packages/source/s/%{pypi_name}/%{pypi_name}-%{version}.tar.gz
-Patch0:         0001-snmpsim-fix-daemon.py.patch
 BuildArch:      noarch
  
 BuildRequires:  python3-devel
