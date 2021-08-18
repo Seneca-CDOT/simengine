@@ -27,8 +27,7 @@ Summary:        %{summary}
 %{?python_provide:%python_provide python3-%{pypi_name}}
  
 Requires:       python3dist(pysnmp) < 5.0.0
-Requires:       python3dist(pysnmp) >= 4.4.3
-Requires:       python3-pysnmp >= 4.4.12
+Requires:       python3dist(pysnmp) >= 4.4.12
 
 %description -n python3-%{pypi_name}
 SNMP Simulator is a tool that acts as multitude of SNMP Agents built into real
