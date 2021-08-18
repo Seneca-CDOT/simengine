@@ -18,9 +18,6 @@ Core files for SimEngine.
 
 %global debug_package %{nil}
 
-%pre
-#pip3 install circuits
-
 %prep
 %autosetup -n simengine-%{version}
 
