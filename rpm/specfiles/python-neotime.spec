@@ -9,7 +9,7 @@
 
 Name:           python-%{srcname}
 Version:        1.0.0
-Release:        12%{?dist}
+Release:        13%{?dist}
 Summary:        %{sum}
 
 License:        ASL 2.0
@@ -96,6 +96,9 @@ find ./ -name '*.py' -exec sed -i '/^#!\/usr\/bin\/env python$/d' '{}' ';'
 %endif
 
 %changelog
+* Fri Aug 20 2021 Tsu-ba-me <ynho.li.aa.e@gmail.com> - 1.0.0-13
+- Extend to build on CentOS 8 Stream.
+
 * Wed Jan 27 2021 Fedora Release Engineering <releng@fedoraproject.org> - 1.0.0-12
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_34_Mass_Rebuild
 
