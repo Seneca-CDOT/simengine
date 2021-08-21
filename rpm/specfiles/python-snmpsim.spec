@@ -3,7 +3,7 @@
 
 Name:           python-%{pypi_name}
 Version:        0.4.7
-Release:        1%{?dist}
+Release:        3%{?dist}
 Summary:        SNMP Agents simulator
 
 License:        BSD
@@ -76,6 +76,9 @@ exit 0
 
 
 %changelog
+* Fri Aug 20 2021 Tsu-ba-me <ynho.li.aa.e@gmail.com> - 0.4.7-3
+- Revise all patches and extend to build on CentOS 8 Stream.
+
 * Thu Nov 12 2020 Brian Sawa <noahpop77@gmail.com> - 0.4.7-2
 - Updated daemon.py to allow it to be executed with superuser.
 
