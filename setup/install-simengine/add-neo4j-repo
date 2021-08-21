@@ -7,7 +7,7 @@ REPO_DIR="/etc/yum.repos.d"
 REPO_PATH="${REPO_DIR}/neo4j.repo"
 
 if [[ ! $(rpm -qa gpg-pubkey --qf "%{summary}\n" | grep -i neo4j) ]]; then
-    wget -P "${TMP_DIR}" http://debian.neo4j.org/neotechnology.gpg.key
+    (cd "${TMP_DIR}"; curl -L -O http://debian.neo4j.org/neotechnology.gpg.key)
     sudo rpm --import "${TMP_DIR}/neotechnology.gpg.key"
 else
     echo "neo4j gpg-pubkey already added; skipping..."
