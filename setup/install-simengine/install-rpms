@@ -61,9 +61,10 @@ echo "sudo is required to install SimEngine RPMs"
 DB_VER=$(search_ver "simengine-database.spec")
 CORE_VER=$(search_ver "simengine-core.spec")
 DASH_VER=$(search_ver "simengine-dashboard.spec")
-CIRC_VER=$(search_ver "python3-circuits.spec")
-SNMPSIM_VER=$(search_ver "python3-snmpsim.spec")
-NEO_VER=$(search_ver "python3-neo4j-driver.spec")
+CIRC_VER=$(search_ver "python-circuits.spec")
+SNMPSIM_VER=$(search_ver "python-snmpsim.spec")
+NEO_VER=$(search_ver "python-neo4j-driver.spec")
+NEOTIME_VER=$(search_ver "python-neotime.spec")
 
 sudo dnf \
     --assumeyes \
@@ -73,4 +74,5 @@ sudo dnf \
     "${RPMS_DIR}"/**/simengine-dashboard-$DASH_VER*.rpm \
     "${RPMS_DIR}"/**/python3-circuits-$CIRC_VER*.rpm \
     "${RPMS_DIR}"/**/python3-snmpsim-$SNMPSIM_VER*.rpm \
-    "${RPMS_DIR}"/**/python3-neo4j-driver-$NEO_VER*.rpm
+    "${RPMS_DIR}"/**/python3-neo4j-driver-$NEO_VER*.rpm \
+    "${RPMS_DIR}"/**/python3-neotime-$NEOTIME_VER*.rpm

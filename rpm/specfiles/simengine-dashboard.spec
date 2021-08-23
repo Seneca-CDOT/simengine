@@ -9,8 +9,11 @@ License:   GPLv3+
 
 Source0:   https://github.com/Seneca-CDOT/simengine/archive/%{gittag}/simengine-%{version}.tar.gz
 
-BuildRequires: npm
-Requires: simengine-database, simengine-core, httpd
+BuildRequires: nodejs-devel >= 12
+
+Requires: simengine-database
+Requires: simengine-core
+Requires: httpd
 
 %description
 Dashboard front-end website files for SimEngine.

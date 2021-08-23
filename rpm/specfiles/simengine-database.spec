@@ -5,12 +5,17 @@ Summary:   SimEngine - Databases
 URL:       https://github.com/Seneca-CDOT/simengine
 License:   GPLv3+
 
-%global gittag %{version}
+%global    gittag %{version}
 
-Source0: https://github.com/Seneca-CDOT/simengine/archive/%{gittag}/simengine-%{version}.tar.gz
+Source0:   https://github.com/Seneca-CDOT/simengine/archive/%{gittag}/simengine-%{version}.tar.gz
 BuildArch: noarch
 
-Requires:  neo4j, cypher-shell, redis, python-neo4j-driver, python-redis, chkconfig
+Requires:  neo4j
+Requires:  cypher-shell
+Requires:  redis
+Requires:  python3-neo4j-driver
+Requires:  python3-redis
+Requires:  chkconfig
 
 %description
 Installs the SimEngine database configuration for Neo4j.
@@ -33,8 +38,37 @@ cp -fp simengine-%{version}/database/auth %{buildroot}%{_sharedstatedir}/neo4j/d
 %post
 systemctl enable neo4j --now
 systemctl enable redis --now
-sleep 10
-echo "CREATE CONSTRAINT ON (n:Asset) ASSERT (n.key) IS UNIQUE;" | cypher-shell -u simengine -p simengine
+
+function cyphexec { cypher-shell -u simengine -p simengine "$1"; }
+
+echo "Begin bolt connection test to Neo4j database."
+wait_count=0
+wait_count_limit=5
+wait_interval=4
+is_failed=
+while ! cyphexec "RETURN 'test';" &>/dev/null
+do
+    echo "Connection attempt $(( wait_count += 1 )) out of $wait_count_limit failed."
+    if [[ $wait_count < $wait_count_limit ]]
+    then
+        echo "Wait for $wait_interval seconds before retrying."
+        sleep $wait_interval
+    else
+        is_failed=true
+        break
+    fi
+done
+
+if [[ -z $is_failed ]]
+then
+    echo "Connection test passed; begin executing cypher commands."
+    cyphexec "CREATE CONSTRAINT ON (n:Asset) ASSERT (n.key) IS UNIQUE;"
+else
+    echo "Connection test failed; skip all cypher commands."
+fi
+
+# According to the guidelines, all scriptlets must exit with code 0.
+exit 0
 
 %changelog
 * Fri Aug 06 2021 Tsu-ba-me <ynho.li.aa.e@gmail.com> - 3.37-1

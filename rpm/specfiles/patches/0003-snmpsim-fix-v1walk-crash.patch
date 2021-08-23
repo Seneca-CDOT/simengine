@@ -1,0 +1,42 @@
+ scripts/snmpsimd.py | 19 +++++++++++++++++--
+ 1 file changed, 17 insertions(+), 2 deletions(-)
+
+diff --git a/scripts/snmpsimd.py b/scripts/snmpsimd.py
+index 0c0d83f..840d34f 100644
+--- a/scripts/snmpsimd.py
++++ b/scripts/snmpsimd.py
+@@ -236,6 +236,7 @@ class DataFile(AbstractLayout):
+         self.__recordIndex = RecordIndex(textFile, textParser)
+         self.__textParser = textParser
+         self.__textFile = os.path.abspath(textFile)
++        self.__last_known_oid_type = None
+         
+     def indexText(self, forceIndexBuild=False):
+         self.__recordIndex.create(forceIndexBuild, validateData)
+@@ -276,10 +277,24 @@ class DataFile(AbstractLayout):
+         log.info('Request var-binds: %s, flags: %s, %s' % (', '.join(['%s=<%s>' % (vb[0], vb[1].prettyPrint()) for vb in varBinds]), context.get('nextFlag') and 'NEXT' or 'EXACT', context.get('setFlag') and 'SET' or 'GET'))
+ 
+         for oid, val in varBinds:
+-            textOid = str(univ.OctetString('.'.join(['%s' % x for x in oid])))
++            # When a query using SNMPv1 attempts to process a value of not a
++            # supported type, i.e., Counter64 (v1 only supports up to
++            # Counter32, see rfc1155 section 3.2.3.3), the returned OID is a
++            # string instead of the expected sub-type of univ.ObjectIdentifier
++            # defined in pyasn1. To prevent the simulation from crashing when
++            # attempting to work with a string OID, convert it to the last
++            # known OID type.
++            if self.__last_known_oid_type is not None and isinstance(oid, str):
++                textOid = oid
++                # Use the stored type (which is probably set/reset in the
++                # previous call of this function) to give the OID a correct type.
++                oid = self.__last_known_oid_type(oid)
++            else:
++                textOid = str(univ.OctetString('.'.join(['%s' % x for x in oid])))
++                self.__last_known_oid_type = type(oid)
+ 
+             try:
+-                line = self.__recordIndex.lookup(str(univ.OctetString('.'.join(['%s' % x for x in oid]))))
++                line = self.__recordIndex.lookup(textOid)
+             except KeyError:
+                 offset = searchRecordByOid(oid, text, self.__textParser)
+                 subtreeFlag = exactMatch = False

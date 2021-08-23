@@ -83,14 +83,10 @@ class SNMPAgent(Agent):
             "snmpsimd.py",
             "--agent-udpv4-endpoint={host}:{port}".format(**self._snmp_conf),
             "--variation-module-options=" + var_opt,
-            # The --data-dir option breaks python 3 compatibility
-            # "--data-dir=" + self._snmp_rec_dir,
+            "--data-dir=" + self._snmp_rec_dir,
             "--cache-dir=" + self._snmp_rec_dir,
             "--transport-id-offset=" + str(SNMPAgent.agent_num),
-            # "--daemonize",
             "--logging-method=file:" + self.log_path,
-            "--cache-dir",
-            self._snmp_rec_dir,
         ]
 
         if os.getuid() == 0:

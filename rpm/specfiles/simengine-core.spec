@@ -11,15 +11,25 @@ License:   GPLv3+
 Source0: https://github.com/Seneca-CDOT/simengine/archive/%{gittag}/simengine-%{version}.tar.gz  
 
 BuildRequires: OpenIPMI-devel, gcc
-Requires: simengine-database, python3-libvirt, OpenIPMI, OpenIPMI-lanserv, python3-redis, python3-pysnmp, python3-neo4j-driver, python3-websocket-client
+
+Requires: simengine-database
+Requires: python3-libvirt
+Requires: OpenIPMI
+Requires: OpenIPMI-lanserv
+Requires: python3-redis
+Requires: python3-pysnmp
+Requires: python3-neo4j-driver
+Requires: python3-websocket-client
+Requires: python3-circuits
+Requires: python3-snmpsim
 
 %description
 Core files for SimEngine.
 
 %global debug_package %{nil}
 
-%pre
-#pip3 install circuits
+%preun
+systemctl disable %{name}.service --now
 
 %prep
 %autosetup -n simengine-%{version}
@@ -43,7 +53,7 @@ mkdir -p %{buildroot}%{_bindir}/
 cp -fp haos_extend.so %{buildroot}%{selected_libdir}/simengine/
 cp -fRp enginecore %{buildroot}%{_datadir}/simengine/
 cp -fRp data %{buildroot}%{_datadir}/simengine/
-cp -fp services/simengine-core.service %{buildroot}/usr/lib/systemd/system/
+cp -fp services/%{name}.service %{buildroot}/usr/lib/systemd/system/
 ln -s /usr/share/simengine/enginecore/simengine-cli %{buildroot}%{_bindir}/simengine-cli
 mkdir -p %{buildroot}%{_localstatedir}/log/simengine
 exit 0
@@ -52,14 +62,17 @@ exit 0
 %{selected_libdir}/simengine/haos_extend.so
 %{_datadir}/simengine/enginecore
 %{_datadir}/simengine/data
-/usr/lib/systemd/system/simengine-core.service
+/usr/lib/systemd/system/%{name}.service
 %{_bindir}/simengine-cli
 %{_localstatedir}/log/simengine
 %ghost %{_localstatedir}/log/simengine/*
 
 %post
 systemctl daemon-reload
-systemctl enable simengine-core.service --now
+systemctl enable %{name}.service --now
+
+%postun
+systemctl daemon-reload
 
 %changelog
 * Fri Aug 06 2021 Tsu-ba-me <ynho.li.aa.e@gmail.com> - 3.37-1

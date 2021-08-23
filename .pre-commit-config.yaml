@@ -1,11 +1,11 @@
 repos:
-  - repo: https://github.com/ambv/black
+  - repo: https://github.com/psf/black
     rev: stable
     hooks:
       - id: black
         files: ^enginecore/
   - repo: https://github.com/prettier/prettier
-    rev: master
+    rev: main
     hooks:
       - id: prettier
         files: ^dashboard/

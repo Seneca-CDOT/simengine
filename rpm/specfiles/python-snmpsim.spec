@@ -3,13 +3,16 @@
 
 Name:           python-%{pypi_name}
 Version:        0.4.7
-Release:        1%{?dist}
+Release:        3%{?dist}
 Summary:        SNMP Agents simulator
 
 License:        BSD
 URL:            https://github.com/etingof/snmpsim
 Source0:        https://files.pythonhosted.org/packages/source/s/%{pypi_name}/%{pypi_name}-%{version}.tar.gz
-Patch0:         0001-snmpsim-fix-daemon.py.patch
+Patch0:         0001-snmpsim-fix-cache-permissions.patch
+Patch1:         0002-snmpsim-fix-redis-returns.patch
+Patch2:         0003-snmpsim-fix-v1walk-crash.patch
+
 BuildArch:      noarch
  
 BuildRequires:  python3-devel
@@ -27,8 +30,8 @@ Summary:        %{summary}
 %{?python_provide:%python_provide python3-%{pypi_name}}
  
 Requires:       python3dist(pysnmp) < 5.0.0
-Requires:       python3dist(pysnmp) >= 4.4.3
-Requires:       python3-pysnmp >= 4.4.12
+Requires:       python3dist(pysnmp) >= 4.4.12
+Requires:       python3dist(pyasn1)
 
 %description -n python3-%{pypi_name}
 SNMP Simulator is a tool that acts as multitude of SNMP Agents built into real
@@ -73,6 +76,9 @@ exit 0
 
 
 %changelog
+* Fri Aug 20 2021 Tsu-ba-me <ynho.li.aa.e@gmail.com> - 0.4.7-3
+- Revise all patches and extend to build on CentOS 8 Stream.
+
 * Thu Nov 12 2020 Brian Sawa <noahpop77@gmail.com> - 0.4.7-2
 - Updated daemon.py to allow it to be executed with superuser.
 

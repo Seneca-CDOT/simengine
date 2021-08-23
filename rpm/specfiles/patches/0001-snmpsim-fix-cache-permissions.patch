@@ -1,0 +1,142 @@
+ scripts/snmpsimd.py | 105 +++++++++++++++++++++++++++-------------------------
+ 1 file changed, 54 insertions(+), 51 deletions(-)
+
+diff --git a/scripts/snmpsimd.py b/scripts/snmpsimd.py
+index bda5286..0c0d83f 100644
+--- a/scripts/snmpsimd.py
++++ b/scripts/snmpsimd.py
+@@ -832,7 +832,8 @@ if variationModulesOptions:
+ 
+ if not os.path.exists(confdir.cache):
+     try:
+-        os.makedirs(confdir.cache)
++        with daemon.PrivilegesOf(procUser, procGroup):
++            os.makedirs(confdir.cache)
+     except OSError:
+         log.error('failed to create cache directory "%s": %s' % (confdir.cache, sys.exc_info()[1]))
+         sys.exit(-1)
+@@ -848,7 +849,8 @@ if variationModules:
+                 log.error('missing "%s" handler at variation module "%s"' % (x, name))
+                 sys.exit(-1)
+         try:
+-            body['init'](options=body['args'], mode='variating')
++            with daemon.PrivilegesOf(procUser, procGroup):
++                body['init'](options=body['args'], mode='variating')
+ 
+         except Exception:
+             log.error('Variation module "%s" from "%s" load FAILED: %s' % (
+@@ -862,64 +864,65 @@ if variationModules:
+ 
+ def configureManagedObjects(dataDirs, dataIndexInstrumController,
+                             snmpEngine=None, snmpContext=None):
+-    _mibInstrums = {}
+-    _dataFiles = {}
+-
+-    for dataDir in dataDirs:
+-        log.info('Scanning "%s" directory for %s data files...' % (dataDir, ','.join([' *%s%s' % (os.path.extsep, x.ext) for x in recordSet.values()])))
+-        if not os.path.exists(dataDir):
+-            log.info('Directory "%s" does not exist' % dataDir)
+-            continue
+-        log.msg.incIdent()
+-        for fullPath, textParser, communityName in getDataFiles(dataDir):
+-            if communityName in _dataFiles:
+-                log.error('ignoring duplicate Community/ContextName "%s" for data file %s '
+-                          '(%s already loaded)' % (communityName, fullPath, _dataFiles[communityName]))
++    with daemon.PrivilegesOf(procUser, procGroup):
++        _mibInstrums = {}
++        _dataFiles = {}
++
++        for dataDir in dataDirs:
++            log.info('Scanning "%s" directory for %s data files...' % (dataDir, ','.join([' *%s%s' % (os.path.extsep, x.ext) for x in recordSet.values()])))
++            if not os.path.exists(dataDir):
++                log.info('Directory "%s" does not exist' % dataDir)
+                 continue
+-            elif fullPath in _mibInstrums:
+-                mibInstrum = _mibInstrums[fullPath]
+-                log.info('Configuring *shared* %s' % (mibInstrum,))
+-            else:
+-                dataFile = DataFile(fullPath, textParser).indexText(forceIndexBuild)
+-                mibInstrum = mibInstrumControllerSet[dataFile.layout](dataFile)
+-
+-                _mibInstrums[fullPath] = mibInstrum
+-                _dataFiles[communityName] = fullPath
++            log.msg.incIdent()
++            for fullPath, textParser, communityName in getDataFiles(dataDir):
++                if communityName in _dataFiles:
++                    log.error('ignoring duplicate Community/ContextName "%s" for data file %s '
++                              '(%s already loaded)' % (communityName, fullPath, _dataFiles[communityName]))
++                    continue
++                elif fullPath in _mibInstrums:
++                    mibInstrum = _mibInstrums[fullPath]
++                    log.info('Configuring *shared* %s' % (mibInstrum,))
++                else:
++                    dataFile = DataFile(fullPath, textParser).indexText(forceIndexBuild)
++                    mibInstrum = mibInstrumControllerSet[dataFile.layout](dataFile)
+ 
+-                log.info('Configuring %s' % (mibInstrum,))
++                    _mibInstrums[fullPath] = mibInstrum
++                    _dataFiles[communityName] = fullPath
+ 
+-            log.info('SNMPv1/2c community name: %s' % (communityName,))
++                    log.info('Configuring %s' % (mibInstrum,))
+ 
+-            if v2cArch:
+-                contexts[univ.OctetString(communityName)] = mibInstrum
+-            
+-                dataIndexInstrumController.addDataFile(
+-                    fullPath, communityName
+-                )
+-            else:
+-                agentName = contextName = md5(univ.OctetString(communityName).asOctets()).hexdigest()
++                log.info('SNMPv1/2c community name: %s' % (communityName,))
+ 
+-                if not v3Only:
+-                    # snmpCommunityTable::snmpCommunityIndex can't be > 32
+-                    config.addV1System(
+-                        snmpEngine, agentName, communityName, contextName=contextName
++                if v2cArch:
++                    contexts[univ.OctetString(communityName)] = mibInstrum
++                
++                    dataIndexInstrumController.addDataFile(
++                        fullPath, communityName
+                     )
++                else:
++                    agentName = contextName = md5(univ.OctetString(communityName).asOctets()).hexdigest()
+ 
+-                snmpContext.registerContextName(contextName, mibInstrum)
+-                
+-                if len(communityName) <= 32:
+-                    snmpContext.registerContextName(communityName, mibInstrum)
+-                         
+-                dataIndexInstrumController.addDataFile(
+-                    fullPath, communityName, contextName
+-                )
+-                         
+-                log.info('SNMPv3 Context Name: %s%s' % (contextName, len(communityName) <= 32 and ' or %s' % communityName or ''))
++                    if not v3Only:
++                        # snmpCommunityTable::snmpCommunityIndex can't be > 32
++                        config.addV1System(
++                            snmpEngine, agentName, communityName, contextName=contextName
++                        )
++
++                    snmpContext.registerContextName(contextName, mibInstrum)
++                    
++                    if len(communityName) <= 32:
++                        snmpContext.registerContextName(communityName, mibInstrum)
++                             
++                    dataIndexInstrumController.addDataFile(
++                        fullPath, communityName, contextName
++                    )
++                             
++                    log.info('SNMPv3 Context Name: %s%s' % (contextName, len(communityName) <= 32 and ' or %s' % communityName or ''))
+ 
+-        log.msg.decIdent()
++            log.msg.decIdent()
+ 
+-    del _mibInstrums
+-    del _dataFiles
++        del _mibInstrums
++        del _dataFiles
+ 
+ 
+ if v2cArch:
