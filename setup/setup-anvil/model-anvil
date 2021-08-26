@@ -12,6 +12,17 @@ DEV_SE_CORE_PROCESS_NAME="app.py"
 SNMPSIM_PROCESS_NAME="snmpsimd.py"
 IPMISIM_PROCESS_NAME="ipmi_sim"
 
+function generate_mac_address {
+    printf "02"
+    od -N 5 -t x1 -A n /dev/urandom | tr " " :
+}
+
+function generate_serial_number {
+    local checksum=$(od -N 1 -An /dev/urandom | sha256sum)
+
+    print -f "%s" "${checksum::12}"
+}
+
 # Variables set by option -d
 se_cli="${PROD_SE_CLI_PATH}"
 is_use_dev=false
@@ -86,8 +97,8 @@ sudo "${se_cli}" model create ups -k=3 \
     --mask=255.255.0.0 \
     --port=161 \
     --interface="bcn1_bridge1:1" \
-    --serial-number="SVPD4D5QTQ3V" \
-    --mac-address="f2325a5b0824" \
+    --serial-number="$(generate_serial_number)" \
+    --mac-address="$(generate_mac_address)" \
     -x=-895 -y=-182
 
 sudo "${se_cli}" model create ups -k=4 \
@@ -96,8 +107,8 @@ sudo "${se_cli}" model create ups -k=4 \
     --mask=255.255.0.0 \
     --port=161 \
     --interface="bcn1_bridge1:2" \
-    --serial-number="8IAIMD9RX6KZ" \
-    --mac-address="8117f9db70d4" \
+    --serial-number="$(generate_serial_number)" \
+    --mac-address="$(generate_mac_address)" \
     -x=-895 -y=347
 
 # Create 2 PDUs
@@ -107,8 +118,8 @@ sudo "${se_cli}" model create pdu -k=5 \
     --mask=255.255.0.0 \
     --port=161 \
     --interface="bcn1_bridge1:3" \
-    --serial-number="AQ5AKU1OORAX" \
-    --mac-address="37436ab3c583" \
+    --serial-number="$(generate_serial_number)" \
+    --mac-address="$(generate_mac_address)" \
     -x=-36 -y=-161
 
 sudo "${se_cli}" model create pdu -k=6 \
@@ -117,8 +128,8 @@ sudo "${se_cli}" model create pdu -k=6 \
     --mask=255.255.0.0 \
     --port=161 \
     --interface="bcn1_bridge1:4" \
-    --serial-number="95SQW45SVIFX" \
-    --mac-address="b7bc37aa4d83" \
+    --serial-number="$(generate_serial_number)" \
+    --mac-address="$(generate_mac_address)" \
     -x=-36 -y=567
 
 # Add 2 Servers
