@@ -23,6 +23,9 @@ function generate_serial_number {
     print -f "%s" "${checksum::12}"
 }
 
+# Variables set by option -2
+is_m2=
+
 # Variables set by option -d
 se_cli="${PROD_SE_CLI_PATH}"
 is_use_dev=false
@@ -30,8 +33,11 @@ is_use_dev=false
 # Variables set by option -v
 is_verbose=false
 
-while getopts "dvh" o; do
+while getopts "2dvh" o; do
     case "$o" in
+        2)
+            is_m2=true
+            ;;
         d)
             se_cli="${DEV_SE_CLI_PATH}"
             is_use_dev=true
@@ -87,8 +93,8 @@ if [ "$is_verbose" = true ]; then
 fi
 
 # Create 2 outlets, one powers 'an-ups01' another one powers 'an-ups02'
-sudo "${se_cli}" model create outlet --asset-key=1 -x=-861 -y=-171
-sudo "${se_cli}" model create outlet -k2 -x=-861 -y=351
+sudo "${se_cli}" model create outlet -k=1 -x=-861 -y=-171
+sudo "${se_cli}" model create outlet -k=2 -x=-861 -y=351
 
 # Add 2 UPSs
 sudo "${se_cli}" model create ups -k=3 \
@@ -202,6 +208,38 @@ sudo "${se_cli}" model power-link -s62 -d81 # [an-pdu02]={port-2}=>{psu-1}=>[an-
 # Power Up Striker Servers
 sudo "${se_cli}" model power-link -s58 -d91  # [an-pdu01]={port-8}=>{psu-1}=>[an-striker01]
 sudo "${se_cli}" model power-link -s68 -d101 # [an-pdu02]={port-8}=>{psu-1}=>[an-striker02]
+
+if [ ! "$is_m2" = true ]; then
+    sudo "${se_cli}" model create outlet -k=11 -x=-861 -y=-693
+
+    sudo "${se_cli}" model create ups -k=12 \
+        --name=an-ups03 \
+        --host=10.20.3.3 \
+        --mask=255.255.0.0 \
+        --port=161 \
+        --interface="bcn1_bridge1:7" \
+        --serial-number="$(generate_serial_number)" \
+        --mac-address="$(generate_mac_address)" \
+        -x=-895 -y=-704
+
+    sudo "${se_cli}" model create server-bmc -k=13 \
+        --domain-name=an-a01dr01 \
+        --power-consumption=360 \
+        --no-power-on-ac \
+        --host=10.20.11.3 \
+        --port=623 \
+        --vmport=20102 \
+        --storcli-port=20302 \
+        -x=-162 -y=-704 \
+        --interface="bcn1_bridge1:8" \
+        --user="admin" \
+        --password="Initial1" \
+        --sensor-def="${PRESET_DIR}/sensors.json"
+
+    sudo "${se_cli}" model power-link -s11 -d12     # {_Mains_}==>[an-ups03]
+    sudo "${se_cli}" model power-link -s121 -d131   # [an-ups03]={port-1}==>[an-a01dr01]={psu-1}
+    sudo "${se_cli}" model power-link -s122 -d132   # [an-ups03]={port-2}==>[an-a01dr01]={psu-2}
+fi
 
 if [ "$is_use_dev" = true ]; then
     if [ "$is_verbose" = true ]; then
