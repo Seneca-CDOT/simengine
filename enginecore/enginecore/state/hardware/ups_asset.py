@@ -226,7 +226,7 @@ class UPS(Asset, SNMPSim):
     ):
         """Start a thread that will decrease battery level"""
 
-        if self._battery_drain_t and self._battery_drain_t.isAlive():
+        if self._battery_drain_t and self._battery_drain_t.is_alive():
             logger.warning("Battery drain is already running!")
             self.state.update_transfer_reason(t_reason)
             self._increase_transfer_severity()
@@ -254,7 +254,7 @@ class UPS(Asset, SNMPSim):
     def _launch_battery_charge(self, power_up_on_charge=False):
         """Start a thread that will charge battery level"""
 
-        if self._battery_charge_t and self._battery_charge_t.isAlive():
+        if self._battery_charge_t and self._battery_charge_t.is_alive():
             logger.warning("Battery is already charging!")
             return
 
@@ -426,12 +426,12 @@ class UPS(Asset, SNMPSim):
     @property
     def draining_battery(self):
         """Returns true if UPS battery is being drained"""
-        return self._battery_drain_t is not None and self._battery_drain_t.isAlive()
+        return self._battery_drain_t is not None and self._battery_drain_t.is_alive()
 
     @property
     def charging_battery(self):
         """Returns true if UPS battery is getting re-charged"""
-        return self._battery_charge_t is not None and self._battery_charge_t.isAlive()
+        return self._battery_charge_t is not None and self._battery_charge_t.is_alive()
 
     @property
     def charge_speed_factor(self):
@@ -476,7 +476,7 @@ class UPS(Asset, SNMPSim):
         self._stop_event.set()
 
         for thread in [self._battery_charge_t, self._battery_drain_t]:
-            if thread is not None and thread.isAlive():
+            if thread is not None and thread.is_alive():
                 thread.join()
 
         super().stop(code)
