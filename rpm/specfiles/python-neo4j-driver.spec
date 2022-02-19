@@ -3,7 +3,7 @@
 
 Name:           python-%{pypi_name}
 Version:        1.6.1
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        Neo4j Bolt driver for Python
 
 License:        Apache License, Version 2.0
@@ -52,9 +52,12 @@ rm -rf %{pypi_name}.egg-info
 %files -n python3-%{pypi_name}
 %doc README.rst
 %{python3_sitearch}/neo4j
-%{python3_sitearch}/neo4j_driver-%{version}-py?.?.egg-info
+%{python3_sitearch}/neo4j_driver-%{version}-py%{python3_version}.egg-info
 
 %changelog
+* Sat Feb 19 2022 juan <rojasjuandiego6@gmail.com> - 1.6.1-3
+- Fix egg-info path
+
 * Thu Nov 12 2020 Brian Sawa <noahpop77@gmail.com> - 1.6.1-3
 - Updated routing.py
 
