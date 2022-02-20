@@ -733,7 +733,7 @@ pushd %{qemu_kvm_build}
   --enable-vnc-sasl \
   --enable-werror \
   --enable-xkbcommon \
-  --without-default-devices \
+  --with-default-devices \
   --with-devices-%{kvm_target}=%{kvm_target}-rh-devices
 
 
