@@ -1,0 +1,110 @@
+From e9ebc159a9acf108e1ec6f622be3f256cf14aba7 Mon Sep 17 00:00:00 2001
+From: Bandan Das <bsd@redhat.com>
+Date: Tue, 3 Dec 2013 20:05:13 +0100
+Subject: vfio: cap number of devices that can be assigned
+
+RH-Author: Bandan Das <bsd@redhat.com>
+Message-id: <1386101113-31560-3-git-send-email-bsd@redhat.com>
+Patchwork-id: 55984
+O-Subject: [PATCH RHEL7 qemu-kvm v2 2/2] vfio: cap number of devices that can be assigned
+Bugzilla: 678368
+RH-Acked-by: Alex Williamson <alex.williamson@redhat.com>
+RH-Acked-by: Marcelo Tosatti <mtosatti@redhat.com>
+RH-Acked-by: Michael S. Tsirkin <mst@redhat.com>
+
+Go through all groups to get count of total number of devices
+active to enforce limit
+
+Reasoning from Alex for the limit(32) - Assuming 3 slots per
+device, with 125 slots (number of memory slots for RHEL 7),
+we can support almost 40 devices and still have few slots left
+for other uses. Stepping down a bit, the number 32 arbitrarily
+matches the number of slots on a PCI bus and is also a nice power
+of two.
+
+Signed-off-by: Bandan Das <bsd@redhat.com>
+
+Rebase notes (2.8.0):
+- removed return value for vfio_realize (commit 1a22aca)
+
+Merged patches (2.9.0):
+- 17eb774 vfio: Use error_setg when reporting max assigned device overshoot
+
+ Merged patches (4.1.0-rc3):
+- 2b89558 vfio: increase the cap on number of assigned devices to 64
+---
+ hw/vfio/pci.c | 29 ++++++++++++++++++++++++++++-
+ hw/vfio/pci.h |  1 +
+ 2 files changed, 29 insertions(+), 1 deletion(-)
+
+diff --git a/hw/vfio/pci.c b/hw/vfio/pci.c
+index 7b45353ce2..eb725a3aee 100644
+--- a/hw/vfio/pci.c
++++ b/hw/vfio/pci.c
+@@ -45,6 +45,9 @@
+ 
+ #define TYPE_VFIO_PCI_NOHOTPLUG "vfio-pci-nohotplug"
+ 
++/* RHEL only: Set once for the first assigned dev */
++static uint16_t device_limit;
++
+ static void vfio_disable_interrupts(VFIOPCIDevice *vdev);
+ static void vfio_mmap_set_enabled(VFIOPCIDevice *vdev, bool enabled);
+ 
+@@ -2807,9 +2810,30 @@ static void vfio_realize(PCIDevice *pdev, Error **errp)
+     ssize_t len;
+     struct stat st;
+     int groupid;
+-    int i, ret;
++    int ret, i = 0;
+     bool is_mdev;
+ 
++    if (device_limit && device_limit != vdev->assigned_device_limit) {
++            error_setg(errp, "Assigned device limit has been redefined. "
++                       "Old:%d, New:%d",
++                       device_limit, vdev->assigned_device_limit);
++            return;
++    } else {
++        device_limit = vdev->assigned_device_limit;
++    }
++
++    QLIST_FOREACH(group, &vfio_group_list, next) {
++        QLIST_FOREACH(vbasedev_iter, &group->device_list, next) {
++            i++;
++        }
++    }
++
++    if (i >= vdev->assigned_device_limit) {
++        error_setg(errp, "Maximum supported vfio devices (%d) "
++                     "already attached", vdev->assigned_device_limit);
++        return;
++    }
++
+     if (!vdev->vbasedev.sysfsdev) {
+         if (!(~vdev->host.domain || ~vdev->host.bus ||
+               ~vdev->host.slot || ~vdev->host.function)) {
+@@ -3246,6 +3270,9 @@ static Property vfio_pci_dev_properties[] = {
+     DEFINE_PROP_BOOL("x-no-kvm-msix", VFIOPCIDevice, no_kvm_msix, false),
+     DEFINE_PROP_BOOL("x-no-geforce-quirks", VFIOPCIDevice,
+                      no_geforce_quirks, false),
++    /* RHEL only */
++    DEFINE_PROP_UINT16("x-assigned-device-limit", VFIOPCIDevice,
++                       assigned_device_limit, 64),
+     DEFINE_PROP_BOOL("x-no-kvm-ioeventfd", VFIOPCIDevice, no_kvm_ioeventfd,
+                      false),
+     DEFINE_PROP_BOOL("x-no-vfio-ioeventfd", VFIOPCIDevice, no_vfio_ioeventfd,
+diff --git a/hw/vfio/pci.h b/hw/vfio/pci.h
+index 64777516d1..e0fe6ca97e 100644
+--- a/hw/vfio/pci.h
++++ b/hw/vfio/pci.h
+@@ -139,6 +139,7 @@ struct VFIOPCIDevice {
+     EventNotifier err_notifier;
+     EventNotifier req_notifier;
+     int (*resetfn)(struct VFIOPCIDevice *);
++    uint16_t assigned_device_limit;
+     uint32_t vendor_id;
+     uint32_t device_id;
+     uint32_t sub_vendor_id;
+-- 
+2.27.0
+

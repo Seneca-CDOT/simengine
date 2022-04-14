@@ -1,0 +1,58 @@
+From 265a57f2955b7f0b65e3f57f89aa1ff2541d3f73 Mon Sep 17 00:00:00 2001
+From: Thomas Huth <thuth@redhat.com>
+Date: Fri, 26 Nov 2021 09:37:11 +0100
+Subject: redhat: Add s390x machine type compatibility handling for the rebase
+ to v6.2
+
+RH-Author: Thomas Huth <thuth@redhat.com>
+RH-MergeRequest: 80: Add s390x machine type compatibility handling for the rebase to v6.2
+RH-Commit: [26/26] c45cf594604f6dd23954696b9c84d2025e328d11
+RH-Bugzilla: 2022602
+RH-Acked-by: David Hildenbrand <david@redhat.com>
+RH-Acked-by: Laurent Vivier <lvivier@redhat.com>
+RH-Acked-by: Cornelia Huck <cohuck@redhat.com>
+
+Add compatibility handling for the rhel8.5.0 machine type (and
+recursively older, of course).
+
+Based on the following upstream commits:
+
+ 463e50da8b - s390x/cpumodel: Bump up QEMU model to a stripped-down IBM z14 GA2
+ 30e398f796 - s390x/cpumodel: Add more feature to gen16 default model
+ 4a0af2930a - machine: Prefer cores over sockets in smp parsing since 6.2
+ 2b52619994 - machine: Move smp_prefer_sockets to struct SMPCompatProps
+
+Signed-off-by: Thomas Huth <thuth@redhat.com>
+---
+ hw/s390x/s390-virtio-ccw.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/hw/s390x/s390-virtio-ccw.c b/hw/s390x/s390-virtio-ccw.c
+index 181856e6cf..cf13c457d6 100644
+--- a/hw/s390x/s390-virtio-ccw.c
++++ b/hw/s390x/s390-virtio-ccw.c
+@@ -1105,11 +1105,21 @@ DEFINE_CCW_MACHINE(2_4, "2.4", false);
+ 
+ static void ccw_machine_rhel850_instance_options(MachineState *machine)
+ {
++    static const S390FeatInit qemu_cpu_feat = { S390_FEAT_LIST_QEMU_V6_0 };
++
++    s390_set_qemu_cpu_model(0x2964, 13, 2, qemu_cpu_feat);
++
++    s390_cpudef_featoff_greater(16, 1, S390_FEAT_NNPA);
++    s390_cpudef_featoff_greater(16, 1, S390_FEAT_VECTOR_PACKED_DECIMAL_ENH2);
++    s390_cpudef_featoff_greater(16, 1, S390_FEAT_BEAR_ENH);
++    s390_cpudef_featoff_greater(16, 1, S390_FEAT_RDP);
++    s390_cpudef_featoff_greater(16, 1, S390_FEAT_PAI);
+ }
+ 
+ static void ccw_machine_rhel850_class_options(MachineClass *mc)
+ {
+     compat_props_add(mc->compat_props, hw_compat_rhel_8_5, hw_compat_rhel_8_5_len);
++    mc->smp_props.prefer_sockets = true;
+ }
+ DEFINE_CCW_MACHINE(rhel850, "rhel8.5.0", true);
+ 
+-- 
+2.27.0
+

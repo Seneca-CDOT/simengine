@@ -1,0 +1,60 @@
+From 92bb62c47eab021f8dabecd09b5fbc1706e6a29c Mon Sep 17 00:00:00 2001
+From: David Gibson <dgibson@redhat.com>
+Date: Wed, 6 Feb 2019 03:58:56 +0000
+Subject: BZ1653590: Require at least 64kiB pages for downstream guests & hosts
+
+RH-Author: David Gibson <dgibson@redhat.com>
+Message-id: <20190206035856.19058-1-dgibson@redhat.com>
+Patchwork-id: 84246
+O-Subject: [RHELAV-8.0/rhel qemu-kvm PATCH] BZ1653590: Require at least 64kiB pages for downstream guests & hosts
+Bugzilla: 1653590
+RH-Acked-by: Laurent Vivier <lvivier@redhat.com>
+RH-Acked-by: Serhii Popovych <spopovyc@redhat.com>
+RH-Acked-by: Thomas Huth <thuth@redhat.com>
+
+Most current POWER guests require 64kiB page support, so that's the default
+for the cap-hpt-max-pagesize option in qemu which limits available guest
+page sizes.  We warn if the value is set smaller than that, but don't
+outright fail upstream, because we need to allow for the possibility of
+guest (and/or host) kernels configured for 4kiB page sizes.
+
+Downstream, however, we simply don't support 4kiB pagesize configured
+kernels in guest or host, so we can have qemu simply error out in this
+situation.
+
+Testing: Attempted to start a guest with cap-hpt-max-page-size=4k and verified
+         it failed immediately with a qemu error
+
+Signed-off-by: David Gibson <dgibson@redhat.com>
+Signed-off-by: Danilo C. L. de Paula <ddepaula@redhat.com>
+---
+ hw/ppc/spapr_caps.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/hw/ppc/spapr_caps.c b/hw/ppc/spapr_caps.c
+index ed7c077a0d..48a8efe678 100644
+--- a/hw/ppc/spapr_caps.c
++++ b/hw/ppc/spapr_caps.c
+@@ -332,12 +332,19 @@ bool spapr_check_pagesize(SpaprMachineState *spapr, hwaddr pagesize,
+ static void cap_hpt_maxpagesize_apply(SpaprMachineState *spapr,
+                                       uint8_t val, Error **errp)
+ {
++#if 0 /* disabled for RHEL */
+     if (val < 12) {
+         error_setg(errp, "Require at least 4kiB hpt-max-page-size");
+         return;
+     } else if (val < 16) {
+         warn_report("Many guests require at least 64kiB hpt-max-page-size");
+     }
++#else /* Only page sizes >=64kiB supported for RHEL */
++    if (val < 16) {
++        error_setg(errp, "Require at least 64kiB hpt-max-page-size");
++        return;
++    }
++#endif
+ 
+     spapr_check_pagesize(spapr, qemu_minrampagesize(), errp);
+ }
+-- 
+2.27.0
+

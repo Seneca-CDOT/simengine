@@ -1,0 +1,73 @@
+From 7ad8814e583dcc7dc23e3e8398570243b8f176a1 Mon Sep 17 00:00:00 2001
+From: "Dr. David Alan Gilbert" <dgilbert@redhat.com>
+Date: Tue, 23 Nov 2021 17:57:42 +0000
+Subject: x86/rhel machine types: Add pc_rhel_8_5_compat
+
+RH-Author: Dr. David Alan Gilbert <dgilbert@redhat.com>
+RH-MergeRequest: 77: 8.6/6.2 mt fixes
+RH-Commit: [22/23] 8bf555c5d78f344b97ffd5c888c7a7bed592d9d0
+RH-Bugzilla: 2026443
+RH-Acked-by: Miroslav Rezanina <mrezanin@redhat.com>
+
+Add pc_rhel_8_5_compat as the merge of pc_compat_6_1 and pc_compat_6_0
+(since 8.5 was based on 6.0).
+
+Note, x-keep-pci-slot-hpc flipped back and forward, leaving it out
+looks like it leaves us with the original.
+
+Signed-off-by: Dr. David Alan Gilbert <dgilbert@redhat.com>
+Signed-off-by: Miroslav Rezanina <mrezanin@redhat.com>
+---
+ hw/i386/pc.c         | 21 +++++++++++++++++++++
+ include/hw/i386/pc.h |  3 +++
+ 2 files changed, 24 insertions(+)
+
+diff --git a/hw/i386/pc.c b/hw/i386/pc.c
+index e8109954ca..4c08a1971c 100644
+--- a/hw/i386/pc.c
++++ b/hw/i386/pc.c
+@@ -387,6 +387,27 @@ GlobalProperty pc_rhel_compat[] = {
+ };
+ const size_t pc_rhel_compat_len = G_N_ELEMENTS(pc_rhel_compat);
+ 
++GlobalProperty pc_rhel_8_5_compat[] = {
++    /* pc_rhel_8_5_compat from pc_compat_6_0 */
++    { "qemu64" "-" TYPE_X86_CPU, "family", "6" },
++    /* pc_rhel_8_5_compat from pc_compat_6_0 */
++    { "qemu64" "-" TYPE_X86_CPU, "model", "6" },
++    /* pc_rhel_8_5_compat from pc_compat_6_0 */
++    { "qemu64" "-" TYPE_X86_CPU, "stepping", "3" },
++    /* pc_rhel_8_5_compat from pc_compat_6_0 */
++    { TYPE_X86_CPU, "x-vendor-cpuid-only", "off" },
++    /* pc_rhel_8_5_compat from pc_compat_6_0 */
++    { "ICH9-LPC", ACPI_PM_PROP_ACPI_PCIHP_BRIDGE, "off" },
++
++    /* pc_rhel_8_5_compat from pc_compat_6_1 */
++    { TYPE_X86_CPU, "hv-version-id-build", "0x1bbc" },
++    /* pc_rhel_8_5_compat from pc_compat_6_1 */
++    { TYPE_X86_CPU, "hv-version-id-major", "0x0006" },
++    /* pc_rhel_8_5_compat from pc_compat_6_1 */
++    { TYPE_X86_CPU, "hv-version-id-minor", "0x0001" },
++};
++const size_t pc_rhel_8_5_compat_len = G_N_ELEMENTS(pc_rhel_8_5_compat);
++
+ GlobalProperty pc_rhel_8_4_compat[] = {
+     /* pc_rhel_8_4_compat from pc_compat_5_2 */
+     { "ICH9-LPC", "x-smi-cpu-hotunplug", "off" },
+diff --git a/include/hw/i386/pc.h b/include/hw/i386/pc.h
+index d0544ee119..9e8bfb69f8 100644
+--- a/include/hw/i386/pc.h
++++ b/include/hw/i386/pc.h
+@@ -286,6 +286,9 @@ extern const size_t pc_compat_1_4_len;
+ extern GlobalProperty pc_rhel_compat[];
+ extern const size_t pc_rhel_compat_len;
+ 
++extern GlobalProperty pc_rhel_8_5_compat[];
++extern const size_t pc_rhel_8_5_compat_len;
++
+ extern GlobalProperty pc_rhel_8_4_compat[];
+ extern const size_t pc_rhel_8_4_compat_len;
+ 
+-- 
+2.27.0
+

@@ -1,0 +1,76 @@
+From 300cdf7f5b8b34e111c5e4141684af7329be46d9 Mon Sep 17 00:00:00 2001
+From: Greg Kurz <gkurz@redhat.com>
+Date: Mon, 13 Dec 2021 15:42:41 +0100
+Subject: [PATCH 2/2] redhat: Define pseries-rhel8.6.0 machine type
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+RH-Author: Greg Kurz <gkurz@redhat.com>
+RH-MergeRequest: 92: redhat: Define pseries-rhel8.6.0 machine type
+RH-Commit: [1/1] 3c0f59d7ddf4bb22f382b5df7daa136730b9e866
+RH-Bugzilla: 2031041
+RH-Acked-by: Philippe Mathieu-Daudé <philmd@redhat.com>
+RH-Acked-by: David Gibson (Red Hat) <dgibson@redhat.com>
+RH-Acked-by: Thomas Huth <thuth@redhat.com>
+RH-Acked-by: Cornelia Huck <cohuck@redhat.com>
+RH-Acked-by: Laurent Vivier <lvivier@redhat.com>
+
+BZ: https://bugzilla.redhat.com/show_bug.cgi?id=2031041
+
+BRANCH: rhel-8.6.0
+
+UPSTREAM: RHEL only
+
+BREW: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=41989147
+
+Signed-off-by: Greg Kurz <gkurz@redhat.com>
+---
+ hw/ppc/spapr.c | 18 +++++++++++++++---
+ 1 file changed, 15 insertions(+), 3 deletions(-)
+
+diff --git a/hw/ppc/spapr.c b/hw/ppc/spapr.c
+index 2f27888d8a..32cfe8f006 100644
+--- a/hw/ppc/spapr.c
++++ b/hw/ppc/spapr.c
+@@ -5170,6 +5170,19 @@ static void spapr_machine_rhel_default_class_options(MachineClass *mc)
+     mc->max_cpus = 384;
+ }
+ 
++/*
++ * pseries-rhel8.6.0
++ * like pseries-6.2
++ */
++
++static void spapr_machine_rhel860_class_options(MachineClass *mc)
++{
++    /* The default machine type must apply the RHEL specific defaults */
++    spapr_machine_rhel_default_class_options(mc);
++}
++
++DEFINE_SPAPR_MACHINE(rhel860, "rhel8.6.0", true);
++
+ /*
+  * pseries-rhel8.5.0
+  * like pseries-6.0
+@@ -5179,15 +5192,14 @@ static void spapr_machine_rhel850_class_options(MachineClass *mc)
+ {
+     SpaprMachineClass *smc = SPAPR_MACHINE_CLASS(mc);
+ 
+-    /* The default machine type must apply the RHEL specific defaults */
+-    spapr_machine_rhel_default_class_options(mc);
++    spapr_machine_rhel860_class_options(mc);
+     compat_props_add(mc->compat_props, hw_compat_rhel_8_5,
+                      hw_compat_rhel_8_5_len);
+     smc->pre_6_2_numa_affinity = true;
+     mc->smp_props.prefer_sockets = true;
+ }
+ 
+-DEFINE_SPAPR_MACHINE(rhel850, "rhel8.5.0", true);
++DEFINE_SPAPR_MACHINE(rhel850, "rhel8.5.0", false);
+ 
+ /*
+  * pseries-rhel8.4.0
+-- 
+2.27.0
+

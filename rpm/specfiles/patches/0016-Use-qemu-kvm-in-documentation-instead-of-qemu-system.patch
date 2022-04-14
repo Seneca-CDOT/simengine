@@ -1,0 +1,126 @@
+From 0d3fc0b4c5773c6cabb0a58c064475f76eb6ac1e Mon Sep 17 00:00:00 2001
+From: Miroslav Rezanina <mrezanin@redhat.com>
+Date: Wed, 8 Jul 2020 08:35:50 +0200
+Subject: Use qemu-kvm in documentation instead of qemu-system-<arch>
+
+Patchwork-id: 62380
+O-Subject: [RHEV-7.1 qemu-kvm-rhev PATCHv4] Use qemu-kvm in documentation instead of qemu-system-i386
+Bugzilla: 1140620
+RH-Acked-by: Laszlo Ersek <lersek@redhat.com>
+RH-Acked-by: Markus Armbruster <armbru@redhat.com>
+RH-Acked-by: Stefan Hajnoczi <stefanha@redhat.com>
+
+From: Miroslav Rezanina <mrezanin@redhat.com>
+
+We change the name and location of qemu-kvm binaries. Update documentation
+to reflect this change. Only architectures available in RHEL are updated.
+
+Signed-off-by: Miroslav Rezanina <mrezanin@redhat.com>
+
+Rebase notes (5.1.0 rc0):
+ - qemu-block-drivers.texi converted to qemu-block-drivers.rst (upstream)
+
+Rebase notes (5.2.0 rc0):
+ - rewrite patch to new docs structure
+---
+ docs/defs.rst.inc              |  4 ++--
+ docs/tools/qemu-trace-stap.rst | 14 +++++++-------
+ qemu-options.hx                | 10 +++++-----
+ 3 files changed, 14 insertions(+), 14 deletions(-)
+
+diff --git a/docs/defs.rst.inc b/docs/defs.rst.inc
+index 52d6454b93..d74dbdeca9 100644
+--- a/docs/defs.rst.inc
++++ b/docs/defs.rst.inc
+@@ -9,7 +9,7 @@
+    but the manpages will end up misrendered with following normal text
+    incorrectly in boldface.
+ 
+-.. |qemu_system| replace:: qemu-system-x86_64
+-.. |qemu_system_x86| replace:: qemu-system-x86_64
++.. |qemu_system| replace:: qemu-kvm
++.. |qemu_system_x86| replace:: qemu-kvm
+ .. |I2C| replace:: I\ :sup:`2`\ C
+ .. |I2S| replace:: I\ :sup:`2`\ S
+diff --git a/docs/tools/qemu-trace-stap.rst b/docs/tools/qemu-trace-stap.rst
+index d53073b52b..9e93df084f 100644
+--- a/docs/tools/qemu-trace-stap.rst
++++ b/docs/tools/qemu-trace-stap.rst
+@@ -46,19 +46,19 @@ The following commands are valid:
+   any of the listed names. If no *PATTERN* is given, the all possible
+   probes will be listed.
+ 
+-  For example, to list all probes available in the ``qemu-system-x86_64``
++  For example, to list all probes available in the ``qemu-kvm``
+   binary:
+ 
+   ::
+ 
+-    $ qemu-trace-stap list qemu-system-x86_64
++    $ qemu-trace-stap list qemu-kvm
+ 
+   To filter the list to only cover probes related to QEMU's cryptographic
+   subsystem, in a binary outside ``$PATH``
+ 
+   ::
+ 
+-    $ qemu-trace-stap list /opt/qemu/4.0.0/bin/qemu-system-x86_64 'qcrypto*'
++    $ qemu-trace-stap list /opt/qemu/4.0.0/bin/qemu-kvm 'qcrypto*'
+ 
+ .. option:: run OPTIONS BINARY PATTERN...
+ 
+@@ -90,18 +90,18 @@ The following commands are valid:
+     Restrict the tracing session so that it only triggers for the process
+     identified by *PID*.
+ 
+-  For example, to monitor all processes executing ``qemu-system-x86_64``
++  For example, to monitor all processes executing ``qemu-kvm``
+   as found on ``$PATH``, displaying all I/O related probes:
+ 
+   ::
+ 
+-    $ qemu-trace-stap run qemu-system-x86_64 'qio*'
++    $ qemu-trace-stap run qemu-kvm 'qio*'
+ 
+   To monitor only the QEMU process with PID 1732
+ 
+   ::
+ 
+-    $ qemu-trace-stap run --pid=1732 qemu-system-x86_64 'qio*'
++    $ qemu-trace-stap run --pid=1732 qemu-kvm 'qio*'
+ 
+   To monitor QEMU processes running an alternative binary outside of
+   ``$PATH``, displaying verbose information about setup of the
+@@ -109,7 +109,7 @@ The following commands are valid:
+ 
+   ::
+ 
+-    $ qemu-trace-stap -v run /opt/qemu/4.0.0/qemu-system-x86_64 'qio*'
++    $ qemu-trace-stap -v run /opt/qemu/4.0.0/qemu-kvm 'qio*'
+ 
+ See also
+ --------
+diff --git a/qemu-options.hx b/qemu-options.hx
+index ae2c6dbbfc..94c4a8dbaf 100644
+--- a/qemu-options.hx
++++ b/qemu-options.hx
+@@ -3150,11 +3150,11 @@ SRST
+ 
+     ::
+ 
+-        qemu -m 512 -object memory-backend-file,id=mem,size=512M,mem-path=/hugetlbfs,share=on \
+-             -numa node,memdev=mem \
+-             -chardev socket,id=chr0,path=/path/to/socket \
+-             -netdev type=vhost-user,id=net0,chardev=chr0 \
+-             -device virtio-net-pci,netdev=net0
++        qemu-kvm -m 512 -object memory-backend-file,id=mem,size=512M,mem-path=/hugetlbfs,share=on \
++                 -numa node,memdev=mem \
++                 -chardev socket,id=chr0,path=/path/to/socket \
++                 -netdev type=vhost-user,id=net0,chardev=chr0 \
++                 -device virtio-net-pci,netdev=net0
+ 
+ ``-netdev vhost-vdpa,vhostdev=/path/to/dev``
+     Establish a vhost-vdpa netdev.
+-- 
+2.27.0
+

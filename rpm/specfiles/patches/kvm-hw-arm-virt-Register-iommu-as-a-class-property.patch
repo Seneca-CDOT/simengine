@@ -1,0 +1,78 @@
+From 8d5b57798d079307a98f6be5e1f6d28d1937a2fe Mon Sep 17 00:00:00 2001
+From: Eric Auger <eric.auger@redhat.com>
+Date: Mon, 20 Dec 2021 15:50:44 +0100
+Subject: [PATCH 1/6] hw/arm/virt: Register "iommu" as a class property
+
+RH-Author: Eric Auger <eric.auger@redhat.com>
+RH-MergeRequest: 95: hw/arm/virt: Add virt-rhel8.6.0 machine type
+RH-Commit: [1/5] 74b01bb90213493db700d5bdf81dd99892571972
+RH-Bugzilla: 2031039
+RH-Acked-by: Miroslav Rezanina <mrezanin@redhat.com>
+RH-Acked-by: Andrew Jones <drjones@redhat.com>
+RH-Acked-by: Gavin Shan <gshan@redhat.com>
+
+branch: rhel-8.6.0
+Brew: 42212069
+Upstream: no
+
+Register the "iommu" option as a class property. This mirrors what
+was done in upstream commit b91def7b ("arm/virt: Register
+most properties as class properties").
+
+While we are at it we also move the "x-oem-id" and "x-oem-table-id"
+registrations at the very end of the rhel_machine_class_init()
+function. This makes our life easier when comparing with upstream.
+
+Signed-off-by: Eric Auger <eric.auger@redhat.com>
+---
+ hw/arm/virt.c | 20 ++++++++++++--------
+ 1 file changed, 12 insertions(+), 8 deletions(-)
+
+diff --git a/hw/arm/virt.c b/hw/arm/virt.c
+index e8941afd01..684ffce52e 100644
+--- a/hw/arm/virt.c
++++ b/hw/arm/virt.c
+@@ -3131,6 +3131,18 @@ static void rhel_machine_class_init(ObjectClass *oc, void *data)
+                                           "Set GIC version. "
+                                           "Valid values are 2, 3, host and max");
+ 
++    object_class_property_add_str(oc, "iommu", virt_get_iommu, virt_set_iommu);
++    object_class_property_set_description(oc, "iommu",
++                                          "Set the IOMMU type. "
++                                          "Valid values are none and smmuv3");
++
++    object_class_property_add_bool(oc, "default_bus_bypass_iommu",
++                                   virt_get_default_bus_bypass_iommu,
++                                   virt_set_default_bus_bypass_iommu);
++    object_class_property_set_description(oc, "default_bus_bypass_iommu",
++                                          "Set on/off to enable/disable "
++                                          "bypass_iommu for default root bus");
++
+     object_class_property_add_str(oc, "x-oem-id",
+                                   virt_get_oem_id,
+                                   virt_set_oem_id);
+@@ -3146,10 +3158,6 @@ static void rhel_machine_class_init(ObjectClass *oc, void *data)
+                                           "Override the default value of field OEM Table ID "
+                                           "in ACPI table header."
+                                           "The string may be up to 8 bytes in size");
+-    object_class_property_add_bool(oc, "default_bus_bypass_iommu",
+-                                   virt_get_default_bus_bypass_iommu,
+-                                   virt_set_default_bus_bypass_iommu);
+-
+ }
+ 
+ static void rhel_virt_instance_init(Object *obj)
+@@ -3183,10 +3191,6 @@ static void rhel_virt_instance_init(Object *obj)
+ 
+     /* Default disallows iommu instantiation */
+     vms->iommu = VIRT_IOMMU_NONE;
+-    object_property_add_str(obj, "iommu", virt_get_iommu, virt_set_iommu);
+-    object_property_set_description(obj, "iommu",
+-                                    "Set the IOMMU type. "
+-                                    "Valid values are none and smmuv3");
+ 
+     /* Default disallows RAS instantiation and is non-configurable for RHEL */
+     vms->ras = false;
+-- 
+2.27.0
+

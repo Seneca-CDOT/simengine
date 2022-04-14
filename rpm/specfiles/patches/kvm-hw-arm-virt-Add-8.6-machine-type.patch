@@ -1,0 +1,57 @@
+From a154eb35d738aecf552d57d99499facce1c834ba Mon Sep 17 00:00:00 2001
+From: Eric Auger <eric.auger@redhat.com>
+Date: Mon, 20 Dec 2021 15:24:24 +0100
+Subject: [PATCH 4/6] hw/arm/virt: Add 8.6 machine type
+
+RH-Author: Eric Auger <eric.auger@redhat.com>
+RH-MergeRequest: 95: hw/arm/virt: Add virt-rhel8.6.0 machine type
+RH-Commit: [4/5] d0df3e796d3e9a6ca2af1e3b33fc6021bcac5d09
+RH-Bugzilla: 2031039
+RH-Acked-by: Miroslav Rezanina <mrezanin@redhat.com>
+RH-Acked-by: Andrew Jones <drjones@redhat.com>
+RH-Acked-by: Gavin Shan <gshan@redhat.com>
+
+branch: rhel-8.6.0
+Brew: 42212069
+Upstream: no
+
+Add 8.6 machine type.
+
+Signed-off-by: Eric Auger <eric.auger@redhat.com>
+---
+ hw/arm/virt.c | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/hw/arm/virt.c b/hw/arm/virt.c
+index 6a4173b6c3..c9c17b9d45 100644
+--- a/hw/arm/virt.c
++++ b/hw/arm/virt.c
+@@ -3228,17 +3228,23 @@ static void rhel_machine_init(void)
+ }
+ type_init(rhel_machine_init);
+ 
++static void rhel860_virt_options(MachineClass *mc)
++{
++    compat_props_add(mc->compat_props, arm_rhel_compat, arm_rhel_compat_len);
++}
++DEFINE_RHEL_MACHINE_AS_LATEST(8, 6, 0)
++
+ static void rhel850_virt_options(MachineClass *mc)
+ {
+     VirtMachineClass *vmc = VIRT_MACHINE_CLASS(OBJECT_CLASS(mc));
+ 
+-    compat_props_add(mc->compat_props, arm_rhel_compat, arm_rhel_compat_len);
++    rhel860_virt_options(mc);
+     compat_props_add(mc->compat_props, hw_compat_rhel_8_5, hw_compat_rhel_8_5_len);
+     mc->smp_props.prefer_sockets = true;
+     vmc->no_cpu_topology = true;
+     vmc->no_tcg_its = true;
+ }
+-DEFINE_RHEL_MACHINE_AS_LATEST(8, 5, 0)
++DEFINE_RHEL_MACHINE(8, 5, 0)
+ 
+ static void rhel840_virt_options(MachineClass *mc)
+ {
+-- 
+2.27.0
+

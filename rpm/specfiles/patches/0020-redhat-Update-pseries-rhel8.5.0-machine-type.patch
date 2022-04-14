@@ -1,0 +1,43 @@
+From 82358c35f04f026820b3907069a6c19cd95b654d Mon Sep 17 00:00:00 2001
+From: Laurent Vivier <lvivier@redhat.com>
+Date: Mon, 15 Nov 2021 14:25:33 +0100
+Subject: redhat: Update pseries-rhel8.5.0 machine type
+
+RH-Author: Laurent Vivier <lvivier@redhat.com>
+RH-MergeRequest: 66: redhat: Update pseries-rhel8.5.0 machine type
+RH-Commit: [2/2] 36f7ad1ea56baaaecb139875ad0a90a6470196be
+RH-Bugzilla: 2022608
+RH-Acked-by: Eric Auger <eric.auger@redhat.com>
+RH-Acked-by: Cornelia Huck <cohuck@redhat.com>
+RH-Acked-by: Greg Kurz <gkurz@redhat.com>
+`
+We don't introduce a new machine type for rhel8.6.0 but we need
+to keep compatibility with rhel8.5.0 machine type.
+
+Signed-off-by: Laurent Vivier <lvivier@redhat.com>
+---
+ hw/ppc/spapr.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/hw/ppc/spapr.c b/hw/ppc/spapr.c
+index cace86028d..2f27888d8a 100644
+--- a/hw/ppc/spapr.c
++++ b/hw/ppc/spapr.c
+@@ -5177,10 +5177,14 @@ static void spapr_machine_rhel_default_class_options(MachineClass *mc)
+ 
+ static void spapr_machine_rhel850_class_options(MachineClass *mc)
+ {
++    SpaprMachineClass *smc = SPAPR_MACHINE_CLASS(mc);
++
+     /* The default machine type must apply the RHEL specific defaults */
+     spapr_machine_rhel_default_class_options(mc);
+     compat_props_add(mc->compat_props, hw_compat_rhel_8_5,
+                      hw_compat_rhel_8_5_len);
++    smc->pre_6_2_numa_affinity = true;
++    mc->smp_props.prefer_sockets = true;
+ }
+ 
+ DEFINE_SPAPR_MACHINE(rhel850, "rhel8.5.0", true);
+-- 
+2.27.0
+
