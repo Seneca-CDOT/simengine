@@ -5,8 +5,10 @@ Whereas assets return events that had happened to them (e.g. if asset load was u
 due to voltage change etc.)
 """
 import functools
+import logging
 from circuits import Event
 
+logger = logging.getLogger(__name__)
 
 class EventDataPair:
     """A tiny utility that helps keep track of value changes due to some event
@@ -413,6 +415,7 @@ class AssetPowerEvent(EngineEvent):
 
     @staticmethod
     def calculate_load(state, voltage):
+        logger.info("calculate_load: state: %s voltage: %s", state, voltage)
         """Calculate asset load"""
         return state.power_consumption / voltage if voltage else 0
 
