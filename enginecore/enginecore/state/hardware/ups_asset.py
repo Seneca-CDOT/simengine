@@ -302,6 +302,8 @@ class UPS(Asset, SNMPSim):
 
         asset_event = event.get_next_power_event()
         asset_event.calc_load_from_volt()
+        logger.info("on_power_button_press: event: %s", event)
+        logger.info("on_power_button_press: asset_event: %s", asset_event)
 
         if self.state.on_battery and asset_event.state.new:
             asset_event.out_volt.new = 120.0
