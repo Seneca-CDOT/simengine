@@ -424,6 +424,8 @@ class UPS(Asset, SNMPSim):
             asset_event.calc_load_from_volt()
             self._update_load(self.state.load + asset_event.load.difference)
 
+        logger.info("on_input_voltage_down: asset_event: %s", asset_event)
+
         return asset_event
 
     @property
