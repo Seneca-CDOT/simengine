@@ -408,7 +408,6 @@ class AssetPowerEvent(EngineEvent):
     def calc_load_from_volt(self):
         """Sets load change based off old,  new load and asset's
         power consumption"""
-        logger.info("calc_load_from_volt: out_volt.old: %s out_volt.new: %s", self.out_volt.old, self.out_volt.new)
         calc_load = functools.partial(AssetPowerEvent.calculate_load, self._asset.state)
         self._load = EventDataPair(
             *(calc_load(volt) for volt in [self.out_volt.old, self.out_volt.new])

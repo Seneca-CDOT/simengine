@@ -301,21 +301,17 @@ class UPS(Asset, SNMPSim):
         state changes associated with it"""
 
         asset_event = event.get_next_power_event()
+        asset_event.calc_load_from_volt()
 
         if self.state.on_battery and asset_event.state.new:
             asset_event.out_volt.new = 120.0
         elif not asset_event.state.new:
             asset_event.out_volt.old = self.state.output_voltage
 
-        asset_event.calc_load_from_volt()
-        
         super().set_redis_state_on_btn_press(event, args, kwargs)
 
         if event.name == "PowerButtonOnEvent" and self.state.on_battery:
             self._launch_battery_drain(t_reason=self.state.transfer_reason)
-
-        logger.info("on_power_button_press: event: %s", event)
-        logger.info("on_power_button_press: asset_event: %s", asset_event)
 
         return asset_event
 
@@ -424,8 +420,6 @@ class UPS(Asset, SNMPSim):
         else:
             asset_event.calc_load_from_volt()
             self._update_load(self.state.load + asset_event.load.difference)
-
-        logger.info("on_input_voltage_down: asset_event: %s", asset_event)
 
         return asset_event
 
