@@ -390,7 +390,9 @@ class WebSocket(Component):
         if not event:
             return
 
+        logger.info("event: %s", event)
         if not event.load.unchanged():
+            logger.info("\n!!!-------------------AssetLoadEvent (LOAD CHANGE) --------------------!!!")
             client_request = ServerToClientRequests.asset_upd
             payload = {"key": event.asset.key, "load": event.load.new}
 
