@@ -341,6 +341,7 @@ class UPS(Asset, SNMPSim):
         asset_load_event = event.get_next_load_event(self)
         self._update_load(asset_load_event.load.old + event.load.difference)
 
+        logger.info("on_child_load_update: asset_load_event: %s", asset_load_event)
         # ensure that load doesn't change for the parent
         asset_load_event.load.new = asset_load_event.load.old
         return asset_load_event
