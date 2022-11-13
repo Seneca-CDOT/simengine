@@ -390,12 +390,10 @@ class WebSocket(Component):
         if not event:
             return
 
-        if event._asset.key == 3:
+        if event._asset.key == 3 or 1:
             logger.info("event: %s", event)
 
         if not event.load.unchanged():
-            if event._asset.key == 3:
-                logger.info("\n!!!-------------------AssetLoadEvent (LOAD CHANGE) --------------------!!!")
             client_request = ServerToClientRequests.asset_upd
             payload = {"key": event.asset.key, "load": event.load.new}
 
