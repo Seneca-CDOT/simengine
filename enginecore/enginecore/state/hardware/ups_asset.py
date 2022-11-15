@@ -343,6 +343,7 @@ class UPS(Asset, SNMPSim):
 
         logger.info("on_child_load_update: asset_load_event: %s", asset_load_event)
         # ensure that load doesn't change for the parent
+        # asset_load_event.load.new = asset_load_event.load.old
         return asset_load_event
 
     @handler("InputVoltageUpEvent")
