@@ -561,12 +561,17 @@ class LoadEvent(EngineEvent):
             raise KeyError("Needs arguments: " + ",".join(required_args))
 
         self._load = EventDataPair(kwargs["old_load"], kwargs["new_load"])
+        self._ups_on_battery = None
 
     @property
     def load(self):
         """Get load update (old/new values) associated with this event"""
         return self._load
 
+    @property
+    def ups_on_battery(self):
+        return self._ups_on_battery
+        
     def __str__(self):
         return self._load.__str__()
 
@@ -614,6 +619,7 @@ class ChildLoadEvent(LoadEvent):
         """Get next asset event resulted from
         load changes of the child asset
         """
+        logger.info("ChildLoadEvent: get_next_load_event: target_asset: %s", target_asset)
         return AssetLoadEvent(
             asset=target_asset,
             power_iter=self.power_iter,
