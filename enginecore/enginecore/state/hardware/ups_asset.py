@@ -301,13 +301,12 @@ class UPS(Asset, SNMPSim):
         state changes associated with it"""
 
         asset_event = event.get_next_power_event()
-
+        asset_event.calc_load_from_volt()
+        
         if self.state.on_battery and asset_event.state.new:
             asset_event.out_volt.new = 120.0
         elif not asset_event.state.new:
             asset_event.out_volt.old = self.state.output_voltage
-
-        asset_event.calc_load_from_volt()
 
         super().set_redis_state_on_btn_press(event, args, kwargs)
 
@@ -341,7 +340,9 @@ class UPS(Asset, SNMPSim):
         # while running on battery, load propagation gets halted
         asset_load_event = event.get_next_load_event(self)
         self._update_load(asset_load_event.load.old + event.load.difference)
+        asset_load_event._ups_on_battery = True
 
+        logger.info("on_child_load_update: asset_load_event: %s", asset_load_event)
         # ensure that load doesn't change for the parent
         # asset_load_event.load.new = asset_load_event.load.old
         return asset_load_event
