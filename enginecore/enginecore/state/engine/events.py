@@ -555,13 +555,17 @@ class LoadEvent(EngineEvent):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        logger.info("LoadEvent: ___init___")
         required_args = ["old_load", "new_load"]
 
         if not all(r_arg in kwargs for r_arg in required_args):
             raise KeyError("Needs arguments: " + ",".join(required_args))
 
         self._load = EventDataPair(kwargs["old_load"], kwargs["new_load"])
-        self._ups_on_battery = None
+        if "ups_on_battery" in kwargs:
+            self._ups_on_battery = kwargs["ups_on_battery"]
+        else:
+            self._ups_on_battery = None
 
     @property
     def load(self):
@@ -581,6 +585,7 @@ class AssetLoadEvent(LoadEvent):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        logger.info("AssetLoadEvent: ___init___")
         if "asset" not in kwargs or not kwargs["asset"]:
             raise KeyError("Needs arguments: asset")
 
@@ -590,11 +595,13 @@ class AssetLoadEvent(LoadEvent):
     def get_next_load_event(self):
         """Get next load event that can be dispatched against asset powering this
         device"""
+        logger.info("AssetLoadEvent: get_next_load_event: ChildLoadDownEvent VS ChildLoadUpEvent")
         return (ChildLoadDownEvent if self._load.difference < 0 else ChildLoadUpEvent)(
             power_iter=self.power_iter,
             branch=self._branch,
             old_load=self._load.old,
             new_load=self._load.new,
+            ups_on_battery=self._ups_on_battery,
         )
 
     @property
@@ -612,20 +619,19 @@ class AssetLoadEvent(LoadEvent):
 
 class ChildLoadEvent(LoadEvent):
     """Event at child load changes"""
-
     success = True
 
     def get_next_load_event(self, target_asset):
         """Get next asset event resulted from
         load changes of the child asset
         """
-        logger.info("ChildLoadEvent: get_next_load_event: target_asset: %s", target_asset)
         return AssetLoadEvent(
             asset=target_asset,
             power_iter=self.power_iter,
             branch=self._branch,
             old_load=self._load.old,
             new_load=self._load.new,
+            ups_on_battery=self._ups_on_battery,
         )
 
 
