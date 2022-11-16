@@ -162,6 +162,10 @@ class Asset(Component):
 
         self._update_load(new_load)
         asset_load_event.load.new = new_load
+        if asset_load_event._asset.key == 1:
+            logger.info("ASSET.PY LOAD EVENT: %s", asset_load_event)
+            logger.info("ups status %s", asset_load_event.ups_on_battery)
+
         return asset_load_event
 
     @handler("AmbientUpEvent", "AmbientDownEvent")
