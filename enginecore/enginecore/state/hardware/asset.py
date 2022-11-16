@@ -158,13 +158,14 @@ class Asset(Component):
             AssetLoadEvent: contains load update details for this asset
         """
         asset_load_event = event.get_next_load_event(self)
-        new_load = asset_load_event.load.old + event.load.difference
 
-        self._update_load(new_load)
-        asset_load_event.load.new = new_load
-        if asset_load_event._asset.key == 1:
-            logger.info("ASSET.PY LOAD EVENT: %s", asset_load_event)
-            logger.info("ups status %s", asset_load_event.ups_on_battery)
+        if asset_load_event.ups_on_battery:
+            new_load = asset_load_event.load.old
+            asset_load_event.load.new = new_load
+        else:
+            new_load = asset_load_event.load.old + event.load.difference
+            asset_load_event.load.new = new_load
+            self._update_load(new_load)
 
         return asset_load_event
 
