@@ -302,7 +302,7 @@ class UPS(Asset, SNMPSim):
 
         asset_event = event.get_next_power_event()
         asset_event.calc_load_from_volt()
-        
+
         if self.state.on_battery and asset_event.state.new:
             asset_event.out_volt.new = 120.0
         elif not asset_event.state.new:
