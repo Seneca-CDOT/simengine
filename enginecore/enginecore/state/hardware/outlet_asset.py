@@ -26,8 +26,29 @@ class Outlet(Asset):
 
     def __init__(self, asset_info):
         super(Outlet, self).__init__(Outlet.StateManagerCls(asset_info))
+        # remove default logic for handling child load updates
+        super().removeHandler(super().on_child_load_update)
 
     ##### React to any events of the connected components #####
+
+    @handler("ChildLoadUpEvent", "ChildLoadDownEvent")
+    def on_child_load_update(self, event, *args, **kwargs):
+        """Process child asset load changes by updating load of this device
+        Args:
+            event(ChildLoadEvent): load event associated with a child node
+                                   powered by this asset
+        Returns:
+            AssetLoadEvent: contains load update details for this asset
+        """
+
+        if not event.ups_on_battery:
+            return super().on_child_load_update(event, *args, **kwargs)
+
+        asset_load_event = event.get_next_load_event(self)
+        new_load = asset_load_event.load.old
+        asset_load_event.load.new = new_load
+
+        return asset_load_event
 
     @handler("SignalDownEvent", priority=1)
     def on_signal_down_received(self, event, *args, **kwargs):

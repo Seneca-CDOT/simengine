@@ -158,10 +158,11 @@ class Asset(Component):
             AssetLoadEvent: contains load update details for this asset
         """
         asset_load_event = event.get_next_load_event(self)
-        new_load = asset_load_event.load.old + event.load.difference
 
-        self._update_load(new_load)
+        new_load = asset_load_event.load.old + event.load.difference
         asset_load_event.load.new = new_load
+        self._update_load(new_load)
+
         return asset_load_event
 
     @handler("AmbientUpEvent", "AmbientDownEvent")

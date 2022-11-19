@@ -5,7 +5,10 @@ Whereas assets return events that had happened to them (e.g. if asset load was u
 due to voltage change etc.)
 """
 import functools
+import logging
 from circuits import Event
+
+logger = logging.getLogger(__name__)
 
 
 class EventDataPair:
@@ -559,11 +562,19 @@ class LoadEvent(EngineEvent):
             raise KeyError("Needs arguments: " + ",".join(required_args))
 
         self._load = EventDataPair(kwargs["old_load"], kwargs["new_load"])
+        if "ups_on_battery" in kwargs:
+            self._ups_on_battery = kwargs["ups_on_battery"]
+        else:
+            self._ups_on_battery = None
 
     @property
     def load(self):
         """Get load update (old/new values) associated with this event"""
         return self._load
+
+    @property
+    def ups_on_battery(self):
+        return self._ups_on_battery
 
     def __str__(self):
         return self._load.__str__()
@@ -588,6 +599,7 @@ class AssetLoadEvent(LoadEvent):
             branch=self._branch,
             old_load=self._load.old,
             new_load=self._load.new,
+            ups_on_battery=self._ups_on_battery,
         )
 
     @property
@@ -618,6 +630,7 @@ class ChildLoadEvent(LoadEvent):
             branch=self._branch,
             old_load=self._load.old,
             new_load=self._load.new,
+            ups_on_battery=self._ups_on_battery,
         )
 
 

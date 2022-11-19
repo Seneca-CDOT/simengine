@@ -338,11 +338,11 @@ class UPS(Asset, SNMPSim):
             return super().on_child_load_update(event, *args, **kwargs)
 
         # while running on battery, load propagation gets halted
+        # set _ups_on_battery to True, passed along each load event following this one
         asset_load_event = event.get_next_load_event(self)
+        asset_load_event._ups_on_battery = self.state.on_battery
         self._update_load(asset_load_event.load.old + event.load.difference)
 
-        # ensure that load doesn't change for the parent
-        asset_load_event.load.new = asset_load_event.load.old
         return asset_load_event
 
     @handler("InputVoltageUpEvent")
