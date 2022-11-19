@@ -555,7 +555,6 @@ class LoadEvent(EngineEvent):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        logger.info("LoadEvent: ___init___")
         required_args = ["old_load", "new_load"]
 
         if not all(r_arg in kwargs for r_arg in required_args):
@@ -585,7 +584,6 @@ class AssetLoadEvent(LoadEvent):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        logger.info("AssetLoadEvent: ___init___")
         if "asset" not in kwargs or not kwargs["asset"]:
             raise KeyError("Needs arguments: asset")
 
@@ -595,7 +593,6 @@ class AssetLoadEvent(LoadEvent):
     def get_next_load_event(self):
         """Get next load event that can be dispatched against asset powering this
         device"""
-        logger.info("AssetLoadEvent: get_next_load_event: ChildLoadDownEvent VS ChildLoadUpEvent")
         return (ChildLoadDownEvent if self._load.difference < 0 else ChildLoadUpEvent)(
             power_iter=self.power_iter,
             branch=self._branch,
