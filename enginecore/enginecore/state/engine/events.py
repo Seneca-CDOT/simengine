@@ -10,6 +10,7 @@ from circuits import Event
 
 logger = logging.getLogger(__name__)
 
+
 class EventDataPair:
     """A tiny utility that helps keep track of value changes due to some event
     (old & new values).
@@ -574,7 +575,7 @@ class LoadEvent(EngineEvent):
     @property
     def ups_on_battery(self):
         return self._ups_on_battery
-        
+
     def __str__(self):
         return self._load.__str__()
 
@@ -616,6 +617,7 @@ class AssetLoadEvent(LoadEvent):
 
 class ChildLoadEvent(LoadEvent):
     """Event at child load changes"""
+
     success = True
 
     def get_next_load_event(self, target_asset):

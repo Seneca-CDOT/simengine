@@ -342,7 +342,7 @@ class UPS(Asset, SNMPSim):
         asset_load_event = event.get_next_load_event(self)
         asset_load_event._ups_on_battery = self.state.on_battery
         self._update_load(asset_load_event.load.old + event.load.difference)
-        
+
         return asset_load_event
 
     @handler("InputVoltageUpEvent")
