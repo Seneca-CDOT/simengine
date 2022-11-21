@@ -473,6 +473,7 @@ class AssetPowerEvent(EngineEvent):
     def streamed_load_event(self, pkey):
         """Get load event from stream load information
         stored in streamed_load_updates"""
+        logger.info("streamed_load_event: self: %s", self)
         s_load = self._streamed_load_upd[pkey]
         if s_load.unchanged():
             return None
