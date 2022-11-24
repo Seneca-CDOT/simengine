@@ -84,9 +84,10 @@ class Server(StaticAsset):
         asset_event = event.get_next_power_event()
         load_upd = {}
 
-        asset_event.load.new = asset_event.calculate_load(
+        asset_event.load.old = asset_event.calculate_load(
             self.state, self.state.input_voltage
         )
+        asset_event.load.new = 0
 
         for key in self._psu_sm:
             psu_sm = self._psu_sm[key]
@@ -110,6 +111,7 @@ class Server(StaticAsset):
         extra_draw = 0.0
         online_psus = []
 
+        asset_event.load.old = 0
         asset_event.load.new = asset_event.calculate_load(
             self.state, self.state.input_voltage
         )
