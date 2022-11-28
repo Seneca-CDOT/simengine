@@ -249,7 +249,7 @@ class Server(StaticAsset):
                 self._psu_sm[key].load, self._psu_sm[key].load
             )
 
-        load_upd[e_src_psu.key].new = (new_asset_load * e_src_psu.draw_percentage)
+        load_upd[e_src_psu.key].new = new_asset_load * e_src_psu.draw_percentage
 
         # check alternative power sources
         # and leave this server online if present
