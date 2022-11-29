@@ -84,9 +84,10 @@ class Server(StaticAsset):
         asset_event = event.get_next_power_event()
         load_upd = {}
 
-        asset_event.load.new = asset_event.calculate_load(
+        asset_event.load.old = asset_event.calculate_load(
             self.state, self.state.input_voltage
         )
+        asset_event.load.new = 0
 
         for key in self._psu_sm:
             psu_sm = self._psu_sm[key]
@@ -110,6 +111,7 @@ class Server(StaticAsset):
         extra_draw = 0.0
         online_psus = []
 
+        asset_event.load.old = 0
         asset_event.load.new = asset_event.calculate_load(
             self.state, self.state.input_voltage
         )
@@ -199,12 +201,15 @@ class Server(StaticAsset):
         # power up if server is offline & boot-on-power BIOS option is on
         if should_power_up and self.state.power_on_ac_restored:
             asset_event.state.new = self.power_up()
-            self._update_load(self.state.power_consumption / event.in_volt.new)
+            # use old_asset_load, new_asset_load calculated above to set load change data pair in asset_event
+            # on power restore load needs to be updated on GUI, this handles that
+            asset_event._load = EventDataPair(old_asset_load, new_asset_load)
+            self._update_load(new_asset_load)
 
         # update load if no state changes
         elif not should_power_up and should_change_load:
-            asset_event.calc_load_from_volt()
-            self._update_load(self.state.load + load_upd[e_src_psu.key].difference)
+            asset_event._load = EventDataPair(old_asset_load, new_asset_load)
+            self._update_load(new_asset_load)
         elif not self.state.status and not self.state.power_on_ac_restored:
             load_upd = {}
 
@@ -232,6 +237,9 @@ class Server(StaticAsset):
         else:
             source_psu_own_load = 0
 
+        new_asset_load = asset_event.calculate_load(self.state, event.in_volt.new)
+        old_asset_load = asset_event.calculate_load(self.state, event.in_volt.old)
+
         # keep track of load updates for multi-psu servers
         load_upd = {}
 
@@ -241,10 +249,7 @@ class Server(StaticAsset):
                 self._psu_sm[key].load, self._psu_sm[key].load
             )
 
-        load_upd[e_src_psu.key].new = (
-            asset_event.calculate_load(self.state, event.in_volt.new)
-            * e_src_psu.draw_percentage
-        )
+        load_upd[e_src_psu.key].new = new_asset_load * e_src_psu.draw_percentage
 
         # check alternative power sources
         # and leave this server online if present
@@ -275,8 +280,10 @@ class Server(StaticAsset):
         # update server load if all PSUs are off or
         # if in voltage simply dropped (but not to zero)
         if not alt_power_present or not e_src_psu_offline:
-            asset_event.calc_load_from_volt()
-            self._update_load(self.state.load + load_upd[e_src_psu.key].difference)
+            # use old_asset_load, new_asset_load calculated above to set load change data pair in asset_event
+            # on power loss, load needs to be updated on GUI, this handles that
+            asset_event._load = EventDataPair(old_asset_load, new_asset_load)
+            self._update_load(new_asset_load)
 
         asset_event.streamed_load_updates = load_upd
 

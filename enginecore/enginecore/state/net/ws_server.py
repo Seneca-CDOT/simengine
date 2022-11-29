@@ -359,6 +359,8 @@ class WebSocket(Component):
         client_request = ServerToClientRequests.asset_upd
         payload = {"key": event.asset.key}
 
+        if not event.load.unchanged() and event.asset.state.asset_type != "ups":
+            payload["load"] = event.load.new
         if not event.state.unchanged():
             payload["status"] = event.state.new
 
