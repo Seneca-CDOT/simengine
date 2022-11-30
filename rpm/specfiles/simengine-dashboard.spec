@@ -1,5 +1,5 @@
 Name:      simengine-dashboard
-Version:   3.38
+Version:   3.39
 Release:   1%{?dist}
 Summary:   SimEngine - Dashboard
 URL:       https://github.com/Seneca-CDOT/simengine
@@ -41,6 +41,9 @@ cp -fpr * %{buildroot}%{_localstatedir}/www/html
 systemctl enable httpd.service --now
 
 %changelog
+* Wed Nov 30 2022 Tanner Moss <tmoss404@gmail.com> - 3.39-1
+- new version
+
 * Mon Aug 23 2021 Tsu-ba-me <ynho.li.aa.e@gmail.com> - 3.38-1
 - new version
 
