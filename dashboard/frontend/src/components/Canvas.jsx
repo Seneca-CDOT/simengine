@@ -76,7 +76,7 @@ class Canvas extends Component {
         wireDrawing.push(
           <Line
             points={linePoints}
-            stroke={asset.status === 1 ? colors.green : colors.grey}
+            stroke={asset.status === 1 ? colors.red : colors.grey}
             strokeWidth={wireWidth}
             key={`${key}${connections[key].destKey}`}
             shadowBlur={3}

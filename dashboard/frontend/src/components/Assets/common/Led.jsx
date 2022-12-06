@@ -11,7 +11,7 @@ const Led = ({ powered, socketOn, x, y }) => {
   const color = powered
     ? socketOn
       ? colors.ledStatusOn
-      : colors.red
+      : colors.green
     : colors.ledStatusOff;
   return (
     <Rect x={x} y={y} width={10} height={10} fill={color} shadowBlur={3} />
