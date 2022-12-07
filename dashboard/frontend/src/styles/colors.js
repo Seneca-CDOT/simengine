@@ -8,7 +8,7 @@ export default {
   ledText: 'yellow',
   ledTextWhite: 'white',
   ledBackground: '#4d4d4d',
-  ledStatusOn: 'green',
+  ledStatusOn: 'red',
   ledStatusOff: 'grey',
   ledStroke: 'black',
 

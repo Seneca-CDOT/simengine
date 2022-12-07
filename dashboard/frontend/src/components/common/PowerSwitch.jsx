@@ -27,9 +27,9 @@ function PowerSwitch({ onChange, checked, label, classes }) {
 
 const styles = {
   colorSwitchBase: {
-    color: colors.red,
+    color: colors.green,
     '&$colorChecked': {
-      color: colors.green,
+      color: colors.red,
       '& + $colorBar': {
         backgroundColor: colors.green,
       },
