@@ -1,0 +1,123 @@
+#!/bin/bash
+
+key="-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACCWMC1EGbfCoB2Aiv/kQ859aGDjaaJ5vu4G+/L0RldgsAAAAKBuc+2WbnPt
+lgAAAAtzc2gtZWQyNTUxOQAAACCWMC1EGbfCoB2Aiv/kQ859aGDjaaJ5vu4G+/L0RldgsA
+AAAEBEPxSok/tlvd8Zhd1f8stIZnCIJZ5UOZWNx26o7IHlmJYwLUQZt8KgHYCK/+RDzn1o
+YONponm+7gb78vRGV2CwAAAAGWNocmlzQHphbWJpYS5jZG90LnN5c3RlbXMBAgME
+-----END OPENSSH PRIVATE KEY-----"
+
+file=/home/$USER/.ssh/id_ed25519_simengine
+#to-do: modify this to account for additional simengine vms on a system
+simengine_login=root@10.10.10.100
+
+create_se_key(){
+
+    if [[ ! -f "$file" ]]
+    then
+        echo "Creating simengine ssh key..."
+        echo "$key" >> "$file"
+
+        if [[ $? -eq 0 ]]
+        then
+            echo "Simengine ssh key created"
+            chmod 600 "$file"
+            ssh-add "$file"
+        else
+            echo "Failed to create Simengine ssh key"
+        fi
+    else
+        ssh-add "$file"
+    fi
+}
+
+remove_se_key(){
+
+    echo "Removing simengine ssh key..."
+    ssh-add -d "$file"
+
+    if rm "$file"
+    then
+        echo "Simengine key removed"
+    fi
+}
+
+start_se(){
+    echo "Starting simengine..."
+    #to-do: modify this to account for multiple simengine vms on a system
+    virsh start simengine
+    ssh -n "$simengine_login" systemctl restart simengine-core
+}
+
+open_dash(){
+    xdg-open "http://localhost:8888" &> /dev/null
+    xdg-open "http://localhost:9090" &> /dev/null 
+}
+
+connect(){
+
+    declare -i count=0
+    declare -i rt=0
+
+    echo "Waiting for inner vms..."
+    
+    until  $(ssh -n -o ConnectTimeout=8 "$simengine_login" "su -l -c 'get-system-status'")
+    do
+        if [[ $count -eq 2 ]]
+        then
+            rt=1
+            break
+        else
+            count+=1
+            sleep 1
+        fi
+    done
+
+    if [[ rt -eq 0 ]]   
+    then
+        echo "Success!"
+        ( sleep 5; open_dash ) &
+        ssh "$simengine_login" -L8888:localhost:80 -L8000:localhost:8000 -L9090:10.201.4.1:80 -L8000:10.201.4.1:8000
+    else
+        echo "Simengine inner vms unreachable"
+    fi
+}
+
+while getopts "hkrsco" option
+do
+    case "$option" in
+        h )
+            printf "usage: simengine.sh [-h] [-k] [-r] [-s] [-c] [-o]\n\n"
+                printf "    -h  prints this help message\n\n"
+                printf "    -k  creates private key for access to simengine outer vm, adds identity to the ssh agent\n"
+                printf "    -r  removes simengine key and removes identity from the ssh agent\n"
+                printf "    -s  starts simengine outer vm, starts simengine service inside the vm\n"
+                printf "    -c  tests connection to simengine inner vms, upon success connects to simengine outer vm via ssh\n"
+                printf "        also opens siemngine and anvil dashboards in default browser"
+                printf "    -o  opens siemngine and anvil dashboards in default browser\n\n"
+            ;;
+        k )
+            create_se_key
+            ;;
+        r )
+            remove_se_key
+            ;;
+        s )
+            start_se
+            ;;
+        c )
+            connect
+            ;;
+        o )
+            open_dash
+            ;;
+    esac
+done
+
+if (( $OPTIND == 1 ))
+then
+   create_se_key
+   start_se
+   connect
+fi

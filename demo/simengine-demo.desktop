@@ -1,0 +1,9 @@
+#!/usr/bin/env
+
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=simengine-demo
+Comment=Simengine dashboard demo utils
+Exec=%{_bindir}/simengine-demo
+Terminal=true
