@@ -6,4 +6,4 @@ Type=Application
 Name=simengine-demo
 Comment=Simengine dashboard demo utils
 Exec=%{_bindir}/simengine-demo
-Terminal=true
+Terminal=false

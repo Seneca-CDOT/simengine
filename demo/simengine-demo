@@ -75,8 +75,7 @@ connect(){
     if [[ rt -eq 0 ]]   
     then
         echo "$(basename $0): Success!"
-        ( sleep 5; open_dash ) &
-        ssh -i "$se_key_file" "$simengine_login" -L8888:localhost:80 -L8000:localhost:8000 -L9090:10.201.4.1:80 -L8000:10.201.4.1:8000
+        ssh -fN -i "$se_key_file" "$simengine_login" -L8888:localhost:80 -L8000:localhost:8000 -L9090:10.201.4.1:80 -L8000:10.201.4.1:8000 && open_dash
     else
         echo "$(basename $0): Simengine inner vms unreachable"
         exit 3
