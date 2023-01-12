@@ -1,5 +1,7 @@
 #!/bin/bash
 
+trap "killall zenity >&/dev/null" EXIT
+
 key="-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
 QyNTUxOQAAACCWMC1EGbfCoB2Aiv/kQ859aGDjaaJ5vu4G+/L0RldgsAAAAKBuc+2WbnPt
@@ -11,47 +13,8 @@ YONponm+7gb78vRGV2CwAAAAGWNocmlzQHphbWJpYS5jZG90LnN5c3RlbXMBAgME
 se_key_file="$HOME/.ssh/id_ed25519_simengine"
 simengine_login="root@10.10.10.100"
 
-create_se_key(){
-
-    if [[ ! -f "$se_key_file" ]]
-    then
-        echo "$(basename $0): Creating simengine ssh key..."
-        mkdir "$(dirname $se_key_file)" 2> /dev/null && chmod 0700 "$(dirname $se_key_file)"
-        
-        echo "$key" >> "$se_key_file" && chmod 600 "$se_key_file"
-        if [ $? -ne 0 ]
-        then
-            echo "$(basename $0): Failed to create simengine ssh key"
-            exit 1
-        else
-            echo "$(basename $0): Simengine ssh key successfully created"
-        fi
-    fi
-}
-
-remove_se_key(){
-
-    echo "$(basename $0): Removing simengine ssh key..."
-    rm "$se_key_file" && echo "$(basename $0): Simengine ssh key removed"
-    if [ $? -ne 0 ]
-    then
-        echo "$(basename $0): Failed to remove simengine ssh key"
-        exit 1
-    fi
-}
-
-start_se(){
-    
-    echo "$(basename $0): Starting simengine..."
-    virsh start simengine && ssh -n ConnectTimeout=10 -i "$se_key_file" "$simengine_login" systemctl restart simengine-core
-    #not exiting on errors here because se could just already be running
-    #only restarting se-core if simengine was not open already
-}
-
-open_dash(){
-    xdg-open "http://localhost:8888" &> /dev/null
-    xdg-open "http://localhost:9090" &> /dev/null 
-}
+LOGFILE="$(mktemp)"
+ZENITY=false
 
 connect(){
 
@@ -78,44 +41,111 @@ connect(){
         ssh -fN -i "$se_key_file" "$simengine_login" -L8888:localhost:80 -L8000:localhost:8000 -L9090:10.201.4.1:80 -L8000:10.201.4.1:8000 && open_dash
     else
         echo "$(basename $0): Simengine inner vms unreachable"
-        exit 3
+        [ "$ZENITY" ] && zenity_n0_exit
+        exit 2
     fi
 }
 
-while getopts "hkrsco" option
-do
-    case "$option" in
-        h )
-            printf "usage: simengine.sh [-h] [-k] [-r] [-s] [-c] [-o]\n\n"
-                printf "    -h  prints this help message\n\n"
-                printf "    -k  creates private key for access to simengine outer vm, adds identity to the ssh agent\n"
-                printf "    -r  removes simengine key and removes identity from the ssh agent\n"
-                printf "    -s  starts simengine outer vm, starts simengine service inside the vm\n"
-                printf "    -c  tests connection to simengine inner vms, upon success connects to simengine outer vm via ssh\n"
-                printf "        also opens siemngine and anvil dashboards in default browser"
-                printf "    -o  opens siemngine and anvil dashboards in default browser\n\n"
-            ;;
-        k )
-            create_se_key
-            ;;
-        r )
-            remove_se_key
-            ;;
-        s )
-            start_se
-            ;;
-        c )
-            connect
-            ;;
-        o )
-            open_dash
-            ;;
-    esac
-done
+create_se_key(){
 
-if (( $OPTIND == 1 ))
+    if [[ ! -f "$se_key_file" ]]
+    then
+        echo "$(basename $0): Creating simengine ssh key..."
+        mkdir "$(dirname $se_key_file)" 2> /dev/null && chmod 0700 "$(dirname $se_key_file)"
+        
+        echo "$key" >> "$se_key_file" && chmod 600 "$se_key_file"
+        if [ $? -ne 0 ]
+        then
+            echo "$(basename $0): Failed to create simengine ssh key"
+            [ "$ZENITY" ] && zenity_n0_exit
+            exit 1
+        else
+            echo "$(basename $0): Simengine ssh key successfully created"
+        fi
+    fi
+}
+
+desktop_exec(){
+    #Enable Zenity dialogues, start logging errors into temp logfile
+    ZENITY=true
+    exec >& "${LOGFILE}"
+    zenity --info --text "Preparing to display dashboards.\nPlease wait, this may take some time." --width 300 &
+    #Run the standard full exec process
+    create_se_key
+    start_se
+    connect
+}
+
+open_dash(){
+    xdg-open "http://localhost:8888" &> /dev/null
+    xdg-open "http://localhost:9090" &> /dev/null 
+}
+
+remove_se_key(){
+
+    echo "$(basename $0): Removing simengine ssh key..."
+    rm "$se_key_file" && echo "$(basename $0): Simengine ssh key removed"
+    if [ $? -ne 0 ]
+    then
+        echo "$(basename $0): Failed to remove simengine ssh key"
+        [ "$ZENITY" ] && zenity_n0_exit
+        exit 1
+    fi
+}
+
+start_se(){
+    
+    echo "$(basename $0): Starting simengine..."
+    virsh start simengine && ssh -n ConnectTimeout=10 -i "$se_key_file" "$simengine_login" systemctl restart simengine-core
+    #not exiting on errors here because se could just already be running
+    #only restarting se-core if simengine was not open already
+}
+
+zenity_n0_exit(){
+    (echo -e "An error occurred.\nThis is a log of program execution:\n";cat "${LOGFILE}")|zenity --text-info --width 500 --height=500
+}
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+if [ "$1" == "--desktop" ]
 then
-   create_se_key
-   start_se
-   connect
+    desktop_exec
+else
+    while getopts "hkrsco" option
+    do
+        case "$option" in
+            h )
+                printf "usage: simengine.sh [-h] [-k] [-r] [-s] [-c] [-o]\n\n"
+                    printf "    -h  prints this help message\n\n"
+                    printf "    -k  creates private key for access to simengine outer vm, adds identity to the ssh agent\n"
+                    printf "    -r  removes simengine key and removes identity from the ssh agent\n"
+                    printf "    -s  starts simengine outer vm, starts simengine service inside the vm\n"
+                    printf "    -c  tests connection to simengine inner vms, upon success connects to simengine outer vm via ssh\n"
+                    printf "        also opens siemngine and anvil dashboards in default browser"
+                    printf "    -o  opens siemngine and anvil dashboards in default browser\n\n"
+                ;;
+            k )
+                create_se_key
+                ;;
+            r )
+                remove_se_key
+                ;;
+            s )
+                start_se
+                ;;
+            c )
+                connect
+                ;;
+            o )
+                open_dash
+                ;;
+        esac
+    done
+
+    if (( $OPTIND == 1 ))
+    then
+        create_se_key
+        start_se
+        connect
+    fi
 fi
