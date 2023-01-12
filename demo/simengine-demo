@@ -14,7 +14,7 @@ se_key_file="$HOME/.ssh/id_ed25519_simengine"
 simengine_login="root@10.10.10.100"
 
 LOGFILE="$(mktemp)"
-ZENITY=false
+ZENITY=""
 
 connect(){
 
@@ -41,8 +41,7 @@ connect(){
         ssh -fN -i "$se_key_file" "$simengine_login" -L8888:localhost:80 -L8000:localhost:8000 -L9090:10.201.4.1:80 -L8000:10.201.4.1:8000 && open_dash
     else
         echo "$(basename $0): Simengine inner vms unreachable"
-        [ "$ZENITY" ] && zenity_n0_exit
-        exit 2
+        n0_exit 2
     fi
 }
 
@@ -57,8 +56,7 @@ create_se_key(){
         if [ $? -ne 0 ]
         then
             echo "$(basename $0): Failed to create simengine ssh key"
-            [ "$ZENITY" ] && zenity_n0_exit
-            exit 1
+            n0_exit 1
         else
             echo "$(basename $0): Simengine ssh key successfully created"
         fi
@@ -88,8 +86,7 @@ remove_se_key(){
     if [ $? -ne 0 ]
     then
         echo "$(basename $0): Failed to remove simengine ssh key"
-        [ "$ZENITY" ] && zenity_n0_exit
-        exit 1
+        n0_exit 1
     fi
 }
 
@@ -101,8 +98,9 @@ start_se(){
     #only restarting se-core if simengine was not open already
 }
 
-zenity_n0_exit(){
-    (echo -e "An error occurred.\nThis is a log of program execution:\n";cat "${LOGFILE}")|zenity --text-info --width 500 --height=500
+n0_exit(){
+    [ "$ZENITY" ] && (echo -e "An error occurred.\nThis is a log of program execution:\n";cat "${LOGFILE}")|zenity --text-info --width 500 --height=500
+    exit $1
 }
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
