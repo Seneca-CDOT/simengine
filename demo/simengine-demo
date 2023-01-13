@@ -142,7 +142,7 @@ if [ $# -ne 0 ]; then
                 shift
                 ;;
             --shutdown )
-                se_setup
+                se_shutdown
                 shift
                 ;;
             -h )

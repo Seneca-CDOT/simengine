@@ -7,3 +7,16 @@ Name=simengine-demo
 Comment=Simengine dashboard demo utils
 Exec=/usr/bin/simengine-demo
 Terminal=false
+Actions=Download;Setup;Shutdown;
+
+[Desktop Action Download]
+Name=Download
+Exec=/usr/bin/simengine-demo --download
+
+[Desktop Action Setup]
+Name=Download
+Exec=/usr/bin/simengine-demo --setup
+
+[Desktop Action Download]
+Name=Download
+Exec=/usr/bin/simengine-demo --shutdown
