@@ -17,6 +17,6 @@ Exec=/usr/bin/simengine-demo --download
 Name=Download
 Exec=/usr/bin/simengine-demo --setup
 
-[Desktop Action Download]
-Name=Download
+[Desktop Action Shutdown]
+Name=Shutdown
 Exec=/usr/bin/simengine-demo --shutdown

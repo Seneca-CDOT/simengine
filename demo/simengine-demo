@@ -1,5 +1,7 @@
 #!/bin/bash
 
+date >/tmp/x
+
 trap "killall zenity >&/dev/null" EXIT
 
 key="-----BEGIN OPENSSH PRIVATE KEY-----
