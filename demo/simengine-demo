@@ -1,7 +1,5 @@
 #!/bin/bash
 
-date >/tmp/x
-
 trap "killall zenity >&/dev/null" EXIT
 
 key="-----BEGIN OPENSSH PRIVATE KEY-----
@@ -128,8 +126,14 @@ then
     fi
 fi
 
-#Enable Zenity dialogues, start logging errors into temp logfile in the absence of a terminal
-[[ "$(tty -s)" -ne 0 ]] && ZENITY=true && exec >& "${LOGFILE}"
+# In the absence of a terminal, enable Zenity dialogues, start logging errors into temp logfile
+if tty -s
+then
+	:
+else
+	ZENITY=true
+	exec >& "${LOGFILE}"
+fi
 
 if [ $# -ne 0 ]; then
     while (( "$#" ));
