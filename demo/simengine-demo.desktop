@@ -5,5 +5,5 @@ Version=1.0
 Type=Application
 Name=simengine-demo
 Comment=Simengine dashboard demo utils
-Exec=%{_bindir}/simengine-demo --desktop
+Exec=/usr/bin/simengine-demo
 Terminal=false
