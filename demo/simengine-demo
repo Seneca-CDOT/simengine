@@ -122,7 +122,16 @@ then
     then
         exec sudo $0 "$@"
     else
-        exec pkexec --user root simengine-demo "$@"
+        pkexec --user root simengine-demo "$@"
+	STATUS="$?"
+	if [ "$STATUS" -eq "123" ]
+	then
+		xdg-open ...
+		xdg-open ...
+		exit 0
+	else
+		exit $STATUS
+	fi
     fi
 fi
 
