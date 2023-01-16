@@ -40,7 +40,8 @@ connect(){
     if [[ rt -eq 0 ]]   
     then
         echo "$(basename $0): Success!"
-        ssh -fN -i "$se_key_file" "$simengine_login" -L8888:localhost:80 -L8000:localhost:8000 -L9090:10.201.4.1:80 -L8000:10.201.4.1:8000 && open_dash
+        ssh -fN -i "$se_key_file" "$simengine_login" -L8888:localhost:80 -L8000:localhost:8000 -L9090:10.201.4.1:80 -L8000:10.201.4.1:8000
+        exit 66
     else
         echo "$(basename $0): Simengine inner vms unreachable"
         n0_exit 2
@@ -148,11 +149,22 @@ n0_exit(){
 
 if [ "$(id -u)" -ne 0 ]
 then
+    STATUS=""
     if tty -s
     then
-        exec sudo $0 "$@"
+        sudo $0 "$@"
+        STATUS="$?"
     else
-        exec pkexec --user root simengine-demo "$@"
+        pkexec --user root simengine-demo "$@"
+        STATUS="$?"
+    fi
+
+    if [ "$STATUS" -eq "66" ]
+    then
+        open_dash
+        exit 0
+    else
+        exit $STATUS
     fi
 fi
 
@@ -209,8 +221,7 @@ if [ $# -ne 0 ]; then
                 shift
                 ;;
             -o )
-                open_dash
-                shift
+                exit 66
                 ;;
             -* )
                 echo "Error: Unsupported flag $1"
