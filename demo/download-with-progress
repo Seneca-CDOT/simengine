@@ -1,0 +1,24 @@
+#!/bin/bash
+#
+# Demo of downloading with Zenity progress meter
+# Also decompresses on-the-fly
+
+export URL="http://simengine-anvil-demo.cdot.systems/vm-images/simengine.img.xz"
+export FILE="$HOME/Downloads/test.img"
+if [ "$ZENITY" ]
+then
+
+	SIZETEMP="$(mktemp)"
+	curl -s -D "${SIZETEMP}" "${URL}"
+	export S="$(sed -n "s/^Content-Length: //p" "${SIZETEMP}" | dos2unix | head -n 1)"
+	rm "${SIZETEMP}"
+
+	(curl --silent -o - http://simengine-anvil-demo.cdot.systems/vm-images/simengine.img.xz|pv -n -s "${S}"|xz -d >/dev/null )|& zenity --progress --title "Simengine-demo" --text "Downloading VM image..."
+
+else
+
+	echo "Downloading VM image..."
+	curl "${URL}" -o - | xz -d >$FILE
+
+fi
+

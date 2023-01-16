@@ -7,16 +7,36 @@ Name=simengine-demo
 Comment=Simengine dashboard demo utils
 Exec=/usr/bin/simengine-demo
 Terminal=false
-Actions=Download;Setup;Shutdown;
+Actions=Download;Setup;Shutdown;Create SSH Key;Start Simengine;Connect To Simengine;Open Dashboard;Remove SSH Key;
 
 [Desktop Action Download]
 Name=Download
 Exec=/usr/bin/simengine-demo --download
 
 [Desktop Action Setup]
-Name=Download
+Name=Setup
 Exec=/usr/bin/simengine-demo --setup
 
 [Desktop Action Shutdown]
 Name=Shutdown
 Exec=/usr/bin/simengine-demo --shutdown
+
+[Desktop Action Create SSH Key]
+Name=Create SSH Key
+Exec=/usr/bin/simengine-demo -k
+
+[Desktop Action Start Simengine]
+Name=Start Simengine
+Exec=/usr/bin/simengine-demo -s
+
+[Desktop Action Connect To Simengine]
+Name=Connect to Simengine
+Exec=/usr/bin/simengine-demo -c
+
+[Desktop Action Open Dashboard]
+Name=Open Dashboard
+Exec=/usr/bin/simengine-demo -o
+
+[Desktop Action Remove SSH Key]
+Name=Remove SSH Key
+Exec=/usr/bin/simengine-demo -r

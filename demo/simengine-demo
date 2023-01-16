@@ -11,7 +11,9 @@ YONponm+7gb78vRGV2CwAAAAGWNocmlzQHphbWJpYS5jZG90LnN5c3RlbXMBAgME
 -----END OPENSSH PRIVATE KEY-----"
 
 se_key_file="$HOME/.ssh/id_ed25519_simengine"
-simengine_login="root@10.10.10.100"
+simengine_login="root@192.168.122.100"
+
+IMG_DIR="/var/lib/libvirt/images"
 
 LOGFILE="$(mktemp)"
 ZENITY=""
@@ -38,7 +40,8 @@ connect(){
     if [[ rt -eq 0 ]]   
     then
         echo "$(basename $0): Success!"
-        ssh -fN -i "$se_key_file" "$simengine_login" -L8888:localhost:80 -L8000:localhost:8000 -L9090:10.201.4.1:80 -L8000:10.201.4.1:8000 && open_dash
+        ssh -fN -i "$se_key_file" "$simengine_login" -L8888:localhost:80 -L8000:localhost:8000 -L9090:10.201.4.1:80 -L8000:10.201.4.1:8000
+        exit 66
     else
         echo "$(basename $0): Simengine inner vms unreachable"
         n0_exit 2
@@ -72,7 +75,7 @@ demo(){
 
 open_dash(){
     xdg-open "http://localhost:8888" &> /dev/null
-    xdg-open "http://localhost:9090" &> /dev/null 
+    xdg-open "http://localhost:9090" &> /dev/null
 }
 
 remove_se_key(){
@@ -87,18 +90,46 @@ remove_se_key(){
 }
 
 se_download(){
-    echo "$(basename $0): Downloading simengine vm image..."
-    curl http://simengine-anvil-demo.cdot.systems/SIMENGINE-QCOW2 --output /var/lib/libvirt/images/SIMENGINE-QCOW2 && curl http://simengine-anvil-demo.cdot.systems/SE-XML --output /path/to/SE-XML
+    echo "$(basename $0): Downloading simengine vm image and xml..."
+    [ "$ZENITY" ] && zenity --info --text "Downloading simengine vm image and xml.\nPlease wait, this will take some time." --width 300 &
+    curl http://simengine-anvil-demo.cdot.systems/vm-images/simengine.img.xz -o "$IMG_DIR/simengine.img.xz" && xz -d "$IMG_DIR/simengine.img.xz"
+    curl http://simengine-anvil-demo.cdot.systems/vm-images/simengine.xml -o "$IMG_DIR/simengine.xml"
+    if [ $? -ne 0 ]
+    then
+        echo "$(basename $0): Failed to download simengine image and xml"
+        n0_exit 1
+    else
+        [ "$ZENITY" ] && zenity --info --text "Download comeplete!" --width 300 &
+        sleep 5
+    fi
 }
 
 se_setup(){
     echo "$(basename $0): Setting up simengine vm..."
-    virsh define /path/to/SE-XML
+    [ "$ZENITY" ] && zenity --info --text "Setting up simengine vm..." --width 300 &
+    virsh define "$IMG_DIR/simengine.xml"
+    if [ $? -ne 0 ]
+    then
+        echo "$(basename $0): Failed to define simengine vm..."
+        n0_exit 1
+    else
+        echo "$(basename $0): Setup complete!"
+        [ "$ZENITY" ] && zenity --info --text "Setup complete!" --width 300 &
+        sleep 5
+    fi
 }
 
 se_shutdown(){
     echo "$(basename $0): Shutting down simengine vm..."
     virsh shutdown simengine
+    if [ $? -ne 0 ]
+    then
+        echo "$(basename $0): Failed to shut down simengine vm..."
+        n0_exit 1
+    else
+        [ "$ZENITY" ] && zenity --info --text "Simengine successfully shut down." --width 300 &
+        sleep 5
+    fi
 }
 
 start_se(){
@@ -118,20 +149,22 @@ n0_exit(){
 
 if [ "$(id -u)" -ne 0 ]
 then
+    STATUS=""
     if tty -s
     then
-        exec sudo $0 "$@"
+        sudo $0 "$@"
+        STATUS="$?"
     else
         pkexec --user root simengine-demo "$@"
-	STATUS="$?"
-	if [ "$STATUS" -eq "123" ]
-	then
-		xdg-open ...
-		xdg-open ...
-		exit 0
-	else
-		exit $STATUS
-	fi
+        STATUS="$?"
+    fi
+
+    if [ "$STATUS" -eq "66" ]
+    then
+        open_dash
+        exit 0
+    else
+        exit $STATUS
     fi
 fi
 
@@ -188,8 +221,7 @@ if [ $# -ne 0 ]; then
                 shift
                 ;;
             -o )
-                open_dash
-                shift
+                exit 66
                 ;;
             -* )
                 echo "Error: Unsupported flag $1"
