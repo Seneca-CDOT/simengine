@@ -25,7 +25,7 @@ connect(){
 
     echo "$(basename $0): Waiting for inner vms..."
     
-    until  $(ssh -n -o ConnectTimeout=10 -i "$se_key_file" "$simengine_login" "su -l -c 'get-system-status'")
+    until  $(ssh -n -i "$se_key_file" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 "$simengine_login" "su -l -c 'get-system-status'")
     do
         if [[ $count -eq 2 ]]
         then
@@ -135,7 +135,7 @@ se_shutdown(){
 start_se(){
     
     echo "$(basename $0): Starting simengine..."
-    virsh start simengine && ssh -n ConnectTimeout=10 -i "$se_key_file" "$simengine_login" systemctl restart simengine-core
+    virsh start simengine && ssh -n -i "$se_key_file" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 "$simengine_login" systemctl restart simengine-core
     #not exiting on errors here because se could just already be running
     #only restarting se-core if simengine was not open already
 }
