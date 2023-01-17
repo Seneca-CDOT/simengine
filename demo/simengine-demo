@@ -135,7 +135,7 @@ se_shutdown(){
 start_se(){
     
     echo "$(basename $0): Starting simengine..."
-    virsh start simengine && ssh -n -i "$se_key_file" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 "$simengine_login" systemctl restart simengine-core
+    virsh start simengine && ssh -n -i "$se_key_file" -o StrictHostKeyChecking=accept-new "$simengine_login" systemctl restart simengine-core
     #not exiting on errors here because se could just already be running
     #only restarting se-core if simengine was not open already
 }
