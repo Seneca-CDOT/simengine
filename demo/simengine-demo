@@ -136,8 +136,21 @@ start_se(){
     
     echo "$(basename $0): Starting simengine..."
     virsh start simengine
-    sleep 10
-    ssh -n -i "$se_key_file" -o StrictHostKeyChecking=accept-new "$simengine_login" systemctl restart simengine-core
+    echo "$(basename $0): Testing simengine availability, this may take a moment..."
+    for i in {1..20}
+    do
+        ping -c1 192.168.122.100 &> /dev/null && break
+    done
+    
+    if [ $? -ne 0 ]
+    then
+        echo "$(basename $0): Failed to reach simengine vm..."
+        virsh shutdown simengine &> /dev/null
+        n0_exit 2
+    else
+        echo "$(basename $0): Connection successful, starting simengine-core service..."
+        ssh -n -i "$se_key_file" -o StrictHostKeyChecking=accept-new "$simengine_login" systemctl restart simengine-core
+    fi
 }
 
 n0_exit(){
