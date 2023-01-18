@@ -20,26 +20,30 @@ ZENITY=""
 
 connect(){
 
-    declare -i count=0
+    declare -i count=1
     declare -i rt=0
 
-    echo "$(basename $0): Waiting for inner vms..."
+    echo "$(basename $0): Waiting for the startup of SimEngine and Anvil system to complete"
+    echo "      This may take anywhere between 5-10 minutes, please wait..."
+    [ "$ZENITY" ] && zenity --info --text "Waiting for the startup of SimEngine and Anvil system to complete.\nThis may take anywhere between 5-10 minutes, please wait." --width 300 &
     
-    until  $(ssh -n -i "$se_key_file" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 "$simengine_login" "su -l -c 'get-system-status'")
+    #ToDo: add visual tracker for the progress of these status checks, something for the user to keep track of the progress
+    until  $(ssh -n -i "$se_key_file" -o StrictHostKeyChecking=accept-new "$simengine_login" "su -l -c 'get-system-status'")
     do
-        if [[ $count -eq 2 ]]
+        if [[ $count -eq 20 ]]
         then
             rt=1
             break
         else
             count+=1
-            sleep 1
+            sleep 30
         fi
     done
 
     if [[ rt -eq 0 ]]   
     then
         echo "$(basename $0): Success!"
+        [ "$ZENITY" ] && zenity --info --text "Success!" --width 300 &
         ssh -fN -i "$se_key_file" "$simengine_login" -L8888:localhost:80 -L8000:localhost:8000 -L9090:10.201.4.1:80 -L8000:10.201.4.1:8000
         exit 66
     else
@@ -53,6 +57,7 @@ create_se_key(){
     if [[ ! -f "$se_key_file" ]]
     then
         echo "$(basename $0): Creating simengine ssh key..."
+        [ "$ZENITY" ] && zenity --info --text "Creating simengine ssh key..." --width 300 &
         mkdir "$(dirname $se_key_file)" 2> /dev/null && chmod 0700 "$(dirname $se_key_file)"
         
         echo "$key" >> "$se_key_file" && chmod 600 "$se_key_file"
@@ -62,12 +67,12 @@ create_se_key(){
             n0_exit 1
         else
             echo "$(basename $0): Simengine ssh key successfully created"
+            [ "$ZENITY" ] && zenity --info --text "Simengine ssh key successfully created" --width 300 &
         fi
     fi
 }
 
 demo(){
-    [ "$ZENITY" ] && zenity --info --text "Preparing to display dashboards.\nPlease wait, this may take some time." --width 300 &
     create_se_key
     start_se
     connect
@@ -133,10 +138,11 @@ se_shutdown(){
 }
 
 start_se(){
-    
     echo "$(basename $0): Starting simengine..."
+    [ "$ZENITY" ] && zenity --info --text "Starting simengine..." --width 300 &
     virsh start simengine
     echo "$(basename $0): Testing simengine availability, this may take a moment..."
+    [ "$ZENITY" ] && zenity --info --text "Testing simengine availability, this may take a moment..." --width 300 &
     for i in {1..20}
     do
         ping -c1 192.168.122.100 &> /dev/null && break
@@ -149,6 +155,7 @@ start_se(){
         n0_exit 2
     else
         echo "$(basename $0): Connection successful, starting simengine-core service..."
+        [ "$ZENITY" ] && zenity --info --text "Connection successful, starting simengine-core service..." --width 300 &
         ssh -n -i "$se_key_file" -o StrictHostKeyChecking=accept-new "$simengine_login" systemctl restart simengine-core
     fi
 }
