@@ -2,6 +2,7 @@ Name:           simengine-demo
 Version:        3.41
 Release:        1%{?dist}
 Summary:        SimEngine - Demo
+BuildArch:	noarch
 
 %global gittag %{version}
 %global selected_libdir /usr/lib64
@@ -18,17 +19,22 @@ Requires:	polkit
 Files for downloading, installing, and running a prepared Simengine VM for use in demoing Simengine and Alteeve Anvil dashboards.
 
 %prep
-%autosetup
+%autosetup -n simengine-%{version}
 
 %install
-rm -rf $RPM_BUILD_ROOT
-%make_install
+install -d %{buildroot}/%{_datadir}/applications
+install -p demo/simengine-demo.desktop %{buildroot}/%{_datadir}/applications/
+install -d %{buildroot}/%{_datadir}/polkit-1/actions/
+install -p demo/org.freedesktop.policykit.simengine-demo.policy %{buildroot}/%{_datadir}/polkit-1/actions/
+install -d %{buildroot}/%{_bindir}
+install -p demo/simengine-demo %{buildroot}/%{_bindir}
 
 
 %files
-%license add-license-file-here
-%doc add-docs-here
-
+%license LICENSE.txt
+%{_bindir}/*
+%{_datadir}/applications/*
+%{_datadir}/polkit-1/actions/*
 
 
 %changelog
