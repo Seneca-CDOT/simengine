@@ -25,6 +25,7 @@ connect(){
 
     echo "$(basename $0): Waiting for the startup of SimEngine and Anvil system to complete"
     echo "      This may take anywhere between 5-10 minutes, please wait..."
+    killall zenity &> /dev/null
     [ "$ZENITY" ] && zenity --info --title "Simengine-Demo" --text "Waiting for the startup of SimEngine and Anvil system to complete.\nThis may take anywhere between 5-10 minutes, please wait." --width 300 &
     
     #ToDo: add visual tracker for the progress of these status checks, something for the user to keep track of the progress
@@ -41,6 +42,7 @@ connect(){
 
     if [[ rt -eq 0 ]]; then
         echo "$(basename $0): Success!"
+        killall zenity &> /dev/null
         [ "$ZENITY" ] && zenity --info --title "Simengine-Demo" --text "Success!" --width 300 &
         ssh -fN -i "$se_key_file" "$simengine_login" -L8888:localhost:80 -L8000:localhost:8000 -L9090:10.201.4.1:80 -L8000:10.201.4.1:8000
         exit 66
@@ -54,6 +56,7 @@ create_se_key(){
 
     if [ ! -f "$se_key_file" ]; then
         echo "$(basename $0): Creating simengine ssh key..."
+        killall zenity &> /dev/null
         [ "$ZENITY" ] && zenity --info --title "Simengine-Demo" --text "Creating simengine ssh key..." --width 300 &
         mkdir "$(dirname $se_key_file)" 2> /dev/null && chmod 0700 "$(dirname $se_key_file)"
         
@@ -63,6 +66,7 @@ create_se_key(){
             n0_exit 1
         else
             echo "$(basename $0): Simengine ssh key successfully created"
+            killall zenity &> /dev/null
             [ "$ZENITY" ] && zenity --info --title "Simengine-Demo" --text "Simengine ssh key successfully created" --width 300 &
         fi
     fi
@@ -91,6 +95,7 @@ remove_se_key(){
 
 se_download(){
     echo "$(basename $0): Downloading simengine vm image and xml..."
+    killall zenity &> /dev/null
     [ "$ZENITY" ] && zenity --info --title "Simengine-Demo" --text "Downloading simengine vm image and xml.\nPlease wait, this will take some time." --width 300 &
     curl http://simengine-anvil-demo.cdot.systems/vm-images/simengine.img.xz -o "$IMG_DIR/simengine.img.xz" && xz -d "$IMG_DIR/simengine.img.xz"
     curl http://simengine-anvil-demo.cdot.systems/vm-images/simengine.xml -o "$IMG_DIR/simengine.xml"
@@ -98,6 +103,7 @@ se_download(){
         echo "$(basename $0): Failed to download simengine image and xml"
         n0_exit 1
     else
+        killall zenity &> /dev/null
         [ "$ZENITY" ] && zenity --info --title "Simengine-Demo" --text "Download comeplete!" --width 300 &
         sleep 5
     fi
@@ -105,6 +111,7 @@ se_download(){
 
 se_setup(){
     echo "$(basename $0): Setting up simengine vm..."
+    killall zenity &> /dev/null
     [ "$ZENITY" ] && zenity --info --title "Simengine-Demo" --text "Setting up simengine vm..." --width 300 &
     virsh define "$IMG_DIR/simengine.xml"
     if [ $? -ne 0 ]; then
@@ -112,6 +119,7 @@ se_setup(){
         n0_exit 1
     else
         echo "$(basename $0): Setup complete!"
+        killall zenity &> /dev/null
         [ "$ZENITY" ] && zenity --info --title "Simengine-Demo" --text "Setup complete!" --width 300 &
         sleep 5
     fi
@@ -124,6 +132,7 @@ se_shutdown(){
         echo "$(basename $0): Failed to shut down simengine vm..."
         n0_exit 1
     else
+        killall zenity &> /dev/null
         [ "$ZENITY" ] && zenity --info --title "Simengine-Demo" --text "Simengine successfully shut down." --width 300 &
         sleep 5
     fi
@@ -132,11 +141,13 @@ se_shutdown(){
 start_se(){
     
     echo "$(basename $0): Starting simengine..."
+    killall zenity &> /dev/null
     [ "$ZENITY" ] && zenity --info --title "Simengine-Demo" --text "Starting simengine..." --width 300 &
     rt=$(virsh start simengine 2>&1 > /dev/null)
 
     if [ $? -eq 0 ]; then
         echo "$(basename $0): Testing simengine availability, this may take a moment..."
+        killall zenity &> /dev/null
         [ "$ZENITY" ] && zenity --info --title "Simengine-Demo" --text "Testing simengine availability, this may take a moment..." --width 300 &
         for i in {1..20}
         do
@@ -145,6 +156,7 @@ start_se(){
         
         if [ $? -eq 0 ]; then
             echo "$(basename $0): Connection successful, starting simengine-core service..."
+            killall zenity &> /dev/null
             [ "$ZENITY" ] && zenity --info --title "Simengine-Demo" --text "Connection successful, starting simengine-core service..." --width 300 &
             ssh -n -i "$se_key_file" -o StrictHostKeyChecking=accept-new "$simengine_login" systemctl restart simengine-core
         else
@@ -164,6 +176,7 @@ start_se(){
 }
 
 n0_exit(){
+    killall zenity &> /dev/null
     [ "$ZENITY" ] && (echo -e "An error occurred.\nThis is a log of program execution:\n";cat "${LOGFILE}")|zenity --text-info --title "Simengine-Demo" --width 500 --height=500
     exit $1
 }
