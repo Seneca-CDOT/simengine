@@ -11,7 +11,7 @@ License:        GPLv3+
 URL:            https://github.com/Seneca-CDOT/simengine
 Source0:        https://github.com/Seneca-CDOT/simengine/archive/%{gittag}/simengine-%{version}.tar.gz
   
-Requires:       virsh
+Requires:       libvirt-client
 Requires:	zenity
 Requires:	polkit
 
@@ -38,8 +38,11 @@ install -p demo/simengine-demo %{buildroot}/%{_bindir}
 
 
 %changelog
+* Thu Jan 19 2023 Chris Tyler <chris@tylers.info> - 3.41-2
+- dependency fixes
+
 * Thu Jan 19 2023 Chris Tyler <chris@tylers.info> - 3.41-1
 - new version
 
 * Mon Jan 16 2023 Tanner Moss <tmoss404@gmail.com>
-- 
+- Initial packaging
