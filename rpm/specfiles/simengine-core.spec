@@ -1,5 +1,5 @@
 Name:      simengine-core
-Version:   3.40
+Version:   3.41
 Release:   1%{?dist}
 Summary:   SimEngine - Core
 URL:       https://github.com/Seneca-CDOT/simengine
@@ -75,6 +75,9 @@ systemctl enable %{name}.service --now
 systemctl daemon-reload
 
 %changelog
+* Thu Jan 19 2023 Chris Tyler <chris@tylers.info> - 3.41-1
+- new version
+
 * Wed Dec 07 2022 Tanner Moss <tmoss404@gmail.com> - 3.40-1
 - new version
 

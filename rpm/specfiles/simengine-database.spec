@@ -1,5 +1,5 @@
 Name:      simengine-database
-Version:   3.40
+Version:   3.41
 Release:   1%{?dist}
 Summary:   SimEngine - Databases
 URL:       https://github.com/Seneca-CDOT/simengine
@@ -71,6 +71,9 @@ fi
 exit 0
 
 %changelog
+* Thu Jan 19 2023 Chris Tyler <chris@tylers.info> - 3.41-1
+- new version
+
 * Wed Dec 07 2022 Tanner Moss <tmoss404@gmail.com> - 3.40-1
 - new version
 
