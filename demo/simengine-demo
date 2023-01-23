@@ -230,12 +230,15 @@ if [ $# -ne 0 ]; then
             -h )
                 printf "usage: simengine.sh [--download] [--setup] [-h] [-k] [-r] [-s] [-c] [-o]\n\n"
                     printf "    -h  prints this help message\n\n"
-                    printf "    -k  creates private key for access to simengine outer vm, adds identity to the ssh agent\n"
-                    printf "    -r  removes simengine key and removes identity from the ssh agent\n"
-                    printf "    -s  starts simengine outer vm, starts simengine service inside the vm\n"
-                    printf "    -c  tests connection to simengine inner vms, upon success connects to simengine outer vm via ssh\n"
-                    printf "        also opens siemngine and anvil dashboards in default browser"
-                    printf "    -o  opens siemngine and anvil dashboards in default browser\n\n"
+                    printf "    --download  Downloads and unpack vm snapshot and virsh xml for simengine vm\n"
+                    printf "    --setup     Sets up simengine vm within virsh\n"
+                    printf "    --shutdown  Will shutdown the running simengine vm\n"
+                    printf "    -k          Creates private key for access to simengine outer vm, adds identity to the ssh agent\n"
+                    printf "    -r          Removes simengine key and removes identity from the ssh agent\n"
+                    printf "    -s          Starts simengine outer vm, starts simengine service inside the vm\n"
+                    printf "    -c          Tests connection to simengine inner vms, upon success connects to simengine outer vm via ssh\n"
+                    printf "                also opens siemngine and anvil dashboards in default browser"
+                    printf "    -o          Opens siemngine and anvil dashboards in default browser\n\n"
                 exit 0
                 ;;
             -k )
