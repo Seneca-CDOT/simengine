@@ -2,17 +2,16 @@
 
 Resources for demoing the simengine / anvil dashboards
 
-
 ## Aquiring and running simengine-demo script
 
 ### Installing simengine repo file:
 ```bash
-sudo dnf install http://england.cdot.systems/simengine/simengine-repo-3.42-1.fc35.noarch.rpm and install the package
+sudo dnf install http://england.cdot.systems/simengine/simengine-repo-3.42-1.fc35.noarch.rpm
 ```
 
 ### Installing simengine-demo script and desktop file:
 ```bash
-sudo dnf install simengine-demo and install the package
+sudo dnf install simengine-demo
 ```
 
 ### Downloading and unpacking simengine vm:
@@ -53,7 +52,7 @@ simengine-demo
 
 desktop file:
 ```
-simply opening the desktop file normally
+open the desktop file normally
 ```
 
 Upon success you should have two browser tabs opened to the simengine and anvil dashboards, all done!
