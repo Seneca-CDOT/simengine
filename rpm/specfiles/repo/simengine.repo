@@ -1,0 +1,9 @@
+[simengine]
+name=Simengine Repo
+baseurl=http://england.cdot.systems/simengine
+enabled=1
+metadate_expire=1d
+repo_gpgcheck=0
+type=rpm
+gpgcheck=0
+skip_if_unavailable=False
