@@ -373,13 +373,10 @@ class BMCServerStateManager(state_api.IBMCServerStateManager, ServerStateManager
         StateManager.get_store().set(self.redis_key + ":cpu_load", str(int(value)))
 
     def update_storage_temperature(self, old_ambient, new_ambient):
-
         with self._graph_ref.get_session() as db_s:
-
             hd_elements = GraphReference.get_all_hd_thermal_elements(db_s, self.key)
 
             for hd_e in hd_elements:
-
                 if "DID" in hd_e["component"]:
                     target_attr = "DID"
                     target_value = hd_e["component"]["DID"]

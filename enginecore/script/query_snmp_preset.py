@@ -27,7 +27,6 @@ def query_snmp_interface(oid, host="localhost", port=1024):
 
 
 if __name__ == "__main__":
-
     # parse cli option
     argparser = argparse.ArgumentParser(description="Query all OIDs in a preset file")
 

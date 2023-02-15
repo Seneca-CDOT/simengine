@@ -69,7 +69,7 @@ class IUPSStateManager(ISnmpDeviceStateManager):
 
     def __init__(self, asset_info):
         super().__init__(asset_info)
-        self._max_battery_level = 1000  #%
+        self._max_battery_level = 1000  # %
 
     def _update_battery_process_speed(self, process_channel, factor):
         """Speed up/slow down battery related process"""
@@ -195,7 +195,6 @@ class IUPSStateManager(ISnmpDeviceStateManager):
 
     @Randomizer.randomize_method()
     def power_up(self):
-
         powered = self.status
 
         if self.battery_level and not self.status:

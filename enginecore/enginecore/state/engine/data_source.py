@@ -19,7 +19,6 @@ class HardwareDataSource:
 
 
 class HardwareGraphDataSource(HardwareDataSource):
-
     graph_ref = None
 
     @classmethod

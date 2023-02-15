@@ -109,7 +109,6 @@ class ServerRoom(Component):
         amb_props = get_amb_props()
 
         while not self._stop_event.is_set():
-
             self._stop_event.wait(amb_props["rate"])
 
             # check if room environment matches the conditions
@@ -144,7 +143,6 @@ class ServerRoom(Component):
         volt_props = in_state.StateManager.get_voltage_props()
 
         while not self._stop_event.is_set():
-
             self._stop_event.wait(volt_props["rate"])
 
             if not volt_props["enabled"] or not in_state.StateManager.mains_status():
@@ -210,7 +208,6 @@ class ServerRoom(Component):
         )
 
     def __str__(self):
-
         wall_power_status = in_state.StateManager.mains_status()
         volt_props = in_state.StateManager.get_voltage_props()
 

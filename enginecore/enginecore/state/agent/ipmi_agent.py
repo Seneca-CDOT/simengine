@@ -92,7 +92,6 @@ class IPMIAgent(Agent):
 
         # initialize sensors
         for i, sensor_name in enumerate(self._sensor_repo.sensors):
-
             sensor = self._sensor_repo.sensors[sensor_name]
             s_type = sensor.sensor_type
 
@@ -215,7 +214,6 @@ class IPMIAgent(Agent):
         self.stop_agent()
 
     def __str__(self):
-
         agent_info = (
             "\nipmi_sim lan: \n"
             "   Accessible at: {host}:{port} \n"

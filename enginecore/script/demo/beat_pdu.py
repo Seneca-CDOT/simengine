@@ -157,7 +157,6 @@ def play_track_and_lights(track, hosts):
 
 
 if __name__ == "__main__":
-
     argparser = argparse.ArgumentParser(
         description="Play a music track with PDUs accompaniment"
     )

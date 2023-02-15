@@ -55,7 +55,6 @@ class IServerStateManager(IStateManager):
 
     @Randomizer.randomize_method()
     def power_up(self):
-
         powered = self.status
 
         if powered and not self._vm.isActive():

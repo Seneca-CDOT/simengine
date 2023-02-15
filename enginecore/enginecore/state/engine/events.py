@@ -354,7 +354,6 @@ class AssetPowerEvent(EngineEvent):
     """
 
     def __init__(self, *args, **kwargs):
-
         super().__init__(*args, **kwargs)
         required_args = ["asset", "new_out_volt", "old_out_volt"]
 

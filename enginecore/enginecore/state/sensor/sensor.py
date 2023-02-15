@@ -97,7 +97,6 @@ class Sensor:
 
             # print any thermal connections
             if thermal_rel["targets"]:
-
                 targets = thermal_rel["targets"]
                 s_str.append(" - Thermal Impact:")
 
@@ -158,7 +157,6 @@ class Sensor:
         self._th_cpu_t.start()
 
     def _launch_thermal_storage_thread(self, controller, hd_element, hd_type, event):
-
         thread_name = "{}-{}".format(hd_type.name, hd_element)
         if (
             thread_name in self._th_storage_t
@@ -235,7 +233,6 @@ class Sensor:
         from enginecore.state.api import IBMCServerStateManager
 
         with self._graph_ref.get_session() as session:
-
             asset_info = GraphReference.get_asset_and_components(
                 session, self._server_key
             )
@@ -256,7 +253,6 @@ class Sensor:
                     return
 
                 with self._s_file_locks.get_lock(self.name):
-
                     current_cpu_load = server_sm.cpu_load
 
                     # calculate cpu impact based on the model
@@ -289,7 +285,6 @@ class Sensor:
     def _target_storage(self, controller, target, hd_type, event):
         with self._graph_ref.get_session() as session:
             while True:
-
                 self._s_thermal_event.wait()
 
                 # target
@@ -363,7 +358,6 @@ class Sensor:
 
         with self._graph_ref.get_session() as session:
             while True:
-
                 self._s_thermal_event.wait()
 
                 rel_details = GraphReference.get_sensor_thermal_rel(
@@ -392,7 +386,6 @@ class Sensor:
 
                 # if model is specified -> use the runtime mappings
                 if "model" in rel and rel["model"]:
-
                     calc_new_sv = arith_op
                     arith_op = lambda sv, _: calc_new_sv(
                         sv,
@@ -413,7 +406,6 @@ class Sensor:
                 with self._s_file_locks.get_lock(target), open(
                     os.path.join(self._s_dir, target), "r+"
                 ) as sf_handler:
-
                     current_value = int(sf_handler.read())
 
                     change_by = (
@@ -471,7 +463,6 @@ class Sensor:
             raise ValueError("Thread already exists")
 
         with self._graph_ref.get_session() as session:
-
             rel_details = GraphReference.get_sensor_thermal_rel(
                 session,
                 self._server_key,

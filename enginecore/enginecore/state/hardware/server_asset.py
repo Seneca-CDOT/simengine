@@ -166,7 +166,6 @@ class Server(StaticAsset):
         # initialize load for PSUs
         # and process alternative power sources (PSUs)
         for key in self._psu_sm:
-
             psu_sm = self._psu_sm[key]
             load_upd[key] = EventDataPair(0.0, 0.0)
 
@@ -355,10 +354,8 @@ class ServerWithBMC(Server):
         )
 
         while not self._stop_event.is_set():
-
             # get a sample of CPU load if vm is up & running
             if self.state.status and self.state.vm_is_active():
-
                 # more details on libvirt api:
                 # https://stackoverflow.com/questions/40468370/what-does-cpu-time-represent-exactly-in-libvirt
                 cpu_stats = self.state.get_cpu_stats()[0]

@@ -21,7 +21,6 @@ def step_impl(context):
 @given('ambient is "{temp:d}" degrees')
 @when('ambient is set to "{temp:d}" degrees')
 def step_impl(context, temp):
-
     old_ambient = ISystemEnvironment.get_ambient()
 
     if not math.isclose(temp, old_ambient):

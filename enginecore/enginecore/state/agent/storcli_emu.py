@@ -72,7 +72,6 @@ class StorCLIEmulator:
     ]
 
     def __init__(self, asset_key, server_dir, socket_port):
-
         self._graph_ref = GraphReference()
         self._server_key = asset_key
         self._serversocket = None
@@ -132,7 +131,6 @@ class StorCLIEmulator:
 
         template_f_path = os.path.join(self._storcli_dir, "adapter_count")
         with open(template_f_path) as templ_h, self._graph_ref.get_session() as session:
-
             options = {
                 "header": self._strcli_header(),
                 "ctrl_count": GraphReference.get_controller_count(
@@ -146,7 +144,6 @@ class StorCLIEmulator:
     def _strcli_ctrl_perf_mode(self, controller_num):
         """Current performance mode (hardcoded)"""
         with open(os.path.join(self._storcli_dir, "performance_mode")) as templ_h:
-
             options = {
                 "header": self._strcli_header(controller_num),
                 "mode_num": 0,
@@ -163,7 +160,6 @@ class StorCLIEmulator:
         with open(
             alarm_state_f_path
         ) as templ_h, self._graph_ref.get_session() as session:
-
             ctrl_info = GraphReference.get_controller_details(
                 session, self._server_key, controller_num
             )
@@ -180,7 +176,6 @@ class StorCLIEmulator:
         """Battery backup unit output for storcli"""
 
         with open(os.path.join(self._storcli_dir, "bbu_data")) as templ_h:
-
             options = {
                 "header": self._strcli_header(controller_num, "Failure"),
                 "ctrl_num": controller_num,
@@ -199,7 +194,6 @@ class StorCLIEmulator:
 
         rate_file = os.path.join(self._storcli_dir, rate_type)
         with open(rate_file) as templ_h, self._graph_ref.get_session() as session:
-
             ctrl_info = GraphReference.get_controller_details(
                 session, self._server_key, controller_num
             )
@@ -248,7 +242,6 @@ class StorCLIEmulator:
         with open(ctrl_info_f) as info_h, open(
             ctrl_entry_f
         ) as entry_h, self._graph_ref.get_session() as session:
-
             ctrl_info = GraphReference.get_controller_details(
                 session, self._server_key, controller_num
             )
@@ -288,7 +281,9 @@ class StorCLIEmulator:
             entry_options = {
                 "controller_num": controller_num,
                 "drive_groups_num": ctrl_info["numDriveGroups"],
-                "controller_date": time.strftime("%m/%d/%Y, %H:%M:%S",),
+                "controller_date": time.strftime(
+                    "%m/%d/%Y, %H:%M:%S",
+                ),
                 "system_date": time.strftime("%m/%d/%Y, %H:%M:%S"),
                 "status": "Optimal",
             }
@@ -316,7 +311,6 @@ class StorCLIEmulator:
 
             # analyze and format virtual drive output
             for i, v_drive in enumerate(drives["vd"]):
-
                 vd_state = copy.deepcopy(
                     self._storcli_details["stateConfig"]["virtualDrive"]["Optl"]
                 )
@@ -424,7 +418,6 @@ class StorCLIEmulator:
         with open(
             os.path.join(self._storcli_dir, cv_f)
         ) as templ_h, self._graph_ref.get_session() as session:
-
             cv_info = GraphReference.get_cachevault(
                 session, self._server_key, controller_num
             )
@@ -444,7 +437,9 @@ class StorCLIEmulator:
         pd_output = []
 
         info_options = {
-            "header": self._strcli_header(controller_num, "Success", "Show Drive Information Succeeded."),
+            "header": self._strcli_header(
+                controller_num, "Success", "Show Drive Information Succeeded."
+            ),
             "physical_drives": "",
         }
 
@@ -571,7 +566,6 @@ class StorCLIEmulator:
         drives = []
 
         with self._graph_ref.get_session() as session:
-
             vd_details = GraphReference.get_virtual_drive_details(
                 session, self._server_key, controller_num
             )
@@ -619,7 +613,6 @@ class StorCLIEmulator:
 
         vd_file = os.path.join(self._storcli_dir, "virtual_drive_data")
         with open(vd_file) as templ_h:
-
             template = Template(templ_h.read())
 
             # get virtual & physical drive details
@@ -644,7 +637,6 @@ class StorCLIEmulator:
 
         # Continue to accept connections until the ws server stops
         while not self._stop_event.is_set():
-
             try:
                 conn, _ = self._serversocket.accept()
             except OSError:
@@ -653,7 +645,6 @@ class StorCLIEmulator:
 
             with conn:
                 while not self._stop_event.is_set():
-
                     scout_r, _, _ = select.select([conn], [], [])
                     if not scout_r:
                         logger.debug("Socket is not ready for reading")

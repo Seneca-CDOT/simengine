@@ -12,7 +12,6 @@ from enginecore.state.hardware.asset_definition import register_asset
 
 @register_asset
 class StaticAsset(Asset):
-
     channel = "engine-static"
     StateManagerCls = in_state.StaticDeviceStateManager
 

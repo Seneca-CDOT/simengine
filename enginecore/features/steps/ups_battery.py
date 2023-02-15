@@ -13,7 +13,6 @@ from snmp import query_snmp_interface
 
 
 def _check_volt_threshold(context, key, threshold, old_volt, volt_change):
-
     # query snmp to grab oid and threshold oid value
     th_oid = context.hardware[key].get_oid_by_name(threshold).oid
     th_value = query_snmp_interface(th_oid)
@@ -93,7 +92,6 @@ def step_impl(context, key, t_reason):
 
 @then('after "{seconds:d}" seconds, transfer reason for UPS "{key:d}" is "{t_reason}"')
 def step_impl(context, seconds, key, t_reason):
-
     time.sleep(seconds + 1)
     context.execute_steps(
         'then UPS "{key:d}" transfer reason is set to "{t_reason}"'.format(

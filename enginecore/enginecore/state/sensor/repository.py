@@ -50,7 +50,6 @@ class SensorRepository:
                 self._sensors[s_name].set_to_defaults()
 
     def __str__(self):
-
         repo_str = []
         repo_str.append("Sensor Repository for Server {}".format(self._server_key))
         repo_str.append(
@@ -105,7 +104,6 @@ class SensorRepository:
             sensor = self._sensors[s_name]
             if sensor.group == SensorGroups.temperature:
                 with self._sensor_file_locks.get_lock(sensor.name):
-
                     old_sensor_value = int(sensor.sensor_value)
                     new_sensor_value = (
                         old_sensor_value - old_ambient + new_ambient

@@ -137,7 +137,6 @@ class WebSocket(Component):
         assets = IStateManager.get_system_status(flatten=False)
         graph_ref = GraphReference()
         with graph_ref.get_session() as session:
-
             stage_layout = GraphReference.get_stage_layout(session)
 
             # send system topology and assets' power-interconnections

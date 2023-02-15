@@ -121,7 +121,6 @@ def initialize(force_snmp_init=False):
 
         # Set-up in the SNMPSim format
         if "SNMPSim" in record["asset"].labels and record["oids"] and init_from_snmprec:
-
             # Read a file containing static .snmprec data
             static_oid_file = record["asset"].get("staticOidFile")
             static_oid_path = os.path.join(
@@ -130,7 +129,6 @@ def initialize(force_snmp_init=False):
 
             with open(static_oid_path, "r") as sfile_handler:
                 for line in sfile_handler:
-
                     oid, dtype, value = line.replace("\n", "").split("|")
                     if oid in graph_oids:
                         dtype = graph_oids[oid]["dtype"]

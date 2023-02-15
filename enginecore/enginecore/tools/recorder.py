@@ -43,9 +43,7 @@ class Recorder:
 
         @functools.wraps(work)
         def record_wrapper(asset_self, *f_args, **f_kwargs):
-
             if asset_self.__module__.startswith(self._module) and self._enabled:
-
                 func_args = tuple((work, asset_self))
 
                 partial_func = functools.partial(*func_args, *f_args, **f_kwargs)
@@ -113,7 +111,6 @@ class Recorder:
         json_pickle = lambda x: codecs.encode(pickle.dumps(x), "base64").decode()
 
         for action in self._actions[slc]:
-
             action_info = {
                 "args": json_pickle(action["work"].args[1:]),
                 "kwargs": json_pickle(action["work"].keywords),
@@ -194,7 +191,6 @@ class Recorder:
         action_details = []
 
         for action in self._actions[slc]:
-
             wrk_asset = action["work"].args[0]
             if inspect.isclass(wrk_asset):
                 obj_str = wrk_asset.__name__
@@ -243,7 +239,6 @@ class Recorder:
         self._replaying = True
 
         for action, next_action in self.actions_iter(self._actions, slc):
-
             action_info = "Replaying: [ {action}{args} ]".format(
                 action=action["work"].__name__, args=action["work"].args
             )
@@ -283,7 +278,6 @@ class Recorder:
         """
 
         for action, next_action in cls.actions_iter(actions, slc):
-
             print("{number}) [executing]: {work}".format(**action))
             out_pad = len("{number}) ".format(**action)) * " "
 

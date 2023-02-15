@@ -103,7 +103,6 @@ class SNMPAgent(Agent):
         return os.path.join(self._snmp_rec_dir, "snmpsimd.log")
 
     def __str__(self):
-
         file_struct_info = (
             "\n" "   Data directory: {0._snmp_rec_dir}\n" "   Log file: {0.log_path} \n"
         ).format(self)

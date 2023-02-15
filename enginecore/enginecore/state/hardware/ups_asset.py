@@ -145,7 +145,6 @@ class UPS(Asset, SNMPSim):
             and self.state.on_battery
             and not self._stop_event.is_set()
         ):
-
             # calculate new battery level
             battery_level = battery_level - (
                 self._calc_battery_discharge() * self._drain_speed_factor

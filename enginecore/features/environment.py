@@ -8,6 +8,7 @@ import os
 
 from behave import fixture, use_fixture
 
+
 # plyint: enable=no-name-in-module
 def configure_logger(_):
     """Configure logger for debugging purpose"""
