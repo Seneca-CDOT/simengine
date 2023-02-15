@@ -1,4 +1,5 @@
 ${header}
+
 Controller Properties :
 =====================
 
@@ -7,3 +8,4 @@ Ctrl_Prop        Value
 -----------------------
 Patrol Read Rate ${pr_rate}%   
 -----------------------
+

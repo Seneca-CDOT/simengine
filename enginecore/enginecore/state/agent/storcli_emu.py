@@ -109,7 +109,7 @@ class StorCLIEmulator:
         self._serversocket.close()
 
     # *** Responses to cli commands ***
-    def _strcli_header(self, ctrl_num=0, status="Success"):
+    def _strcli_header(self, ctrl_num=0, status="Success", description="None"):
         """Reusable header for storcli output
         (this appears at the top of most CLI outputs)"""
 
@@ -118,10 +118,10 @@ class StorCLIEmulator:
                 "cli_version": self._storcli_details["CLIVersion"],
                 "op_sys": self._storcli_details["operatingSystem"],
                 "status": status,
-                "description": "None",
+                "description": description,
                 "controller_line": "Controller = {}\n".format(ctrl_num)
                 if ctrl_num
-                else "",
+                else "Status Code = 0\n",
             }
 
             template = Template(templ_h.read())
@@ -182,7 +182,7 @@ class StorCLIEmulator:
         with open(os.path.join(self._storcli_dir, "bbu_data")) as templ_h:
 
             options = {
-                "header": self._strcli_header(controller_num),
+                "header": self._strcli_header(controller_num, "Failure"),
                 "ctrl_num": controller_num,
                 "status": "Failed",
                 "property": "-",
@@ -288,8 +288,8 @@ class StorCLIEmulator:
             entry_options = {
                 "controller_num": controller_num,
                 "drive_groups_num": ctrl_info["numDriveGroups"],
-                "controller_date": "",
-                "system_date": "",
+                "controller_date": time.strftime("%m/%d/%Y, %H:%M:%S",),
+                "system_date": time.strftime("%m/%d/%Y, %H:%M:%S"),
                 "status": "Optimal",
             }
 
@@ -444,7 +444,7 @@ class StorCLIEmulator:
         pd_output = []
 
         info_options = {
-            "header": self._strcli_header(controller_num),
+            "header": self._strcli_header(controller_num, "Success", "Show Drive Information Succeeded."),
             "physical_drives": "",
         }
 

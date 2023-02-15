@@ -349,7 +349,7 @@ def _add_storage(asset_key, preset_file, storage_state_file):
             default_ctr_prop = {
                 "memoryCorrectable_errors": 0,
                 "memoryUncorrectable_errors": 0,
-                "alarmState": "off",
+                "alarmState": "OFF",
                 "controllerNum": idx,
             }
             props_stm = qh.get_props_stm(

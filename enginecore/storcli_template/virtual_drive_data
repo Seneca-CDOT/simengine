@@ -1,11 +1,12 @@
+
 /c${controller}/v${virtual_drives_num} :
 ======
 
 ${virtual_drives}
-
-Cac=CacheCade|Rec=Recovery|OfLn=OffLine|Pdgd=Partially Degraded|Dgrd=Degraded
-Optl=Optimal|RO=Read Only|RW=Read Write|HD=Hidden|TRANS=TransportReady|B=Blocked|
-Consist=Consistent|R=Read Ahead Always|NR=No Read Ahead|WB=WriteBack|
+VD=Virtual Drive| DG=Drive Group|Rec=Recovery
+Cac=CacheCade|OfLn=OffLine|Pdgd=Partially Degraded|Dgrd=Degraded
+Optl=Optimal|dflt=Default|RO=Read Only|RW=Read Write|HD=Hidden|TRANS=TransportReady
+B=Blocked|Consist=Consistent|R=Read Ahead Always|NR=No Read Ahead|WB=WriteBack
 AWB=Always WriteBack|WT=WriteThrough|C=Cached IO|D=Direct IO|sCC=Scheduled
 Check Consistency
 
@@ -14,14 +15,14 @@ PDs for VD ${virtual_drives_num} :
 ============
 
 ${physical_drives}
-
-EID-Enclosure Device ID|Slt-Slot No.|DID-Device ID|DG-DriveGroup
-DHS-Dedicated Hot Spare|UGood-Unconfigured Good|GHS-Global Hotspare
-UBad-Unconfigured Bad|Onln-Online|Offln-Offline|Intf-Interface
-Med-Media Type|SED-Self Encryptive Drive|PI-Protection Info
-SeSz-Sector Size|Sp-Spun|U-Up|D-Down/PowerSave|T-Transition|F-Foreign
-UGUnsp-Unsupported|UGShld-UnConfigured shielded|HSPShld-Hotspare shielded
-CFShld-Configured shielded|Cpybck-CopyBack|CBShld-Copyback Shielded
+EID=Enclosure Device ID|Slt=Slot No|DID=Device ID|DG=DriveGroup
+DHS=Dedicated Hot Spare|UGood=Unconfigured Good|GHS=Global Hotspare
+UBad=Unconfigured Bad|Sntze=Sanitize|Onln=Online|Offln=Offline|Intf=Interface
+Med=Media Type|SED=Self Encryptive Drive|PI=Protection Info
+SeSz=Sector Size|Sp=Spun|U=Up|D=Down|T=Transition|F=Foreign
+UGUnsp=UGood Unsupported|UGShld=UGood shielded|HSPShld=Hotspare shielded
+CFShld=Configured shielded|Cpybck=CopyBack|CBShld=Copyback Shielded
+UBUnsp=UBad Unsupported|Rbld=Rebuild
 
 
 VD${virtual_drives_num} Properties :
@@ -43,7 +44,6 @@ Creation Time = 04:00:22 AM
 Emulation type = default
 Is LD Ready for OS Requests = Yes
 SCSI NAA Id = 60030057013c6550237fabd6107d475d
-SCSI Unmap = No
-
+Unmap Enabled = N/A
 
 

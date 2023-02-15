@@ -3,14 +3,14 @@ Drive ${drive_path} :
 =================
 
 ${drive_table}
-
-EID-Enclosure Device ID|Slt-Slot No.|DID-Device ID|DG-DriveGroup
-DHS-Dedicated Hot Spare|UGood-Unconfigured Good|GHS-Global Hotspare
-UBad-Unconfigured Bad|Onln-Online|Offln-Offline|Intf-Interface
-Med-Media Type|SED-Self Encryptive Drive|PI-Protection Info
-SeSz-Sector Size|Sp-Spun|U-Up|D-Down/PowerSave|T-Transition|F-Foreign
-UGUnsp-Unsupported|UGShld-UnConfigured shielded|HSPShld-Hotspare shielded
-CFShld-Configured shielded|Cpybck-CopyBack|CBShld-Copyback Shielded
+EID=Enclosure Device ID|Slt=Slot No|DID=Device ID|DG=DriveGroup
+DHS=Dedicated Hot Spare|UGood=Unconfigured Good|GHS=Global Hotspare
+UBad=Unconfigured Bad|Sntze=Sanitize|Onln=Online|Offln=Offline|Intf=Interface
+Med=Media Type|SED=Self Encryptive Drive|PI=Protection Info
+SeSz=Sector Size|Sp=Spun|U=Up|D=Down|T=Transition|F=Foreign
+UGUnsp=UGood Unsupported|UGShld=UGood shielded|HSPShld=Hotspare shielded
+CFShld=Configured shielded|Cpybck=CopyBack|CBShld=Copyback Shielded
+UBUnsp=UBad Unsupported|Rbld=Rebuild
 
 
 Drive ${drive_path} - Detailed Information :
@@ -57,15 +57,18 @@ Commissioned Spare = No
 Emergency Spare = No
 Last Predictive Failure Event Sequence Number = 0
 Successful diagnostics completion on = N/A
+FDE Type = None
 SED Capable = No
 SED Enabled = No
 Secured = No
 Cryptographic Erase Capable = No
+Sanitize Support = Not supported
 Locked = No
 Needs EKM Attention = No
 PI Eligible = No
 Certified = No
 Wide Port Capable = No
+Multipath = No
 
 Port Information :
 ================
@@ -87,5 +90,4 @@ Inquiry Data =
 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
-
 
