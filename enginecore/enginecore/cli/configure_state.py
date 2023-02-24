@@ -148,7 +148,6 @@ def handle_configure_randomizer(args, conf_rand_arguments):
         server_manager = get_server_state_manager(args["asset_key"])
         print("Server:[{0.key}] random arguments:".format(server_manager))
         for rand_opt in conf_rand_arguments:
-
             s_prop = IBMCServerStateManager.StorageRandProps[rand_opt.replace("-", "_")]
             opt_prop = server_manager.get_storage_radnomizer_prop(s_prop)
             print(

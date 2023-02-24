@@ -48,7 +48,6 @@ def _add_psu(key, psu_index, attr):
     """
 
     with GRAPH_REF.get_session() as session:
-
         query = []
         # find the server
         query.append("MATCH (asset:Asset {{ key: {} }})".format(key))
@@ -80,7 +79,6 @@ def configure_asset(key, attr):
         del attr["asset_key"]
 
     with GRAPH_REF.get_session() as session:
-
         set_statement = qh.get_set_stm(attr)
         query = "MATCH (asset:Asset {{ key: {key} }}) SET {set_stm}".format(
             key=key, set_stm=set_statement
@@ -117,7 +115,6 @@ def link_assets(source_key, dest_key):
     """
 
     with GRAPH_REF.get_session() as session:
-
         # Validate that the asset does not power already existing device
         result = session.run(
             """
@@ -224,7 +221,6 @@ def _add_sensors(asset_key, preset_file):
         data = json.load(preset_handler)
 
         for sensor_type, sensor_specs in data.items():
-
             if sensor_type not in SUPPORTED_SENSORS:
                 continue
 
@@ -241,7 +237,6 @@ def _add_sensors(asset_key, preset_file):
                 )
 
             for idx, sensor in enumerate(sensor_specs["sensorDefinitions"]):
-
                 sensor_node = "{}{}".format(sensor_type, idx)
 
                 if "address" in sensor and sensor["address"]:
@@ -327,7 +322,6 @@ def _add_storage(asset_key, preset_file, storage_state_file):
         )
 
         for idx, controller in enumerate(storage_data["controllers"]):
-
             s_attr = [
                 "controllerNum",
                 "model",
@@ -349,7 +343,7 @@ def _add_storage(asset_key, preset_file, storage_state_file):
             default_ctr_prop = {
                 "memoryCorrectable_errors": 0,
                 "memoryUncorrectable_errors": 0,
-                "alarmState": "off",
+                "alarmState": "OFF",
                 "controllerNum": idx,
             }
             props_stm = qh.get_props_stm(
@@ -405,7 +399,6 @@ def _add_storage(asset_key, preset_file, storage_state_file):
 
             # Add physical drives
             for pidx, phys_drive in enumerate(controller["PD"]):
-
                 pd_node = "pd" + str(phys_drive["DID"])
 
                 # define supported attributes
@@ -485,7 +478,6 @@ def _add_storage(asset_key, preset_file, storage_state_file):
 
                 # connect PDs & VDs
                 for pidx in virt_drive["DID"]:
-
                     query.append(
                         "CREATE ({})<-[:BELONGS_TO_VIRTUAL_SPACE]-(pd{})".format(
                             vd_node, pidx
@@ -514,7 +506,6 @@ def create_server(key, attr, server_variation=ServerVariations.Server):
         conn.close()
 
     with GRAPH_REF.get_session() as session:
-
         query = []  # cypher query
 
         attr["name"] = (
@@ -540,7 +531,6 @@ def create_server(key, attr, server_variation=ServerVariations.Server):
 
         # set BMC-server specific attributes if type is bmc
         if server_variation == ServerVariations.ServerWithBMC:
-
             bmc_attr = {**IPMI_LAN_DEFAULTS, **attr}  # merge
 
             set_stm = qh.get_set_stm(
@@ -551,7 +541,6 @@ def create_server(key, attr, server_variation=ServerVariations.Server):
         session.run("\n".join(query))
 
         if server_variation == ServerVariations.ServerWithBMC:
-
             # if preset is provided -> use the user-defined file
             f_loc = os.path.dirname(__file__)
             s_def_file = (
@@ -602,7 +591,6 @@ def create_ups(
     )
 
     with open(preset_file) as preset_handler, GRAPH_REF.get_session() as session:
-
         query = []
         data = json.load(preset_handler)
 
@@ -679,7 +667,6 @@ def create_ups(
 
         # Set output outlets
         for i in range(data["numOutlets"]):
-
             props = {
                 "name": "out" + str(i + 1),
                 "type": "outlet",
@@ -708,7 +695,6 @@ def create_pdu(
         else preset_file
     )
     with open(preset_file) as preset_handler, GRAPH_REF.get_session() as session:
-
         query = []
         data = json.load(preset_handler)
         outlet_count = data["OIDs"]["OutletCount"]["defaultValue"]
@@ -756,17 +742,14 @@ def create_pdu(
 
         # Outlet-specific OIDs
         for oid_key, oid_props in data["outletOIDs"].items():
-
             # For outlet state, Outlet asset will need to be created
             if oid_key == "OutletState":
-
                 oid_desc = dict((y, x) for x, y in oid_props["oidDesc"].items())
 
                 desc_stm = qh.get_oid_desc_stm(oid_desc)
                 query.append("CREATE (oidDesc:OIDDesc {{ {} }})".format(desc_stm))
 
                 for j in range(outlet_count):
-
                     out_key = int("{}{}".format(key, str(j + 1)))
                     props_stm = qh.get_props_stm(
                         {"key": out_key, "name": "out" + str(j + 1), "type": "outlet"}
@@ -787,7 +770,6 @@ def create_pdu(
 
                     # create OID associated with outlet & pdu
                     for oid_n, oid in enumerate(oid_props["OID"]):
-
                         out_key = int("{}{}".format(key, str(j + 1)))
                         oid = oid + "." + str(j + 1)
                         oid_node_name = "{oid_name}{outlet_num}{oid_num}".format(
@@ -950,7 +932,6 @@ def _set_thermal_target(attr, query):
     rel_query.append("RETURN ex_rel")
 
     with GRAPH_REF.get_session() as session:
-
         result = session.run("\n".join(query + rel_query))
         rel_exists = result.single()
 

@@ -37,6 +37,7 @@ Device Interface = SAS-6G
 Bus Number = 1
 Device Number = 0
 Function Number = 0
+Domain ID = 0
 
 
 Pending Images in Flash :
@@ -52,6 +53,7 @@ Memory Uncorrectable Errors = ${memory_uncorrectable_errors}
 ECC Bucket Count = 0
 Any Offline VD Cache Preserved = No
 BBU Status = 0
+Support PD Firmware Download = Yes
 PD Firmware Download in progress = No
 Lock Key Assigned = No
 Failed to get lock key on bootup = No
@@ -62,6 +64,8 @@ A rollback operation is in progress = No
 At least one PFK exists in NVRAM = Yes
 SSC Policy is WB = No
 Controller has booted into safe mode = No
+Controller shutdown required = No
+Controller has booted into certificate provision mode = No
 
 
 Supported Adapter Operations :
@@ -73,7 +77,7 @@ Reconstruct Rate = Yes
 Patrol Read Rate = Yes
 Alarm Control = Yes
 Cluster Support = No
-BBU  = Yes
+BBU = Yes
 Spanning = Yes
 Dedicated Hot Spare = Yes
 Revertible Hot Spares = Yes
@@ -120,7 +124,6 @@ Headless Mode = Yes
 Dedicated HotSpares Limited = No
 Point In Time Progress = Yes
 Extended LD = Yes
-Boot Volume Supported = No
 Support Uneven span  = No
 Support Config Auto Balance = No
 Support Maintenance Mode = No
@@ -142,6 +145,32 @@ Support Ctrl Info Extended = No
 Support IButton less = No
 Support AES Encryption Algorithm = No
 Support Encrypted MFC = No
+Support Snapdump = No
+Support Force Personality Change = No
+Support Dual Fw Image = No
+Support PSOC Update = No
+Support Secure Boot = No
+Support Debug Queue = No
+Support Least Latency Mode = Yes
+Support OnDemand Snapdump = No
+Support Clear Snapdump = No
+Support PHY current speed = No
+Support Lane current speed = No
+Support NVMe Width = No
+Support Lane DeviceType = No
+Support Extended Drive performance Monitoring = No
+Support NVMe Repair = No
+Support Platform Security = No
+Support None Mode Params = No
+Support Extended Controller Property = No
+Support Smart Poll Interval for DirectAttached = No
+Support Write Journal Pinning = No
+Support SMP Passthru with Port Number = No
+Support SnapDump Preboot Trace Buffer Toggle = No
+Support Parity Read Cache Bypass = No
+Support NVMe Init Error Device ConnectorIndex = No
+Support VolatileKey = No
+Support PSOC Part Information = No
 
 
 Supported PD Operations :
@@ -163,6 +192,9 @@ Support Max Rate SATA = No
 Support Degraded Media = No
 Support Parallel FW Update = No
 Support Drive Crypto Erase = No
+Support SSD Wear Gauge = No
+Support Sanitize = No
+Support Extended Sanitize = No
 
 
 Supported VD Operations :
@@ -223,6 +255,7 @@ On Board Expander = Absent
 Temperature Sensor for ROC = Present
 Temperature Sensor for Controller = Absent
 Upgradable CPLD = Absent
+Upgradable PSOC = Absent
 Current Size of CacheCade (GB) = 0
 Current Size of FW Cache (MB) = 866
 ROC temperature(Degree Celsius) = 90
@@ -254,7 +287,7 @@ Auto Rebuild = On
 Battery Warning = On
 ECC Bucket Size = 15
 ECC Bucket Leak Rate (hrs) = 24
-Restore HotSpare on Insertion = On
+Restore Hot Spare on Insertion = On
 Expose Enclosure Devices = Off
 Maintain PD Fail History = On
 Reorder Host Requests = On
@@ -330,7 +363,6 @@ Time taken to detect CME = 60 sec
 Capabilities :
 ============
 Supported Drives = SAS, SATA
-Boot Volume Supported = NO
 RAID Level Supported = RAID0, RAID1(2 or more drives), RAID5, RAID6, RAID00, RAID10(2 or more drives per span), RAID50, RAID60
 Enable JBOD = No
 Mix in Enclosure = Allowed
@@ -349,8 +381,12 @@ Max Data Transfer Size = 8192 sectors
 Max Strips PerIO = 42
 Max Configurable CacheCade Size(GB) = 0
 Max Transportable DGs = 0
+Enable Snapdump = No
+Enable SCSI Unmap = Yes
+Read cache bypass enabled for Parity RAID LDs = No
+FDE Drive Mix Support = No
 Min Strip Size = 8 KB
-Max Strip Size = 1.0 MB
+Max Strip Size = 1.000 MB
 
 
 Scheduled Tasks :
@@ -362,5 +398,9 @@ Next Patrol Read launch = 11/24/2018, 03:00:00
 Battery learn Reoccurrence = 672 hrs
 Next Battery Learn = 12/31/2018, 19:00:00
 OEMID = FSC
+
+Security Protocol properties :
+============================
+Security Protocol = None
 
 Drive Groups = ${drive_groups_num}

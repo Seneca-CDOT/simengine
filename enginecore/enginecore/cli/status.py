@@ -116,7 +116,6 @@ def get_status(**kwargs):
 
     #### one asset ####
     if kwargs["asset_key"] and kwargs["load"]:
-
         state_manager = IStateManager.get_state_manager_by_key(kwargs["asset_key"])
 
         if kwargs["value_only"]:

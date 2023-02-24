@@ -22,7 +22,6 @@ def _recvall(storcli64_socket):
 
 @then('response for asset "{key:d}" when running storcli64 command "{command}" is ok')
 def step_impl(context, key, command):
-
     port = context.hardware[key].asset_info["storcliPort"]
     storcli64_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     storcli64_socket.connect(("0.0.0.0", port))

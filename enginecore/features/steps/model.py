@@ -39,7 +39,6 @@ def step_impl(context, key, min_volt, port):
 
 @given('UPS asset with key "{key:d}" and "{port:d}" port is created')
 def step_impl(context, key, port):
-
     sm.create_ups(
         key,
         {
@@ -74,7 +73,6 @@ def _add_server_to_context(context, key):
     'Server asset with key "{key:d}", "{psu_num:d}" PSU(s) and "{wattage:d}" Wattage is created'
 )
 def step_impl(context, key, psu_num, wattage):
-
     sm.create_server(
         key,
         {
@@ -93,7 +91,6 @@ def step_impl(context, key, psu_num, wattage):
 
 @given('ServerBMC asset with key "{key:d}" and "{wattage:d}" Wattage is created')
 def step_impl(context, key, wattage):
-
     sm.create_server(
         key,
         {
@@ -113,7 +110,6 @@ def step_impl(context, key, wattage):
     'ServerBMC asset with key "{key:d}" and "{wattage:d}" Wattage and storcli64 support is created'
 )
 def step_impl(context, key, wattage):
-
     sm.create_server(
         key,
         {
@@ -140,7 +136,6 @@ def step_impl(context, key, min_volt, wattage):
 
 @given('asset "{source_key:d}" powers target "{dest_key:d}"')
 def step_impl(context, source_key, dest_key):
-
     assert_that(source_key, is_in(context.hardware))
     assert_that(dest_key, is_in(context.hardware))
 

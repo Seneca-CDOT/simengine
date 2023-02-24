@@ -28,7 +28,6 @@ class TestCompletionTracker(Component):
     th_done_queue = None
 
     def __init__(self, timeout):
-
         super().__init__()
         self._timeout = None if timeout < 0 else timeout
 
@@ -62,7 +61,6 @@ class TestCompletionTracker(Component):
 @then("Engine is up and running")
 @given("Engine is up and running")
 def step_impl(context):
-
     os.environ["SIMENGINE_WORKPLACE_TEMP"] = context.config.userdata["tmp_simengine"]
 
     # Start up simengine (in a thread)
@@ -88,7 +86,6 @@ def step_impl(_, delay):
 
 @when("power outage happens")
 def step_impl(context):
-
     if ISystemEnvironment.mains_status():
         ISystemEnvironment.power_outage()
         context.engine.handle_voltage_update(old_voltage=120, new_voltage=0)
@@ -97,7 +94,6 @@ def step_impl(context):
 
 @when("power is restored")
 def step_impl(context):
-
     if not ISystemEnvironment.mains_status():
         ISystemEnvironment.power_restore()
         context.engine.handle_voltage_update(old_voltage=0, new_voltage=120)
@@ -107,7 +103,6 @@ def step_impl(context):
 @given('wallpower voltage is set to "{new_volt:d}"')
 @when('wallpower voltage is updated to "{new_volt:d}"')
 def step_impl(context, new_volt):
-
     old_volt = ISystemEnvironment.get_voltage()
     ISystemEnvironment.set_voltage(new_volt)
 
@@ -121,7 +116,6 @@ def step_impl(context, new_volt):
 @given('asset "{key:d}" is "{state}"')
 @when('asset "{key:d}" goes "{state}"')
 def step_impl(context, key, state):
-
     state_m = context.hardware[key]
 
     old_state = state_m.status

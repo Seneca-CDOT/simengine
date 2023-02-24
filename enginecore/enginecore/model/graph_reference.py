@@ -252,7 +252,6 @@ class GraphReference:
 
         assets = {}
         for record in results:
-
             asset = dict(record["asset"])
 
             ## Set asset parent(s)

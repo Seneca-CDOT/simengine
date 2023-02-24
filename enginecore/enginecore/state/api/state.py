@@ -369,7 +369,6 @@ class IStateManager:
         """
         graph_ref = GraphReference()
         with graph_ref.get_session() as session:
-
             # cache assets
             assets = GraphReference.get_assets_and_connections(session, flatten)
             return cls._get_assets_states(assets, flatten)
@@ -448,7 +447,6 @@ class IStateManager:
 
         graph_ref = GraphReference()
         with graph_ref.get_session() as session:
-
             play_path = GraphReference.get_play_path(session)
         if not play_path:
             return

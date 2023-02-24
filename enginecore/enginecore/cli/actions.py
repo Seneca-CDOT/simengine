@@ -108,7 +108,6 @@ def get_action_slice(start, end):
     try:
         return slice(int(start), int(end))
     except (ValueError, TypeError):
-
         # attemp to parse dates if one/both of the range options are non digits
         all_actions = StateClient.list_actions(slice(None, None))
 

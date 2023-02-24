@@ -11,7 +11,6 @@ class EngineIterationConsumer:
     that occurred due to power outage)"""
 
     def __init__(self, iteration_worker_name="unspecified"):
-
         # queue of engine events waiting to be processed
         self._event_queue = queue.Queue()
         self._iteration_done_event = threading.Event()
@@ -82,7 +81,6 @@ class EngineIterationConsumer:
         start()"""
 
         while True:
-
             self._iteration_done_event.wait()
 
             # new processing iteration/loop was initialized
