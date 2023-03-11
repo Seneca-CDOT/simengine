@@ -1,0 +1,66 @@
+From d95768c039a2bf6b68422f83a8d55dad41bd3181 Mon Sep 17 00:00:00 2001
+From: Fam Zheng <famz@redhat.com>
+Date: Wed, 14 Jun 2017 15:37:01 +0200
+Subject: virtio-scsi: Reject scsi-cd if data plane enabled [RHEL only]
+
+RH-Author: Fam Zheng <famz@redhat.com>
+Message-id: <20170614153701.14757-1-famz@redhat.com>
+Patchwork-id: 75613
+O-Subject: [RHV-7.4 qemu-kvm-rhev PATCH v3] virtio-scsi: Reject scsi-cd if data plane enabled [RHEL only]
+Bugzilla: 1378816
+RH-Acked-by: Paolo Bonzini <pbonzini@redhat.com>
+RH-Acked-by: Stefan Hajnoczi <stefanha@redhat.com>
+RH-Acked-by: Max Reitz <mreitz@redhat.com>
+
+We need a fix for RHEL 7.4 and 7.3.z, but unfortunately upstream isn't
+ready. If it were, the changes will be too invasive. To have an idea:
+
+https://lists.gnu.org/archive/html/qemu-devel/2017-05/msg05400.html
+
+is an incomplete attempt to fix part of the issue, and the remaining
+work unfortunately involve even more complex changes.
+
+As a band-aid, this partially reverts the effect of ef8875b
+(virtio-scsi: Remove op blocker for dataplane, since v2.7). We cannot
+simply revert that commit as a whole because we already shipped it in
+qemu-kvm-rhev 7.3, since when, block jobs has been possible.  We should
+only block what has been broken.  Also, faithfully reverting the above
+commit means adding back the removed op blocker, but that is not enough,
+because it still crashes when inserting media into an initially empty
+scsi-cd.
+
+All in all, scsi-cd on virtio-scsi-dataplane has basically been unusable
+unless the scsi-cd never enters an empty state, so, disable it
+altogether.  Otherwise it would be much more difficult to avoid
+crashing.
+
+Signed-off-by: Fam Zheng <famz@redhat.com>
+Signed-off-by: Miroslav Rezanina <mrezanin@redhat.com>
+Signed-off-by: Danilo C. L. de Paula <ddepaula@redhat.com>
+---
+ hw/scsi/virtio-scsi.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/hw/scsi/virtio-scsi.c b/hw/scsi/virtio-scsi.c
+index 51fd09522a..a35257c35a 100644
+--- a/hw/scsi/virtio-scsi.c
++++ b/hw/scsi/virtio-scsi.c
+@@ -896,6 +896,15 @@ static void virtio_scsi_hotplug(HotplugHandler *hotplug_dev, DeviceState *dev,
+     AioContext *old_context;
+     int ret;
+ 
++    /* XXX: Remove this check once block backend is capable of handling
++     * AioContext change upon eject/insert.
++     * s->ctx is NULL if ioeventfd is off, s->ctx is qemu_get_aio_context() if
++     * data plane is not used, both cases are safe for scsi-cd. */
++    if (s->ctx && s->ctx != qemu_get_aio_context() &&
++        object_dynamic_cast(OBJECT(dev), "scsi-cd")) {
++        error_setg(errp, "scsi-cd is not supported by data plane");
++        return;
++    }
+     if (s->ctx && !s->dataplane_fenced) {
+         if (blk_op_is_blocked(sd->conf.blk, BLOCK_OP_TYPE_DATAPLANE, errp)) {
+             return;
+-- 
+2.27.0
+

@@ -1,0 +1,65 @@
+From 9a7621819821ee88d2f99d6b629fd87aa9a07758 Mon Sep 17 00:00:00 2001
+From: Andrew Jones <drjones@redhat.com>
+Date: Tue, 21 Jan 2014 10:46:52 +0100
+Subject: globally limit the maximum number of CPUs
+
+We now globally limit the number of VCPUs.
+Especially, there is no way one can specify more than
+max_cpus VCPUs for a VM.
+
+This allows us the restore the ppc max_cpus limitation to the upstream
+default and minimize the ppc hack in kvm-all.c.
+
+Signed-off-by: David Hildenbrand <david@redhat.com>
+Signed-off-by: Miroslav Rezanina <mrezanin@redhat.com>
+Signed-off-by: Danilo Cesar Lemes de Paula <ddepaula@redhat.com>
+
+Rebase notes (2.11.0):
+- Removed CONFIG_RHV reference
+- Update commit log
+
+Merged patches (2.11.0):
+- 92fef14623 redhat: remove manual max_cpus limitations for ppc
+- bb722e9eff redhat: globally limit the maximum number of CPUs
+- fdeef3c1c7 RHEL: Set vcpus hard limit to 240 for Power
+- 0584216921 Match POWER max cpus to x86
+
+Signed-off-by: Andrew Jones <drjones@redhat.com>
+
+Merged patches (5.1.0):
+- redhat: globally limit the maximum number of CPUs
+- redhat: remove manual max_cpus limitations for ppc
+- use recommended max vcpu count
+
+Merged patches (5.2.0 rc0):
+- f8a4123 vl: Remove downstream-only MAX_RHEL_CPUS code
+---
+ accel/kvm/kvm-all.c | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/accel/kvm/kvm-all.c b/accel/kvm/kvm-all.c
+index eecd8031cf..8f2a53438f 100644
+--- a/accel/kvm/kvm-all.c
++++ b/accel/kvm/kvm-all.c
+@@ -2423,6 +2423,18 @@ static int kvm_init(MachineState *ms)
+     soft_vcpus_limit = kvm_recommended_vcpus(s);
+     hard_vcpus_limit = kvm_max_vcpus(s);
+ 
++#ifdef HOST_PPC64
++    /*
++     * On POWER, the kernel advertises a soft limit based on the
++     * number of CPU threads on the host.  We want to allow exceeding
++     * this for testing purposes, so we don't want to set hard limit
++     * to soft limit as on x86.
++     */
++#else
++    /* RHEL doesn't support nr_vcpus > soft_vcpus_limit */
++    hard_vcpus_limit = soft_vcpus_limit;
++#endif
++
+     while (nc->name) {
+         if (nc->num > soft_vcpus_limit) {
+             warn_report("Number of %s cpus requested (%d) exceeds "
+-- 
+2.27.0
+

@@ -1,0 +1,53 @@
+From a9b5da617c29f48199cbea08d6a1c083877dce10 Mon Sep 17 00:00:00 2001
+From: Laurent Vivier <lvivier@redhat.com>
+Date: Mon, 15 Nov 2021 14:22:29 +0100
+Subject: compat: Update hw_compat_rhel_8_5
+
+RH-Author: Laurent Vivier <lvivier@redhat.com>
+RH-MergeRequest: 66: redhat: Update pseries-rhel8.5.0 machine type
+RH-Commit: [1/2] 232f2ad2b29d250fbdb8fcea9d814704c575ba2b
+RH-Bugzilla: 2022608
+RH-Acked-by: Eric Auger <eric.auger@redhat.com>
+RH-Acked-by: Cornelia Huck <cohuck@redhat.com>
+RH-Acked-by: Greg Kurz <gkurz@redhat.com>
+
+Add properties from hw_compat_6_1 as it already includes the ones from
+hw_compat_6_0. Add a lately added property from 6.0 too.
+
+Signed-off-by: Laurent Vivier <lvivier@redhat.com>
+--
+Rebase notes (6.2.0 rc3):
+- Included compatc changes introduced in RC2
+---
+ hw/core/machine.c | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/hw/core/machine.c b/hw/core/machine.c
+index 62febde5aa..736c765c30 100644
+--- a/hw/core/machine.c
++++ b/hw/core/machine.c
+@@ -38,7 +38,7 @@
+ #include "hw/virtio/virtio-pci.h"
+ 
+ /*
+- * Mostly the same as hw_compat_6_0
++ * Mostly the same as hw_compat_6_0 and hw_compat_6_1
+  */
+ GlobalProperty hw_compat_rhel_8_5[] = {
+     /* hw_compat_rhel_8_5 from hw_compat_6_0 */
+@@ -51,6 +51,12 @@ GlobalProperty hw_compat_rhel_8_5[] = {
+     { "e1000", "init-vet", "off" },
+     /* hw_compat_rhel_8_5 from hw_compat_6_0 */
+     { "e1000e", "init-vet", "off" },
++    /* hw_compat_rhel_8_5 from hw_compat_6_0 */
++    { "vhost-vsock-device", "seqpacket", "off" },
++    /* hw_compat_rhel_8_5 from hw_compat_6_1 */
++    { "vhost-user-vsock-device", "seqpacket", "off" },
++    /* hw_compat_rhel_8_5 from hw_compat_6_1 */
++    { "nvme-ns", "shared", "off" },
+ };
+ const size_t hw_compat_rhel_8_5_len = G_N_ELEMENTS(hw_compat_rhel_8_5);
+ 
+-- 
+2.27.0
+

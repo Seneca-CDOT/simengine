@@ -1,0 +1,407 @@
+From 740a2dd943a2e0fcd41a9cd8eb94a136f8f49fa2 Mon Sep 17 00:00:00 2001
+From: Miroslav Rezanina <mrezanin@redhat.com>
+Date: Wed, 2 Sep 2020 09:39:41 +0200
+Subject: Enable make check
+
+Fixing tests after device disabling and machine types changes and enabling
+make check run during build.
+
+Signed-off-by: Miroslav Rezanina <mrezanin@redhat.com>
+
+Rebase changes (4.0.0):
+- Remove testing for pseries-2.7 in endianess test
+- Disable device-plug-test on s390x as it use disabled device
+- Do not run cpu-plug-tests on 7.3 and older machine types
+
+Rebase changes (4.1.0-rc0):
+- removed iotests 068
+
+Rebase changes (4.1.0-rc1):
+- remove all 205 tests (unstable)
+
+Rebase changes (4.2.0-rc0):
+- partially disable hd-geo-test (requires lsi53c895a)
+
+Rebase changes (5.1.0-rc1):
+- Disable qtest/q35-test (uses upstream machine types)
+- Do not run iotests on make checka
+- Enabled iotests 071 and 099
+
+Rebase changes (5.2.0 rc0):
+- Disable cdrom tests (unsupported devices) on x86_64
+- disable fuzz test
+
+Rebase changes (6.0.0):
+- Disabled xlnx-can-test
+- Disable pxb-pcie subtest for bios-table-test
+- Replace qtest usage of upstream q35 machine type with pc-q35-rhel8.4.0
+- Not run cdrom-test on aarch64
+
+Rebase changes (6.1.0):
+- Remove unnecessary test disabling changes
+
+Rebase changes (weekly-211006):
+- New handling for bios-table-test (disabled downstream)
+
+Merged patches (4.0.0):
+- f7ffd13 Remove 7 qcow2 and luks iotests that are taking > 25 sec to run during the fast train build proce
+
+Merged patches (4.1.0-rc0):
+- 41288ff redhat: Remove raw iotest 205
+---
+ redhat/qemu-kvm.spec.template       |  2 +-
+ tests/qemu-iotests/051              |  8 ++++----
+ tests/qtest/bios-tables-test.c      |  5 ++++-
+ tests/qtest/boot-serial-test.c      |  6 +++++-
+ tests/qtest/cdrom-test.c            |  4 ++++
+ tests/qtest/cpu-plug-test.c         |  4 ++--
+ tests/qtest/fuzz-e1000e-test.c      |  2 +-
+ tests/qtest/fuzz-virtio-scsi-test.c |  2 +-
+ tests/qtest/hd-geo-test.c           |  4 ++++
+ tests/qtest/lpc-ich9-test.c         |  2 +-
+ tests/qtest/meson.build             | 13 ++++---------
+ tests/qtest/prom-env-test.c         |  4 ++++
+ tests/qtest/test-x86-cpuid-compat.c |  2 ++
+ tests/qtest/usb-hcd-xhci-test.c     |  4 ++++
+ 14 files changed, 41 insertions(+), 21 deletions(-)
+
+diff --git a/tests/qemu-iotests/051 b/tests/qemu-iotests/051
+index 1d2fa93a11..c8a2815f54 100755
+--- a/tests/qemu-iotests/051
++++ b/tests/qemu-iotests/051
+@@ -174,9 +174,9 @@ run_qemu -drive if=virtio
+ case "$QEMU_DEFAULT_MACHINE" in
+     pc)
+         run_qemu -drive if=none,id=disk -device ide-cd,drive=disk
+-        run_qemu -drive if=none,id=disk -device lsi53c895a -device scsi-cd,drive=disk
++#        run_qemu -drive if=none,id=disk -device lsi53c895a -device scsi-cd,drive=disk
+         run_qemu -drive if=none,id=disk -device ide-hd,drive=disk
+-        run_qemu -drive if=none,id=disk -device lsi53c895a -device scsi-hd,drive=disk
++#        run_qemu -drive if=none,id=disk -device lsi53c895a -device scsi-hd,drive=disk
+         ;;
+      *)
+         ;;
+@@ -225,9 +225,9 @@ run_qemu -drive file="$TEST_IMG",if=virtio,readonly=on
+ case "$QEMU_DEFAULT_MACHINE" in
+     pc)
+         run_qemu -drive file="$TEST_IMG",if=none,id=disk,readonly=on -device ide-cd,drive=disk
+-        run_qemu -drive file="$TEST_IMG",if=none,id=disk,readonly=on -device lsi53c895a -device scsi-cd,drive=disk
++#        run_qemu -drive file="$TEST_IMG",if=none,id=disk,readonly=on -device lsi53c895a -device scsi-cd,drive=disk
+         run_qemu -drive file="$TEST_IMG",if=none,id=disk,readonly=on -device ide-hd,drive=disk
+-        run_qemu -drive file="$TEST_IMG",if=none,id=disk,readonly=on -device lsi53c895a -device scsi-hd,drive=disk
++#        run_qemu -drive file="$TEST_IMG",if=none,id=disk,readonly=on -device lsi53c895a -device scsi-hd,drive=disk
+         ;;
+      *)
+         ;;
+diff --git a/tests/qtest/bios-tables-test.c b/tests/qtest/bios-tables-test.c
+index 258874167e..16d8304cde 100644
+--- a/tests/qtest/bios-tables-test.c
++++ b/tests/qtest/bios-tables-test.c
+@@ -1372,6 +1372,7 @@ static void test_acpi_virt_tcg_numamem(void)
+ 
+ }
+ 
++#if 0 /* Disabled for Red Hat Enterprise Linux */
+ static void test_acpi_virt_tcg_pxb(void)
+ {
+     test_data data = {
+@@ -1403,6 +1404,7 @@ static void test_acpi_virt_tcg_pxb(void)
+ 
+     free_test_data(&data);
+ }
++#endif
+ 
+ static void test_acpi_tcg_acpi_hmat(const char *machine)
+ {
+@@ -1644,7 +1646,8 @@ int main(int argc, char *argv[])
+             qtest_add_func("acpi/virt", test_acpi_virt_tcg);
+             qtest_add_func("acpi/virt/numamem", test_acpi_virt_tcg_numamem);
+             qtest_add_func("acpi/virt/memhp", test_acpi_virt_tcg_memhp);
+-            qtest_add_func("acpi/virt/pxb", test_acpi_virt_tcg_pxb);
++            /* Disabled for Red Hat Enterprise Linux
++            qtest_add_func("acpi/virt/pxb", test_acpi_virt_tcg_pxb); */
+             qtest_add_func("acpi/virt/oem-fields", test_acpi_oem_fields_virt);
+         }
+     }
+diff --git a/tests/qtest/boot-serial-test.c b/tests/qtest/boot-serial-test.c
+index 83828ba270..294476b959 100644
+--- a/tests/qtest/boot-serial-test.c
++++ b/tests/qtest/boot-serial-test.c
+@@ -148,19 +148,23 @@ static testdef_t tests[] = {
+     { "ppc", "g3beige", "", "PowerPC,750" },
+     { "ppc", "mac99", "", "PowerPC,G4" },
+     { "ppc", "sam460ex", "-m 256", "DRAM:  256 MiB" },
++#if 0 /* Disabled for Red Hat Enterprise Linux */
+     { "ppc64", "ppce500", "", "U-Boot" },
+     { "ppc64", "40p", "-m 192", "Memory: 192M" },
+     { "ppc64", "mac99", "", "PowerPC,970FX" },
++#endif
+     { "ppc64", "pseries",
+       "-machine " PSERIES_DEFAULT_CAPABILITIES,
+       "Open Firmware" },
++#if 0 /* Disabled for Red Hat Enterprise Linux */
+     { "ppc64", "powernv8", "", "OPAL" },
+     { "ppc64", "powernv9", "", "OPAL" },
+     { "ppc64", "sam460ex", "-device e1000", "8086  100e" },
++#endif
+     { "i386", "isapc", "-cpu qemu32 -device sga", "SGABIOS" },
+     { "i386", "pc", "-device sga", "SGABIOS" },
+     { "i386", "q35", "-device sga", "SGABIOS" },
+-    { "x86_64", "isapc", "-cpu qemu32 -device sga", "SGABIOS" },
++    { "x86_64", "pc", "-cpu qemu32 -device sga", "SGABIOS" },
+     { "x86_64", "q35", "-device sga", "SGABIOS" },
+     { "sparc", "LX", "", "TMS390S10" },
+     { "sparc", "SS-4", "", "MB86904" },
+diff --git a/tests/qtest/cdrom-test.c b/tests/qtest/cdrom-test.c
+index 5af944a5fb..69d9bac38a 100644
+--- a/tests/qtest/cdrom-test.c
++++ b/tests/qtest/cdrom-test.c
+@@ -140,6 +140,7 @@ static void add_x86_tests(void)
+         qtest_add_data_func("cdrom/boot/isapc", "-M isapc "
+                             "-drive if=ide,media=cdrom,file=", test_cdboot);
+     }
++#if 0  /* Disabled for Red Hat Enterprise Linux */
+     qtest_add_data_func("cdrom/boot/am53c974",
+                         "-device am53c974 -device scsi-cd,drive=cd1 "
+                         "-drive if=none,id=cd1,format=raw,file=", test_cdboot);
+@@ -155,6 +156,7 @@ static void add_x86_tests(void)
+     qtest_add_data_func("cdrom/boot/megasas-gen2", "-M q35 "
+                         "-device megasas-gen2 -device scsi-cd,drive=cd1 "
+                         "-blockdev file,node-name=cd1,filename=", test_cdboot);
++#endif
+ }
+ 
+ static void add_s390x_tests(void)
+@@ -220,6 +222,7 @@ int main(int argc, char **argv)
+             "magnum", "malta", "pica61", NULL
+         };
+         add_cdrom_param_tests(mips64machines);
++#if 0 /* Disabled for Red Hat Enterprise Linux */
+     } else if (g_str_equal(arch, "arm") || g_str_equal(arch, "aarch64")) {
+         const char *armmachines[] = {
+             "realview-eb", "realview-eb-mpcore", "realview-pb-a8",
+@@ -227,6 +230,7 @@ int main(int argc, char **argv)
+             "vexpress-a9", "virt", NULL
+         };
+         add_cdrom_param_tests(armmachines);
++#endif
+     } else {
+         const char *nonemachine[] = { "none", NULL };
+         add_cdrom_param_tests(nonemachine);
+diff --git a/tests/qtest/cpu-plug-test.c b/tests/qtest/cpu-plug-test.c
+index a1c689414b..a8f076711c 100644
+--- a/tests/qtest/cpu-plug-test.c
++++ b/tests/qtest/cpu-plug-test.c
+@@ -110,8 +110,8 @@ static void add_pseries_test_case(const char *mname)
+     char *path;
+     PlugTestData *data;
+ 
+-    if (!g_str_has_prefix(mname, "pseries-") ||
+-        (g_str_has_prefix(mname, "pseries-2.") && atoi(&mname[10]) < 7)) {
++    if (!g_str_has_prefix(mname, "pseries-rhel") ||
++        (g_str_has_prefix(mname, "pseries-rhel7.") && atoi(&mname[14]) < 4)) {
+         return;
+     }
+     data = g_new(PlugTestData, 1);
+diff --git a/tests/qtest/fuzz-e1000e-test.c b/tests/qtest/fuzz-e1000e-test.c
+index 66229e6096..947fba73b7 100644
+--- a/tests/qtest/fuzz-e1000e-test.c
++++ b/tests/qtest/fuzz-e1000e-test.c
+@@ -17,7 +17,7 @@ static void test_lp1879531_eth_get_rss_ex_dst_addr(void)
+ {
+     QTestState *s;
+ 
+-    s = qtest_init("-nographic -monitor none -serial none -M pc-q35-5.0");
++    s = qtest_init("-nographic -monitor none -serial none -M pc-q35-rhel8.4.0");
+ 
+     qtest_outl(s, 0xcf8, 0x80001010);
+     qtest_outl(s, 0xcfc, 0xe1020000);
+diff --git a/tests/qtest/fuzz-virtio-scsi-test.c b/tests/qtest/fuzz-virtio-scsi-test.c
+index aaf6d10e18..43727d62ac 100644
+--- a/tests/qtest/fuzz-virtio-scsi-test.c
++++ b/tests/qtest/fuzz-virtio-scsi-test.c
+@@ -19,7 +19,7 @@ static void test_mmio_oob_from_memory_region_cache(void)
+ {
+     QTestState *s;
+ 
+-    s = qtest_init("-M pc-q35-5.2 -display none -m 512M "
++    s = qtest_init("-M pc-q35-rhel8.4.0 -display none -m 512M "
+                    "-device virtio-scsi,num_queues=8,addr=03.0 ");
+ 
+     qtest_outl(s, 0xcf8, 0x80001811);
+diff --git a/tests/qtest/hd-geo-test.c b/tests/qtest/hd-geo-test.c
+index 113126ae06..999ef2aace 100644
+--- a/tests/qtest/hd-geo-test.c
++++ b/tests/qtest/hd-geo-test.c
+@@ -737,6 +737,7 @@ static void test_override_ide(void)
+     test_override(args, expected);
+ }
+ 
++#if 0 /* Require lsi53c895a - not supported on RHEL */
+ static void test_override_scsi(void)
+ {
+     TestArgs *args = create_args();
+@@ -781,6 +782,7 @@ static void test_override_scsi_2_controllers(void)
+     add_scsi_disk(args, 3, 1, 0, 1, 2, 0, 1, 0);
+     test_override(args, expected);
+ }
++#endif
+ 
+ static void test_override_virtio_blk(void)
+ {
+@@ -960,9 +962,11 @@ int main(int argc, char **argv)
+     qtest_add_func("hd-geo/ide/device/user/chst", test_ide_device_user_chst);
+     if (have_qemu_img()) {
+         qtest_add_func("hd-geo/override/ide", test_override_ide);
++#if 0 /* Require lsi53c895a - not supported on RHEL */
+         qtest_add_func("hd-geo/override/scsi", test_override_scsi);
+         qtest_add_func("hd-geo/override/scsi_2_controllers",
+                        test_override_scsi_2_controllers);
++#endif
+         qtest_add_func("hd-geo/override/virtio_blk", test_override_virtio_blk);
+         qtest_add_func("hd-geo/override/zero_chs", test_override_zero_chs);
+         qtest_add_func("hd-geo/override/scsi_hot_unplug",
+diff --git a/tests/qtest/lpc-ich9-test.c b/tests/qtest/lpc-ich9-test.c
+index fe0bef9980..7a9d51579b 100644
+--- a/tests/qtest/lpc-ich9-test.c
++++ b/tests/qtest/lpc-ich9-test.c
+@@ -15,7 +15,7 @@ static void test_lp1878642_pci_bus_get_irq_level_assert(void)
+ {
+     QTestState *s;
+ 
+-    s = qtest_init("-M pc-q35-5.0 "
++    s = qtest_init("-M pc-q35-rhel8.4.0 "
+                    "-nographic -monitor none -serial none");
+ 
+     qtest_outl(s, 0xcf8, 0x8000f840); /* PMBASE */
+diff --git a/tests/qtest/meson.build b/tests/qtest/meson.build
+index c9d8458062..049e06c057 100644
+--- a/tests/qtest/meson.build
++++ b/tests/qtest/meson.build
+@@ -68,7 +68,6 @@ qtests_i386 = \
+   (config_all_devices.has_key('CONFIG_RTL8139_PCI') ? ['rtl8139-test'] : []) +              \
+   (config_all_devices.has_key('CONFIG_E1000E_PCI_EXPRESS') ? ['fuzz-e1000e-test'] : []) +   \
+   (config_all_devices.has_key('CONFIG_ESP_PCI') ? ['am53c974-test'] : []) +                 \
+-  (unpack_edk2_blobs ? ['bios-tables-test'] : []) +                                         \
+   qtests_pci +                                                                              \
+   ['fdc-test',
+    'ide-test',
+@@ -81,7 +80,6 @@ qtests_i386 = \
+    'drive_del-test',
+    'tco-test',
+    'cpu-plug-test',
+-   'q35-test',
+    'vmgenid-test',
+    'migration-test',
+    'test-x86-cpuid-compat',
+@@ -130,17 +128,15 @@ qtests_mips64el = \
+ 
+ qtests_ppc = \
+   (config_all_devices.has_key('CONFIG_ISA_TESTDEV') ? ['endianness-test'] : []) +            \
+-  (config_all_devices.has_key('CONFIG_M48T59') ? ['m48t59-test'] : []) +                     \
+-  ['boot-order-test', 'prom-env-test', 'boot-serial-test']                 \
++  (config_all_devices.has_key('CONFIG_M48T59') ? ['m48t59-test'] : [])
+ 
+ qtests_ppc64 = \
+   (config_all_devices.has_key('CONFIG_PSERIES') ? ['device-plug-test'] : []) +               \
+   (config_all_devices.has_key('CONFIG_POWERNV') ? ['pnv-xscom-test'] : []) +                 \
+   (config_all_devices.has_key('CONFIG_PSERIES') ? ['rtas-test'] : []) +                      \
+-  (slirp.found() ? ['pxe-test', 'test-netfilter'] : []) +              \
++  (slirp.found() ? ['pxe-test'] : []) +              \
+   (config_all_devices.has_key('CONFIG_USB_UHCI') ? ['usb-hcd-uhci-test'] : []) +             \
+   (config_all_devices.has_key('CONFIG_USB_XHCI_NEC') ? ['usb-hcd-xhci-test'] : []) +         \
+-  (config_host.has_key('CONFIG_POSIX') ? ['test-filter-mirror'] : []) +                      \
+   qtests_pci + ['migration-test', 'numa-test', 'cpu-plug-test', 'drive_del-test']
+ 
+ qtests_sh4 = (config_all_devices.has_key('CONFIG_ISA_TESTDEV') ? ['endianness-test'] : [])
+@@ -186,8 +182,8 @@ qtests_aarch64 = \
+   ['arm-cpu-features',
+    'numa-test',
+    'boot-serial-test',
+-   'xlnx-can-test',
+-   'fuzz-xlnx-dp-test',
++#   'xlnx-can-test',
++#   'fuzz-xlnx-dp-test',
+    'migration-test']
+ 
+ qtests_s390x = \
+@@ -196,7 +192,6 @@ qtests_s390x = \
+   (config_host.has_key('CONFIG_POSIX') ? ['test-filter-redirector'] : []) +                     \
+   ['boot-serial-test',
+    'drive_del-test',
+-   'device-plug-test',
+    'virtio-ccw-test',
+    'cpu-plug-test',
+    'migration-test']
+diff --git a/tests/qtest/prom-env-test.c b/tests/qtest/prom-env-test.c
+index f41d80154a..f8dc478ce8 100644
+--- a/tests/qtest/prom-env-test.c
++++ b/tests/qtest/prom-env-test.c
+@@ -89,10 +89,14 @@ int main(int argc, char *argv[])
+     if (!strcmp(arch, "ppc")) {
+         add_tests(ppc_machines);
+     } else if (!strcmp(arch, "ppc64")) {
++#if 0 /* Disabled for Red Hat Enterprise Linux */
+         add_tests(ppc_machines);
+         if (g_test_slow()) {
++#endif
+             qtest_add_data_func("prom-env/pseries", "pseries", test_machine);
++#if 0 /* Disabled for Red Hat Enterprise Linux */
+         }
++#endif
+     } else if (!strcmp(arch, "sparc")) {
+         add_tests(sparc_machines);
+     } else if (!strcmp(arch, "sparc64")) {
+diff --git a/tests/qtest/test-x86-cpuid-compat.c b/tests/qtest/test-x86-cpuid-compat.c
+index f28848e06e..6b2fd398a2 100644
+--- a/tests/qtest/test-x86-cpuid-compat.c
++++ b/tests/qtest/test-x86-cpuid-compat.c
+@@ -300,6 +300,7 @@ int main(int argc, char **argv)
+                    "-cpu 486,xlevel2=0xC0000002,xstore=on",
+                    "xlevel2", 0xC0000002);
+ 
++#if 0 /* Disabled in Red Hat Enterprise Linux */
+     /* Check compatibility of old machine-types that didn't
+      * auto-increase level/xlevel/xlevel2: */
+ 
+@@ -350,6 +351,7 @@ int main(int argc, char **argv)
+     add_cpuid_test("x86/cpuid/xlevel-compat/pc-i440fx-2.4/npt-on",
+                    "-machine pc-i440fx-2.4 -cpu SandyBridge,svm=on,npt=on",
+                    "xlevel", 0x80000008);
++#endif
+ 
+     /* Test feature parsing */
+     add_feature_test("x86/cpuid/features/plus",
+diff --git a/tests/qtest/usb-hcd-xhci-test.c b/tests/qtest/usb-hcd-xhci-test.c
+index 10ef9d2a91..3855873050 100644
+--- a/tests/qtest/usb-hcd-xhci-test.c
++++ b/tests/qtest/usb-hcd-xhci-test.c
+@@ -21,6 +21,7 @@ static void test_xhci_hotplug(void)
+     usb_test_hotplug(global_qtest, "xhci", "1", NULL);
+ }
+ 
++#if 0 /* Disabled for Red Hat Enterprise Linux */
+ static void test_usb_uas_hotplug(void)
+ {
+     QTestState *qts = global_qtest;
+@@ -36,6 +37,7 @@ static void test_usb_uas_hotplug(void)
+     qtest_qmp_device_del(qts, "scsihd");
+     qtest_qmp_device_del(qts, "uas");
+ }
++#endif
+ 
+ static void test_usb_ccid_hotplug(void)
+ {
+@@ -56,7 +58,9 @@ int main(int argc, char **argv)
+ 
+     qtest_add_func("/xhci/pci/init", test_xhci_init);
+     qtest_add_func("/xhci/pci/hotplug", test_xhci_hotplug);
++#if 0 /* Disabled for Red Hat Enterprise Linux */
+     qtest_add_func("/xhci/pci/hotplug/usb-uas", test_usb_uas_hotplug);
++#endif
+     qtest_add_func("/xhci/pci/hotplug/usb-ccid", test_usb_ccid_hotplug);
+ 
+     qtest_start("-device nec-usb-xhci,id=xhci"
+-- 
+2.27.0
+

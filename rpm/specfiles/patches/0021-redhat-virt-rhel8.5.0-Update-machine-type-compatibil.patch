@@ -1,0 +1,51 @@
+From ce73e939b993cc6be170cdb5d3f2068270593f2b Mon Sep 17 00:00:00 2001
+From: Eric Auger <eric.auger@redhat.com>
+Date: Tue, 16 Nov 2021 17:03:07 +0100
+Subject: redhat: virt-rhel8.5.0: Update machine type compatibility for QEMU
+ 6.2.0 update
+
+RH-Author: Eric Auger <eric.auger@redhat.com>
+RH-MergeRequest: 75: redhat: virt-rhel8.5.0: Update machine type compatibility for QEMU 6.2.0 update
+RH-Commit: [21/21] f027d13654944e3d34e3356affe7af952eec2bed
+RH-Bugzilla: 2022607
+RH-Acked-by: Gavin Shan <gshan@redhat.com>
+RH-Acked-by: Miroslav Rezanina <mrezanin@redhat.com>
+RH-Acked-by: Andrew Jones <drjones@redhat.com>
+RH-Acked-by: Cornelia Huck <cohuck@redhat.com>
+RH-Acked-by: Laurent Vivier <lvivier@redhat.com>
+
+To keep compatibility with 8.5-AV machine type we need to
+turn few new options on by default:
+smp_props.prefer_sockets, no_cpu_topology, no_tcg_its
+
+TESTED: migrate from rhel-av-8.5.0 to rhel-8.6.0 and vice-versa
+with upstream fix: 33a0c404fb  hw/intc/arm_gicv3_its: Revert version
+increments in vmstate_its
+
+Signed-off-by: Eric Auger <eric.auger@redhat.com>
+Signed-off-by: Miroslav Rezanina <mrezanin@redhat.com>
+---
+ hw/arm/virt.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/hw/arm/virt.c b/hw/arm/virt.c
+index c77d26ab13..e8941afd01 100644
+--- a/hw/arm/virt.c
++++ b/hw/arm/virt.c
+@@ -3225,8 +3225,13 @@ type_init(rhel_machine_init);
+ 
+ static void rhel850_virt_options(MachineClass *mc)
+ {
++    VirtMachineClass *vmc = VIRT_MACHINE_CLASS(OBJECT_CLASS(mc));
++
+     compat_props_add(mc->compat_props, arm_rhel_compat, arm_rhel_compat_len);
+     compat_props_add(mc->compat_props, hw_compat_rhel_8_5, hw_compat_rhel_8_5_len);
++    mc->smp_props.prefer_sockets = true;
++    vmc->no_cpu_topology = true;
++    vmc->no_tcg_its = true;
+ }
+ DEFINE_RHEL_MACHINE_AS_LATEST(8, 5, 0)
+ 
+-- 
+2.27.0
+

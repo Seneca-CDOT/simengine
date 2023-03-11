@@ -1,0 +1,54 @@
+From 7bd99eebadfdbea6a76585b526e7cab1ee8b1fde Mon Sep 17 00:00:00 2001
+From: "Dr. David Alan Gilbert" <dgilbert@redhat.com>
+Date: Tue, 23 Nov 2021 18:07:49 +0000
+Subject: x86/rhel machine types: Wire compat into q35 and i440fx
+
+RH-Author: Dr. David Alan Gilbert <dgilbert@redhat.com>
+RH-MergeRequest: 77: 8.6/6.2 mt fixes
+RH-Commit: [23/23] fc3861aeccc943b434231193ef45ffbc0b3cf6c6
+RH-Bugzilla: 2026443
+RH-Acked-by: Miroslav Rezanina <mrezanin@redhat.com>
+
+Wire the pc_rhel_8_5 compat data into both piix and q35
+to keep the existing machine types compatible.
+
+Signed-off-by: Dr. David Alan Gilbert <dgilbert@redhat.com>
+Signed-off-by: Miroslav Rezanina <mrezanin@redhat.com>
+---
+ hw/i386/pc_piix.c | 4 ++++
+ hw/i386/pc_q35.c  | 4 ++++
+ 2 files changed, 8 insertions(+)
+
+diff --git a/hw/i386/pc_piix.c b/hw/i386/pc_piix.c
+index 2885edffe9..37fab00733 100644
+--- a/hw/i386/pc_piix.c
++++ b/hw/i386/pc_piix.c
+@@ -1040,6 +1040,10 @@ static void pc_machine_rhel760_options(MachineClass *m)
+     pcmc->kvmclock_create_always = false;
+     /* From pc_i440fx_5_1_machine_options() */
+     pcmc->pci_root_uid = 1;
++    compat_props_add(m->compat_props, hw_compat_rhel_8_5,
++                     hw_compat_rhel_8_5_len);
++    compat_props_add(m->compat_props, pc_rhel_8_5_compat,
++                     pc_rhel_8_5_compat_len);
+     compat_props_add(m->compat_props, hw_compat_rhel_8_4,
+                      hw_compat_rhel_8_4_len);
+     compat_props_add(m->compat_props, pc_rhel_8_4_compat,
+diff --git a/hw/i386/pc_q35.c b/hw/i386/pc_q35.c
+index c67418b6a9..78876e1101 100644
+--- a/hw/i386/pc_q35.c
++++ b/hw/i386/pc_q35.c
+@@ -658,6 +658,10 @@ static void pc_q35_machine_rhel850_options(MachineClass *m)
+     m->desc = "RHEL-8.5.0 PC (Q35 + ICH9, 2009)";
+     pcmc->smbios_stream_product = "RHEL-AV";
+     pcmc->smbios_stream_version = "8.5.0";
++    compat_props_add(m->compat_props, hw_compat_rhel_8_5,
++                     hw_compat_rhel_8_5_len);
++    compat_props_add(m->compat_props, pc_rhel_8_5_compat,
++                     pc_rhel_8_5_compat_len);
+ }
+ 
+ DEFINE_PC_MACHINE(q35_rhel850, "pc-q35-rhel8.5.0", pc_q35_init_rhel850,
+-- 
+2.27.0
+

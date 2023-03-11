@@ -1,0 +1,45 @@
+From f9643b6934657292aae0b830627b1e5f9b8cbaa1 Mon Sep 17 00:00:00 2001
+From: Eduardo Habkost <ehabkost@redhat.com>
+Date: Tue, 19 Oct 2021 13:17:06 -0400
+Subject: Fix virtio-net-pci* "vectors" compat
+
+RH-Author: Dr. David Alan Gilbert <dgilbert@redhat.com>
+RH-MergeRequest: 77: 8.6/6.2 mt fixes
+RH-Commit: [21/23] 8ad581932275d2698a99f31bec40b14f1dbd3d2e
+RH-Bugzilla: 2026443
+RH-Acked-by: Miroslav Rezanina <mrezanin@redhat.com>
+
+hw_compat_rhel_8_4 has an issue: it affects only "virtio-net-pci"
+but not "virtio-net-pci-transitional" and
+"virtio-net-pci-non-transitional".  The solution is to use the
+"virtio-net-pci-base" type in compat_props.
+
+An equivalent fix will be submitted for hw_compat_5_2 upstream.
+
+Signed-off-by: Eduardo Habkost <ehabkost@redhat.com>
+(cherry picked from commit d45823ab0d0138b2fbaf2ed1e1896d2052f3ccb3)
+Signed-off-by: Miroslav Rezanina <mrezanin@redhat.com>
+---
+ hw/core/machine.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/hw/core/machine.c b/hw/core/machine.c
+index 736c765c30..024b025fc2 100644
+--- a/hw/core/machine.c
++++ b/hw/core/machine.c
+@@ -71,7 +71,11 @@ GlobalProperty hw_compat_rhel_8_4[] = {
+     /* hw_compat_rhel_8_4 from hw_compat_5_2 */
+     { "virtio-blk-device", "report-discard-granularity", "off" },
+     /* hw_compat_rhel_8_4 from hw_compat_5_2 */
+-    { "virtio-net-pci", "vectors", "3"},
++    /*
++     * Upstream incorrectly had "virtio-net-pci" instead of "virtio-net-pci-base",
++     * (https://bugzilla.redhat.com/show_bug.cgi?id=1999141)
++     */
++    { "virtio-net-pci-base", "vectors", "3"},
+ };
+ const size_t hw_compat_rhel_8_4_len = G_N_ELEMENTS(hw_compat_rhel_8_4);
+ 
+-- 
+2.27.0
+

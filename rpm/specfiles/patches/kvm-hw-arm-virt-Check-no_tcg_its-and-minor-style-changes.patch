@@ -1,0 +1,86 @@
+From 1b4a8daf695a81f18ba70bea91b199da215da4e1 Mon Sep 17 00:00:00 2001
+From: Eric Auger <eric.auger@redhat.com>
+Date: Wed, 5 Jan 2022 16:17:10 +0100
+Subject: [PATCH 5/6] hw/arm/virt: Check no_tcg_its and minor style changes
+
+RH-Author: Eric Auger <eric.auger@redhat.com>
+RH-MergeRequest: 95: hw/arm/virt: Add virt-rhel8.6.0 machine type
+RH-Commit: [5/5] 57e77446ff5a1a7efe152b2c907c0a0ca5487ab7
+RH-Bugzilla: 2031039
+RH-Acked-by: Miroslav Rezanina <mrezanin@redhat.com>
+RH-Acked-by: Andrew Jones <drjones@redhat.com>
+RH-Acked-by: Gavin Shan <gshan@redhat.com>
+
+branch: rhel-8.6.0
+Brew: 42212069
+Upstream: no
+
+Truly allow TCG ITS instantiation according to the no_tcg_its
+class flag. Otherwise it is always set to false.
+
+We also take benefit of this patch to do some minor non
+functional style changes to be closer to the upstream code.
+
+Signed-off-by: Eric Auger <eric.auger@redhat.com>
+---
+ hw/arm/virt.c | 14 ++++++++++++--
+ 1 file changed, 12 insertions(+), 2 deletions(-)
+
+diff --git a/hw/arm/virt.c b/hw/arm/virt.c
+index c9c17b9d45..dbf0a6d62f 100644
+--- a/hw/arm/virt.c
++++ b/hw/arm/virt.c
+@@ -3157,6 +3157,7 @@ static void rhel_machine_class_init(ObjectClass *oc, void *data)
+                                           "in ACPI table header."
+                                           "The string may be up to 6 bytes in size");
+ 
++
+     object_class_property_add_str(oc, "x-oem-table-id",
+                                   virt_get_oem_table_id,
+                                   virt_set_oem_table_id);
+@@ -3164,6 +3165,7 @@ static void rhel_machine_class_init(ObjectClass *oc, void *data)
+                                           "Override the default value of field OEM Table ID "
+                                           "in ACPI table header."
+                                           "The string may be up to 8 bytes in size");
++
+ }
+ 
+ static void rhel_virt_instance_init(Object *obj)
+@@ -3188,24 +3190,32 @@ static void rhel_virt_instance_init(Object *obj)
+     } else {
+         /* Default allows ITS instantiation */
+         vms->its = true;
++
++        if (vmc->no_tcg_its) {
++            vms->tcg_its = false;
++        } else {
++            vms->tcg_its = true;
++        }
+     }
+ 
+     /* Default disallows iommu instantiation */
+     vms->iommu = VIRT_IOMMU_NONE;
+ 
++    /* The default root bus is attached to iommu by default */
++    vms->default_bus_bypass_iommu = false;
++
+     /* Default disallows RAS instantiation and is non-configurable for RHEL */
+     vms->ras = false;
+ 
+     /* MTE is disabled by default and non-configurable for RHEL */
+     vms->mte = false;
+ 
+-    vms->default_bus_bypass_iommu = false;
+     vms->irqmap = a15irqmap;
+ 
+     virt_flash_create(vms);
++
+     vms->oem_id = g_strndup(ACPI_BUILD_APPNAME6, 6);
+     vms->oem_table_id = g_strndup(ACPI_BUILD_APPNAME8, 8);
+-
+ }
+ 
+ static const TypeInfo rhel_machine_info = {
+-- 
+2.27.0
+

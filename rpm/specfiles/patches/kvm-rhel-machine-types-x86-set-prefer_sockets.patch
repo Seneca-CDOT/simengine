@@ -1,0 +1,52 @@
+From 0f0cbd57a8fe8f463941656f5bc75ae5754c3d2b Mon Sep 17 00:00:00 2001
+From: "Dr. David Alan Gilbert" <dgilbert@redhat.com>
+Date: Tue, 7 Dec 2021 18:39:47 +0000
+Subject: [PATCH 6/6] rhel machine types/x86: set prefer_sockets
+
+RH-Author: Dr. David Alan Gilbert <dgilbert@redhat.com>
+RH-MergeRequest: 96: Fixup x86 prefer_sockets
+RH-Commit: [1/1] 29578bcc2f5d3408c155c155cdfa10b7a12faf4d
+RH-Bugzilla: 2029582
+RH-Acked-by: Igor Mammedov <imammedo@redhat.com>
+RH-Acked-by: quintela1 <quintela@redhat.com>
+RH-Acked-by: Cornelia Huck <cohuck@redhat.com>
+
+When I fixed up the machine types for 8.5 I missed the
+  prefer_sockets = true
+
+add them in; it looks like Power, ARM already have them, and I see them
+in thuth's s390 patch.
+
+Signed-off-by: Dr. David Alan Gilbert <dgilbert@redhat.com>
+---
+ hw/i386/pc_piix.c | 1 +
+ hw/i386/pc_q35.c  | 1 +
+ 2 files changed, 2 insertions(+)
+
+diff --git a/hw/i386/pc_piix.c b/hw/i386/pc_piix.c
+index 37fab00733..c30057c443 100644
+--- a/hw/i386/pc_piix.c
++++ b/hw/i386/pc_piix.c
+@@ -1020,6 +1020,7 @@ static void pc_machine_rhel7_options(MachineClass *m)
+     compat_props_add(m->compat_props, pc_rhel_compat, pc_rhel_compat_len);
+     m->alias = "pc";
+     m->is_default = 1;
++    m->smp_props.prefer_sockets = true;
+ }
+ 
+ static void pc_init_rhel760(MachineState *machine)
+diff --git a/hw/i386/pc_q35.c b/hw/i386/pc_q35.c
+index 78876e1101..f6e77bca0e 100644
+--- a/hw/i386/pc_q35.c
++++ b/hw/i386/pc_q35.c
+@@ -662,6 +662,7 @@ static void pc_q35_machine_rhel850_options(MachineClass *m)
+                      hw_compat_rhel_8_5_len);
+     compat_props_add(m->compat_props, pc_rhel_8_5_compat,
+                      pc_rhel_8_5_compat_len);
++    m->smp_props.prefer_sockets = true;
+ }
+ 
+ DEFINE_PC_MACHINE(q35_rhel850, "pc-q35-rhel8.5.0", pc_q35_init_rhel850,
+-- 
+2.27.0
+

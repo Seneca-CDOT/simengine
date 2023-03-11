@@ -1,0 +1,69 @@
+From 3541c9fc2c2dd5cf7dd583bc5645d82ea928d9e8 Mon Sep 17 00:00:00 2001
+From: Thomas Huth <thuth@redhat.com>
+Date: Fri, 10 Dec 2021 10:07:40 +0100
+Subject: [PATCH 1/2] redhat: Add rhel8.6.0 machine type for s390x
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+RH-Author: Thomas Huth <thuth@redhat.com>
+RH-MergeRequest: 90: Add rhel8.6.0 machine type for s390x
+RH-Commit: [1/1] 91961fc52d708e6b30d7361fbab3572c5b5c1859
+RH-Bugzilla: 2005325
+RH-Acked-by: Greg Kurz <gkurz@redhat.com>
+RH-Acked-by: Philippe Mathieu-Daudé <philmd@redhat.com>
+RH-Acked-by: Cornelia Huck <cohuck@redhat.com>
+RH-Acked-by: David Hildenbrand <david@redhat.com>
+
+Bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=2005325
+
+The new machine type has better default values for the upcoming
+"generation 16" mainframe.
+
+Signed-off-by: Thomas Huth <thuth@redhat.com>
+---
+ hw/s390x/s390-virtio-ccw.c | 14 +++++++++++++-
+ 1 file changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/hw/s390x/s390-virtio-ccw.c b/hw/s390x/s390-virtio-ccw.c
+index cf13c457d6..9795eb9406 100644
+--- a/hw/s390x/s390-virtio-ccw.c
++++ b/hw/s390x/s390-virtio-ccw.c
+@@ -1103,10 +1103,21 @@ static void ccw_machine_2_4_class_options(MachineClass *mc)
+ DEFINE_CCW_MACHINE(2_4, "2.4", false);
+ #endif
+ 
++static void ccw_machine_rhel860_instance_options(MachineState *machine)
++{
++}
++
++static void ccw_machine_rhel860_class_options(MachineClass *mc)
++{
++}
++DEFINE_CCW_MACHINE(rhel860, "rhel8.6.0", true);
++
+ static void ccw_machine_rhel850_instance_options(MachineState *machine)
+ {
+     static const S390FeatInit qemu_cpu_feat = { S390_FEAT_LIST_QEMU_V6_0 };
+ 
++    ccw_machine_rhel860_instance_options(machine);
++
+     s390_set_qemu_cpu_model(0x2964, 13, 2, qemu_cpu_feat);
+ 
+     s390_cpudef_featoff_greater(16, 1, S390_FEAT_NNPA);
+@@ -1118,10 +1129,11 @@ static void ccw_machine_rhel850_instance_options(MachineState *machine)
+ 
+ static void ccw_machine_rhel850_class_options(MachineClass *mc)
+ {
++    ccw_machine_rhel860_class_options(mc);
+     compat_props_add(mc->compat_props, hw_compat_rhel_8_5, hw_compat_rhel_8_5_len);
+     mc->smp_props.prefer_sockets = true;
+ }
+-DEFINE_CCW_MACHINE(rhel850, "rhel8.5.0", true);
++DEFINE_CCW_MACHINE(rhel850, "rhel8.5.0", false);
+ 
+ static void ccw_machine_rhel840_instance_options(MachineState *machine)
+ {
+-- 
+2.27.0
+
