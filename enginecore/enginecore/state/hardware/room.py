@@ -174,7 +174,7 @@ class ServerRoom(Component):
     def _init_voltage_thread(self):
         """Initialize voltage fluctuations threading"""
 
-        if self._voltage_fluct_t and self._voltage_fluct_t.isAlive():
+        if self._voltage_fluct_t and self._voltage_fluct_t.is_alive():
             logger.warning("Voltage thread is already running!")
             return
 
@@ -214,17 +214,17 @@ class ServerRoom(Component):
         horizontal_line = "-" * 20
 
         th_warming_status = (
-            "up" if self._temp_warming_t.isAlive() else "down",
+            "up" if self._temp_warming_t.is_alive() else "down",
             "enabled" if not wall_power_status else "disabled",
         )
 
         th_cooling_status = (
-            "up" if self._temp_cooling_t.isAlive() else "down",
+            "up" if self._temp_cooling_t.is_alive() else "down",
             "enabled" if wall_power_status else "disabled",
         )
 
         th_voltage_status = (
-            "up" if self._voltage_fluct_t.isAlive() else "down",
+            "up" if self._voltage_fluct_t.is_alive() else "down",
             "enabled" if wall_power_status and volt_props["enabled"] else "disabled",
         )
 

@@ -454,7 +454,7 @@ class ServerWithBMC(Server):
         self._sensor_repo.stop()
         self._stop_event.set()
 
-        if self._vm_monitor_t is not None and self._vm_monitor_t.isAlive():
+        if self._vm_monitor_t is not None and self._vm_monitor_t.is_alive():
             self._vm_monitor_t.join()
 
         super().stop(code)
